@@ -49,6 +49,8 @@ jobs:
         run: |
           go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./seal
           go test -run '^$' -fuzz '^FuzzRead$' -fuzztime 30s ./reqhmac
+          go test -run '^$' -fuzz '^FuzzParseKeyBundle$' -fuzztime 30s ./profiles/platform
+          go test -run '^$' -fuzz '^FuzzPreparePassword$' -fuzztime 30s ./profiles/platform
 
   go-current:
     name: go stable

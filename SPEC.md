@@ -493,8 +493,8 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 
 - **The key id is outside the batch AAD** (section 4.5): bound through the content key's row instead.
 - **Zeroisation is best effort.** Neither language can clear a string (the password as typed), and Go's runtime may have copied a buffer before it is cleared. What each clears:
-  - Go: in `account.Derive`, the prepared password bytes and the Argon2id master key.
-  - TypeScript: in `derive`, the prepared password bytes, the master key and the raw wrap key, success or failure; the KDF worker clears its own copy of the password bytes; the recovery code's HKDF input and the raw recovery key after import; a content key's raw bytes after import (`ContentKey.unwrap`); the raw key after import in `openBrowserAccountKey`; in `hpke`, the PKCS#8 buffer built to import a private key and the PKCS#8 export of a generated one. The raw private key a caller passes in or receives (`generateKeyPair`) is the caller's to clear.
+  - Go: in `account.Derive`, the prepared password bytes and the Argon2id master key; in `account.DerivePrepared`, the master key (the prepared bytes it is given are the caller's to clear).
+  - TypeScript: in `derive`, the prepared password bytes, the master key and the raw wrap key, success or failure; in `derivePrepared`, the master key and the raw wrap key (the prepared bytes it is given are the caller's to zero); the KDF worker clears its own copy of the password bytes; the recovery code's HKDF input and the raw recovery key after import; a content key's raw bytes after import (`ContentKey.unwrap`); the raw key after import in `openBrowserAccountKey`; in `hpke`, the PKCS#8 buffer built to import a private key and the PKCS#8 export of a generated one. The raw private key a caller passes in or receives (`generateKeyPair`) is the caller's to clear.
   - Keys held as values (Go's content keys and private keys, TypeScript's non-extractable `CryptoKey`s) live as long as the values that hold them.
 - **Random nonces.** At most 2^20 values per content key (section 4.9).
 - **Wappie's wrap binds the email** (section 6.6): an email change needs a re-wrap.

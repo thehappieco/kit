@@ -59,12 +59,19 @@ export class PasskeyError extends Error {
 
 export type HPKEErrorCode = 'open_failed' | 'invalid_key'
 
+/**
+ * HPKEError is the hpke module's error. Where the engine refused an
+ * operation, cause is what the engine threw: a DOMException named
+ * NotSupportedError means it has no X25519 at all, rather than that it
+ * refused this key.
+ */
 export class HPKEError extends Error {
   constructor(
     message: string,
     readonly code: HPKEErrorCode,
+    options?: ErrorOptions,
   ) {
-    super(message)
+    super(message, options)
     this.name = 'HPKEError'
   }
 }

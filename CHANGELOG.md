@@ -18,6 +18,7 @@ The release date is the tag's.
 - Added, changing nothing that exists:
   - Go: `account.DerivePrepared`.
   - TypeScript: `account.derivePrepared` (and `bind(p).derivePrepared`), `bytes.fromBase64URL`, `bytes.isBase64URL`, `errors.PlatformError`, `errors.isPlatformError`, `errors.PlatformErrorCode` and `errors.Base64Error`.
+  - TypeScript: `HPKEError` takes an optional third argument, `ErrorOptions`, and the hpke module's `invalid_key` errors carry what the engine threw as their `cause`, so a caller can tell an engine without X25519 (`NotSupportedError`) from one that refused the key. The codes are unchanged.
   - `vectors.FS` also holds `platform/`.
 - The Go module now requires `golang.org/x/text` (v0.42.0, which needs Go 1.26.0 or later) for NFC.
 - The npm tarball also holds `dist/internal/`, the platform profile's implementation behind its subpath; it is not a subpath export. Every byte of the tarball is new, so an enclave that measures it measures a new image even if it does not import the new subpath.

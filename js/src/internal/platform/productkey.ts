@@ -13,7 +13,7 @@
 // From the platform's web/shared/crypto/productkey.ts.
 
 import { encodeUTF8, type Bytes } from '../../bytes.js'
-import { PlatformError } from '../../errors.js'
+import { HPKEError, PlatformError } from '../../errors.js'
 import { publicFromPrivate } from '../../hpke.js'
 import { LABEL_PRODUCT_KEY, ROOT_LEN } from './profile.js'
 import { isEpoch } from './rootwrap.js'
@@ -43,7 +43,23 @@ export interface ProductKey {
   id: string
 }
 
-/** deriveProductKey derives sk_p and pk_p from the root; a product id, epoch or root that names no key is product_key. */
+// lacksX25519 says whether err is hpke's refusal because the engine has no
+// X25519 at all (its cause a NotSupportedError, a DOMException, matched by
+// name so that one from another realm counts too), which says nothing about
+// the key.
+function lacksX25519(err: unknown): err is HPKEError {
+  if (!(err instanceof HPKEError)) return false
+  const cause = err.cause
+  return typeof cause === 'object' && cause !== null && (cause as { name?: unknown }).name === 'NotSupportedError'
+}
+
+/**
+ * deriveProductKey derives sk_p and pk_p from the root; a product id, epoch
+ * or root that names no key is product_key. An engine without X25519 is not
+ * a verdict on the key: hpke's HPKEError (invalid_key, its cause the
+ * engine's NotSupportedError) is thrown as it is, rather than product_key,
+ * which would say that a key bundle's listed keys are not this root's.
+ */
 export async function deriveProductKey(root: Uint8Array, product: string, epoch: number): Promise<ProductKey> {
   check(product, epoch)
   if (!(root instanceof Uint8Array) || root.length !== ROOT_LEN) {
@@ -61,8 +77,9 @@ export async function deriveProductKey(root: Uint8Array, product: string, epoch:
   }
   try {
     return { sk, pub: await publicFromPrivate(sk), id: `${product}:${epoch}` }
-  } catch {
+  } catch (err) {
     sk.fill(0)
+    if (lacksX25519(err)) throw err
     throw new PlatformError('the engine refuses this product key', 'product_key')
   }
 }

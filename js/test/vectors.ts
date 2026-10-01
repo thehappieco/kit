@@ -216,6 +216,32 @@ export async function withLenientX25519<T>(fn: () => Promise<T> | T): Promise<T>
   }
 }
 
+/**
+ * withEngineRefusingX25519 runs fn on a WebCrypto that throws a DOMException
+ * with the given name for every X25519 key it is asked to import or
+ * generate: NotSupportedError is an engine without X25519 at all, as Firefox
+ * was before version 130; DataError one that refuses the key it is given.
+ */
+export async function withEngineRefusingX25519<T>(name: string, fn: () => Promise<T> | T): Promise<T> {
+  const isX25519 = (algorithm: unknown) => (typeof algorithm === 'string' ? algorithm : (algorithm as { name?: string }).name) === 'X25519'
+  const realImport = crypto.subtle.importKey.bind(crypto.subtle)
+  const realGenerate = crypto.subtle.generateKey.bind(crypto.subtle)
+  const importSpy = vi.spyOn(crypto.subtle, 'importKey').mockImplementation(((format: KeyFormat, data: BufferSource, algorithm: unknown, ...rest: unknown[]) => {
+    if (isX25519(algorithm)) return Promise.reject(new DOMException('the engine refuses X25519 here', name))
+    return (realImport as (...a: unknown[]) => Promise<CryptoKey>)(format, data, algorithm, ...rest)
+  }) as never)
+  const generateSpy = vi.spyOn(crypto.subtle, 'generateKey').mockImplementation(((algorithm: unknown, ...rest: unknown[]) => {
+    if (isX25519(algorithm)) return Promise.reject(new DOMException('the engine refuses X25519 here', name))
+    return (realGenerate as (...a: unknown[]) => Promise<CryptoKeyPair>)(algorithm, ...rest)
+  }) as never)
+  try {
+    return await fn()
+  } finally {
+    importSpy.mockRestore()
+    generateSpy.mockRestore()
+  }
+}
+
 const PKCS8_X25519_PREFIX = new Uint8Array([0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x04, 0x22, 0x04, 0x20])
 
 /**

@@ -10,9 +10,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { derive } from '../src/account.js'
 import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes.js'
-import { isPlatformError, PlatformError, type PlatformErrorCode } from '../src/errors.js'
+import { HPKEError, isPlatformError, PlatformError, type PlatformErrorCode } from '../src/errors.js'
 import * as platform from '../src/profiles/platform.js'
-import { loadPlatform, withDraws } from './vectors.js'
+import { loadPlatform, withDraws, withEngineRefusingX25519 } from './vectors.js'
 
 const ch = (...cps: number[]) => String.fromCodePoint(...cps)
 
@@ -364,6 +364,25 @@ describe('product keys', () => {
     }
     for (const epoch of [0, -1, 1.5, 2 ** 31, Number.NaN]) await expectRefusal(() => platform.productPublicKey(ROOT, 'wappie', epoch), 'product_key')
     await expectRefusal(() => platform.productPublicKey(new Uint8Array(31), 'wappie', 1), 'product_key')
+  })
+
+  // product_key says a key bundle's listed keys are not this root's. An
+  // engine without X25519 says nothing about the key, so hpke's error comes
+  // through as it is, with the engine's NotSupportedError as its cause; an
+  // engine that refuses the key is still product_key.
+  it('are not refused as product_key by an engine without X25519', async () => {
+    let caught: unknown
+    await withEngineRefusingX25519('NotSupportedError', async () => {
+      try {
+        await platform.productPublicKey(ROOT, 'wappie', 1)
+      } catch (err) {
+        caught = err
+      }
+    })
+    expect(caught).toBeInstanceOf(HPKEError)
+    expect((caught as HPKEError).code).toBe('invalid_key')
+    expect(((caught as HPKEError).cause as DOMException).name).toBe('NotSupportedError')
+    await withEngineRefusingX25519('DataError', () => expectRefusal(() => platform.productPublicKey(ROOT, 'wappie', 1), 'product_key'))
   })
 })
 

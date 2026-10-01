@@ -97,10 +97,12 @@ async function importPrivate(raw: Bytes): Promise<CryptoKey> {
   const pkcs8 = concat(PKCS8_X25519_PREFIX, raw)
   try {
     return await crypto.subtle.importKey('pkcs8', pkcs8, { name: 'X25519' }, false, ['deriveBits'])
-  } catch {
+  } catch (err) {
     // Engines differ on degenerate scalars (WebKit on Linux refuses an
     // all-zero one, the others clamp it): a refusal is the kit's own error.
-    throw new HPKEError('the engine refuses this private key', 'invalid_key')
+    // The engine's own error is its cause, so a caller can tell an engine
+    // without X25519 (NotSupportedError) from one that refused this key.
+    throw new HPKEError('the engine refuses this private key', 'invalid_key', { cause: err })
   } finally {
     pkcs8.fill(0)
   }
@@ -129,8 +131,8 @@ async function dh(priv: CryptoKey, publicRaw: Bytes): Promise<Bytes> {
   try {
     const pub = await importPublic(publicRaw)
     shared = new Uint8Array(await crypto.subtle.deriveBits({ name: 'X25519', public: pub }, priv, 256)) as Bytes
-  } catch {
-    throw new HPKEError('no shared secret with this public key', 'invalid_key')
+  } catch (err) {
+    throw new HPKEError('no shared secret with this public key', 'invalid_key', { cause: err })
   }
   let any = 0
   for (let i = 0; i < shared.length; i++) any |= shared[i]
@@ -210,7 +212,7 @@ async function encap(publicRaw: Bytes): Promise<{ enc: Bytes; shared: Bytes }> {
     // (WebKit on Linux throws a DOMException for some low-order points
     // before deriveBits) is the kit's own error, as dh's is.
     if (err instanceof HPKEError) throw err
-    throw new HPKEError('no shared secret with this public key', 'invalid_key')
+    throw new HPKEError('no shared secret with this public key', 'invalid_key', { cause: err })
   }
 }
 

@@ -466,7 +466,7 @@ A reader uses the root and the product keys only after step 4. A writer (the pla
 | `bundle` | not a key bundle this version reads |
 | `encoding` | a value not in its one accepted spelling where no other name fits (a verifier's inputs) |
 
-Where an input has several defects, the order of checks in sections 11.2 to 11.9 decides the name. Errors of the kit's generic modules never escape the platform profile: they are reported as one of these names. A product's own rules (for example a page refusing a password equal to the address) use the product's own codes.
+Where an input has several defects, the order of checks in sections 11.2 to 11.9 decides the name. Errors of the kit's generic modules never escape the platform profile: they are reported as one of these names. The one exception is an engine that lacks a primitive, which is not a verdict on any input: in TypeScript, on an engine without X25519, deriving a product key (and so opening a key bundle) throws the `hpke` module's `HPKEError` `invalid_key` as it is, with the engine's `NotSupportedError` as its `cause`, rather than `product_key`, which would say that a bundle's listed keys are not its root's. A product's own rules (for example a page refusing a password equal to the address) use the product's own codes.
 
 ### 11.11 Vectors
 

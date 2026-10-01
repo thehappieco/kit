@@ -97,6 +97,10 @@ async function importPrivate(raw: Bytes): Promise<CryptoKey> {
   const pkcs8 = concat(PKCS8_X25519_PREFIX, raw)
   try {
     return await crypto.subtle.importKey('pkcs8', pkcs8, { name: 'X25519' }, false, ['deriveBits'])
+  } catch {
+    // Engines differ on degenerate scalars (WebKit on Linux refuses an
+    // all-zero one, the others clamp it): a refusal is the kit's own error.
+    throw new HPKEError('the engine refuses this private key', 'invalid_key')
   } finally {
     pkcs8.fill(0)
   }
@@ -194,12 +198,20 @@ export async function importPrivateKey(privRaw: Bytes): Promise<PrivateKey> {
  * key per seal is what makes base mode safe without a sequence number.
  */
 async function encap(publicRaw: Bytes): Promise<{ enc: Bytes; shared: Bytes }> {
-  const ephemeral = (await crypto.subtle.generateKey({ name: 'X25519' }, true, ['deriveBits'])) as CryptoKeyPair
-  const enc = new Uint8Array(await crypto.subtle.exportKey('raw', ephemeral.publicKey)) as Bytes
-  const shared = await dh(ephemeral.privateKey, publicRaw)
-  const context = concat(enc, publicRaw)
-  const prk = await labeledExtract(KEM_SUITE, new Uint8Array(0), 'eae_prk', shared)
-  return { enc, shared: await labeledExpand(KEM_SUITE, prk, 'shared_secret', context, N_SECRET) }
+  try {
+    const ephemeral = (await crypto.subtle.generateKey({ name: 'X25519' }, true, ['deriveBits'])) as CryptoKeyPair
+    const enc = new Uint8Array(await crypto.subtle.exportKey('raw', ephemeral.publicKey)) as Bytes
+    const shared = await dh(ephemeral.privateKey, publicRaw)
+    const context = concat(enc, publicRaw)
+    const prk = await labeledExtract(KEM_SUITE, new Uint8Array(0), 'eae_prk', shared)
+    return { enc, shared: await labeledExpand(KEM_SUITE, prk, 'shared_secret', context, N_SECRET) }
+  } catch (err) {
+    // Whatever the engine throws for a public key it will not agree with
+    // (WebKit on Linux throws a DOMException for some low-order points
+    // before deriveBits) is the kit's own error, as dh's is.
+    if (err instanceof HPKEError) throw err
+    throw new HPKEError('no shared secret with this public key', 'invalid_key')
+  }
 }
 
 async function decap(priv: PrivateKey, enc: Bytes): Promise<Bytes> {

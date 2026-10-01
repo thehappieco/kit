@@ -4,6 +4,9 @@ import { type Bytes } from '../src/bytes.js'
 import { ENC_LEN, generateKeyPair, HPKEError, importPrivateKey, open, publicFromPrivate, seal } from '../src/hpke.js'
 import { b64, codeOf, files, forTS, toB64, unhandled, utf8, withDraws, withLenientX25519 } from './vectors.js'
 
+/** Cases whose answer depends on the WebCrypto engine (see the case below). */
+const ENGINE_DEPENDENT = new Set(['hpke/public-from-private/zeros'])
+
 for (const [path, f] of files('wappie/golden/hpke-ts.json', 'kit/hpke-go.json')) {
   const keys = new Map<string, { priv: Bytes; pub: Bytes }>()
   for (const [name, k] of Object.entries(f.keys ?? {})) keys.set(name, { priv: b64(k.private_key_b64), pub: b64(k.public_key_b64) })
@@ -40,9 +43,17 @@ for (const [path, f] of files('wappie/golden/hpke-ts.json', 'kit/hpke-go.json'))
             if (i.forged_plaintext_b64) expect(await codeOf(() => withLenientX25519(attempt))).toBe(c.error)
             return
           }
-          case 'hpke.public_from_private':
+          case 'hpke.public_from_private': {
+            // The all-zero scalar is the one input engines disagree on: Node,
+            // Chromium, Firefox and WebKit on macOS clamp it, WebKit on Linux
+            // refuses it. Either answer is fine; a different key is not.
+            if (ENGINE_DEPENDENT.has(c.id)) {
+              const code = await codeOf(() => publicFromPrivate(b64(i.private_key_b64)))
+              if (code === 'invalid_key') return
+            }
             expect(toB64(await publicFromPrivate(b64(i.private_key_b64)))).toBe(c.out.public_key_b64)
             return
+          }
           case 'hpke.generate_key_pair': {
             const pair = await withDraws({ x25519: [b64(i.x25519_private_key_b64)] }, generateKeyPair)
             expect([toB64(pair.privateKey), toB64(pair.publicKey)]).toEqual([c.out.private_key_b64, c.out.public_key_b64])

@@ -12,7 +12,7 @@ import { unwrapPrivateKey } from '../src/account.js'
 import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes.js'
 import { PlatformError } from '../src/errors.js'
 import * as platform from '../src/profiles/platform.js'
-import { loadPlatform, withDraws, type PlatformCase } from './vectors.js'
+import { b64 as std, files, forTS, loadPlatform, toB64, unhandled, withDraws, type PlatformCase, type VectorCase } from './vectors.js'
 
 /** The members each kind's cases may have, which are the members the runners below read. */
 const MEMBERS: Record<string, readonly string[]> = {
@@ -289,5 +289,93 @@ for (const kind of Object.keys(COUNTS)) {
   const f = loadPlatform(kind)
   describe(`platform/id-v1/${kind}.json`, () => {
     for (const c of f.cases) it(c.name, () => runners[kind](c))
+  })
+}
+
+// The kit's own platform cases, in the kit's format: those Go wrote
+// (kit/platform-go.json, and the fresh file of the same name in
+// $KIT_CROSS_IN in the cross-language job) and those this side wrote at
+// release time (kit/platform-ts.json), which keep later versions to the same
+// bytes.
+async function kitCase(c: VectorCase): Promise<void> {
+  const i = c.in
+  const code = async (fn: () => unknown) => {
+    try {
+      await fn()
+    } catch (err) {
+      if (err instanceof PlatformError) return err.code
+      return `not a PlatformError: ${err instanceof Error ? err.name : typeof err}`
+    }
+    return 'none'
+  }
+  const passkey = i.rp_id !== undefined || i.credential_id !== undefined ? { rpId: i.rp_id ?? '', credentialId: i.credential_id ?? '' } : undefined
+  switch (c.op) {
+    case 'platform.prepare_password':
+      if (c.error) expect(await code(() => platform.preparePassword(i.password, { isNew: i.new }))).toBe(c.error)
+      else expect(toB64(platform.preparePassword(i.password, { isNew: i.new }))).toBe(c.out.prepared_b64)
+      return
+    case 'platform.derive_password': {
+      if (c.error) {
+        expect(await code(() => platform.derivePassword(std(i.prepared_b64), std(i.salt_b64), i.kdf))).toBe(c.error)
+        return
+      }
+      const d = await platform.derivePassword(std(i.prepared_b64), std(i.salt_b64), i.kdf)
+      expect(d.authKey).toBe(c.out.auth_key)
+      expect(await probe(d.wrapKey)).toBe(await probe(await rawKey(std(c.out.wrap_b64))))
+      return
+    }
+    case 'platform.root_wrap': {
+      expect(platform.rootWrapAAD(i.kind, i.sub, i.epoch, passkey)).toBe(c.out.aad)
+      const wrap = await withDraws({ bytes: [std(i.nonce_b64)] }, () => platform.sealRootWrap(i.kind, std(i.key_b64), std(i.root_b64), i.sub, i.epoch, passkey))
+      expect(toB64(wrap)).toBe(c.out.wrap_b64)
+      expect(toB64(await platform.openRootWrap(i.kind, std(i.key_b64), std(c.out.wrap_b64), i.sub, i.epoch, passkey))).toBe(i.root_b64)
+      return
+    }
+    case 'platform.open_root_wrap':
+      expect(await code(() => platform.openRootWrap(i.kind, std(i.key_b64), std(i.wrap_b64), i.sub, i.epoch, passkey))).toBe(c.error)
+      return
+    case 'platform.recovery_code': {
+      if (c.error) {
+        expect(await code(() => platform.canonicalRecoveryCode(i.typed))).toBe(c.error)
+        return
+      }
+      if (i.random_b64 !== undefined) {
+        expect(platform.recoveryCodeFromBytes(std(i.random_b64)).canonical).toBe(c.out.canonical)
+        expect((await withDraws({ bytes: [std(i.random_b64)] }, platform.newRecoveryCode)).display).toBe(c.out.display)
+      }
+      expect(platform.canonicalRecoveryCode(i.typed)).toBe(c.out.canonical)
+      expect(platform.formatRecoveryCode(i.typed)).toBe(c.out.display)
+      const keys = await platform.deriveRecovery(i.typed)
+      expect(keys.recoveryAuth).toBe(c.out.recovery_auth)
+      expect(await probe(keys.wrapKey)).toBe(await probe(await rawKey(std(c.out.wrap_b64))))
+      return
+    }
+    case 'platform.product_key': {
+      const k = await platform.deriveProductKey(std(i.root_b64), i.product, i.epoch)
+      expect([toB64(k.sk), toB64(k.pub), k.id]).toEqual([c.out.sk_b64, c.out.pub_b64, c.out.product_key_id])
+      return
+    }
+    case 'platform.verifier':
+      if (i.k_auth_b64 !== undefined) expect(toB64(await platform.authVerifier(i.sub, std(i.k_auth_b64)))).toBe(c.out.auth_verifier_b64)
+      else expect(toB64(await platform.recoveryVerifier(i.sub, std(i.r_proof_b64)))).toBe(c.out.recovery_verifier_b64)
+      return
+    case 'platform.normalize_email':
+      if (c.error) expect(await code(() => platform.normalizeEmail(i.input))).toBe(c.error)
+      else expect(platform.normalizeEmail(i.input)).toBe(c.out.email_norm)
+      return
+    case 'platform.key_bundle': {
+      const open = () => i.recovery_code !== undefined ? platform.openKeyBundleWithRecoveryCode(i.bundle_text, i.recovery_code) : platform.openKeyBundle(i.bundle_text, i.password)
+      if (c.error) expect(await code(open)).toBe(c.error)
+      else expect(toB64(await open())).toBe(c.out.root_b64)
+      return
+    }
+  }
+  unhandled(c)
+}
+
+for (const [path, f] of files('kit/platform-go.json', 'kit/platform-ts.json')) {
+  describe(path, () => {
+    expect(f.profile).toBe('platform')
+    for (const c of f.cases.filter(forTS)) it(c.id, () => kitCase(c))
   })
 }

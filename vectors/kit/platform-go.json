@@ -1,0 +1,613 @@
+{
+  "format": "thehappieco-kit-vectors/1",
+  "module": "platform",
+  "profile": "platform",
+  "generated_by": {
+    "generator": "internal/cross/write_test.go",
+    "lang": "go",
+    "randomness": "crypto/rand; seals record what they drew where the format has room for it",
+    "source": "github.com/thehappieco/kit@34940a2e4aa09babb60d554d0257def7ac793009 platform",
+    "toolchain": "go1.26.7"
+  },
+  "note": "Fresh cases of the platform profile (SPEC section 11) by the kit's Go, for the TypeScript tests: random passwords from blocks whose normalisation is stable since Unicode 15.0, derivations, root wraps with the nonce they drew, recovery codes with the bytes they came from, product keys, verifiers, addresses and a key bundle. The check_public_key cases are the server's, for Go only.",
+  "cases": [
+    {
+      "id": "platform/prepare-password/0",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": true,
+        "password": "ạ̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣̣́bcdefghijk"
+      },
+      "out": {
+        "prepared_b64": "4bqhzKPMo8yjzKPMo8yjzKPMo8yjzKPMo8yjzKPMo8yjzKPMo8yjzKPMo8yjzKPMo8yjzKPMo8yjzKPMgWJjZGVmZ2hpams="
+      }
+    },
+    {
+      "id": "platform/prepare-password/1",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": "á́́́́́́́́́́́́́́́́́́́́́́́́́́́́́́"
+      },
+      "error": "password_invalid"
+    },
+    {
+      "id": "platform/prepare-password/2",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": "각 Ångström 　"
+      },
+      "out": {
+        "prepared_b64": "6rCBIMOFbmdzdHLDtm0gIA=="
+      }
+    },
+    {
+      "id": "platform/prepare-password/3",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": true,
+        "password": "short"
+      },
+      "error": "password_too_short"
+    },
+    {
+      "id": "platform/prepare-password/4",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": "password-1234"
+      },
+      "error": "password_invalid"
+    },
+    {
+      "id": "platform/prepare-password/5",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": "6ᅧ琼H　 댹ᅯAᅲŤí5' 🙂 ç े!鐅च粊😈"
+      },
+      "out": {
+        "prepared_b64": "NuGFp+eQvEggIOuMueGFr0HhhbLFpMOtNScg8J+ZgiDDpyDgpYch6ZCF4KSa57KK8J+YiA=="
+      }
+    },
+    {
+      "id": "platform/prepare-password/6",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": "　ζ̐溑Ę😴̧靪 ᆶᆸ恏̨Pć湭дᇂइ뒵ã😳Т詌ŷ णद"
+      },
+      "out": {
+        "prepared_b64": "IM62zJDmupHEmPCfmLTMp+mdqiDhhrbhhrjmgY/MqFDEh+a5rdC04YeC4KSH65K1w6Pwn5iz0KLoqYzFtyDgpKPgpKY="
+      }
+    },
+    {
+      "id": "platform/prepare-password/7",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": "ᅪॆᄄ 펪Ĥ　ᄋzध!Oऑ　̯ᅢKMF Фᆰ"
+      },
+      "out": {
+        "prepared_b64": "4YWq4KWG4YSEIO2OqsSkIOGEi3rgpKchT+CkkSDMr+GFoktNRiDQpOGGsA=="
+      }
+    },
+    {
+      "id": "platform/prepare-password/8",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": true,
+        "password": "δ ̓ॆ😑цᅣझ̀ ͊Γ멬घᆨń　"
+      },
+      "out": {
+        "prepared_b64": "zrQgzJPgpYbwn5iR0YbhhaPgpJ3MgCDNis6T66ms4KSY4YaoxYQg"
+      }
+    },
+    {
+      "id": "platform/prepare-password/9",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": "oΘйaGĐNΡ叫Á̽ ᆾङᆨÃЧ😲蛄̢😮ᄆơ流冑úŀ遛"
+      },
+      "out": {
+        "prepared_b64": "b86Y0LlhR8SQTs6h5Y+rw4HMvSDhhr7gpJnhhqjDg9Cn8J+YsuibhMyi8J+YruGEhsah5rWB5YaRw7rFgOmBmw=="
+      }
+    },
+    {
+      "id": "platform/prepare-password/10",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": "άÝॉ　킵ᅯ 쒟΢蕰ेŚ퀄अ1̵"
+      },
+      "out": {
+        "prepared_b64": "zqzDneCliSDtgrXhha8g7JKfzqLolbDgpYfFmu2AhOCkhTHMtQ=="
+      }
+    },
+    {
+      "id": "platform/prepare-password/11",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": "ᄏΦॅΣ?घPgळ诡uy🙉œa嘫ᄃ😯ы🙆꿤ũ솱÷　ᅲJᇁ PДyl　ŋζОᆼ"
+      },
+      "out": {
+        "prepared_b64": "4YSPzqbgpYXOoz/gpJhQZ+Cks+ivoXV58J+ZicWTYeWYq+GEg/CfmK/Ri/CfmYbqv6TFqeyGscO3IOGFskrhh4EgUNCUeWwgxYvOttCe4Ya8"
+      }
+    },
+    {
+      "id": "platform/prepare-password/12",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": true,
+        "password": "č😿9ÍĤ🙂每=룷ω&मᄇᆯ喲9ᆫग7쌿ga jͅॆᄃ श̞E ć嗋佼f̈́0"
+      },
+      "out": {
+        "prepared_b64": "xI3wn5i/OcONxKTwn5mC5q+PPeujt8+JJuCkruGEh+GGr+WWsjnhhqvgpJc37Iy/Z2Egas2F4KWG4YSDIOCktsyeRSDEh+WXi+S9vGbMiMyBMA=="
+      }
+    },
+    {
+      "id": "platform/prepare-password/13",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": true,
+        "password": "ᅱ꺈 ᄁ8묞C　 Ω🙏ᄊn嬭J퓾3ᅨᄍN ,ᅣЖ滲Ыᄄ🙈0 "
+      },
+      "out": {
+        "prepared_b64": "4YWx6rqIIOGEgTjrrJ5DICDOqfCfmY/hhIpu5aytSu2TvjPhhajhhI1OICzhhaPQlua7stCr4YSE8J+ZiDAg"
+      }
+    },
+    {
+      "id": "platform/prepare-password/14",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": " 24ᅢᅡऴmΥι😑　ᅪ Ĺ"
+      },
+      "out": {
+        "prepared_b64": "IDI04YWi4YWh4KS0bc6lzrnwn5iRIOGFqiDEuQ=="
+      }
+    },
+    {
+      "id": "platform/prepare-password/15",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": false,
+        "password": "ᄀh 泈Ð तtᅯ Ĉऍ2"
+      },
+      "out": {
+        "prepared_b64": "4YSAaCDms4jDkCDgpKR04YWvIMSI4KSNMg=="
+      }
+    },
+    {
+      "id": "platform/prepare-password/16",
+      "op": "platform.prepare_password",
+      "in": {
+        "new": true,
+        "password": " M厉 ĿG꽦ᆽïᅦΫ芕Τjै艱ίP　ᅧ😀😭😤ŤЮið쬦7"
+      },
+      "out": {
+        "prepared_b64": "IE3ljokgxL9H6r2m4Ya9w6/hhabOq+iKlc6kauCliOiJsc6vUCDhhafwn5iA8J+YrfCfmKTFpNCuacOw7KymNw=="
+      }
+    },
+    {
+      "id": "platform/derive-password/0",
+      "op": "platform.derive_password",
+      "in": {
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "prepared_b64": "SOyglMShIM6667yt6KCvIDkg4YaozJbDilFqOzbmsJ92zYzgpJ3hhq4xzpvMgfCfmYMgzrgga8yYxInqvIjproE=",
+        "salt_b64": "owWb4A1r7kxqme6GK+JQpA=="
+      },
+      "out": {
+        "auth_key": "01oQq5QfL8uBjpS3OTm1IY5WF1hLnN2LnbXcl4E0DPk",
+        "wrap_b64": "92sROhJ6jvPQ6VSzDrU5lwkt3T5CxLK8mQsfkke93vI="
+      }
+    },
+    {
+      "id": "platform/derive-password/1",
+      "op": "platform.derive_password",
+      "in": {
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 4
+        },
+        "prepared_b64": "8J+YvSAgIMWI4YWja2wg8J+ZhjM0zLtvICDOt+Clg86qMeyvl8OsKiDMsuGGscyC4KWC4YSPTyjlvZ0gYcSZ",
+        "salt_b64": "A2QZwme9UahwPQvRwYXbFw=="
+      },
+      "out": {
+        "auth_key": "8cZ3R9rl4IAC1SBOpLPU68K20-SQLwhLk3B0P465hBg",
+        "wrap_b64": "+OlGNNbyjOmQzw4gQCoDjlf3tLMRx/emT+LAfw3hO1I="
+      }
+    },
+    {
+      "id": "platform/derive-password/refuses/m-32768",
+      "op": "platform.derive_password",
+      "in": {
+        "kdf": {
+          "alg": "argon2id",
+          "m": 32768,
+          "t": 3,
+          "p": 1
+        },
+        "prepared_b64": "eA==",
+        "salt_b64": "MonGdl+nb1fHi6z4TRZsCg=="
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "id": "platform/root-wrap/password",
+      "op": "platform.root_wrap",
+      "in": {
+        "epoch": 372658614,
+        "key_b64": "4aHv0vjWfGO/1ERKl14tUc/k0MOvH9f/dBS0QE8C+UI=",
+        "kind": "password",
+        "nonce_b64": "Cc/wBvjZLUam4Qs8",
+        "root_b64": "nwmVJ6MyjFm4Bj+BZbSL7OZKdonxEfHLLLoazYd0kzg=",
+        "sub": "01a0f848-cc57-795e-bbe5-74a7e37a71da"
+      },
+      "out": {
+        "aad": "[\"thehappie-id/root-wrap\",1,\"password\",\"01a0f848-cc57-795e-bbe5-74a7e37a71da\",372658614]",
+        "wrap_b64": "AQEJz/AG+NktRqbhCzy7O4l5SKPslB/IhRQXHWDijEtzQTZ7WsY8+kNcx1lSzDvdM5rT/ZLNSBCscxzc2qM="
+      }
+    },
+    {
+      "id": "platform/root-wrap/password/other-sub",
+      "op": "platform.open_root_wrap",
+      "in": {
+        "epoch": 372658614,
+        "key_b64": "4aHv0vjWfGO/1ERKl14tUc/k0MOvH9f/dBS0QE8C+UI=",
+        "kind": "password",
+        "sub": "01a0f848-cc57-7a31-b579-6b4e379c85cc",
+        "wrap_b64": "AQEJz/AG+NktRqbhCzy7O4l5SKPslB/IhRQXHWDijEtzQTZ7WsY8+kNcx1lSzDvdM5rT/ZLNSBCscxzc2qM="
+      },
+      "error": "wrap"
+    },
+    {
+      "id": "platform/root-wrap/recovery",
+      "op": "platform.root_wrap",
+      "in": {
+        "epoch": 39985590,
+        "key_b64": "acDyfbqL/BkxDb9xVcIbtvlw7I4qKapOWeNOs7f7puI=",
+        "kind": "recovery",
+        "nonce_b64": "6LwF1NVhaBKLHoik",
+        "root_b64": "+06BoXpmTIlmutxUcnRfzLTV/KjdvbvMsT8V7MuuxVs=",
+        "sub": "01a0f848-cc57-7a35-a76c-20850b87a6d8"
+      },
+      "out": {
+        "aad": "[\"thehappie-id/root-wrap\",1,\"recovery\",\"01a0f848-cc57-7a35-a76c-20850b87a6d8\",39985590]",
+        "wrap_b64": "AQLovAXU1WFoEoseiKSymtdmS4S0ldL98VW61pstxy9ZKL/rTNrRYe+HdNmmRQDMDpYj8EouJEucuOgYzwg="
+      }
+    },
+    {
+      "id": "platform/root-wrap/recovery/other-sub",
+      "op": "platform.open_root_wrap",
+      "in": {
+        "epoch": 39985590,
+        "key_b64": "acDyfbqL/BkxDb9xVcIbtvlw7I4qKapOWeNOs7f7puI=",
+        "kind": "recovery",
+        "sub": "01a0f848-cc57-7a50-8a95-f37bc8575f85",
+        "wrap_b64": "AQLovAXU1WFoEoseiKSymtdmS4S0ldL98VW61pstxy9ZKL/rTNrRYe+HdNmmRQDMDpYj8EouJEucuOgYzwg="
+      },
+      "error": "wrap"
+    },
+    {
+      "id": "platform/root-wrap/passkey",
+      "op": "platform.root_wrap",
+      "in": {
+        "credential_id": "r8wmIEoDbSMfLHTdPlXuyA",
+        "epoch": 649245374,
+        "key_b64": "i12JnhOyebFgfH1wEk/fbVc6jM8HBzqWUlJqjabDUQk=",
+        "kind": "passkey",
+        "nonce_b64": "rpZp2Qz6XndRf75r",
+        "root_b64": "X+z6S7wkOEx6nTqhzZrikC/BXlIAyGV5cKeo/ietXrY=",
+        "rp_id": "id.thehappie.co",
+        "sub": "01a0f848-cc57-7a54-86f4-198d62922632"
+      },
+      "out": {
+        "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f848-cc57-7a54-86f4-198d62922632\",649245374,\"id.thehappie.co\",\"r8wmIEoDbSMfLHTdPlXuyA\"]",
+        "wrap_b64": "AQOulmnZDPped1F/vmvCLjY/6xRTMRH6hrdhoCOImuPAtCG5bIjRTNMo1GXFPauzJDnTcCsp7hS2SXXvu9Q="
+      }
+    },
+    {
+      "id": "platform/root-wrap/passkey/other-sub",
+      "op": "platform.open_root_wrap",
+      "in": {
+        "credential_id": "r8wmIEoDbSMfLHTdPlXuyA",
+        "epoch": 649245374,
+        "key_b64": "i12JnhOyebFgfH1wEk/fbVc6jM8HBzqWUlJqjabDUQk=",
+        "kind": "passkey",
+        "rp_id": "id.thehappie.co",
+        "sub": "01a0f848-cc57-7a8f-bcd2-5e20b71cb2de",
+        "wrap_b64": "AQOulmnZDPped1F/vmvCLjY/6xRTMRH6hrdhoCOImuPAtCG5bIjRTNMo1GXFPauzJDnTcCsp7hS2SXXvu9Q="
+      },
+      "error": "wrap"
+    },
+    {
+      "id": "platform/recovery-code/0",
+      "op": "platform.recovery_code",
+      "in": {
+        "random_b64": "MzhKK0QZO/wN6fCsRplkNzmoxR5R6/PVD+DBcIZT",
+        "typed": "krab4 svwd9 gc6s4 qs85y hbknf 01g6k"
+      },
+      "out": {
+        "canonical": "KRAB4SVWD9GC6S4QS85YHBKNF01G6K",
+        "display": "KRAB4-SVWD9-GC6S4-QS85Y-HBKNF-01G6K",
+        "recovery_auth": "TQw2cGkFyHkX1AW5nkqx5W6auAnpKB6AYcNMMMJyaSo",
+        "wrap_b64": "0T5Z4fkuJr+Wvm/9iAygono1aP69FSfunliO+m4EbPQ="
+      }
+    },
+    {
+      "id": "platform/recovery-code/1",
+      "op": "platform.recovery_code",
+      "in": {
+        "random_b64": "BdTR7BfoUN3uwn9nC1FCwWHrSShq6JNT1Ftqdiah",
+        "typed": "5mhcq 8gxe2 z7bh2 11b98 a8kkm vap61"
+      },
+      "out": {
+        "canonical": "5MHCQ8GXE2Z7BH211B98A8KKMVAP61",
+        "display": "5MHCQ-8GXE2-Z7BH2-11B98-A8KKM-VAP61",
+        "recovery_auth": "5uVX5L9s685-Y0kvTpOQ6GzrG_SrsWdEa9HgcAcIy3o",
+        "wrap_b64": "Ku+XKxHOCJCnNR2k6A2Gn/na56esKrTtSCXAZXzKNsI="
+      }
+    },
+    {
+      "id": "platform/recovery-code/refuses/u",
+      "op": "platform.recovery_code",
+      "in": {
+        "typed": "U00000000000000000000000000000"
+      },
+      "error": "recovery_code"
+    },
+    {
+      "id": "platform/product-key/0",
+      "op": "platform.product_key",
+      "in": {
+        "epoch": 972022829,
+        "product": "wappie",
+        "root_b64": "DRz2pQRv3+xeH1BCAa2Zqys2XT3LdHXAGjBaFlmKKNY="
+      },
+      "out": {
+        "product_key_id": "wappie:972022829",
+        "pub_b64": "YniuVW5Vc5PJvFCbF78rbDPawGmNY0NnUViYwf5jizA=",
+        "sk_b64": "L4kVlSuPTfIStBsJwG9ActnYdnIHLK4cE2OfrDGxdwQ="
+      }
+    },
+    {
+      "id": "platform/check-public-key/0",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "YniuVW5Vc5PJvFCbF78rbDPawGmNY0NnUViYwf5jizA="
+      },
+      "out": {
+        "valid": true
+      }
+    },
+    {
+      "id": "platform/product-key/1",
+      "op": "platform.product_key",
+      "in": {
+        "epoch": 2096979208,
+        "product": "a-future-product",
+        "root_b64": "ebwaW1cvWO35qkRgC2CC2+7FPFaKowyjUEWHYt4JV0o="
+      },
+      "out": {
+        "product_key_id": "a-future-product:2096979208",
+        "pub_b64": "FMIvuuevcaFDmp6AzR2t5KKmaO3y0fSZzBsEQhEE3B4=",
+        "sk_b64": "NUEoqF8kNSMYLvDuBx27FRONk8ERp1UIyfgXXD1Ruqg="
+      }
+    },
+    {
+      "id": "platform/check-public-key/1",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "FMIvuuevcaFDmp6AzR2t5KKmaO3y0fSZzBsEQhEE3B4="
+      },
+      "out": {
+        "valid": true
+      }
+    },
+    {
+      "id": "platform/check-public-key/refuses/zero",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      },
+      "error": "product_key"
+    },
+    {
+      "id": "platform/check-public-key/refuses/one",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      },
+      "error": "product_key"
+    },
+    {
+      "id": "platform/check-public-key/refuses/order-8-a",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "4Ot6fDtBuK4WVuP68Z/EatoJjeucMrH9hmIFFl9JuAA="
+      },
+      "error": "product_key"
+    },
+    {
+      "id": "platform/check-public-key/refuses/order-8-b",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "X5yVvKNQjCSx0LFVnIPvWwREXMRYHI6G2CJO3dCfEVc="
+      },
+      "error": "product_key"
+    },
+    {
+      "id": "platform/check-public-key/refuses/p-minus-1",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "7P///////////////////////////////////////38="
+      },
+      "error": "product_key"
+    },
+    {
+      "id": "platform/check-public-key/refuses/p",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "7f///////////////////////////////////////38="
+      },
+      "error": "product_key"
+    },
+    {
+      "id": "platform/check-public-key/refuses/p-plus-1",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "7v///////////////////////////////////////38="
+      },
+      "error": "product_key"
+    },
+    {
+      "id": "platform/check-public-key/refuses/zero-bit-255",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA="
+      },
+      "error": "product_key"
+    },
+    {
+      "id": "platform/check-public-key/refuses/order-8-a-bit-255",
+      "op": "platform.check_public_key",
+      "langs": [
+        "go"
+      ],
+      "in": {
+        "pub_b64": "4Ot6fDtBuK4WVuP68Z/EatoJjeucMrH9hmIFFl9JuIA="
+      },
+      "error": "product_key"
+    },
+    {
+      "id": "platform/verifier/0",
+      "op": "platform.verifier",
+      "in": {
+        "k_auth_b64": "ExHWKq8yNMy85L3iAXCILcLYu0Y/qsFQg/3CeDqDPXE=",
+        "sub": "01a0f848-cc58-74de-bf0b-0b6574768ca5"
+      },
+      "out": {
+        "auth_verifier_b64": "Q0/o8W+YSuKfX7XFHdwIpXFmbP2X02JWYbk0HGqszLQ="
+      }
+    },
+    {
+      "id": "platform/verifier/1",
+      "op": "platform.verifier",
+      "in": {
+        "r_proof_b64": "CqbzSeFosu5mJHibcg6JMf3Y6hnrE/DPqciFQ+Kq4FE=",
+        "sub": "01a0f848-cc58-74ed-bb11-1f22f717ec3f"
+      },
+      "out": {
+        "recovery_verifier_b64": "RB7uv3OPP/vgfjOFmuBhwMP+4e1f52BJNRd/8mpcyXw="
+      }
+    },
+    {
+      "id": "platform/normalize-email/0",
+      "op": "platform.normalize_email",
+      "in": {
+        "input": " Ana.Silva+Kit@Example.COM\r\n"
+      },
+      "out": {
+        "email_norm": "ana.silva+kit@example.com"
+      }
+    },
+    {
+      "id": "platform/normalize-email/1",
+      "op": "platform.normalize_email",
+      "in": {
+        "input": "x@ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.io"
+      },
+      "out": {
+        "email_norm": "x@ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.io"
+      }
+    },
+    {
+      "id": "platform/normalize-email/2",
+      "op": "platform.normalize_email",
+      "in": {
+        "input": "ana@192.168.0.1"
+      },
+      "error": "email"
+    },
+    {
+      "id": "platform/normalize-email/3",
+      "op": "platform.normalize_email",
+      "in": {
+        "input": "Kate@example.com"
+      },
+      "error": "email"
+    },
+    {
+      "id": "platform/key-bundle/password",
+      "op": "platform.key_bundle",
+      "in": {
+        "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f848-cc58-7510-b098-1290f5fd02a0\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"LjNQAXOTeZD8buntEHOxGg\",\n  \"password_wrap\": \"AQFqNOJWgzFB4x88a-53J6_oszT91ujm9xsjwoYihHOc8avKn1pCsxXxQpwe5EmiMlZzbHcC_84kMqPUwqw\",\n  \"recovery_wrap\": \"AQLajeakSHNMjma8AtWrYDjr2dwNQVrOwakQRRBRgduIdaUIa-HIbM5dyJrVjieE2-Rwf9cFvCyFTZnn0n0\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"utz6mr1HqugGR1qk79ewYd13P2qsTB95rZPMSo8y2nw\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"nxKUcr4wVgHk4vhmtfFcEjRQWzevpOCGAWbOgljOuDU\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T16:25:15Z\"\n}\n",
+        "password": "3뭨ůBΫô  ᄅढKॄ  φa  屙ैé춣ᅥ 😠　ᆭᆶ4яᆺ ᆩᆶ😈\\Jॆ"
+      },
+      "out": {
+        "root_b64": "mpTVXkjEaFWE1cw7mLyPFiaUVt07YoZQoaDDsD3/Yg8="
+      }
+    },
+    {
+      "id": "platform/key-bundle/recovery-code",
+      "op": "platform.key_bundle",
+      "in": {
+        "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f848-cc58-7510-b098-1290f5fd02a0\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"LjNQAXOTeZD8buntEHOxGg\",\n  \"password_wrap\": \"AQFqNOJWgzFB4x88a-53J6_oszT91ujm9xsjwoYihHOc8avKn1pCsxXxQpwe5EmiMlZzbHcC_84kMqPUwqw\",\n  \"recovery_wrap\": \"AQLajeakSHNMjma8AtWrYDjr2dwNQVrOwakQRRBRgduIdaUIa-HIbM5dyJrVjieE2-Rwf9cFvCyFTZnn0n0\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"utz6mr1HqugGR1qk79ewYd13P2qsTB95rZPMSo8y2nw\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"nxKUcr4wVgHk4vhmtfFcEjRQWzevpOCGAWbOgljOuDU\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T16:25:15Z\"\n}\n",
+        "recovery_code": "YQK40WHFFMZM5KCB6YY2PP80222XQ2"
+      },
+      "out": {
+        "root_b64": "mpTVXkjEaFWE1cw7mLyPFiaUVt07YoZQoaDDsD3/Yg8="
+      }
+    },
+    {
+      "id": "platform/key-bundle/other-code",
+      "op": "platform.key_bundle",
+      "in": {
+        "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f848-cc58-7510-b098-1290f5fd02a0\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"LjNQAXOTeZD8buntEHOxGg\",\n  \"password_wrap\": \"AQFqNOJWgzFB4x88a-53J6_oszT91ujm9xsjwoYihHOc8avKn1pCsxXxQpwe5EmiMlZzbHcC_84kMqPUwqw\",\n  \"recovery_wrap\": \"AQLajeakSHNMjma8AtWrYDjr2dwNQVrOwakQRRBRgduIdaUIa-HIbM5dyJrVjieE2-Rwf9cFvCyFTZnn0n0\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"utz6mr1HqugGR1qk79ewYd13P2qsTB95rZPMSo8y2nw\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"nxKUcr4wVgHk4vhmtfFcEjRQWzevpOCGAWbOgljOuDU\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T16:25:15Z\"\n}\n",
+        "recovery_code": "777777777777777777777777777777"
+      },
+      "error": "wrap"
+    }
+  ]
+}

@@ -83,7 +83,11 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | `bytes.uuid_v5` | compute | compute |
 | `bytes.parse_uuid`, `bytes.format_uuid`, `bytes.base64`, `bytes.from_hex`, `jcs.canonical_value` | | compute |
 | `jcs.canonical` | compute (integers and strings) | compute |
-| `derived.*`, `keychain.*`, `attestation.user_data` | | reference implementation in the tests, until the modules move in v0.2.0 |
+| `derived.*`, `keychain.*`, `attestation.user_data` | | reference implementation in the tests, until the modules move |
+| `platform.prepare_password`, `platform.derive_password`, `platform.open_root_wrap`, `platform.product_key`, `platform.verifier`, `platform.normalize_email`, `platform.key_bundle` | compute | compute |
+| `platform.root_wrap` | compute; replay (nonce) | compute; replay (nonce) |
+| `platform.recovery_code` | compute from the recorded bytes | compute; replay |
+| `platform.check_public_key` (the server's) | compute | |
 
 Every dispatcher fails on a case for its language whose op it does not handle.
 

@@ -28,6 +28,7 @@ import * as passkey from '@thehappieco/kit/passkey'
 import * as browserAccount from '@thehappieco/kit/browserAccount'
 import * as reqhmac from '@thehappieco/kit/reqhmac'
 import * as wappie from '@thehappieco/kit/profiles/wappie'
+import * as platform from '@thehappieco/kit/profiles/platform'
 
 const pair = await hpke.generateKeyPair()
 const id = bytes.parseUUID('018f3a2b-0000-7000-8000-000000000001')
@@ -46,6 +47,15 @@ await assert.rejects(hpke.seal(new Uint8Array(32), new Uint8Array(0), new Uint8A
 assert.equal(typeof browserAccount.validBrowserKeyEnvelope, 'function')
 assert.match(await reqhmac.signature(wappie.wappieMCPHMAC, 's', 'to-go', 'r', 'GET', '/', '1', 'n', new Uint8Array(0)), /^v1=[0-9a-f]{64}$/)
 assert.equal(canonicalJSON({ b: 1, a: 2 }), '{"a":2,"b":1}')
+const sub = '0199e4b2-3c41-7a52-8f3e-9b1d2c4e5f60'
+assert.equal(platform.rootWrapAAD('password', sub, 1), '["thehappie-id/root-wrap",1,"password","' + sub + '",1]')
+const rootWrap = await platform.sealRootWrap('recovery', new Uint8Array(32).fill(1), new Uint8Array(32).fill(2), sub, 1)
+assert.deepEqual([rootWrap.length, rootWrap[0], rootWrap[1]], [62, 1, 2])
+assert.equal(platform.normalizeEmail(' Ana@Example.COM '), 'ana@example.com')
+assert.equal(platform.canonicalRecoveryCode('oi234-56789-abcde-fghjk-mnpqr-stvwx'), '0123456789ABCDEFGHJKMNPQRSTVWX')
+assert.throws(() => platform.normalizeEmail('ana'), platform.PlatformError)
+await assert.rejects(platform.derivePassword(new Uint8Array(1), new Uint8Array(16), { alg: 'argon2id', m: 8, t: 1, p: 1 }), (err) => platform.isPlatformError(err, 'kdf_policy'))
+assert.equal((await platform.deriveProductKey(new Uint8Array(32).fill(3), 'wappie', 1)).pub.length, 32)
 await import('@thehappieco/kit/kdf.worker').catch(err => assert.match(String(err), /self/))
 console.log('smoke: every export loads and works from the installed tarball')
 `)

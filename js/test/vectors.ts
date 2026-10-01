@@ -108,6 +108,41 @@ export function raw(path: string): any {
 
 export const forTS = (c: VectorCase) => !c.langs || c.langs.includes('ts')
 
+// ---------------------------------------------------------------------------
+// The platform's own format (vectors/README.md, "The platform's format"), in
+// which vectors/platform/id-v1 is written. Bundled like every other file, so
+// these run in the browsers too, and never skipped.
+// ---------------------------------------------------------------------------
+
+export const PLATFORM_FORMAT = 'thehappie-id/vectors'
+
+export interface PlatformCase {
+  name: string
+  error?: string
+  // The members are the kind's; each runner reads them by name.
+  [member: string]: any
+}
+
+export interface PlatformFile {
+  format: string
+  version: number
+  kind: string
+  cases: PlatformCase[]
+}
+
+/** loadPlatform reads platform/id-v1/<kind>.json and checks its header and names. */
+export function loadPlatform(kind: string): PlatformFile {
+  const path = `platform/id-v1/${kind}.json`
+  const f = JSON.parse(text(path)) as PlatformFile
+  if (f.format !== PLATFORM_FORMAT || f.version !== 1 || f.kind !== kind) throw new Error(`${path}: header ${f.format} ${f.version} ${f.kind}`)
+  const names = new Set<string>()
+  for (const c of f.cases) {
+    if (typeof c.name !== 'string' || c.name === '' || names.has(c.name)) throw new Error(`${path}: an empty or repeated case name`)
+    names.add(c.name)
+  }
+  return f
+}
+
 export const b64 = (s: string) => Uint8Array.from(atob(s), (ch) => ch.charCodeAt(0)) as Bytes
 export function toB64(b: Uint8Array): string {
   let binary = ''

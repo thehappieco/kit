@@ -11,9 +11,15 @@ function sources(dir: string): string[] {
 }
 
 describe('the package', () => {
-  it('exports every module, and nothing else', () => {
-    const modules = sources(join(root, 'src')).map((f) => './' + relative(join(root, 'src'), f).replace(/\.ts$/, '')).sort()
+  it('exports every module outside src/internal, and nothing else', () => {
+    // src/internal holds the implementation behind a facade (the platform
+    // profile's): shipped, imported by the facade, never a subpath export.
+    const modules = sources(join(root, 'src'))
+      .map((f) => './' + relative(join(root, 'src'), f).replace(/\.ts$/, ''))
+      .filter((m) => !m.startsWith('./internal/'))
+      .sort()
     expect(Object.keys(pkg.exports).sort()).toEqual(modules)
+    expect(sources(join(root, 'src', 'internal')).length).toBeGreaterThan(0)
     for (const [name, target] of Object.entries(pkg.exports) as [string, { types: string; import: string }][]) {
       expect(target.import).toBe(`./dist/${name.slice(2)}.js`)
       expect(target.types).toBe(`./dist/${name.slice(2)}.d.ts`)

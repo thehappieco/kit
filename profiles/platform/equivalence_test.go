@@ -60,7 +60,7 @@ func TestARootWrapIsTheAccountEnvelopeWithATwoByteHeader(t *testing.T) {
 // RecoveryProof with the platform's canonical form.
 func TestTheDerivationsAreTheAccountSchemeWithThePlatformsValues(t *testing.T) {
 	salt := testBytes(platform.SaltLen, 0x33)
-	password := "pão de queijo e café"
+	password := "pa\u0303o de queijo\u00a0e cafe\u0301"
 	keys, err := platform.DerivePasswordKeys(password, platform.DefaultKDF, salt)
 	if err != nil {
 		t.Fatal(err)

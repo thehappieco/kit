@@ -69,6 +69,41 @@ a9b5b504e65e5f4e48431127fd6e577fe3832fe62c00e38f0b963befa11ef8b0  packages/clien
 
 sha256 (first 16 hex digits) at `8c0c1f74`: `internal/crypto/seal/envelope.go` `4886b166943ffeeb`, `seal.go` `c64696e4f3d377b5`, `archive.go` `6e43f4e86f64e5de`; `internal/mcpauth/hmac.go` `896ce87b9c4cbe9f`; `packages/client/src/crypto/bytes.ts` `a33eb31a64caaa6c`, `jcs.ts` `3dbe9dbba4ea2d08`, `hpke.ts` `e1efa435a7f95916`, `seal.ts` `8244270a47ca65c8`, `account.ts` `301cf066e1083694`, `kdf.worker.ts` `a8695a6e30baf924`, `passkey.ts` `d71a5cd083ae7141`, `browserAccount.ts` `8830b0a9cc426eab`.
 
+## The platform's vectors
+
+- **Source:** `github.com/thehappieco/platform` (private), commit `5e66d841145b33dcd73cd575f2816a866793d774` (2026-10-01), `testdata/vectors/id-v1/`. They are the golden vectors of the platform's protocol `id-v1` (its `docs/protocol/id-v1.md`, sections 1, 2 and 6), handed to the kit for SPEC section 11, part 1 (the platform's decision 0017).
+- **Generator:** `go run ./tools/vectors` over `internal/crypto/idcrypto/idvectors`, a pure function of the platform's `internal/crypto/idcrypto` at that commit: every input, nonce and root comes from `HKDF(IKM = "thehappie-id/vectors/v1", info = label)`, cases are in a fixed order, and the output is 2-space indented ASCII JSON with one final newline. Each case declares its outcome, and the generator refuses to write a file whose cases do not come out that way. A copy of the generator at that commit is in `platform/_generators/` (not built, not embedded), so that a reader of this public repository can see how each case was made; it imports the platform's private code and does not build here.
+- **Captured:** 2026-10-01, byte for byte with `git show <commit>:<path>`; the platform's repository was only read. The platform's working tree held the same bytes.
+- **Toolchains:** the platform builds with go1.27.1, and its generator wrote these exact bytes there. On 2026-10-01 the generator was also run from that commit with go1.26.7, `golang.org/x/crypto` v0.55.0 and `golang.org/x/text` v0.42.0 (whose normalisation tables are Unicode 15.0 below Go 1.27, and Unicode 17.0 from it): the same bytes. `make vectors-platform-check PLATFORM=../platform` repeats the check from a `git archive` of the commit, with the go the platform's `go.mod` asks for.
+- **Format:** the platform's own (`"format": "thehappie-id/vectors", "version": 1`), described in `README.md` and SPEC section 12.2. The kit reads it with dedicated runners and never rewrites it.
+
+| File | Kind | Cases | Must fail | sha256 |
+|---|---|---|---|---|
+| `platform/id-v1/password-profile.json` | password-profile | 45 | 23 | `47803646a66f8a20c5cdb02852b628a5716d1dc4854759367f7f10dba3c5294e` |
+| `platform/id-v1/kdf.json` | kdf | 19 | 16 | `89b6ffe8d32a65b7c63c88763d3aab5da3f9cf064e548d8cd6abba51df7d7483` |
+| `platform/id-v1/root-wrap.json` | root-wrap | 31 | 26 | `54aa88e9e89f143031b4acdc11ab01b31497c3d3a4ef3783ce121ba224733ee1` |
+| `platform/id-v1/recovery-code.json` | recovery-code | 27 | 15 | `c3c57217d0a491d84f374c95ff83c5c974126884d741501fef70969ec1ab19fa` |
+| `platform/id-v1/product-key.json` | product-key | 20 | 12 | `388cae00f034bef42f75e74a4a52f27ff7ff7409ed48b67ba3bc338326cb5601` |
+| `platform/id-v1/verifier.json` | verifier | 10 | 5 | `394e2bf399bd1a6a23b00e067d71a2f6da70cb2c69a5a2a542efd61322f5a5e4` |
+| `platform/id-v1/email.json` | email | 46 | 33 | `a0cffa73f07782d4feca2c3dea293f3e8de75164b3ee043106b0d6b0b3e0575d` |
+| `platform/id-v1/key-bundle.json` | key-bundle | 59 | 50 | `364b4c24046ca70b04dbbc04ead6417445f1aa8bede2c930068cbd1adfc61a6e` |
+
+Of the 257 cases, 180 must fail. Both of the kit's implementations reproduce every output and refuse every must-fail case with the error name it records (`profiles/platform/vectors_test.go`, `js/test/platform.spec.ts`); `vectors/vectors_test.go` checks the counts above, so a truncated copy fails.
+
+### platform/_generators
+
+| File | Platform path at `5e66d84` | sha256 |
+|---|---|---|
+| `internal/crypto/idcrypto/idvectors/idvectors.go` | the same | `5300db853a40802342e6e12168b53387fda17db72ec3081dff245dd89415a59b` |
+| `internal/crypto/idcrypto/idvectors/password.go` | the same | `fcd109663832b09ca83c0094106115b10b00adc35f592e1112d526f4cc939fd1` |
+| `internal/crypto/idcrypto/idvectors/wrap.go` | the same | `9ccf5a45a0781397cca36e7583633ea4bef7386a3d8ee50d4e7c5d040fa44cfc` |
+| `internal/crypto/idcrypto/idvectors/recovery.go` | the same | `b95270beee303b98dd995f6b1b3321f7917e1173300e9d7b97c067eae1d80487` |
+| `internal/crypto/idcrypto/idvectors/product.go` | the same | `b969b3640b6a9cd1516f60164e5d8a48b13a5b6220c378363ad7bd9c7ba5b4c9` |
+| `internal/crypto/idcrypto/idvectors/bundle.go` | the same | `46b1f88b4a4d5e44ebf91db6273858198203103cdab3bd42a25d1c4c3a92322b` |
+| `tools/vectors/main.go` | the same | `a90c912c1f8edaa4a69dec6019834d87365247a75198278dd0cd6883bbdab1f2` |
+
+**Frozen once tagged.** After the tag that first carries them, these eight files never change in the kit, like every other vector file. The platform's own copies are rewritten whenever its generator changes, so the platform keeps the eight part-1 files as they are at `5e66d84` and sends any later case as a new file (or as `id-v2`), which the kit adds beside these.
+
 ## The kit's own vectors
 
 `kit/*-go.json` were written by `internal/cross/write_test.go` and `kit/*-ts.json` by `js/test/cross.spec.ts`, each at the kit commit recorded in its `generated_by.source`, with fresh randomness (`make vectors-kit`). They are the golden vectors of the kit's own implementations from v0.1.0 on.

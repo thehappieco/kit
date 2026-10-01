@@ -152,7 +152,7 @@ jobs:
         run: |
           previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)
           if [ -z "$previous" ]; then echo "no earlier tag"; exit 0; fi
-          changed=$(git diff --name-status "$previous" HEAD -- vectors/wappie vectors/kit | grep -v '^A' || true)
+          changed=$(git diff --name-status "$previous" HEAD -- vectors/wappie vectors/kit vectors/platform | grep -v '^A' || true)
           if [ -n "$changed" ]; then echo "vector files of $previous changed or disappeared:"; echo "$changed"; exit 1; fi
 
   # Every byte of the tarball is measured in Wappie's enclave image: check what

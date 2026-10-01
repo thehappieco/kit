@@ -2,6 +2,8 @@
 
 The kit's conformance data. Go reads it through the `vectors` package (`vectors.FS`, so a consumer's tests can run the vectors of the kit version it imports); the TypeScript tests read it from this directory. It is not in the npm tarball.
 
+There are two file formats: the kit's own (below), used by everything under `wappie/` and `kit/`, and the platform's (`platform/id-v1/`, described in "The platform's format").
+
 ## Layout
 
 | Path | What |
@@ -10,6 +12,8 @@ The kit's conformance data. Go reads it through the `vectors` package (`vectors.
 | `wappie/golden/` | Vectors written by Wappie's code at the commit in `PROVENANCE.md`, by the generators in `wappie/_generators/`. |
 | `wappie/_generators/` | The generators, kept for provenance and for `make vectors-regen-check`. Not built by the go tool, not embedded. |
 | `kit/` | Vectors written by the kit itself: `*-go.json` by the Go code for TypeScript to open, `*-ts.json` the reverse. |
+| `platform/id-v1/` | The platform's golden vectors of its protocol `id-v1`, byte for byte as the platform's Go code wrote them at the commit in `PROVENANCE.md`, in the platform's format. SPEC section 11, part 1. |
+| `platform/_generators/` | The platform's generator at that commit, kept for provenance. Not built, not embedded. |
 | `MANIFEST.sha256` | The sha256 of every file above. `make vectors-check`. |
 
 Files are append-only once a release is tagged: a changed case is a new id, and no file present at a tag changes or disappears.
@@ -50,6 +54,7 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | hpke | `open_failed`, `invalid_key` |
 | reqhmac | `hmac_missing`, `hmac_stale`, `hmac_bad`, `hmac_replay`, `replay_cache_full` |
 | jcs | `jcs` |
+| platform (its own format) | `password_invalid`, `password_too_short`, `password_too_long`, `kdf_policy`, `wrap`, `recovery_code`, `email`, `product_key`, `bundle`, `encoding` |
 
 ### Op catalogue
 
@@ -82,6 +87,40 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 
 Every dispatcher fails on a case for its language whose op it does not handle.
 
+## The platform's format
+
+`platform/id-v1/<kind>.json` are the platform's own files, carried byte for byte. Each is
+
+```json
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "root-wrap",
+  "cases": [
+    { "name": "a password wrap", "kind": "password", "key": "...", "nonce": "...", "root": "...", "sub": "...", "epoch": 1, "aad": "...", "wrap": "..." },
+    { "name": "truncated to 61 bytes", "kind": "password", "key": "...", "sub": "...", "epoch": 1, "wrap": "...", "error": "wrap" }
+  ]
+}
+```
+
+- A case has a `name`, unique in its file, and either its outputs or `"error": "<name>"`, one of the platform profile's error names (SPEC section 11.10). Every implementation runs every case.
+- Binary values are base64url without padding (no `_b64` suffix); texts are JSON strings; every file is ASCII, with non-ASCII characters as `\u` escapes, and ends with one newline.
+- Kinds and their members:
+
+| Kind | Inputs | Outputs |
+|---|---|---|
+| `password-profile` | `password`, or `password_utf16` with `password_utf8_b64url` for a string that is not Unicode (each language takes its own form; both are one input); `new` | `prepared_b64url` |
+| `kdf` | `prepared_b64url`, `salt`, `kdf` | `k_auth`, `k_wrap`, `auth_key` |
+| `root-wrap` | `kind`, `key`, `nonce`, `root`, `sub`, `epoch`, `rp_id`, `credential_id` | `aad`, `wrap` (a refusal gives the `wrap` to open) |
+| `recovery-code` | `bytes` or `input` | `display`, `canonical`, `k_rwrap`, `recovery_auth` |
+| `product-key` | `root`, `product`, `epoch` | `sk`, `pub`, `product_key_id` |
+| `verifier` | `sub`, and `k_auth` or `r_proof` | `auth_verifier` or `recovery_verifier` |
+| `email` | `input` | `email_norm` |
+| `key-bundle` | `password` or `recovery_code`; `bundle` as a JSON value, or `bundle_text` as the exact text of the file | `root` |
+
+- Argon2id cases use the floor parameters (m 65536, t 3, p 1), and one uses p = 4.
+- The runners decode strictly: a member a runner does not read fails the run, and so does a refusal with any error other than the recorded one.
+
 ## Running
 
 ```
@@ -91,4 +130,5 @@ make test-browser      # the TypeScript specs in Chromium, Firefox and WebKit
 make cross             # fresh round trips: each language writes, the other opens
 make vectors-check     # the manifest
 make vectors-regen-check WAPPIE=../whatserver2   # regenerate from Wappie and compare
+make vectors-platform-check PLATFORM=../platform # regenerate from the platform and compare
 ```

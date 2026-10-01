@@ -1,0 +1,1631 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "key-bundle",
+  "cases": [
+    {
+      "name": "opens with the password",
+      "password": "correct horse battery staple",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "root": "VJgEEBI-UENvve-JtUaycBrqNP8lsD6bi9cluX8M-Ko"
+    },
+    {
+      "name": "opens with the recovery code",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "root": "VJgEEBI-UENvve-JtUaycBrqNP8lsD6bi9cluX8M-Ko"
+    },
+    {
+      "name": "opens with the recovery code typed in lower case with spaces",
+      "recovery_code": "bha21 p5qsr 16k69 rm4vq ykgwq v2q3y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "root": "VJgEEBI-UENvve-JtUaycBrqNP8lsD6bi9cluX8M-Ko"
+    },
+    {
+      "name": "a wrong password",
+      "password": "correct horse battery staple!",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "wrap"
+    },
+    {
+      "name": "a wrong recovery code",
+      "recovery_code": "JP27B1RDC0MPBA3TGBP4SDD9J888W0",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "wrap"
+    },
+    {
+      "name": "a malformed recovery code",
+      "recovery_code": "not a recovery code",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "recovery_code"
+    },
+    {
+      "name": "a password that breaks the profile",
+      "password": "correct horse\u0000battery staple",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "password_invalid"
+    },
+    {
+      "name": "a product key that does not match the root",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "8m9edMyza0Ebnp_Yyx3gBTnryUv0q_Om1ANUh2yamH8"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "product_key"
+    },
+    {
+      "name": "another sub",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-74d7-be47-88e9f147f297",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "wrap"
+    },
+    {
+      "name": "another epoch",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 2,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "wrap"
+    },
+    {
+      "name": "an unknown format",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle-v2",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "version 2",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 2,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "version as a string",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "account_key_epoch": 1,
+        "created_at": "2026-10-01T12:00:00Z",
+        "email": "ana@example.com",
+        "format": "thehappie-id/key-bundle",
+        "issuer": "https://id.thehappie.co",
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "version": "1"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "kdf parameters below the floor",
+      "password": "correct horse battery staple",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 32768,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "a padded kdf_salt",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w==",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "the wraps swapped",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "recovery_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "a truncated password wrap",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblg",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "a product key that is not 32 bytes",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "t4ZSer306z829FtFF5yCT4KQoi__m0GgzsuWm9zBxQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "product keys out of order",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          },
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "a repeated product key",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "no product keys",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "a sub in upper case",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01A0F755-F200-776A-B72D-55C720A37DDB",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "account_key_epoch 0",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 0,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "an email that is not normalized",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "Ana@Example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "an unknown member",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "account_key_epoch": 1,
+        "created_at": "2026-10-01T12:00:00Z",
+        "email": "ana@example.com",
+        "format": "thehappie-id/key-bundle",
+        "issuer": "https://id.thehappie.co",
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "note": "hello",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "version": 1
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "a missing member",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "account_key_epoch": 1,
+        "created_at": "2026-10-01T12:00:00Z",
+        "email": "ana@example.com",
+        "format": "thehappie-id/key-bundle",
+        "issuer": "https://id.thehappie.co",
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "version": 1
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "a member name in another case",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "SUB": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "account_key_epoch": 1,
+        "created_at": "2026-10-01T12:00:00Z",
+        "email": "ana@example.com",
+        "format": "thehappie-id/key-bundle",
+        "issuer": "https://id.thehappie.co",
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "version": 1
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "a null member",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "account_key_epoch": 1,
+        "created_at": "2026-10-01T12:00:00Z",
+        "email": "ana@example.com",
+        "format": "thehappie-id/key-bundle",
+        "issuer": "https://id.thehappie.co",
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "recovery_wrap": null,
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "version": 1
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "not a JSON object",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": [],
+      "error": "bundle"
+    },
+    {
+      "name": "created_at with nine fraction digits",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00.123456789Z"
+      },
+      "root": "VJgEEBI-UENvve-JtUaycBrqNP8lsD6bi9cluX8M-Ko"
+    },
+    {
+      "name": "created_at in the year 0050",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "0050-01-01T00:00:00Z"
+      },
+      "root": "VJgEEBI-UENvve-JtUaycBrqNP8lsD6bi9cluX8M-Ko"
+    },
+    {
+      "name": "created_at with the offset +00:00",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00+00:00"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at with the offset -03:00",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T09:00:00-03:00"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at with a lower-case z",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at with a lower-case t",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01t12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at with a comma before the fraction",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00,5Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at with ten fraction digits",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00.1234567891Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at with a dot and no fraction",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:00.Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at on February 29 of a common year",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-02-29T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at on February 29 of 1900, not a leap year",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "1900-02-29T12:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at on February 29 of 2000, a leap year",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2000-02-29T12:00:00Z"
+      },
+      "root": "VJgEEBI-UENvve-JtUaycBrqNP8lsD6bi9cluX8M-Ko"
+    },
+    {
+      "name": "created_at on February 29 of the year 0, a leap year",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "0000-02-29T00:00:00Z"
+      },
+      "root": "VJgEEBI-UENvve-JtUaycBrqNP8lsD6bi9cluX8M-Ko"
+    },
+    {
+      "name": "created_at at hour 24",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T24:00:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at at second 60",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00:60Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "created_at without seconds",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle": {
+        "format": "thehappie-id/key-bundle",
+        "version": 1,
+        "issuer": "https://id.thehappie.co",
+        "sub": "01a0f755-f200-776a-b72d-55c720a37ddb",
+        "email": "ana@example.com",
+        "account_key_epoch": 1,
+        "kdf": {
+          "alg": "argon2id",
+          "m": 65536,
+          "t": 3,
+          "p": 1
+        },
+        "kdf_salt": "un7yGxmkCrve3zVrGU4N3w",
+        "password_wrap": "AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8",
+        "recovery_wrap": "AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY",
+        "product_keys": [
+          {
+            "product": "mailie",
+            "epoch": 1,
+            "pub": "eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ"
+          },
+          {
+            "product": "wappie",
+            "epoch": 1,
+            "pub": "k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws"
+          }
+        ],
+        "created_at": "2026-10-01T12:00Z"
+      },
+      "error": "bundle"
+    },
+    {
+      "name": "the bundle as text",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "root": "VJgEEBI-UENvve-JtUaycBrqNP8lsD6bi9cluX8M-Ko"
+    },
+    {
+      "name": "a repeated member whose last value is good",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://other.example\",\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "bundle"
+    },
+    {
+      "name": "a repeated member inside kdf",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "bundle"
+    },
+    {
+      "name": "a repeated member inside a product key",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "bundle"
+    },
+    {
+      "name": "version written as 1.0",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1.0,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "bundle"
+    },
+    {
+      "name": "account_key_epoch written as 1e0",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1e0,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "bundle"
+    },
+    {
+      "name": "kdf t written as 3E0",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3E0,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "bundle"
+    },
+    {
+      "name": "a product key epoch written as 1.0",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1.0,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "bundle"
+    },
+    {
+      "name": "kdf m of 2^63, past a 64-bit integer",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 9223372036854775808,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "bundle"
+    },
+    {
+      "name": "kdf m of 2^63 - 1, a 64-bit integer out of bounds",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 9223372036854775807,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "kdf_policy"
+    },
+    {
+      "name": "kdf m of -0",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": -0,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "kdf_policy"
+    },
+    {
+      "name": "a byte order mark",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "\ufeff{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "error": "bundle"
+    },
+    {
+      "name": "a value after the bundle",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"sub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n} {}\n",
+      "error": "bundle"
+    },
+    {
+      "name": "a member name with an escape",
+      "recovery_code": "BHA21-P5QSR-16K69-RM4VQ-YKGWQ-V2Q3Y",
+      "bundle_text": "{\n  \"format\": \"thehappie-id/key-bundle\",\n  \"version\": 1,\n  \"issuer\": \"https://id.thehappie.co\",\n  \"\\u0073ub\": \"01a0f755-f200-776a-b72d-55c720a37ddb\",\n  \"email\": \"ana@example.com\",\n  \"account_key_epoch\": 1,\n  \"kdf\": {\n    \"alg\": \"argon2id\",\n    \"m\": 65536,\n    \"t\": 3,\n    \"p\": 1\n  },\n  \"kdf_salt\": \"un7yGxmkCrve3zVrGU4N3w\",\n  \"password_wrap\": \"AQGfDSqJQSEqtqfeRr0Ig_sOzvA4HMrOvUqPdPyvbbx23bvqJdQH6xdNK56DdHoTcYYUXjXdeOUJJrOblv8\",\n  \"recovery_wrap\": \"AQIm48OmAuQ63sebUbz_Z_kJ-BO81LNDtGGPmQFeOIkJCRAPm-_YgBmNaog3DB-YrLQYE_EktyN7ezbTpIY\",\n  \"product_keys\": [\n    {\n      \"product\": \"mailie\",\n      \"epoch\": 1,\n      \"pub\": \"eczA3V4hUs1w-Kj2FUFFT__QCy3NYO6WM8zsT_FWWwQ\"\n    },\n    {\n      \"product\": \"wappie\",\n      \"epoch\": 1,\n      \"pub\": \"k0eZJbfv-zxV1uJLxFhKmFrWIatHCfXSKedoDY1Jlws\"\n    }\n  ],\n  \"created_at\": \"2026-10-01T12:00:00Z\"\n}\n",
+      "root": "VJgEEBI-UENvve-JtUaycBrqNP8lsD6bi9cluX8M-Ko"
+    }
+  ]
+}

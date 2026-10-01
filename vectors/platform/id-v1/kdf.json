@@ -1,0 +1,241 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "kdf",
+  "cases": [
+    {
+      "name": "the floor parameters",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65536,
+        "t": 3,
+        "p": 1
+      },
+      "k_auth": "RTHMfSASRAiqyQvePMJYLEpcBrXNDvg30jN7jXD9SF4",
+      "k_wrap": "jFg-6s-MkfHOwyXasLG8ot7lTTLPLbK8gs6UtExFB7E",
+      "auth_key": "RTHMfSASRAiqyQvePMJYLEpcBrXNDvg30jN7jXD9SF4"
+    },
+    {
+      "name": "a non-ASCII password at the floor",
+      "prepared_b64url": "cMOjbyBkZSBxdWVpam8gZSBjYWbDqSDimJU",
+      "salt": "nvGNOwr--lw5crmXSXgRuw",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65536,
+        "t": 3,
+        "p": 1
+      },
+      "k_auth": "-7usk8tJmg0v0MIxNIiqHxIff5jvWKNk8ArPLRgoiyU",
+      "k_wrap": "sqf8yR9eeOJ8X9s7lz_Crvjn-_DWAAEOVVzMX9R9qS4",
+      "auth_key": "-7usk8tJmg0v0MIxNIiqHxIff5jvWKNk8ArPLRgoiyU"
+    },
+    {
+      "name": "four lanes at the floor memory and time",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65536,
+        "t": 3,
+        "p": 4
+      },
+      "k_auth": "4ZbtoKO09Wsm5CXCa8l9mDxGFBmB1pLJoyHNYPh7k0Y",
+      "k_wrap": "BiUsj7dtbMvmQ5e3tCpUDh_Q_SZVe1F9Gfy5gG9NfO4",
+      "auth_key": "4ZbtoKO09Wsm5CXCa8l9mDxGFBmB1pLJoyHNYPh7k0Y"
+    },
+    {
+      "name": "m below the floor",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65535,
+        "t": 3,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "m above the ceiling",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 262145,
+        "t": 3,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "m of zero",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 0,
+        "t": 3,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "t below the floor",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65536,
+        "t": 2,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "t above the ceiling",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65536,
+        "t": 11,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "p below the floor",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65536,
+        "t": 3,
+        "p": 0
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "p above the ceiling",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65536,
+        "t": 3,
+        "p": 5
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "m times t just over the cap",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 104858,
+        "t": 10,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "m times t over the cap with each inside its bounds",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 131072,
+        "t": 9,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "the ceilings of m and t together",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 262144,
+        "t": 10,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "alg argon2i",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "argon2i",
+        "m": 65536,
+        "t": 3,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "alg in another case",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "Argon2id",
+        "m": 65536,
+        "t": 3,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "alg empty",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlA",
+      "kdf": {
+        "alg": "",
+        "m": 65536,
+        "t": 3,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "a salt of 15 bytes",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXw",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65536,
+        "t": 3,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "a salt of 17 bytes",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "qBI-hdouZ4kP8QdZtYXwlAA",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65536,
+        "t": 3,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    },
+    {
+      "name": "an empty salt",
+      "prepared_b64url": "Y29ycmVjdCBob3JzZSBiYXR0ZXJ5IHN0YXBsZQ",
+      "salt": "",
+      "kdf": {
+        "alg": "argon2id",
+        "m": 65536,
+        "t": 3,
+        "p": 1
+      },
+      "error": "kdf_policy"
+    }
+  ]
+}

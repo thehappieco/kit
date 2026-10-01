@@ -3,14 +3,14 @@
 //
 //	data, err := fs.ReadFile(vectors.FS, "wappie/golden/seal-go.json")
 //
-// The directory layout, the file format and the provenance of every file are
+// The directory layout, the file formats and the provenance of every file are
 // in README.md and PROVENANCE.md beside this file. The generators under
-// wappie/_generators are not embedded.
+// wappie/_generators and platform/_generators are not embedded.
 package vectors
 
 import "embed"
 
-// FS holds MANIFEST.sha256 and every file under wappie/ and kit/.
+// FS holds MANIFEST.sha256 and every file under wappie/, kit/ and platform/.
 //
-//go:embed MANIFEST.sha256 wappie kit
+//go:embed MANIFEST.sha256 wappie kit platform
 var FS embed.FS

@@ -1,0 +1,178 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "recovery-code",
+  "cases": [
+    {
+      "name": "thirty zero bytes",
+      "bytes": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "display": "00000-00000-00000-00000-00000-00000",
+      "canonical": "000000000000000000000000000000",
+      "k_rwrap": "cx5LErWukYQA-TGNzzJXp_xlpQu-UZmnFw0Mw1MI_RM",
+      "recovery_auth": "W9xMPz9SOMArZM8b1mSuqNXXC63E4AYU_06eo2syfZY"
+    },
+    {
+      "name": "bytes 0 to 29",
+      "bytes": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwd",
+      "display": "01234-56789-ABCDE-FGHJK-MNPQR-STVWX",
+      "canonical": "0123456789ABCDEFGHJKMNPQRSTVWX",
+      "k_rwrap": "FBekAUH3xhueSYavfOmKAKMZmreVu0MMuKBCcLAAJl4",
+      "recovery_auth": "YjIFfVJbbFoCYb1g82j1ksRqykVMBO0hi8tV70iS7N4"
+    },
+    {
+      "name": "bytes 226 to 255 map by their value mod 32",
+      "bytes": "4uPk5ebn6Onq6-zt7u_w8fLz9PX29_j5-vv8_f7_",
+      "display": "23456-789AB-CDEFG-HJKMN-PQRST-VWXYZ",
+      "canonical": "23456789ABCDEFGHJKMNPQRSTVWXYZ",
+      "k_rwrap": "k2Fnf0OIFb3jJkbeGlAdnl8a_Cp9WLcqiJxoPhrUOfs",
+      "recovery_auth": "2Yw4RtMy1gqxPJ7SpU_Y3nhrUwao0-GLmRSlIvdZbmg"
+    },
+    {
+      "name": "random bytes",
+      "bytes": "M1YtAQOv6i7R-C5aXNJ-Cf1-KPlXZl2krPIkaXxI",
+      "display": "KPD13-FAEHR-ETWJY-9XY8S-Q6X4C-J49W8",
+      "canonical": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W8",
+      "k_rwrap": "7eJNuRvTuSkDPwmBgwXECgDm_GDTbUZIylJunphweQI",
+      "recovery_auth": "Wf8PX1JBBG3qxfZoqwB9zAKL-Ns8Ibws0UM0fuYJwek"
+    },
+    {
+      "name": "other random bytes",
+      "bytes": "OLxPqW2Tu5-1Y0_U52NbD6HD4OesjoJzvDpDwQdj",
+      "display": "RWF9D-KVZN3-FM73V-F1307-CE2KW-T3173",
+      "canonical": "RWF9DKVZN3FM73VF1307CE2KWT3173",
+      "k_rwrap": "uM717HROD7PdFX5bI9-82_KtKa8OmYAt6m_gWzzKrTA",
+      "recovery_auth": "LK4hRw249_UlyomAUruxfoiaajlNteLcICIJlZyyCEk"
+    },
+    {
+      "name": "29 bytes",
+      "bytes": "M1YtAQOv6i7R-C5aXNJ-Cf1-KPlXZl2krPIkaXw",
+      "error": "recovery_code"
+    },
+    {
+      "name": "31 bytes",
+      "bytes": "M1YtAQOv6i7R-C5aXNJ-Cf1-KPlXZl2krPIkaXxINA",
+      "error": "recovery_code"
+    },
+    {
+      "name": "the display form",
+      "input": "KPD13-FAEHR-ETWJY-9XY8S-Q6X4C-J49W8",
+      "display": "KPD13-FAEHR-ETWJY-9XY8S-Q6X4C-J49W8",
+      "canonical": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W8",
+      "k_rwrap": "7eJNuRvTuSkDPwmBgwXECgDm_GDTbUZIylJunphweQI",
+      "recovery_auth": "Wf8PX1JBBG3qxfZoqwB9zAKL-Ns8Ibws0UM0fuYJwek"
+    },
+    {
+      "name": "the canonical form",
+      "input": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W8",
+      "display": "KPD13-FAEHR-ETWJY-9XY8S-Q6X4C-J49W8",
+      "canonical": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W8",
+      "k_rwrap": "7eJNuRvTuSkDPwmBgwXECgDm_GDTbUZIylJunphweQI",
+      "recovery_auth": "Wf8PX1JBBG3qxfZoqwB9zAKL-Ns8Ibws0UM0fuYJwek"
+    },
+    {
+      "name": "lower case",
+      "input": "kpd13-faehr-etwjy-9xy8s-q6x4c-j49w8",
+      "display": "KPD13-FAEHR-ETWJY-9XY8S-Q6X4C-J49W8",
+      "canonical": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W8",
+      "k_rwrap": "7eJNuRvTuSkDPwmBgwXECgDm_GDTbUZIylJunphweQI",
+      "recovery_auth": "Wf8PX1JBBG3qxfZoqwB9zAKL-Ns8Ibws0UM0fuYJwek"
+    },
+    {
+      "name": "spaces instead of dashes",
+      "input": "KPD13 FAEHR ETWJY 9XY8S Q6X4C J49W8",
+      "display": "KPD13-FAEHR-ETWJY-9XY8S-Q6X4C-J49W8",
+      "canonical": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W8",
+      "k_rwrap": "7eJNuRvTuSkDPwmBgwXECgDm_GDTbUZIylJunphweQI",
+      "recovery_auth": "Wf8PX1JBBG3qxfZoqwB9zAKL-Ns8Ibws0UM0fuYJwek"
+    },
+    {
+      "name": "tabs and line breaks between groups",
+      "input": "KPD13\tFAEHR\r\nETWJY\n9XY8S\rQ6X4C \t J49W8",
+      "display": "KPD13-FAEHR-ETWJY-9XY8S-Q6X4C-J49W8",
+      "canonical": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W8",
+      "k_rwrap": "7eJNuRvTuSkDPwmBgwXECgDm_GDTbUZIylJunphweQI",
+      "recovery_auth": "Wf8PX1JBBG3qxfZoqwB9zAKL-Ns8Ibws0UM0fuYJwek"
+    },
+    {
+      "name": "surrounding spaces and extra dashes",
+      "input": "  --KPD13--FAEHR--ETWJY--9XY8S--Q6X4C--J49W8-  ",
+      "display": "KPD13-FAEHR-ETWJY-9XY8S-Q6X4C-J49W8",
+      "canonical": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W8",
+      "k_rwrap": "7eJNuRvTuSkDPwmBgwXECgDm_GDTbUZIylJunphweQI",
+      "recovery_auth": "Wf8PX1JBBG3qxfZoqwB9zAKL-Ns8Ibws0UM0fuYJwek"
+    },
+    {
+      "name": "O for 0, and I and L for 1, in either case",
+      "input": "OIOLoiolOI-ABCDE-FGHJK-MNPQR-STVWX",
+      "display": "01010-10101-ABCDE-FGHJK-MNPQR-STVWX",
+      "canonical": "0101010101ABCDEFGHJKMNPQRSTVWX",
+      "k_rwrap": "viLRCpuG9YTmq2cLGEYbMmEdd7qRkDm-ymKpZg1Rb20",
+      "recovery_auth": "_dILUBmPS9mK00Oem7hcydYUXu3HPgcYqU1UEIh0C28"
+    },
+    {
+      "name": "a U",
+      "input": "UPD13FAEHRETWJY9XY8SQ6X4CJ49W8",
+      "error": "recovery_code"
+    },
+    {
+      "name": "a lower-case u",
+      "input": "uPD13FAEHRETWJY9XY8SQ6X4CJ49W8",
+      "error": "recovery_code"
+    },
+    {
+      "name": "29 characters",
+      "input": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W",
+      "error": "recovery_code"
+    },
+    {
+      "name": "31 characters",
+      "input": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W80",
+      "error": "recovery_code"
+    },
+    {
+      "name": "a non-ASCII letter",
+      "input": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W\u00d6",
+      "error": "recovery_code"
+    },
+    {
+      "name": "a dotless i (U+0131) is not an I",
+      "input": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W\u0131",
+      "error": "recovery_code"
+    },
+    {
+      "name": "a long s (U+017F) is not an S",
+      "input": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W\u017f",
+      "error": "recovery_code"
+    },
+    {
+      "name": "a full-width digit",
+      "input": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W\uff10",
+      "error": "recovery_code"
+    },
+    {
+      "name": "an underscore",
+      "input": "KPD13FAEHRETWJY9XY8SQ6X4CJ49W_",
+      "error": "recovery_code"
+    },
+    {
+      "name": "a vertical tab is not a line break",
+      "input": "KPD13\u000bFAEHR\u000bETWJY\u000b9XY8S\u000bQ6X4C\u000bJ49W8",
+      "error": "recovery_code"
+    },
+    {
+      "name": "a non-breaking space is not a space",
+      "input": "KPD13\u00a0FAEHR\u00a0ETWJY\u00a09XY8S\u00a0Q6X4C\u00a0J49W8",
+      "error": "recovery_code"
+    },
+    {
+      "name": "an empty string",
+      "input": "",
+      "error": "recovery_code"
+    },
+    {
+      "name": "only dashes and spaces",
+      "input": "- - - -",
+      "error": "recovery_code"
+    }
+  ]
+}

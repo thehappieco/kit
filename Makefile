@@ -6,8 +6,10 @@ GO_PACKAGES = $$(go list ./... | grep -v /js/)
 GO_FILES = $$(find . -name '*.go' -not -path './js/*' -not -path './.git/*')
 WAPPIE ?= ../whatserver2
 WAPPIE_COMMIT ?= 8c0c1f74103bc6bb65a93b13613ad1964d4399c4
+PLATFORM ?= ../platform
+PLATFORM_COMMIT ?= 5e66d841145b33dcd73cd575f2816a866793d774
 
-.PHONY: all test test-go test-go-1.26.7 test-js test-browser lint-go cross vectors-check manifest vectors-kit vectors-regen-check pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check pack reproduce clean
 
 all: lint-go test-go test-js vectors-check cross
 
@@ -47,7 +49,7 @@ vectors-check:
 	cd vectors && shasum -a 256 -c MANIFEST.sha256 --quiet
 
 manifest:
-	cd vectors && find wappie kit -type f | LC_ALL=C sort | xargs shasum -a 256 > MANIFEST.sha256
+	cd vectors && find wappie kit platform -type f | LC_ALL=C sort | xargs shasum -a 256 > MANIFEST.sha256
 
 # Writes vectors/kit/*.json from both languages, at release time. Refuses to
 # overwrite: files of a tagged release never change.
@@ -63,6 +65,17 @@ vectors-regen-check:
 	vectors/wappie/_generators/run.sh $(WAPPIE) $(WAPPIE_COMMIT) $$tmp && \
 	diff -r $$tmp/golden vectors/wappie/golden && diff -r $$tmp/legacy vectors/wappie/legacy && \
 	rm -rf "$${tmp:?}" && echo "vectors reproduce from $(WAPPIE_COMMIT)"
+
+# Regenerates the platform's id-v1 vectors from the platform's code at
+# PLATFORM_COMMIT (git archive into a temporary directory; the platform's
+# repository is only read) and compares them with the committed ones. Not in
+# CI: the platform's repository is private.
+vectors-platform-check:
+	tmp=$$(mktemp -d) && \
+	git -C $(PLATFORM) archive $(PLATFORM_COMMIT) | tar -x -C $$tmp && \
+	(cd $$tmp && go run ./tools/vectors -out $$tmp/out) && \
+	diff -r $$tmp/out vectors/platform/id-v1 && \
+	rm -rf "$${tmp:?}" && echo "platform vectors reproduce from $(PLATFORM_COMMIT)"
 
 pack:
 	cd js && node scripts/pack.mjs

@@ -1,0 +1,67 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "verifier",
+  "cases": [
+    {
+      "name": "an auth verifier",
+      "sub": "01a0f755-f200-7768-919d-21f27270f8bb",
+      "k_auth": "ZjmYlLdq2Be4ZdPvMqLgjxfkutasIH1sUm6y0CoCcZY",
+      "auth_verifier": "raKQVhat_zjSSMmSU83Y4A7zWRi7avSrs7QkwL2FD6E"
+    },
+    {
+      "name": "a recovery verifier over the same sub and bytes",
+      "sub": "01a0f755-f200-7768-919d-21f27270f8bb",
+      "r_proof": "ZjmYlLdq2Be4ZdPvMqLgjxfkutasIH1sUm6y0CoCcZY",
+      "recovery_verifier": "ayc3_BnwRB7pS_yxZ_jBCC74z_55xW5SXQrkuqDoOm0"
+    },
+    {
+      "name": "an auth verifier for another sub",
+      "sub": "01a0f755-f200-73ac-9c6e-7092671c93ac",
+      "k_auth": "ZjmYlLdq2Be4ZdPvMqLgjxfkutasIH1sUm6y0CoCcZY",
+      "auth_verifier": "dP2oVEvTy86ormmHfT9mKIFMnM4xW3VX_OCrTEV-Rl4"
+    },
+    {
+      "name": "an auth verifier for the dummy sub",
+      "sub": "00000000-0000-0000-0000-000000000000",
+      "k_auth": "ZjmYlLdq2Be4ZdPvMqLgjxfkutasIH1sUm6y0CoCcZY",
+      "auth_verifier": "TI50dtlT1g7Q62PrumLRCjG5BEUGvmhHkXHLfRevUm4"
+    },
+    {
+      "name": "a recovery verifier for the dummy sub",
+      "sub": "00000000-0000-0000-0000-000000000000",
+      "r_proof": "ZjmYlLdq2Be4ZdPvMqLgjxfkutasIH1sUm6y0CoCcZY",
+      "recovery_verifier": "TkQyus3zhEVGtXwfekX7EFx6C8kNd9qsk1q3CJGqFEw"
+    },
+    {
+      "name": "a sub in upper case",
+      "sub": "01A0F755-F200-7768-919D-21F27270F8BB",
+      "k_auth": "ZjmYlLdq2Be4ZdPvMqLgjxfkutasIH1sUm6y0CoCcZY",
+      "error": "encoding"
+    },
+    {
+      "name": "a sub without hyphens",
+      "sub": "01a0f755f2007768919d21f27270f8bb",
+      "k_auth": "ZjmYlLdq2Be4ZdPvMqLgjxfkutasIH1sUm6y0CoCcZY",
+      "error": "encoding"
+    },
+    {
+      "name": "a sub in braces",
+      "sub": "{01a0f755-f200-7768-919d-21f27270f8bb}",
+      "k_auth": "ZjmYlLdq2Be4ZdPvMqLgjxfkutasIH1sUm6y0CoCcZY",
+      "error": "encoding"
+    },
+    {
+      "name": "a 31-byte k_auth",
+      "sub": "01a0f755-f200-7768-919d-21f27270f8bb",
+      "k_auth": "ZjmYlLdq2Be4ZdPvMqLgjxfkutasIH1sUm6y0CoCcQ",
+      "error": "encoding"
+    },
+    {
+      "name": "a 33-byte r_proof",
+      "sub": "01a0f755-f200-7768-919d-21f27270f8bb",
+      "r_proof": "ZjmYlLdq2Be4ZdPvMqLgjxfkutasIH1sUm6y0CoCcZYA",
+      "error": "encoding"
+    }
+  ]
+}

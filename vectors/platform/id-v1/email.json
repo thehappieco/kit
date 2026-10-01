@@ -1,0 +1,237 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "email",
+  "cases": [
+    {
+      "name": "a plain address",
+      "input": "ana@example.com",
+      "email_norm": "ana@example.com"
+    },
+    {
+      "name": "upper case is folded",
+      "input": "Ana.Silva@Example.COM",
+      "email_norm": "ana.silva@example.com"
+    },
+    {
+      "name": "surrounding spaces, tabs and line breaks are trimmed",
+      "input": " \t\r\nana@example.com\r\n\t ",
+      "email_norm": "ana@example.com"
+    },
+    {
+      "name": "dots and plus tags are kept",
+      "input": "a.n.a+news@gmail.com",
+      "email_norm": "a.n.a+news@gmail.com"
+    },
+    {
+      "name": "every symbol allowed in the local part",
+      "input": "a!#$%&'*+/=?^_`{|}~-z@example.com",
+      "email_norm": "a!#$%&'*+/=?^_`{|}~-z@example.com"
+    },
+    {
+      "name": "digits and dashes in the domain",
+      "input": "ana@mail-1.example-2.com",
+      "email_norm": "ana@mail-1.example-2.com"
+    },
+    {
+      "name": "an all-digit label that is not the last",
+      "input": "ana@123.example.com",
+      "email_norm": "ana@123.example.com"
+    },
+    {
+      "name": "a last label with a digit",
+      "input": "ana@example.c0m",
+      "email_norm": "ana@example.c0m"
+    },
+    {
+      "name": "a punycode domain",
+      "input": "ana@xn--bcher-kva.example",
+      "email_norm": "ana@xn--bcher-kva.example"
+    },
+    {
+      "name": "a one-character local part",
+      "input": "a@example.com",
+      "email_norm": "a@example.com"
+    },
+    {
+      "name": "a local part of 64 bytes",
+      "input": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll@example.com",
+      "email_norm": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll@example.com"
+    },
+    {
+      "name": "a domain label of 63 bytes",
+      "input": "ana@ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com",
+      "email_norm": "ana@ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com"
+    },
+    {
+      "name": "an address of 254 bytes",
+      "input": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.com",
+      "email_norm": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.com"
+    },
+    {
+      "name": "an address of 255 bytes",
+      "input": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.com",
+      "error": "email"
+    },
+    {
+      "name": "a local part of 65 bytes",
+      "input": "lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a domain label of 64 bytes",
+      "input": "ana@dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com",
+      "error": "email"
+    },
+    {
+      "name": "empty",
+      "input": "",
+      "error": "email"
+    },
+    {
+      "name": "only spaces",
+      "input": "   ",
+      "error": "email"
+    },
+    {
+      "name": "no @",
+      "input": "ana.example.com",
+      "error": "email"
+    },
+    {
+      "name": "two @",
+      "input": "ana@foo@example.com",
+      "error": "email"
+    },
+    {
+      "name": "an empty local part",
+      "input": "@example.com",
+      "error": "email"
+    },
+    {
+      "name": "an empty domain",
+      "input": "ana@",
+      "error": "email"
+    },
+    {
+      "name": "a leading dot",
+      "input": ".ana@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a trailing dot in the local part",
+      "input": "ana.@example.com",
+      "error": "email"
+    },
+    {
+      "name": "two dots in a row",
+      "input": "a..na@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a domain without a dot",
+      "input": "ana@localhost",
+      "error": "email"
+    },
+    {
+      "name": "a numeric top-level label",
+      "input": "ana@example.123",
+      "error": "email"
+    },
+    {
+      "name": "an IPv4 address",
+      "input": "ana@192.168.0.1",
+      "error": "email"
+    },
+    {
+      "name": "an address literal",
+      "input": "ana@[192.168.0.1]",
+      "error": "email"
+    },
+    {
+      "name": "a domain label starting with a dash",
+      "input": "ana@-example.com",
+      "error": "email"
+    },
+    {
+      "name": "a domain label ending with a dash",
+      "input": "ana@example-.com",
+      "error": "email"
+    },
+    {
+      "name": "an empty domain label",
+      "input": "ana@example..com",
+      "error": "email"
+    },
+    {
+      "name": "a trailing dot in the domain",
+      "input": "ana@example.com.",
+      "error": "email"
+    },
+    {
+      "name": "a leading dot in the domain",
+      "input": "ana@.example.com",
+      "error": "email"
+    },
+    {
+      "name": "an underscore in the domain",
+      "input": "ana@ex_ample.com",
+      "error": "email"
+    },
+    {
+      "name": "an inner space",
+      "input": "ana silva@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a quoted local part",
+      "input": "\"ana\"@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a comment",
+      "input": "ana(work)@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a comma",
+      "input": "ana,bia@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a non-ASCII local part",
+      "input": "\u00e1na@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a non-ASCII domain",
+      "input": "ana@ex\u00e4mple.com",
+      "error": "email"
+    },
+    {
+      "name": "a Kelvin sign (U+212A) is not a k",
+      "input": "\u212aate@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a dotted capital I (U+0130) is not an i",
+      "input": "\u0130van@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a non-breaking space is not trimmed",
+      "input": "\u00a0ana@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a vertical tab is not trimmed",
+      "input": "\u000bana@example.com",
+      "error": "email"
+    },
+    {
+      "name": "a trailing NUL",
+      "input": "ana@example.com\u0000",
+      "error": "email"
+    }
+  ]
+}

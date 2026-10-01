@@ -293,9 +293,10 @@ for (const kind of Object.keys(COUNTS)) {
 }
 
 // The kit's own platform cases, in the kit's format: those Go wrote
-// (kit/platform-go.json, and the fresh file of the same name in
-// $KIT_CROSS_IN in the cross-language job) and those this side wrote at
-// release time (kit/platform-ts.json), which keep later versions to the same
+// (kit/platform-go.json and kit/platform-password-go.json, and the fresh
+// files of the same names in $KIT_CROSS_IN in the cross-language job) and
+// those this side wrote at release time (kit/platform-ts.json and
+// kit/platform-password-ts.json), which keep later versions to the same
 // bytes.
 async function kitCase(c: VectorCase): Promise<void> {
   const i = c.in
@@ -373,7 +374,7 @@ async function kitCase(c: VectorCase): Promise<void> {
   unhandled(c)
 }
 
-for (const [path, f] of files('kit/platform-go.json', 'kit/platform-ts.json')) {
+for (const [path, f] of files('kit/platform-go.json', 'kit/platform-ts.json', 'kit/platform-password-go.json', 'kit/platform-password-ts.json')) {
   describe(path, () => {
     expect(f.profile).toBe('platform')
     for (const c of f.cases.filter(forTS)) it(c.id, () => kitCase(c))

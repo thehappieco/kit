@@ -10,13 +10,14 @@ import (
 )
 
 // TestKitPlatformVectors reproduces the kit's own platform cases: those the
-// TypeScript side wrote (kit/platform-ts.json, and the fresh file of the
-// same name in $KIT_CROSS_IN in the cross-language job) and those this side
-// wrote at release time (kit/platform-go.json), which keep every later
-// version to the same bytes.
+// TypeScript side wrote (kit/platform-ts.json and kit/platform-password-ts.json,
+// and the fresh files of the same names in $KIT_CROSS_IN in the
+// cross-language job) and those this side wrote at release time
+// (kit/platform-go.json and kit/platform-password-go.json), which keep every
+// later version to the same bytes.
 func TestKitPlatformVectors(t *testing.T) {
 	std := func(s string) []byte { return vectest.B64(t, s) }
-	for _, c := range vectest.Cases(t, "kit/platform-ts.json", "kit/platform-go.json") {
+	for _, c := range vectest.Cases(t, "kit/platform-ts.json", "kit/platform-go.json", "kit/platform-password-ts.json", "kit/platform-password-go.json") {
 		if !c.ForGo() {
 			continue
 		}

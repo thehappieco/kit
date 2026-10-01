@@ -257,3 +257,63 @@ func TestAnotherProfile(t *testing.T) {
 		t.Fatal("custom normalisation was not used")
 	}
 }
+
+// DerivePrepared is Derive without the profile's preparation: the same
+// checks, in the same order, and the same keys from the same bytes. The
+// prepared bytes stay the caller's.
+func TestDerivePrepared(t *testing.T) {
+	p := wappie.Account()
+	salt := bytes.Repeat([]byte{4}, 16)
+	want, err := account.Derive(p, "senha correta", salt, cheap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prepared := []byte("senha correta")
+	got, err := account.DerivePrepared(p, prepared, salt, cheap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.AuthKey != want.AuthKey || !bytes.Equal(got.Auth, want.Auth) || !bytes.Equal(got.Wrap, want.Wrap) {
+		t.Fatal("DerivePrepared and Derive differ on the same bytes")
+	}
+	if string(prepared) != "senha correta" {
+		t.Fatal("DerivePrepared cleared the caller's bytes")
+	}
+
+	// A profile that prepares: Derive(password) is DerivePrepared(Prepare(password)),
+	// and DerivePrepared does not prepare again.
+	q := p
+	q.Prepare = func(pw string) ([]byte, error) { return []byte(strings.ToUpper(pw)), nil }
+	viaDerive, err := account.Derive(q, "senha correta", salt, cheap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	viaPrepared, err := account.DerivePrepared(q, []byte("SENHA CORRETA"), salt, cheap)
+	if err != nil || viaPrepared.AuthKey != viaDerive.AuthKey {
+		t.Fatalf("DerivePrepared of the prepared bytes is not Derive: %v", err)
+	}
+	if again, _ := account.DerivePrepared(q, []byte("senha correta"), salt, cheap); again.AuthKey == viaDerive.AuthKey {
+		t.Fatal("DerivePrepared ran the profile's preparation")
+	}
+
+	// The same refusals as Derive, before anything is derived.
+	q.Bounds = &account.Bounds{Min: account.KDFParams{M: 8, T: 1, P: 1}, Max: account.KDFParams{M: 1024, T: 3, P: 1}, MaxCost: 2048, MinSaltLen: 16, MaxSaltLen: 16}
+	for _, c := range []struct {
+		salt   []byte
+		params account.KDFParams
+		want   error
+	}{
+		{salt, account.KDFParams{Alg: "argon2i", M: 8, T: 1, P: 1}, account.ErrUnsupportedAlg},
+		{salt, account.KDFParams{Alg: "argon2id", M: 2048, T: 1, P: 1}, account.ErrOutOfBounds},
+		{salt[:15], cheap, account.ErrOutOfBounds},
+	} {
+		_, errDerive := account.Derive(q, "x", c.salt, c.params)
+		_, errPrepared := account.DerivePrepared(q, []byte("x"), c.salt, c.params)
+		if !errors.Is(errDerive, c.want) || !errors.Is(errPrepared, c.want) {
+			t.Errorf("%+v, %d-byte salt: Derive %v, DerivePrepared %v, want %v", c.params, len(c.salt), errDerive, errPrepared, c.want)
+		}
+	}
+	if _, err := account.DerivePrepared(p, []byte("x"), bytes.Repeat([]byte{4}, 7), cheap); !errors.Is(err, account.ErrKDFFailed) {
+		t.Errorf("a 7-byte salt: %v", err)
+	}
+}

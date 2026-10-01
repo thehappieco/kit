@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  AccountError, bind, checkKDFParams, checkSalt, defaultKDFParams, derive, freshSalt, generateAccountKeys, newRecoveryCode,
+  AccountError, bind, checkKDFParams, checkSalt, defaultKDFParams, derive, derivePrepared, freshSalt, generateAccountKeys, newRecoveryCode,
   normaliseRecoveryCode, recoveryKey, recoveryProof, unwrapPrivateKey, wrapPrivateKey, type AccountProfile, type KDFBounds, type KDFParams,
 } from '../src/account.js'
 import { type Bytes } from '../src/bytes.js'
@@ -232,5 +232,35 @@ describe('another profile', () => {
     expect(await failure(() => a.unwrapPrivateKey(blob.subarray(2) as Bytes, decomposed.wrapKey, utf8('aad')))).toEqual({ error: 'wrap', reason: 'wrong_key' })
     expect(await failure(() => a.unwrapPrivateKey(blob.subarray(0, 20) as Bytes, decomposed.wrapKey, utf8('aad')))).toEqual({ error: 'wrap', reason: 'truncated' })
     expect(await a.recoveryProof('A'.repeat(30))).toMatch(/^[A-Za-z0-9_-]{43}$/)
+  })
+})
+
+describe('derivePrepared', () => {
+  const salt = new Uint8Array(16).fill(8) as Bytes
+
+  it('is derive without the preparation, and leaves the caller\'s bytes alone', async () => {
+    const prepared = utf8('senha correta')
+    const d = await derivePrepared(p, prepared, salt, cheap)
+    expect(d.authKey).toBe((await derive(p, 'senha correta', salt, cheap)).authKey)
+    expect(new TextDecoder().decode(prepared)).toBe('senha correta')
+    const upper: AccountProfile = { ...p, prepare: (pw) => utf8(pw.toUpperCase()) }
+    expect((await derivePrepared(upper, utf8('SENHA CORRETA'), salt, cheap)).authKey).toBe((await derive(upper, 'senha correta', salt, cheap)).authKey)
+    expect((await derivePrepared(upper, utf8('senha correta'), salt, cheap)).authKey).not.toBe((await derive(upper, 'senha correta', salt, cheap)).authKey)
+    expect((await bind(p).derivePrepared(prepared, salt, cheap)).authKey).toBe(d.authKey)
+  })
+
+  it('refuses what derive refuses, before starting a worker', async () => {
+    const bounded: AccountProfile = { ...p, bounds: { min: { m: 8, t: 1, p: 1 }, max: { m: 1024, t: 3, p: 1 }, maxCost: 2048, minSaltLen: 16, maxSaltLen: 16 } }
+    let started = 0
+    const worker = () => { started++; throw new Error('no worker here') }
+    for (const [s, params, want] of [
+      [salt, { ...cheap, alg: 'argon2i' }, { error: 'kdf', reason: 'unsupported_alg' }],
+      [salt, { ...cheap, m: 2048 }, { error: 'kdf', reason: 'out_of_bounds' }],
+      [salt.subarray(0, 15) as Bytes, cheap, { error: 'kdf', reason: 'out_of_bounds' }],
+    ] as [Bytes, KDFParams, { error: string; reason: string }][]) {
+      expect(await failure(() => derivePrepared(bounded, utf8('x'), s, params, { worker }))).toEqual(want)
+      expect(await failure(() => derive(bounded, 'x', s, params, { worker }))).toEqual(want)
+    }
+    expect(started).toBe(0)
   })
 })

@@ -87,12 +87,15 @@ func FuzzNormalizeEmail(f *testing.F) {
 }
 
 // FuzzPreparePassword: no input panics; whatever is accepted is valid UTF-8,
-// in NFC, free of control characters and mapped spaces, at most 256 code
-// points, and preparing it again changes nothing.
+// in NFC with no U+034F that the password did not hold, free of control
+// characters and mapped spaces, at most 256 code points, and preparing it
+// again changes nothing.
 func FuzzPreparePassword(f *testing.F) {
 	for _, s := range []string{
 		"correct horse battery staple", "cafe\u0301", "\u00a0\u3000", "\xed\xa0\x80", "\x00",
 		"d\u0307\u0323", "\u1100\u1161\u11a8", strings.Repeat("\U0001f600", 300), "",
+		strings.Repeat("\u3160", 31), "\uac01" + strings.Repeat("\u0301", 29), "\u00b4" + strings.Repeat("\u0301", 30),
+		"a" + strings.Repeat("\uff9e", 30), "pass\u034fword",
 	} {
 		f.Add(s, false)
 		f.Add(s, true)
@@ -114,6 +117,9 @@ func FuzzPreparePassword(f *testing.F) {
 		}
 		if !norm.NFC.IsNormal(p) {
 			t.Fatal("prepared to a string that is not NFC")
+		}
+		if strings.Count(string(p), "\u034f") != strings.Count(s, "\u034f") {
+			t.Fatal("prepared with a U+034F the password did not hold")
 		}
 		n := 0
 		for _, r := range string(p) {

@@ -275,7 +275,7 @@ Both implementations write RFC 8785 text: object keys sorted by UTF-16 code unit
 
 ## 11. The platform profile
 
-- Status: **part 1 is normative**: the account core of the platform's protocol `id-v1` (`thehappie-id/v1`), from the platform's `docs/protocol/id-v1.md` sections 1, 2 and 6 at platform commit `5e66d84`. **Part 2 is reserved** (sections 11.12 to 11.15).
+- Status: **part 1 is normative**: the account core of the platform's protocol `id-v1` (`thehappie-id/v1`), from the platform's `docs/protocol/id-v1.md` sections 1, 2 and 6 at platform commit `5e66d84`, with one change: the run rule of the password profile (section 11.2, step 2) counts more, so that Go and ICU never prepare one password two ways. **Part 2 is reserved** (sections 11.12 to 11.15).
 - Implementations: Go `profiles/platform`, TypeScript `@thehappieco/kit/profiles/platform`. Unlike the other modules, their functions take no profile argument: they are the platform's protocol. Where a generic module does the work, they hand it the platform's values (Appendix C): sections 6.3, 6.5 and 6.7 with the platform's labels, header and canonical form, section 10 for the AAD, and section 4.4's X25519 for product keys.
 - Vectors: `vectors/platform/id-v1/*.json`, written by the platform's Go code and carried byte for byte (section 12.2). An implementation conforms when it reproduces every case and refuses every must-fail case with the error name the case records.
 
@@ -305,7 +305,7 @@ The platform's server-side labels (`thehappie-platform/v1/...`: decoy salts, ema
 Given the password as typed, in this order:
 
 1. It is well-formed Unicode; otherwise `password_invalid` (`platform/id-v1/password-profile.json#a lone high surrogate`).
-2. Its NFD form holds no run of more than 30 consecutive code points of general category M; otherwise `password_invalid` (`platform/id-v1/password-profile.json#thirty-one combining accents on one letter are refused`, `platform/id-v1/password-profile.json#thirty-one spacing marks are refused too`). Go's `golang.org/x/text/unicode/norm` applies the Stream-Safe Text Format after 30 non-starters and ICU does not, so beyond that limit the two would prepare different bytes. Every non-starter is a mark, so the limit covers them; Go's inserted U+034F is itself a mark and only lengthens a run.
+2. Its compatibility decomposition (NFKD) holds no run of more than 30 consecutive counted code points; otherwise `password_invalid` (`platform/id-v1/password-profile.json#thirty-one combining accents on one letter are refused`, `platform/id-v1/password-profile.json#thirty-one spacing marks are refused too`). A code point is counted if it is of general category M, a Hangul vowel or final jamo (U+1160 to U+11FF, U+D7B0 to U+D7FF), or U+16D67 KIRAT RAI VOWEL SIGN E. Why: Go's `golang.org/x/text/unicode/norm` applies the Stream-Safe Text Format, inserting U+034F after 30 non-starters, and ICU does not, so beyond that limit the two would prepare different bytes. What it counts as a non-starter, in each character's compatibility decomposition, is a code point with a non-zero combining class (always a mark) or one that composes with what precedes it (a mark, a Hangul vowel or final jamo, or, from Unicode 16.0, U+16D67, a letter). So Hangul syllables, the compatibility and halfwidth jamo, and characters such as U+00B4 and U+FF9E whose compatibility decomposition holds a mark all count, as they do here; U+034F is itself a mark. Canonical reordering moves only code points with a non-zero combining class, all counted, so the runs of the whole text's NFKD are those of its code points' decompositions put end to end, and an implementation counts them code point by code point, in linear time.
 3. NFC (`platform/id-v1/password-profile.json#e and a combining acute compose under NFC`), not NFKC (`platform/id-v1/password-profile.json#NFC is not NFKC: a ligature stays`).
 4. U+00A0, U+1680, U+2000 to U+200A, U+202F, U+205F and U+3000 become U+0020 (`platform/id-v1/password-profile.json#every space separator becomes U+0020`). They have no composition partner, so the result stays NFC.
 5. A code point from U+0000 to U+001F or from U+007F to U+009F is refused: `password_invalid`, before the length is counted (`platform/id-v1/password-profile.json#a control character is refused before the length is counted`).
@@ -315,7 +315,9 @@ Given the password as typed, in this order:
 
 A password being presented (login, unlock, opening a key bundle) goes through every step but the minimum length.
 
-**Unicode versions.** NFC is stable only for characters assigned in the Unicode version both sides use. Go before 1.27 uses Unicode 15.0 tables, in `unicode` and in `x/text/unicode/norm`; Go 1.27 and current browsers use 17.0. A password with characters assigned after 15.0 that have canonical mappings could prepare differently on an older side. The vectors use only characters assigned by 15.0.
+Step 2 counts more than the platform's `id-v1.md` at `5e66d84`, which counted only category M in the NFD form: with that rule Go and ICU accepted some passwords and prepared different bytes for them (thirty-one U+3160, a Hangul syllable followed by twenty-nine acute accents), and refused others on one side only (U+00B4 followed by thirty acute accents). Every case of `platform/id-v1/password-profile.json` keeps its outcome.
+
+**Unicode versions.** NFC is stable only for characters assigned in the Unicode version both sides use. Go before 1.27 uses Unicode 15.0 tables, in `unicode` and in `x/text/unicode/norm`; Go 1.27 and current browsers use 17.0. A password with characters assigned after 15.0 that have canonical mappings could prepare differently on an older side. The vectors use only characters assigned by 15.0, apart from a refusal of thirty-one U+16D67, which every version counts. The kit's Go tests walk every code point with the toolchain's tables to check that its normaliser inserts U+034F only where step 2 refuses; should later tables count a code point step 2 does not, the Go implementation refuses (`password_invalid`) a password into which its NFC would still insert one, rather than prepare bytes ICU would not.
 
 ### 11.3 Password KDF and policy
 
@@ -453,7 +455,7 @@ A reader uses the root and the product keys only after step 4. A writer (the pla
 
 | Name | Meaning |
 |---|---|
-| `password_invalid` | not well-formed Unicode, a run of more than 30 marks, or a control character |
+| `password_invalid` | not well-formed Unicode, a run of more than 30 marks or Hangul vowel and final jamo (11.2), or a control character |
 | `password_too_short` | a new password under 12 code points |
 | `password_too_long` | a password over 256 code points |
 | `kdf_policy` | KDF parameters or a salt outside the bounds of 11.3 |
@@ -504,7 +506,7 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 - **The reserved header byte** is bound by the AAD, not checked (section 4.1).
 - **Decoy salts** for unknown accounts are a server concern and outside the kit.
 - **The platform's KDF bounds are compiled in** (section 11.3). A server can still give two addresses the same salt; the client cannot tell. The bound fixes only the length. The decoy-salt derivation is the server's.
-- **Unicode versions and Stream-Safe text** (section 11.2): a password with more than 30 combining marks in a row is refused rather than prepared two ways, and characters assigned after Unicode 15.0 with canonical mappings may prepare differently on sides with older tables.
+- **Unicode versions and Stream-Safe text** (section 11.2): a password whose compatibility decomposition holds more than 30 marks or Hangul vowel and final jamo in a row is refused rather than prepared two ways, because Go's normaliser would insert U+034F there and ICU's would not; the Go side also refuses a password into which its normaliser would still insert one. Characters assigned after Unicode 15.0 with canonical mappings may prepare differently on sides with older tables. The rule is counted code point by code point, so a long pasted run is refused in linear time on the page's main thread.
 - **The platform's verifiers are a fast hash on purpose** (section 11.7).
 - **Product public keys are pinned in one spelling** (section 11.4). Sealing to a low-order key is refused by `hpke` anyway (section 4.4).
 - **Strict reading of files that gate key material** (section 11.9): repeated members, number spellings and unknown members are refused rather than resolved.

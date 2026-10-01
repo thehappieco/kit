@@ -7,7 +7,7 @@ One version covers both languages. Before 1.0.0 a minor version may change APIs 
 The release date is the tag's.
 
 - The platform profile, part 1 (SPEC section 11), in Go (`profiles/platform`) and TypeScript (`@thehappieco/kit/profiles/platform`): the account core of the platform's protocol id-v1, taken from the platform at `5e66d84`. It covers:
-  - the password profile `thehappie-password/v1`: NFC, mapped spaces, controls refused, 12 to 256 code points, and runs of more than 30 combining marks refused so that Go and ICU prepare the same bytes;
+  - the password profile `thehappie-password/v1`: NFC, mapped spaces, controls refused, 12 to 256 code points, and runs of more than 30 marks or Hangul vowel and final jamo refused, counted in the compatibility decomposition, so that Go (whose normaliser inserts U+034F past 30 non-starters) and ICU never prepare one password two ways. This counts more than the platform's rule at `5e66d84` (marks in the canonical decomposition), under which some passwords were accepted on both sides and prepared differently; every platform vector keeps its outcome;
   - the KDF floor and ceiling, refused before anything is derived, with the salt the server hands out (no salt is ever drawn);
   - the 62-byte root wrap, bound by a restricted JCS AAD to the account and the epoch, never the email, and self-tested when sealed;
   - the recovery code's canonical form;

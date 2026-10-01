@@ -122,6 +122,46 @@ describe('the password profile', () => {
     }
   })
 
+  // The runs Go's normaliser counts and category M alone does not: the
+  // compatibility decomposition, the Hangul vowel and final jamo, U+16D67.
+  // At the limit the password prepares to exactly its NFC; one past it is
+  // refused (Go would insert U+034F there, and ICU does not).
+  it('counts runs in the compatibility decomposition, the Hangul jamo included', async () => {
+    const acutes = (n: number) => ch(0x301).repeat(n)
+    const cases: [string, string, string][] = [
+      ['a compatibility jamo (U+3160)', ch(0x3160).repeat(30), ch(0x3160).repeat(31)],
+      ['a Hangul syllable, then acutes', ch(0xac01) + acutes(28), ch(0xac01) + acutes(29)],
+      ['U+00B4, then acutes', ch(0xb4) + acutes(29), ch(0xb4) + acutes(30)],
+      ['a vowel jamo, then acutes', ch(0x1161) + acutes(29), ch(0x1161) + acutes(30)],
+      ['a halfwidth voiced mark (U+FF9E)', 'a' + ch(0xff9e).repeat(30), 'a' + ch(0xff9e).repeat(31)],
+      ['a halfwidth jamo (U+FFA3)', 'a' + ch(0xffa3).repeat(30), 'a' + ch(0xffa3).repeat(31)],
+      ['U+0344, two marks each', 'a' + ch(0x344).repeat(15), 'a' + ch(0x344).repeat(16)],
+    ]
+    for (const [name, at, over] of cases) {
+      expect(platform.preparePasswordText(at, OLD), name).toBe(at.normalize('NFC'))
+      await expectRefusal(() => platform.preparePassword(over, OLD), 'password_invalid')
+    }
+    // Counted whatever the engine's Unicode version: unassigned before 16.0,
+    // a letter that composes with what precedes it from 16.0.
+    await expectRefusal(() => platform.preparePassword('a' + ch(0x16d67).repeat(31), OLD), 'password_invalid')
+    expect(platform.preparePasswordText(ch(0x1100, 0x1161, 0x11a8).repeat(11), OLD)).toBe(ch(0xac01).repeat(11))
+    expect(platform.preparePassword(ch(0xac01).repeat(31), NEW).length).toBe(93)
+  })
+
+  // ICU's canonical reordering is quadratic in a run's length, and the
+  // profile runs on the page's main thread. The run is counted code point by
+  // code point, so a pasted wall of alternating marks (about 13 s for 100,000
+  // in Node when the whole text was decomposed first) is refused at once, and
+  // a long text of short runs reaches the length check in linear time.
+  it('refuses a long run without normalising the whole text first', async () => {
+    const wall = 'a' + (ch(0x316) + ch(0x301)).repeat(50_000)
+    const short = ('a' + (ch(0x316) + ch(0x301)).repeat(15)).repeat(3_300)
+    const started = performance.now()
+    await expectRefusal(() => platform.preparePassword(wall, OLD), 'password_invalid')
+    await expectRefusal(() => platform.preparePassword(short, OLD), 'password_too_long')
+    expect(performance.now() - started).toBeLessThan(3_000)
+  })
+
   it('is idempotent', () => {
     for (const pw of ['cafe' + ch(0x301) + ' au lait', 'a' + ch(0xa0) + 'b' + ch(0x3000) + 'c d' + ch(0x307, 0x323), ch(0x212b) + 'ngstr' + ch(0xf6) + 'm units']) {
       const once = platform.preparePasswordText(pw, OLD)

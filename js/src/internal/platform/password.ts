@@ -33,20 +33,42 @@ const OTHER_SPACES = /[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g
 // C0 controls, DEL and C1 controls.
 const CONTROLS = /[\u0000-\u001F\u007F-\u009F]/
 
-// The longest run of combining marks the password may hold in its canonical
-// decomposition. Past 30 non-starters, Go's golang.org/x/text/unicode/norm
-// inserts U+034F to keep the text stream-safe (UAX #15), so its NFC stops
-// being the NFC of normalize() and the two sides would derive different keys
-// from the same password. Such a password is refused on both sides instead;
-// marks (category M) are a superset of non-starters that both can test.
+// The longest run of counted code points (COUNTED) the password may hold in
+// its compatibility decomposition. Past 30 of them, Go's
+// golang.org/x/text/unicode/norm inserts U+034F to keep the text stream-safe
+// (UAX #15), so its NFC stops being the NFC of normalize() and the two sides
+// would derive different keys from the same password. Such a password is
+// refused on both sides instead.
 const MAX_MARK_RUN = 30
-const MARK = /^\p{M}$/u
 
-function markRunTooLong(s: string): boolean {
+// What a run counts: a mark (category M), a Hangul vowel or final jamo
+// (U+1160 to U+11FF, U+D7B0 to U+D7FF), or U+16D67 KIRAT RAI VOWEL SIGN E.
+// Together they cover what Go's normaliser counts as a non-starter: every code
+// point with a non-zero combining class (all marks) and every one that
+// composes with what precedes it (marks, the Hangul jamo, and from Unicode
+// 16.0 U+16D67, a letter). Go's tests walk every code point to keep it so.
+const COUNTED = /^[\p{M}\u1160-\u11FF\uD7B0-\uD7FF\u{16D67}]$/u
+
+// markRunTooLong decomposes code point by code point rather than calling
+// normalize('NFKD') on the whole password. The runs are the same: a full
+// decomposition differs from its code points' decompositions put end to end
+// only by canonical reordering, which moves only code points with a non-zero
+// combining class, and those are all counted. And the cost is linear: ICU's
+// canonical reordering is quadratic in the length of a run, so a pasted wall
+// of alternating marks would otherwise hold the main thread for seconds
+// before being refused. Once this passes, every run is at most 30 long and
+// the normalize('NFC') that follows is linear too.
+function markRunTooLong(password: string): boolean {
   let run = 0
-  for (const ch of s.normalize('NFD')) {
-    if (!MARK.test(ch)) run = 0
-    else if (++run > MAX_MARK_RUN) return true
+  for (const ch of password) {
+    if (ch.charCodeAt(0) < 0x80) {
+      run = 0 // ASCII decomposes to itself and holds no mark
+      continue
+    }
+    for (const d of ch.normalize('NFKD')) {
+      if (!COUNTED.test(d)) run = 0
+      else if (++run > MAX_MARK_RUN) return true
+    }
   }
   return false
 }
@@ -56,7 +78,7 @@ function markRunTooLong(s: string): boolean {
  * can compare the prepared password with something else (the platform's page
  * refuses one equal to the address); everything that derives keys takes the
  * bytes from preparePassword. In order: well-formed Unicode, the run of
- * combining marks, NFC, the space mapping, control characters, then the
+ * marks, NFC, the space mapping, control characters, then the
  * length in code points (at least 12 for a new password, at most 256 for
  * any). Nothing is trimmed.
  */
@@ -65,7 +87,7 @@ export function preparePasswordText(password: string, opts: { isNew: boolean }):
     throw new PlatformError('the password is not well-formed Unicode', 'password_invalid')
   }
   if (markRunTooLong(password)) {
-    throw new PlatformError('the password holds a run of more than 30 combining marks', 'password_invalid')
+    throw new PlatformError('the password holds a run of more than 30 marks', 'password_invalid')
   }
   const s = password.normalize('NFC').replace(OTHER_SPACES, ' ')
   if (CONTROLS.test(s)) {

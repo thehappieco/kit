@@ -9,7 +9,8 @@ import "errors"
 // one: they are reported as one of these.
 var (
 	// ErrPasswordInvalid means the password is not well-formed Unicode,
-	// holds a run of more than 30 combining marks, or holds a control
+	// holds a run of more than 30 marks or Hangul vowel and final jamo in
+	// its compatibility decomposition (section 11.2), or holds a control
 	// character.
 	ErrPasswordInvalid = errors.New("platform: password is not well-formed or holds a control character")
 	// ErrPasswordTooShort means a new password has fewer than 12 code points.

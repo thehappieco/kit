@@ -371,4 +371,47 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
     }
     write('platform-ts.json', 'platform', 'Fresh cases of the platform profile (SPEC section 11) by the kit\'s TypeScript, for Go: random passwords from blocks whose normalisation is stable since Unicode 15.0, a derivation, root wraps with the nonce they drew, recovery codes with the bytes they came from, product keys, verifiers, addresses and a key bundle written by JSON.stringify.', cases, undefined, 'platform')
   })
+
+  // Fixed passwords at the limit of the run rule (SPEC section 11.2, step 2)
+  // and one past it, where Go's normaliser inserts U+034F and ICU's does not:
+  // the same list as internal/cross/platform_test.go (streamSafeCases), each
+  // with its declared outcome.
+  it('writes platform-password-ts.json', async () => {
+    const ch = (...cps: number[]) => String.fromCodePoint(...cps)
+    const acutes = (n: number) => ch(0x301).repeat(n)
+    const fixed: [string, string, boolean, string][] = [
+      ['compatibility-vowel-jamo/31', ch(0x3160).repeat(31), false, 'password_invalid'],
+      ['compatibility-vowel-jamo/30', ch(0x3160).repeat(30), true, ''],
+      ['syllable-then-acutes/29', ch(0xac01) + acutes(29), false, 'password_invalid'],
+      ['syllable-then-acutes/28', ch(0xac01) + acutes(28), false, ''],
+      ['acute-accent-then-acutes/30', ch(0xb4) + acutes(30), false, 'password_invalid'],
+      ['acute-accent-then-acutes/29', ch(0xb4) + acutes(29), false, ''],
+      ['vowel-jamo-then-acutes/30', ch(0x1161) + acutes(30), false, 'password_invalid'],
+      ['vowel-jamo-then-acutes/29', ch(0x1161) + acutes(29), false, ''],
+      ['halfwidth-voiced-mark/31', 'a' + ch(0xff9e).repeat(31), false, 'password_invalid'],
+      ['halfwidth-voiced-mark/30', 'a' + ch(0xff9e).repeat(30), true, ''],
+      ['halfwidth-jamo/31', 'a' + ch(0xffa3).repeat(31), false, 'password_invalid'],
+      ['halfwidth-jamo/30', 'a' + ch(0xffa3).repeat(30), true, ''],
+      ['two-marks-each/16', 'a' + ch(0x344).repeat(16), false, 'password_invalid'],
+      ['two-marks-each/15', 'a' + ch(0x344).repeat(15), true, ''],
+      ['kirat-rai-vowel-sign-e/31', 'a' + ch(0x16d67).repeat(31), false, 'password_invalid'],
+      ['alternating-marks/31', 'a' + ch(0x316, 0x301).repeat(15) + ch(0x316), false, 'password_invalid'],
+      ['conjoining-jamo/11', ch(0x1100, 0x1161, 0x11a8).repeat(11), false, ''],
+      ['syllables/31', ch(0xac01).repeat(31), true, ''],
+    ]
+    const cases: VectorCase[] = []
+    for (const [slug, password, isNew, error] of fixed) {
+      const c: VectorCase = { id: `platform/prepare-password/stream-safe/${slug}`, op: 'platform.prepare_password', in: { password, new: isNew } }
+      const got = await codeOf(() => platform.preparePassword(password, { isNew }))
+      expect(got, slug).toBe(error === '' ? 'none' : error)
+      if (error !== '') {
+        c.error = error
+      } else {
+        expect(platform.preparePasswordText(password, { isNew }), slug).toBe(password.normalize('NFC'))
+        c.out = { prepared_b64: toB64(platform.preparePassword(password, { isNew })) }
+      }
+      cases.push(c)
+    }
+    write('platform-password-ts.json', 'platform', 'Fixed passwords at the limit of the platform profile\'s run rule (SPEC section 11.2, step 2) and one past it, by the kit\'s TypeScript, for Go: runs that only the compatibility decomposition or the Hangul vowel and final jamo make (compatibility and halfwidth jamo, Hangul syllables, U+00B4, U+FF9E), U+16D67, and marks for comparison. Past the limit Go\'s normaliser would insert U+034F and ICU\'s would not, so both refuse; at it both prepare the password\'s NFC.', cases, undefined, 'platform')
+  })
 })

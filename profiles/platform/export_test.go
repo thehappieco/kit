@@ -21,3 +21,10 @@ func CountDerivations(t testing.TB) *int {
 	t.Cleanup(func() { deriveFn = orig })
 	return calls
 }
+
+// MarkRunTooLong and Counted are the run rule of section 11.2, step 2, for
+// the tests that walk every code point.
+var (
+	MarkRunTooLong = markRunTooLong
+	Counted        = counted
+)

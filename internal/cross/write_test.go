@@ -148,6 +148,7 @@ func TestWriteCrossVectors(t *testing.T) {
 	writeRequestHMAC(t, dir)
 	writeJCS(t, dir)
 	writePlatform(t, dir)
+	writePlatformPassword(t, dir)
 }
 
 func writeSeal(t *testing.T, dir string) {

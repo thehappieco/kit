@@ -102,7 +102,7 @@ export class Base64Error extends Error {
  * Go (profiles/platform ErrorCode) and in the platform's vectors.
  */
 export type PlatformErrorCode =
-  /** Not well-formed Unicode, a run of more than 30 combining marks, or a control character. */
+  /** Not well-formed Unicode, a run of more than 30 marks or Hangul vowel and final jamo (SPEC section 11.2), or a control character. */
   | 'password_invalid'
   /** A new password under 12 code points. */
   | 'password_too_short'

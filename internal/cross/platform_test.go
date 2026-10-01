@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/thehappieco/kit/internal/forge"
 	"github.com/thehappieco/kit/profiles/platform"
@@ -246,4 +247,63 @@ func writePlatform(t *testing.T, dir string) {
 		vcase{ID: "platform/key-bundle/other-code", Op: "platform.key_bundle", In: map[string]any{"bundle_text": string(bundle), "recovery_code": strings.Repeat("7", 30)}, Error: "wrap"},
 	)
 	writeProfile(t, dir, "platform-go.json", "platform", "platform", "Fresh cases of the platform profile (SPEC section 11) by the kit's Go, for the TypeScript tests: random passwords from blocks whose normalisation is stable since Unicode 15.0, derivations, root wraps with the nonce they drew, recovery codes with the bytes they came from, product keys, verifiers, addresses and a key bundle. The check_public_key cases are the server's, for Go only.", nil, cases)
+}
+
+// streamSafeCases are fixed passwords at the limit of the run rule (SPEC
+// section 11.2, step 2) and one past it, where Go's normaliser inserts U+034F
+// (the Stream-Safe Text Format) and ICU's does not: runs that only the
+// compatibility decomposition or the Hangul jamo make, and marks for
+// comparison. js/test/cross.spec.ts writes the same list. Each declares its
+// outcome.
+var streamSafeCases = []struct {
+	slug, password string
+	isNew          bool
+	error          string
+}{
+	{"compatibility-vowel-jamo/31", strings.Repeat("\u3160", 31), false, "password_invalid"},
+	{"compatibility-vowel-jamo/30", strings.Repeat("\u3160", 30), true, ""},
+	{"syllable-then-acutes/29", "\uac01" + strings.Repeat("\u0301", 29), false, "password_invalid"},
+	{"syllable-then-acutes/28", "\uac01" + strings.Repeat("\u0301", 28), false, ""},
+	{"acute-accent-then-acutes/30", "\u00b4" + strings.Repeat("\u0301", 30), false, "password_invalid"},
+	{"acute-accent-then-acutes/29", "\u00b4" + strings.Repeat("\u0301", 29), false, ""},
+	{"vowel-jamo-then-acutes/30", "\u1161" + strings.Repeat("\u0301", 30), false, "password_invalid"},
+	{"vowel-jamo-then-acutes/29", "\u1161" + strings.Repeat("\u0301", 29), false, ""},
+	{"halfwidth-voiced-mark/31", "a" + strings.Repeat("\uff9e", 31), false, "password_invalid"},
+	{"halfwidth-voiced-mark/30", "a" + strings.Repeat("\uff9e", 30), true, ""},
+	{"halfwidth-jamo/31", "a" + strings.Repeat("\uffa3", 31), false, "password_invalid"},
+	{"halfwidth-jamo/30", "a" + strings.Repeat("\uffa3", 30), true, ""},
+	{"two-marks-each/16", "a" + strings.Repeat("\u0344", 16), false, "password_invalid"},
+	{"two-marks-each/15", "a" + strings.Repeat("\u0344", 15), true, ""},
+	{"kirat-rai-vowel-sign-e/31", "a" + strings.Repeat("\U00016d67", 31), false, "password_invalid"},
+	{"alternating-marks/31", "a" + strings.Repeat("\u0316\u0301", 15) + "\u0316", false, "password_invalid"},
+	{"conjoining-jamo/11", strings.Repeat("\u1100\u1161\u11a8", 11), false, ""},
+	{"syllables/31", strings.Repeat("\uac01", 31), true, ""},
+}
+
+// writePlatformPassword writes platform-password-go.json: streamSafeCases as
+// the kit's Go prepares them, for the TypeScript tests. A password that
+// prepares does so to exactly its NFC, with no U+034F.
+func writePlatformPassword(t *testing.T, dir string) {
+	var cases []vcase
+	for _, sc := range streamSafeCases {
+		prepare := platform.PreparePassword
+		if sc.isNew {
+			prepare = platform.PrepareNewPassword
+		}
+		c := vcase{ID: "platform/prepare-password/stream-safe/" + sc.slug, Op: "platform.prepare_password", In: map[string]any{"password": sc.password, "new": sc.isNew}}
+		p, err := prepare(sc.password)
+		if got := platform.ErrorCode(err); got != sc.error || (err != nil && got == "") {
+			t.Fatalf("%s: %q, want %q", sc.slug, got, sc.error)
+		}
+		if err != nil {
+			c.Error = sc.error
+		} else {
+			if string(p) != norm.NFC.String(sc.password) || strings.Contains(string(p), "\u034f") {
+				t.Fatalf("%s: not the password's NFC", sc.slug)
+			}
+			c.Out = map[string]any{"prepared_b64": b64(p)}
+		}
+		cases = append(cases, c)
+	}
+	writeProfile(t, dir, "platform-password-go.json", "platform", "platform", "Fixed passwords at the limit of the platform profile's run rule (SPEC section 11.2, step 2) and one past it, by the kit's Go, for the TypeScript tests: runs that only the compatibility decomposition or the Hangul vowel and final jamo make (compatibility and halfwidth jamo, Hangul syllables, U+00B4, U+FF9E), U+16D67, and marks for comparison. Past the limit Go's normaliser would insert U+034F and ICU's would not, so both refuse; at it both prepare the password's NFC.", nil, cases)
 }

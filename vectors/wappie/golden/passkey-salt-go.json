@@ -1,0 +1,65 @@
+{
+  "cases": [
+    {
+      "id": "passkey/prf-salt/wappie.thehappie.co",
+      "op": "passkey.prf_salt",
+      "in": {
+        "rp_id": "wappie.thehappie.co"
+      },
+      "out": {
+        "salt_b64": "+7Fqsy73e8DFK9Kmaixp61AThcs/ZJZ+bPksOytHDzI="
+      }
+    },
+    {
+      "id": "passkey/prf-salt/app.wappie.thehappie.co",
+      "op": "passkey.prf_salt",
+      "in": {
+        "rp_id": "app.wappie.thehappie.co"
+      },
+      "out": {
+        "salt_b64": "CJ9HpqYa0ZhpQD1YTT1A4wn1Og9jL4gdBp9FTA+xwhw="
+      }
+    },
+    {
+      "id": "passkey/prf-salt/localhost",
+      "op": "passkey.prf_salt",
+      "in": {
+        "rp_id": "localhost"
+      },
+      "out": {
+        "salt_b64": "j/3RNmnQqOdPwENSsQejLcibFdNKVc5Zhd3JpLmOTrg="
+      }
+    },
+    {
+      "id": "passkey/prf-salt/example.com",
+      "op": "passkey.prf_salt",
+      "in": {
+        "rp_id": "example.com"
+      },
+      "out": {
+        "salt_b64": "KSsu1DTz3c5yoXuprR2s+RGPONJgbEAkq53lrjm2FCY="
+      }
+    },
+    {
+      "id": "passkey/prf-salt/xn--bcher-kva.example.com",
+      "op": "passkey.prf_salt",
+      "in": {
+        "rp_id": "xn--bcher-kva.example.com"
+      },
+      "out": {
+        "salt_b64": "K4qg42Md4jxrd5haSasMbbvDQ5aXRnd+qKCKw1xOn28="
+      }
+    }
+  ],
+  "format": "thehappieco-kit-vectors/1",
+  "generated_by": {
+    "generator": "vectors/wappie/_generators/go/internal/authapi/kitgen_internal_test.go",
+    "lang": "go",
+    "randomness": "none",
+    "source": "github.com/thehappieco/wappie@8c0c1f74103bc6bb65a93b13613ad1964d4399c4 internal/authapi/passkeys.go",
+    "toolchain": "go1.26.7"
+  },
+  "module": "passkey",
+  "note": "The public PRF evaluation salt Wappie's server hands to WebAuthn, one per RP ID.",
+  "profile": "wappie"
+}

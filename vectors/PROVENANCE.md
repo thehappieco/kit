@@ -1,0 +1,74 @@
+# Provenance
+
+## Wappie's vectors
+
+- **Source:** `github.com/thehappieco/wappie`, `main` at `8c0c1f74103bc6bb65a93b13613ad1964d4399c4`.
+- **Captured:** 2026-10-01, before any code moved, by `wappie/_generators/run.sh`. The script extracts that commit with `git archive` into a temporary directory (so the tree is exactly the commit, with nothing uncommitted), copies the generators beside the code they exercise, runs them there, and copies the legacy fixtures. Wappie's repository is only read.
+- **Toolchains:** go1.26.7 (darwin/arm64); Node v25.6.1 with npm 11.9.0; `@noble/hashes` 2.4.0 and vitest 3.2.7 as locked by Wappie's `packages/client/package-lock.json` at that commit, which vitest uses to transpile the client's TypeScript sources.
+- **Determinism:** the Go generators reset `testing/cryptotest.SetGlobalRandom` to the seed recorded in each seeded case; the TypeScript generators replace `crypto.getRandomValues` and X25519 key generation with an HMAC-SHA256 stream keyed by the case id, and each case records the bytes it consumed. Running the script again at the same commit with the same toolchains writes identical files; `make vectors-regen-check` does that and compares.
+- **Never** run Wappie's own tests with `-update` to refresh these: that flag rewrites Wappie's fixtures with fresh random keys.
+
+### wappie/golden
+
+| File | Module | Cases | Writer | Wappie code it captures | Toolchain | sha256 |
+|---|---|---|---|---|---|---|
+| `seal-go.json` | seal | 442 | Go | `internal/crypto/seal` | go1.26.7 | `404c9325bf8b52ff5ddfff4427d7588e45ff6733866764f402bc4237c9ccd218` |
+| `reqhmac-go.json` | reqhmac | 59 | Go | `internal/mcpauth/hmac.go` | go1.26.7 | `69cb83be0a6cd0c12bf01aec56b0641f87374a2f96695d4d2fbce8293c9ed31b` |
+| `passkey-salt-go.json` | passkey | 5 | Go | `internal/authapi/passkeys.go` (the PRF salt) | go1.26.7 | `4b75807bfc4241a02012a3dc4d1dfa72680a67a8903507bef030aecab57e2e05` |
+| `seal-ts.json` | seal | 31 | TS | `packages/client/src/crypto/seal.ts` | Node v25.6.1 | `a0c5cec74a00890fb5477bfe102e69e07bc67aae6af46c5500dbd7bd9c1f9d1b` |
+| `hpke-ts.json` | hpke | 21 | TS | `packages/client/src/crypto/hpke.ts` | Node v25.6.1 | `a713d455c8a03795892b75c9204ddbb289c9f94b6c6cb0497e877a66426e451a` |
+| `account-ts.json` | account | 136 | TS | `packages/client/src/crypto/account.ts` | Node v25.6.1 | `b08a250ce28933b279613339093fad3cc925f8fa96d40e05f6f7381e473ed282` |
+| `passkey-ts.json` | passkey | 23 | TS | `packages/client/src/crypto/passkey.ts` | Node v25.6.1 | `09ac4f8231e8c87449a59cebb33635e8e244ad257a934d770a3258e801545c35` |
+| `browser-account-ts.json` | browser_account | 11 | TS | `packages/client/src/crypto/browserAccount.ts` | Node v25.6.1 | `439be2055653db141bff30484484cdf6d8a3dd694686622cfb55f667537431a6` |
+| `bytes-jcs-ts.json` | bytes+jcs | 89 | TS | `packages/client/src/crypto/bytes.ts`, `jcs.ts`; JCS texts from `packages/mcp-http/enclave/test/{device-check,ai-config}-vectors.json` | Node v25.6.1 | `acc301591f4690b551c70595d9c31fb7b65958fa913141d7e7503dcd4a3aa4dc` |
+| `derived-ts.json` | derived (v0.2.0) | 22 | TS | `packages/client/src/crypto/derived.ts` | Node v25.6.1 | `1126b160b4ce9a0af5dff96aa4bef6a956114a9923d11de1b6d977b59908a942` |
+| `keychain-ts.json` | keychain (v0.2.0) | 6 | TS | `packages/client/src/crypto/aikeychain.ts` | Node v25.6.1 | `289610947d434178e9bde5544183d07d6e37a92213456b7eb519d696964a7859` |
+| `attestation-ts.json` | attestation (v0.2.0) | 7 | TS | `packages/client/src/crypto/attestation.ts` (user_data) | Node v25.6.1 | `1712c2b61cf2bf121f6e5712e62d66737124f9fd1b8666df8625b5693aacc906` |
+
+Where Wappie's code keeps a value private (an AAD, a non-extractable key), the generator computed it independently and recorded it only after proving it against the code's output (a blob the code produced decrypts under it). Each file's `note` says which values those are.
+
+Where Wappie's code returned an unclassified error, the case carries the code the kit uses and a `note` quoting Wappie's message: the key-id mismatch and the 31-byte content key (Go), the missing key (Go), an encapsulated key of low order (Go returned `seal: hpke recipient: ...`, the kit says `authentication`), and Argon2id's own parameter errors (TypeScript threw `@noble/hashes`' error, the kit says `kdf`/`kdf_failed`).
+
+### wappie/legacy
+
+Byte-for-byte copies at `8c0c1f74`. "Last changed" is the last Wappie commit that touched the file.
+
+| File | Wappie path | Last changed | Written by, read by | sha256 |
+|---|---|---|---|---|
+| `seal-vectors.json` | `internal/crypto/seal/testdata/vectors.json` | `bd449d2` | Go writes; TS and the reader read | `31192d6dd1a6aba5dbb6200b4a9614a50a0692dd1c3e749351d6c900e97c2467` |
+| `draft-vectors.json` | `internal/crypto/seal/testdata/draft-vectors.json` | `e4ff78c` | Go writes; TS reads | `b4c4aa311a556fe113ed9a98598c599c812172bde9ea15f6354c6a7c5c872762` |
+| `frames.json` | `internal/wsapi/testdata/frames.json` | `bd449d2` | Go writes; TS reads | `17219bd1e59019b74c2ddaaae36c37e2cb706198866290d130517afd84622048` |
+| `browser-grant.json` | `packages/client/testdata/browser-grant.json` | `b01f901` | TS writes; Go reads | `6a8aa3aaa2e8dcfb4efd0be50258f845c80d3ca4590b18eafeaf04f964265d18` |
+| `node-draft.json` | `packages/client/testdata/node-draft.json` | `e4ff78c` | Node writes; Go reads | `4200c9ccf244f040ebff099255f819447ac47e3af71138b81e0900b96c5acc25` |
+| `node-derived.json` | `packages/client/testdata/node-derived.json` | `3515f3b` | the enclave writes; client, reader and console read | `a9b5b504e65e5f4e48431127fd6e577fe3832fe62c00e38f0b963befa11ef8b0` |
+
+### Baseline of fixtures that stay in Wappie
+
+Not copied: they belong to code that stays in Wappie, or (attestation) to a module that moves in v0.2.0 with its verifier. Their hashes at `8c0c1f74` are recorded so Wappie's CI can check that nothing drifts (`sha256sum -c` over these lines, from Wappie's root).
+
+```
+cbfdc36c14fdf86ea59598498fe77bc7a81b54c547eab7e2acca5c8e7c1cf453  internal/crypto/wamedia/testdata/vectors.json
+3c106be13e159f27ba5a102e4c836cbc05c948fef4e6a5364c9bdd4c60002c00  packages/mcp-http/enclave/test/device-check-vectors.json
+a48e36ff1c5fa76443e8f6c519cb8f9d17f01503da7a6a774e1751a74263050d  packages/mcp-http/enclave/test/ai-config-vectors.json
+792167cec43dec44f6f0b0c3150b5b9b58660e604076481095c4663ac9bda321  packages/mcp-http/enclave/test/send-text-vectors.json
+f4f5c850f4bd096ef34c2c6d3270a1a7d11aef8ee5844d8d52a381c0e5fe3647  packages/client/testdata/attestation/README.md
+798ec8c60761a79cf7aea326b8bd0aa2e18ac570f5341dce06f5076b42d78a12  packages/client/testdata/attestation/att-debug.b64
+c5a21ad5345f9945dae45b9b9772e79f557498efda73a6ca374ddcc7b09fad80  packages/client/testdata/attestation/att-debug.nonce
+f87ec8d89a1e4722d0080cf0a120ceef480a295d1d009f9e081acd286d0ec1be  packages/client/testdata/attestation/att.b64
+e393bea4b955e5a6e6cd7feea51421a744c363fc378cf04b2bfa06d628c1e6ca  packages/client/testdata/attestation/att.nonce
+388a71794da9fa7866a3ae0069ced57c96ea7a7b94aa0c2bb667b2425d0b062b  packages/client/testdata/attestation/measurements.json
+31192d6dd1a6aba5dbb6200b4a9614a50a0692dd1c3e749351d6c900e97c2467  internal/crypto/seal/testdata/vectors.json
+b4c4aa311a556fe113ed9a98598c599c812172bde9ea15f6354c6a7c5c872762  internal/crypto/seal/testdata/draft-vectors.json
+17219bd1e59019b74c2ddaaae36c37e2cb706198866290d130517afd84622048  internal/wsapi/testdata/frames.json
+6a8aa3aaa2e8dcfb4efd0be50258f845c80d3ca4590b18eafeaf04f964265d18  packages/client/testdata/browser-grant.json
+4200c9ccf244f040ebff099255f819447ac47e3af71138b81e0900b96c5acc25  packages/client/testdata/node-draft.json
+a9b5b504e65e5f4e48431127fd6e577fe3832fe62c00e38f0b963befa11ef8b0  packages/client/testdata/node-derived.json
+```
+
+### The Wappie sources the kit was taken from
+
+sha256 (first 16 hex digits) at `8c0c1f74`: `internal/crypto/seal/envelope.go` `4886b166943ffeeb`, `seal.go` `c64696e4f3d377b5`, `archive.go` `6e43f4e86f64e5de`; `internal/mcpauth/hmac.go` `896ce87b9c4cbe9f`; `packages/client/src/crypto/bytes.ts` `a33eb31a64caaa6c`, `jcs.ts` `3dbe9dbba4ea2d08`, `hpke.ts` `e1efa435a7f95916`, `seal.ts` `8244270a47ca65c8`, `account.ts` `301cf066e1083694`, `kdf.worker.ts` `a8695a6e30baf924`, `passkey.ts` `d71a5cd083ae7141`, `browserAccount.ts` `8830b0a9cc426eab`.
+
+## The kit's own vectors
+
+`kit/*-go.json` were written by `internal/cross/write_test.go` and `kit/*-ts.json` by `js/test/cross.spec.ts`, each at the kit commit recorded in its `generated_by.source`, with fresh randomness (`make vectors-kit`). They are the golden vectors of the kit's own implementations from v0.1.0 on.

@@ -1,0 +1,139 @@
+{
+  "format": "thehappieco-kit-vectors/1",
+  "module": "keychain",
+  "profile": "wappie",
+  "generated_by": {
+    "lang": "ts",
+    "source": "github.com/thehappieco/wappie@8c0c1f74103bc6bb65a93b13613ad1964d4399c4 packages/client/src/crypto/aikeychain.ts",
+    "toolchain": "node v25.6.1; @noble/hashes 2.4.0; vitest 3.2.7 (sources transpiled by vitest)",
+    "randomness": "crypto.getRandomValues and X25519 crypto.subtle.generateKey replaced for each case by an HMAC-SHA256 counter stream keyed by the case id (kitgen-random.ts); each case records the bytes it consumed",
+    "generator": "vectors/wappie/_generators/ts/packages/client/test/kitgen.spec.ts"
+  },
+  "note": "Captured for kit v0.2.0, which moves the AI keychain into the kit. key_b64 and aad_b64 were computed independently and proven by decryption. API keys are fixture strings.",
+  "cases": [
+    {
+      "id": "keychain/seal/0",
+      "op": "keychain.seal",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "account_private_key_b64": "MzY5PD9CRUhLTlFUV1pdYGNmaWxvcnV4e36BhIeKjZA=",
+        "item": {
+          "server_origin": "https://api.wappie.thehappie.co",
+          "user_id": "018f3a2b-0000-7000-8000-000000000003",
+          "id": "018f3a2b-0000-7000-8000-0000000000a1",
+          "provider": "anthropic",
+          "api_key": "sk-ant-fixture-0123456789abcdef",
+          "label": "Trabalho",
+          "created_at": "2026-10-01T09:30:15.123Z"
+        },
+        "nonce_b64": "yTA0H7ySugA6jj0l"
+      },
+      "out": {
+        "envelope_b64": "V0tDMckwNB+8kroAOo49JfH3lccaoQPCsP42ViE8aqldM5DwOVqdQp59v2CyACOYV61ZJDZBydsNNTSvd7W15BAKjysCiXKbDgbZtPNwl2LKqNLycgzXy1knj8mwu8kLn8brTdMsPkC+Lu3OUAI/hVv47LwqHACJ+K4lEipRYT1mg+qkdzjC+SJgTPEcFwYel14/W0lxP9xIC6lAE/xL",
+        "key_b64": "m2mFjEv+OsqPlKEgE6C9SyPPBr2kohpzlWMTVmBtxjQ=",
+        "aad_b64": "WyJ3YXBwaWUvYWkta2V5Y2hhaW4iLDEsImh0dHBzOi8vYXBpLndhcHBpZS50aGVoYXBwaWUuY28iLCIwMThmM2EyYi0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwMDMiLCIwMThmM2EyYi0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJhbnRocm9waWMiXQ==",
+        "plaintext": "{\"provider\":\"anthropic\",\"api_key\":\"sk-ant-fixture-0123456789abcdef\",\"label\":\"Trabalho\",\"created_at\":\"2026-10-01T09:30:15.123Z\"}"
+      }
+    },
+    {
+      "id": "keychain/seal/1",
+      "op": "keychain.seal",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "account_private_key_b64": "MzY5PD9CRUhLTlFUV1pdYGNmaWxvcnV4e36BhIeKjZA=",
+        "item": {
+          "server_origin": "http://localhost:8080",
+          "user_id": "018f3a2b-0000-7000-8000-000000000004",
+          "id": "018f3a2b-0000-7000-8000-0000000000a2",
+          "provider": "google",
+          "api_key": "AIzaFixture0123456789abcdefghij",
+          "label": "Pessoal 🔑",
+          "created_at": "2026-10-01T09:30:16Z"
+        },
+        "nonce_b64": "13V5FkbZDeGfaxiZ"
+      },
+      "out": {
+        "envelope_b64": "V0tDMdd1eRZG2Q3hn2sYmaSD8ODGjsQ/O9501uHqK23Khh2DzTWxlOgIqGQF01KWsu7M9pzOl54qEUKRAQ/2WBymacZwhYtAQ4LWhaJaYuPavjKQMi43Blln8VMtTWDElMpewSZCMDI64wc9U/4STkoR51SmPYdSijfh0n/sgZrBRvj43o/Uxo41K0VQPA6wwyqr86v6lpOp25Yv",
+        "key_b64": "aNPBMdPSur5riYH1nkTsHz/+MyJWpj/7BRTr5m4z3xQ=",
+        "aad_b64": "WyJ3YXBwaWUvYWkta2V5Y2hhaW4iLDEsImh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsIjAxOGYzYTJiLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDAwNCIsIjAxOGYzYTJiLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDBhMiIsImdvb2dsZSJd",
+        "plaintext": "{\"provider\":\"google\",\"api_key\":\"AIzaFixture0123456789abcdefghij\",\"label\":\"Pessoal 🔑\",\"created_at\":\"2026-10-01T09:30:16Z\"}"
+      }
+    },
+    {
+      "id": "keychain/open/refuses/other-origin",
+      "op": "keychain.open",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "account_private_key_b64": "MzY5PD9CRUhLTlFUV1pdYGNmaWxvcnV4e36BhIeKjZA=",
+        "row": {
+          "server_origin": "https://evil.example",
+          "user_id": "018f3a2b-0000-7000-8000-000000000003",
+          "id": "018f3a2b-0000-7000-8000-0000000000a1",
+          "provider": "anthropic"
+        },
+        "envelope_b64": "V0tDMckwNB+8kroAOo49JfH3lccaoQPCsP42ViE8aqldM5DwOVqdQp59v2CyACOYV61ZJDZBydsNNTSvd7W15BAKjysCiXKbDgbZtPNwl2LKqNLycgzXy1knj8mwu8kLn8brTdMsPkC+Lu3OUAI/hVv47LwqHACJ+K4lEipRYT1mg+qkdzjC+SJgTPEcFwYel14/W0lxP9xIC6lAE/xL"
+      },
+      "error": "invalid_keychain_item"
+    },
+    {
+      "id": "keychain/open/refuses/other-user",
+      "op": "keychain.open",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "account_private_key_b64": "MzY5PD9CRUhLTlFUV1pdYGNmaWxvcnV4e36BhIeKjZA=",
+        "row": {
+          "server_origin": "https://api.wappie.thehappie.co",
+          "user_id": "018f3a2b-0000-7000-8000-000000000009",
+          "id": "018f3a2b-0000-7000-8000-0000000000a1",
+          "provider": "anthropic"
+        },
+        "envelope_b64": "V0tDMckwNB+8kroAOo49JfH3lccaoQPCsP42ViE8aqldM5DwOVqdQp59v2CyACOYV61ZJDZBydsNNTSvd7W15BAKjysCiXKbDgbZtPNwl2LKqNLycgzXy1knj8mwu8kLn8brTdMsPkC+Lu3OUAI/hVv47LwqHACJ+K4lEipRYT1mg+qkdzjC+SJgTPEcFwYel14/W0lxP9xIC6lAE/xL"
+      },
+      "error": "invalid_keychain_item"
+    },
+    {
+      "id": "keychain/open/refuses/other-item",
+      "op": "keychain.open",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "account_private_key_b64": "MzY5PD9CRUhLTlFUV1pdYGNmaWxvcnV4e36BhIeKjZA=",
+        "row": {
+          "server_origin": "https://api.wappie.thehappie.co",
+          "user_id": "018f3a2b-0000-7000-8000-000000000003",
+          "id": "018f3a2b-0000-7000-8000-0000000000a9",
+          "provider": "anthropic"
+        },
+        "envelope_b64": "V0tDMckwNB+8kroAOo49JfH3lccaoQPCsP42ViE8aqldM5DwOVqdQp59v2CyACOYV61ZJDZBydsNNTSvd7W15BAKjysCiXKbDgbZtPNwl2LKqNLycgzXy1knj8mwu8kLn8brTdMsPkC+Lu3OUAI/hVv47LwqHACJ+K4lEipRYT1mg+qkdzjC+SJgTPEcFwYel14/W0lxP9xIC6lAE/xL"
+      },
+      "error": "invalid_keychain_item"
+    },
+    {
+      "id": "keychain/open/refuses/other-provider",
+      "op": "keychain.open",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "account_private_key_b64": "MzY5PD9CRUhLTlFUV1pdYGNmaWxvcnV4e36BhIeKjZA=",
+        "row": {
+          "server_origin": "https://api.wappie.thehappie.co",
+          "user_id": "018f3a2b-0000-7000-8000-000000000003",
+          "id": "018f3a2b-0000-7000-8000-0000000000a1",
+          "provider": "openai"
+        },
+        "envelope_b64": "V0tDMckwNB+8kroAOo49JfH3lccaoQPCsP42ViE8aqldM5DwOVqdQp59v2CyACOYV61ZJDZBydsNNTSvd7W15BAKjysCiXKbDgbZtPNwl2LKqNLycgzXy1knj8mwu8kLn8brTdMsPkC+Lu3OUAI/hVv47LwqHACJ+K4lEipRYT1mg+qkdzjC+SJgTPEcFwYel14/W0lxP9xIC6lAE/xL"
+      },
+      "error": "invalid_keychain_item"
+    }
+  ]
+}

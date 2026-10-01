@@ -1,0 +1,10 @@
+# Node
+js/node_modules/
+js/dist/
+js/*.tgz
+js/SHA256SUMS
+
+# Local notes (paths on the owner's machine), per the platform's decisions README.
+*.local.*
+
+.DS_Store

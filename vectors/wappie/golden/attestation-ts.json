@@ -1,0 +1,140 @@
+{
+  "format": "thehappieco-kit-vectors/1",
+  "module": "attestation",
+  "profile": "wappie",
+  "generated_by": {
+    "lang": "ts",
+    "source": "github.com/thehappieco/wappie@8c0c1f74103bc6bb65a93b13613ad1964d4399c4 packages/client/src/crypto/attestation.ts",
+    "toolchain": "node v25.6.1; @noble/hashes 2.4.0; vitest 3.2.7 (sources transpiled by vitest)",
+    "randomness": "none",
+    "generator": "vectors/wappie/_generators/ts/packages/client/test/kitgen.spec.ts"
+  },
+  "note": "Captured for kit v0.2.0: the user_data commitment of the Nitro attestation verifier (SHA-256 of the label and five fields joined by 0x00).",
+  "cases": [
+    {
+      "id": "attestation/user-data/contract-shape",
+      "op": "attestation.user_data",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "fields": {
+          "request_id": "AAAAAAAAAAAAAAAAAAAAAA",
+          "resource": "https://mcp.wappie.thehappie.co/mcp",
+          "tls_spki_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "reader_version": "0.2.0"
+        }
+      },
+      "out": {
+        "user_data_hex": "a63c1d0bc8fd8789d35f08c48db83edc71e71ae751d624ff9159fa5c3d50aad8"
+      }
+    },
+    {
+      "id": "attestation/user-data/other-version",
+      "op": "attestation.user_data",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "fields": {
+          "request_id": "AAAAAAAAAAAAAAAAAAAAAA",
+          "resource": "https://mcp.wappie.thehappie.co/mcp",
+          "tls_spki_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "reader_version": "1.10.3"
+        }
+      },
+      "out": {
+        "user_data_hex": "14960a57d3e05bab6a8c23d245c5fdb6373948035ff6f666fce3e5ec74c371ec"
+      }
+    },
+    {
+      "id": "attestation/user-data/unicode-resource",
+      "op": "attestation.user_data",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "fields": {
+          "request_id": "AAAAAAAAAAAAAAAAAAAAAA",
+          "resource": "https://mcp.example/ação",
+          "tls_spki_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "reader_version": "0.2.0"
+        }
+      },
+      "out": {
+        "user_data_hex": "59b0426df40637e29aef4356ccc63069b3334b940210c8d3bbaf186981c89eb3"
+      }
+    },
+    {
+      "id": "attestation/user-data/refuses/nul-in-resource",
+      "op": "attestation.user_data",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "fields": {
+          "request_id": "AAAAAAAAAAAAAAAAAAAAAA",
+          "resource": "a\u0000b",
+          "tls_spki_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "reader_version": "0.2.0"
+        }
+      },
+      "error": "attestation_user_data"
+    },
+    {
+      "id": "attestation/user-data/refuses/bad-version",
+      "op": "attestation.user_data",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "fields": {
+          "request_id": "AAAAAAAAAAAAAAAAAAAAAA",
+          "resource": "https://mcp.wappie.thehappie.co/mcp",
+          "tls_spki_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "reader_version": "v0.2"
+        }
+      },
+      "error": "attestation_version"
+    },
+    {
+      "id": "attestation/user-data/refuses/uppercase-hash",
+      "op": "attestation.user_data",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "fields": {
+          "request_id": "AAAAAAAAAAAAAAAAAAAAAA",
+          "resource": "https://mcp.wappie.thehappie.co/mcp",
+          "tls_spki_sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "reader_version": "0.2.0"
+        }
+      },
+      "error": "attestation_user_data"
+    },
+    {
+      "id": "attestation/user-data/refuses/short-hash",
+      "op": "attestation.user_data",
+      "langs": [
+        "ts"
+      ],
+      "in": {
+        "fields": {
+          "request_id": "AAAAAAAAAAAAAAAAAAAAAA",
+          "resource": "https://mcp.wappie.thehappie.co/mcp",
+          "tls_spki_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "reader_version": "0.2.0"
+        }
+      },
+      "error": "attestation_user_data"
+    }
+  ]
+}

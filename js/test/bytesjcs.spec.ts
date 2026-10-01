@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatUUID, fromBase64, fromHex, parseUUID, toBase64, toBase64URL, uuidV5, type Bytes } from '../src/bytes.js'
+import { Base64Error, formatUUID, fromBase64, fromBase64URL, fromHex, isBase64URL, parseUUID, toBase64, toBase64URL, uuidV5, type Bytes } from '../src/bytes.js'
 import { canonicalJSON, CanonicalJSONError } from '../src/jcs.js'
 import { b64, codeOf, files, forTS, toB64, unhandled } from './vectors.js'
 
@@ -58,4 +58,41 @@ for (const [path, f] of files('wappie/golden/bytes-jcs-ts.json', 'kit/jcs-go.jso
 
 it('writes base64url without padding', () => {
   expect(toBase64URL(new Uint8Array([0xfb, 0xff]) as Bytes)).toBe('-_8')
+})
+
+describe('strict base64url', () => {
+  it('reads back what toBase64URL writes, at every length, and only at that length', () => {
+    for (let n = 0; n <= 70; n++) {
+      const b = pattern(n, 37, n * 101)
+      const s = toBase64URL(b)
+      expect(s).toBe(toBase64(b).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''))
+      expect(s.length).toBe(Math.ceil((n * 4) / 3))
+      expect(toB64(fromBase64URL(s, n))).toBe(toB64(b))
+      expect(isBase64URL(s)).toBe(true)
+      if (n > 0) expect(() => fromBase64URL(s, n - 1)).toThrow(Base64Error)
+      expect(() => fromBase64URL(s, n + 1)).toThrow(Base64Error)
+    }
+  })
+
+  it('refuses padding, other alphabets, whitespace and non-zero trailing bits', () => {
+    for (const [s, n] of [['AA==', 1], ['AAA=', 2], ['AA=', 1], ['AA+A', 3], ['AA/A', 3], ['AA A', 3], ['AAA\n', 3], ['\nAAA', 3], ['AA\tA', 3], ['AA\u00c0A', 3], ['AA.A', 3],
+      ['AB', 1], ['AAB', 2], ['A', 0], ['', 1]] as [string, number][]) {
+      expect(() => fromBase64URL(s, n), JSON.stringify(s)).toThrow(Base64Error)
+    }
+    expect(toB64(fromBase64URL('AA', 1))).toBe('AA==')
+    expect(fromBase64URL('', 0).length).toBe(0)
+    expect(() => fromBase64URL('AA', -1)).toThrow(Base64Error)
+    expect(() => fromBase64URL('AA', 1.5)).toThrow(Base64Error)
+    for (const s of ['A', 'AAAAA', 'AB', 'AA==', 'A A']) expect(isBase64URL(s), s).toBe(false)
+  })
+
+  it('never repeats the refused text', () => {
+    try {
+      fromBase64URL('zq7marker=', 7)
+      expect.fail('accepted')
+    } catch (err) {
+      expect(err).toBeInstanceOf(Base64Error)
+      expect((err as Error).message).not.toContain('zq7marker')
+    }
+  })
 })

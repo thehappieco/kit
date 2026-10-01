@@ -287,6 +287,35 @@ describe('root wraps', () => {
       await expectRefusal(() => platform.sealRootWrap(kind as platform.WrapKind, KEY, ROOT, SUB, 1), 'wrap')
     }
     await expectRefusal(() => platform.sealRootWrap('password', KEY, ROOT.subarray(0, 16), SUB, 1), 'wrap')
+    // A binding that is not two strings is wrap too, never another
+    // language's AAD ([..., 1, 7, "AAEC"]), a CanonicalJSONError or a
+    // TypeError.
+    const bindings: unknown[] = [null, 'id.thehappie.co', { rpId: 7, credentialId: 'AAEC' }, { credentialId: 'AAEC' }, { rpId: 'id.thehappie.co' }, { rpId: 'id.thehappie.co', credentialId: ['AAEC'] }]
+    for (const b of bindings) {
+      await expectRefusal(() => platform.rootWrapAAD('passkey', SUB, 1, b as platform.PasskeyBinding), 'wrap')
+      await expectRefusal(() => platform.sealRootWrap('passkey', KEY, ROOT, SUB, 1, b as platform.PasskeyBinding), 'wrap')
+    }
+  })
+
+  // Section 11.5 is AES-256-GCM, and Go's Wrap and Unwrap take only 32-byte
+  // keys: a wrap sealed under a shorter AES key, or opened with one, is wrap,
+  // whatever WebCrypto would do with it.
+  it('take a CryptoKey only if it is a 256-bit AES-GCM key', async () => {
+    const w = await platform.sealRootWrap('password', KEY, ROOT, SUB, 1)
+    const keys = [
+      await crypto.subtle.importKey('raw', KEY.subarray(0, 16), { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']),
+      await crypto.subtle.importKey('raw', KEY.subarray(0, 24), { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']).catch(() => undefined),
+      await crypto.subtle.importKey('raw', KEY, { name: 'AES-CBC' }, false, ['encrypt', 'decrypt']),
+      await crypto.subtle.importKey('raw', KEY, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']),
+    ]
+    for (const k of keys) {
+      if (k === undefined) continue // an engine without 192-bit AES (Chromium) refuses to import it at all
+      await expectRefusal(() => platform.sealRootWrap('password', k, ROOT, SUB, 1), 'wrap')
+      await expectRefusal(() => platform.openRootWrap('password', k, w, SUB, 1), 'wrap')
+    }
+    for (const k of [{}, { algorithm: { name: 'AES-GCM', length: 256 } }, 'key', 32]) {
+      await expectRefusal(() => platform.sealRootWrap('password', k as unknown as CryptoKey, ROOT, SUB, 1), 'wrap')
+    }
   })
 
   it('are never returned when they fail their self-test', async () => {

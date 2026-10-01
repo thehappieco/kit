@@ -60,7 +60,9 @@ export function rootWrapAAD(kind: WrapKind, sub: string, epoch: number, passkey?
   if (!isEpoch(epoch)) throw new PlatformError('the epoch is not a positive integer', 'wrap')
   const items: (string | number)[] = [WRAP_AAD_LABEL, WRAP_VERSION, kind, sub, epoch]
   if (kind === 'passkey') {
-    if (passkey === undefined) throw new PlatformError('a passkey wrap needs its binding', 'wrap')
+    if (typeof passkey !== 'object' || passkey === null || typeof passkey.rpId !== 'string' || typeof passkey.credentialId !== 'string') {
+      throw new PlatformError('a passkey wrap needs its binding, two strings', 'wrap')
+    }
     if (!isBase64URL(passkey.credentialId)) throw new PlatformError('the credential id is not strict base64url', 'wrap')
     items.push(passkey.rpId, passkey.credentialId)
   } else if (passkey !== undefined) {
@@ -76,7 +78,10 @@ export function rootWrapAAD(kind: WrapKind, sub: string, epoch: number, passkey?
 
 /**
  * wrapKey takes a derived CryptoKey as it is, or imports a raw 32-byte key
- * (a vector's, or a passkey's) as a non-extractable AES-GCM key.
+ * (a vector's, or a passkey's) as a non-extractable AES-GCM key. A CryptoKey
+ * must be AES-GCM with 256 bits, as section 11.5 requires and as Go's wraps
+ * are: WebCrypto would seal with a 128- or 192-bit key just as well, and the
+ * wrap would open here and never in Go.
  */
 async function wrapKey(key: CryptoKey | Uint8Array): Promise<CryptoKey> {
   if (key instanceof Uint8Array) {
@@ -87,9 +92,9 @@ async function wrapKey(key: CryptoKey | Uint8Array): Promise<CryptoKey> {
       throw new PlatformError('the wrap key does not import', 'wrap')
     }
   }
-  // Anything else is used as a CryptoKey; WebCrypto refuses what is not one,
-  // and the caller reports that as wrap.
-  if (typeof key !== 'object' || key === null) throw new PlatformError('a wrap key is a CryptoKey or 32 bytes', 'wrap')
+  if (!(key instanceof CryptoKey) || key.algorithm.name !== 'AES-GCM' || (key.algorithm as AesKeyAlgorithm).length !== 256) {
+    throw new PlatformError('a wrap key is a 256-bit AES-GCM key or 32 bytes', 'wrap')
+  }
   return key
 }
 

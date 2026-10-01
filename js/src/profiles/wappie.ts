@@ -4,6 +4,7 @@
 // stays in Wappie.
 
 import { encodeUTF8, type Bytes } from '../bytes.js'
+import { canonicalJSON } from '../jcs.js'
 import type { AccountProfile } from '../account.js'
 import type { BrowserAccountProfile } from '../browserAccount.js'
 import type { PasskeyProfile } from '../passkey.js'
@@ -95,9 +96,13 @@ export interface PasskeyBinding {
   credentialID: string
 }
 
-/** The AAD of a passkey wrap: the JSON array of the RP, the user and the credential. */
+/**
+ * The AAD of a passkey wrap: the JCS text of the JSON array of the RP, the
+ * user and the credential. A string with a lone surrogate has no JSON text,
+ * and throws CanonicalJSONError rather than being bound loosely.
+ */
 export function passkeyAAD(b: PasskeyBinding): Bytes {
-  return encodeUTF8(JSON.stringify(['wappie/passkey-vault', 1, b.rpID, b.userID, b.credentialID]))
+  return encodeUTF8(canonicalJSON(['wappie/passkey-vault', 1, b.rpID, b.userID, b.credentialID]))
 }
 
 export const wappieBrowserAccount: BrowserAccountProfile = Object.freeze({ tag: 'wappie/browser-account-key', version: 1 })

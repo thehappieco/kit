@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { type Bytes } from '../src/bytes.js'
 import { ENC_LEN, generateKeyPair, HPKEError, importPrivateKey, open, publicFromPrivate, seal } from '../src/hpke.js'
-import { b64, codeOf, files, forTS, toB64, unhandled, utf8, withDraws } from './vectors.js'
+import { b64, codeOf, files, forTS, toB64, unhandled, utf8, withDraws, withLenientX25519 } from './vectors.js'
 
 for (const [path, f] of files('wappie/golden/hpke-ts.json', 'kit/hpke-go.json')) {
   const keys = new Map<string, { priv: Bytes; pub: Bytes }>()
@@ -14,6 +14,13 @@ for (const [path, f] of files('wappie/golden/hpke-ts.json', 'kit/hpke-go.json'))
         const i = c.in
         switch (c.op) {
           case 'hpke.seal': {
+            if (c.error) {
+              // A low-order public key: refused, by the engine or by the kit.
+              const attempt = () => seal(b64(i.public_key_b64), b64(i.info_b64), b64(i.aad_b64), b64(i.plaintext_b64))
+              expect(await codeOf(attempt)).toBe(c.error)
+              expect(await codeOf(() => withLenientX25519(attempt))).toBe(c.error)
+              return
+            }
             const k = keys.get(i.key)!
             const opened = await open(await importPrivateKey(k.priv), b64(c.out.enc_b64), b64(i.info_b64), b64(i.aad_b64), b64(c.out.ciphertext_b64))
             expect(toB64(opened)).toBe(i.plaintext_b64)
@@ -22,9 +29,17 @@ for (const [path, f] of files('wappie/golden/hpke-ts.json', 'kit/hpke-go.json'))
             expect([toB64(again.enc), toB64(again.ciphertext)]).toEqual([c.out.enc_b64, c.out.ciphertext_b64])
             return
           }
-          case 'hpke.open':
-            expect(await codeOf(async () => open(await importPrivateKey(keys.get(i.key)!.priv), b64(i.enc_b64), b64(i.info_b64), b64(i.aad_b64), b64(i.ciphertext_b64)))).toBe(c.error)
+          case 'hpke.open': {
+            const attempt = async () => open(await importPrivateKey(keys.get(i.key)!.priv), b64(i.enc_b64), b64(i.info_b64), b64(i.aad_b64), b64(i.ciphertext_b64))
+            if (!c.error) {
+              expect(toB64(await attempt())).toBe(c.out.plaintext_b64)
+              return
+            }
+            expect(await codeOf(attempt)).toBe(c.error)
+            // A forgery under the all-zero secret: refused even where WebCrypto would let it through.
+            if (i.forged_plaintext_b64) expect(await codeOf(() => withLenientX25519(attempt))).toBe(c.error)
             return
+          }
           case 'hpke.public_from_private':
             expect(toB64(await publicFromPrivate(b64(i.private_key_b64)))).toBe(c.out.public_key_b64)
             return
@@ -49,6 +64,22 @@ describe('hpke', () => {
     expect(new TextDecoder().decode(await open(priv, enc, utf8('info'), utf8('aad'), ciphertext))).toBe('pt')
     await expect(open(priv, enc.subarray(0, 31) as Bytes, utf8('info'), utf8('aad'), ciphertext)).rejects.toThrow(HPKEError)
     await expect(open(priv, new Uint8Array(32) as Bytes, utf8('info'), utf8('aad'), ciphertext)).rejects.toThrow(HPKEError)
+  })
+
+  it('runs the forgeries on an engine that would let them through', async () => {
+    // What withLenientX25519 simulates: X25519 with a low-order point gives 32 zero bytes.
+    const pair = await generateKeyPair()
+    const priv = await importPrivateKey(pair.privateKey)
+    let zeros: Uint8Array | string
+    try {
+      const low = await crypto.subtle.importKey('raw', new Uint8Array(32), { name: 'X25519' }, true, [])
+      zeros = await withLenientX25519(async () => new Uint8Array(await crypto.subtle.deriveBits({ name: 'X25519', public: low }, priv.key, 256)))
+    } catch (err) {
+      zeros = `this engine refuses the point on import: ${err}`
+    }
+    if (typeof zeros !== 'string') expect(Array.from(zeros)).toEqual(Array.from(new Uint8Array(32)))
+    // And the kit refuses to seal to such a key there too.
+    expect(await codeOf(() => withLenientX25519(() => seal(new Uint8Array(32) as Bytes, utf8('i'), utf8('a'), utf8('p'))))).toBe('invalid_key')
   })
 
   it('checks the PKCS#8 export before taking the raw key from it', async () => {

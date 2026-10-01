@@ -84,7 +84,9 @@ type contentKeyRef struct {
 }
 
 type sealIn struct {
-	Key        string        `json:"key"`
+	Key string `json:"key"`
+	// A raw public key in place of a named one: refusals.
+	PublicKey  string        `json:"public_key_b64"`
 	Kind       int           `json:"kind"`
 	Tenant     string        `json:"tenant"`
 	Device     string        `json:"device"`
@@ -213,7 +215,14 @@ func runSealCase(t *testing.T, f *vectest.File, keys keyRing, c vectest.Case) {
 		}
 	case "seal.seal_direct":
 		if c.Error != "" {
-			_, err := seal.SealDirect(keys.pub[in.Key], kind(in.Kind), u(in.Tenant), u(in.Row), in.Epoch, b(in.Plaintext))
+			pub := keys.pub[in.Key]
+			if in.PublicKey != "" {
+				var err error
+				if pub, err = hpke.ParsePublicKey(b(in.PublicKey)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_, err := seal.SealDirect(pub, kind(in.Kind), u(in.Tenant), u(in.Row), in.Epoch, b(in.Plaintext))
 			expectError(t, c, err)
 			return
 		}

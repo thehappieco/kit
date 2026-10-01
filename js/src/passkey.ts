@@ -39,19 +39,28 @@ async function wrappingKey(p: PasskeyProfile, prf: Bytes, rpID: string): Promise
     { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt'])
 }
 
-/** wrapPasskey seals a 32-byte key under a PRF output. */
+function checkAAD(aad: Bytes): void {
+  // A wrap binds its passkey (the RP, the user, the credential); one bound to
+  // nothing could be moved to any of them.
+  if (!(aad instanceof Uint8Array) || aad.length === 0) throw new PasskeyError('a passkey wrap must be bound to something', 'bad_aad')
+}
+
+/** wrapPasskey seals a 32-byte key under a PRF output, bound to aad, which must not be empty. */
 export async function wrapPasskey(p: PasskeyProfile, privateKey: Bytes, prf: Bytes, rpID: string, aad: Bytes): Promise<Bytes> {
   if (privateKey.length !== KEY_LEN) throw new PasskeyError('the key must contain 32 bytes', 'bad_key')
+  checkAAD(aad)
   const nonce = crypto.getRandomValues(new Uint8Array(NONCE_LEN))
   const sealed = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad }, await wrappingKey(p, prf, rpID), privateKey)
   return concat(new Uint8Array(p.header), nonce, new Uint8Array(sealed))
 }
 
 /**
- * unwrapPasskey opens an envelope. A wrong length or header is bad_envelope;
- * everything after, a PRF of the wrong length included, is open_failed.
+ * unwrapPasskey opens an envelope. An empty aad is bad_aad; a wrong length or
+ * header is bad_envelope; everything after, a PRF of the wrong length
+ * included, is open_failed.
  */
 export async function unwrapPasskey(p: PasskeyProfile, envelope: Bytes, prf: Bytes, rpID: string, aad: Bytes): Promise<Bytes> {
+  checkAAD(aad)
   const h = p.header.length
   if (envelope.length !== h + NONCE_LEN + KEY_LEN + TAG_LEN || !p.header.every((b, i) => envelope[i] === b)) {
     throw new PasskeyError('the passkey envelope is malformed', 'bad_envelope')

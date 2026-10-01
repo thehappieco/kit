@@ -37,7 +37,11 @@ TypeScript, from the GitHub release asset (the package is not published to a reg
 npm install --save-exact https://github.com/thehappieco/kit/releases/download/v0.1.0/thehappieco-kit-0.1.0.tgz
 ```
 
-The tarball is reproducible: `cd js && npm ci --ignore-scripts && node scripts/pack.mjs` rebuilds it from the tag byte for byte. Bundlers that pre-bundle dependencies (Vite in development) should exclude `@thehappieco/kit`, or pass `derive(..., { worker })`, so Argon2id runs in its worker rather than falling back to the main thread.
+Take the integrity from the published asset, never from a local build: `curl -sL <asset URL> | openssl dgst -sha512 -binary | base64` gives the part after `sha512-`, and the release notes print it. Then remove any older `node_modules/@thehappieco/kit` entry from the lockfile before `npm install`, or npm refuses the new bytes with `EINTEGRITY`.
+
+The tar inside the tarball is reproducible: `cd js && npm ci --ignore-scripts && node scripts/pack.mjs` rebuilds it from the tag, with npm 11.9.0 and any Node 22 or later, and writes its sha256 on the `.tar` line of `SHA256SUMS`; compare it with `gunzip -c thehappieco-kit-<v>.tgz | sha256sum` of the release asset. The `.tgz` bytes around it also depend on Node's zlib: CI builds the asset with the Node in `js/.node-version` on linux-x64, and only that combination reproduces them exactly.
+
+Bundlers that pre-bundle dependencies (Vite in development) should exclude `@thehappieco/kit` (`optimizeDeps: { exclude: ['@thehappieco/kit'] }`), or pass `derive(..., { worker })`, so Argon2id runs in its worker rather than falling back to the main thread.
 
 One version tag, `vX.Y.Z`, covers both languages; `js/package.json` always carries the same version.
 
@@ -46,11 +50,12 @@ One version tag, `vX.Y.Z`, covers both languages; `js/package.json` always carri
 ```
 make test              # Go (race) and TypeScript (typecheck, tests, build)
 make test-go-1.26.7    # with the byte-for-byte replays of Wappie's Go vectors
+make test-browser      # the TypeScript specs in Chromium, Firefox and WebKit
 make cross             # fresh vectors in each direction, opened by the other language
 make lint-go vectors-check reproduce
 ```
 
-The Go code must compile with Go 1.26.7; CI builds and tests it with exactly that toolchain. Everything in this repository is written in English (the platform's decision 0021); products map the kit's error codes to their own messages.
+The Go code must compile with Go 1.26.7; CI builds and tests it with exactly that toolchain. A `v*` tag publishes a release only after every CI job passes on the tagged commit, browsers included, and only if that commit is on `main`. Everything in this repository is written in English (the platform's decision 0021); products map the kit's error codes to their own messages.
 
 What stays in Wappie: WhatsApp media encryption, contact packs, its draft ledger and row identities, the reader's consent labels, and its API client. The Nitro attestation verifier, the AI keychain and derived records move in v0.2.0; their vectors are already captured here.
 

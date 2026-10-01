@@ -36,6 +36,9 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 - `langs`, when present, narrows which languages run a case; absent means every language that implements the op.
 - Seals record the randomness they consumed: `seed` (Go, `testing/cryptotest.SetGlobalRandom`, replayed only on the recorded toolchain), `ephemeral_private_key_b64` or `nonce_b64` (replayed by injecting exactly those bytes).
 - Ids are stable and unique within a file.
+- Refusals that need an input no profile function produces carry it directly: `public_key_b64` (a key of low order, on `hpke.seal` and `seal.seal_direct`), `aad_b64` (an AAD given as is, empty included, on `passkey.wrap` and `passkey.unwrap`), and `<field>_wtf8_b64` in place of a string field: a string that is not Unicode, as WTF-8 bytes, which Go takes as the (invalid UTF-8) string itself and TypeScript decodes to a string with a lone surrogate.
+- An `account.derive` case may give `bounds` (`min`, `max`, `max_cost`, `min_salt_len`, `max_salt_len`), which the test adds to the file's profile.
+- A forgery carries `forged_plaintext_b64`: what an implementation missing a required check would open it to. The kit's forgeries (`kit/hpke-go.json#hpke/open/forged/*`, `kit/seal-go.json#seal/direct/forged/grant/*`) are sealed under the all-zero X25519 secret of a low-order encapsulated key; a `forger-control` case built the same way from a real X25519 output opens, which shows the construction is HPKE. The TypeScript tests run every forgery twice: on the engine as it is, and on one that, like a non-conforming WebCrypto, answers a low-order point with zeros instead of refusing it, so only the kit's own check stops it.
 
 ### Error codes
 
@@ -43,8 +46,8 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 |---|---|
 | seal | `short`, `magic`, `version`, `suite`, `mode`, `key_mismatch`, `authentication`, `invalid_key` (and `invalid_input` from TypeScript's argument checks) |
 | account | `password`, `kdf`, `wrap`, `recovery`, with reasons `rejected`, `unsupported_alg`, `kdf_failed`, `out_of_bounds`, `truncated`, `wrong_key`, `recovery_length` |
-| passkey | `bad_key`, `bad_prf`, `bad_envelope`, `open_failed` |
-| hpke | `open_failed` |
+| passkey | `bad_key`, `bad_aad`, `bad_prf`, `bad_envelope`, `open_failed` |
+| hpke | `open_failed`, `invalid_key` |
 | reqhmac | `hmac_missing`, `hmac_stale`, `hmac_bad`, `hmac_replay`, `replay_cache_full` |
 | jcs | `jcs` |
 
@@ -60,7 +63,7 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | `seal.new_content_key`, `seal.seal_batch` | open; replay (seed) | open |
 | `seal.open_direct`, `seal.open_batch`, `seal.open_content_key`, `seal.content_key_id` | compute | compute |
 | `seal.sealer` | open; replay the sequence (seed) | open |
-| `hpke.seal` | open | open; replay (ephemeral) |
+| `hpke.seal` | open; refuse | open; replay (ephemeral); refuse |
 | `hpke.open`, `hpke.public_from_private` | compute | compute |
 | `hpke.generate_key_pair` | | replay |
 | `account.default_kdf_params`, `account.derive`, `account.wrap_aad`, `account.unwrap`, `account.normalise_recovery_code`, `account.recovery_key`, `account.recovery_proof` | compute | compute |
@@ -84,6 +87,7 @@ Every dispatcher fails on a case for its language whose op it does not handle.
 ```
 make test              # both languages
 make test-go-1.26.7    # adds the byte-for-byte replays of Wappie's Go vectors
+make test-browser      # the TypeScript specs in Chromium, Firefox and WebKit
 make cross             # fresh round trips: each language writes, the other opens
 make vectors-check     # the manifest
 make vectors-regen-check WAPPIE=../whatserver2   # regenerate from Wappie and compare

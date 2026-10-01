@@ -26,6 +26,7 @@ export const KDF_ID = 0x0001 // HKDF-SHA256
 export const AEAD_ID = 0x0002 // AES-256-GCM
 
 const N_SECRET = 32 // KEM shared secret
+const N_DH = 32 // X25519 output
 const N_K = 32 // AES-256 key
 const N_N = 12 // AES-GCM nonce
 const HASH_LEN = 32 // SHA-256
@@ -99,9 +100,31 @@ async function importPublic(raw: Bytes): Promise<CryptoKey> {
   return crypto.subtle.importKey('raw', raw, { name: 'X25519' }, true, [])
 }
 
+/**
+ * dh is X25519 with the check RFC 9180 section 7.1.4 requires: an all-zero
+ * output means the public key was of low order, and DHKEM must abort.
+ *
+ * WebCrypto engines are supposed to refuse such a point themselves, and Node's
+ * does, but the kit does not rely on it. An engine that returned the zeros
+ * instead would let anybody who can write the database forge a grant (an
+ * encapsulated key of low order, and a ciphertext sealed under the secret
+ * everyone can compute from it), and would let a server hand out a low-order
+ * "public key" and open what the browser sealed to it. Both directions go
+ * through here: encap when sealing, decap when opening. The bytes are folded
+ * together without an early exit, so the time taken does not depend on them.
+ */
 async function dh(priv: CryptoKey, publicRaw: Bytes): Promise<Bytes> {
-  const pub = await importPublic(publicRaw)
-  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'X25519', public: pub }, priv, 256))
+  let shared: Bytes
+  try {
+    const pub = await importPublic(publicRaw)
+    shared = new Uint8Array(await crypto.subtle.deriveBits({ name: 'X25519', public: pub }, priv, 256)) as Bytes
+  } catch {
+    throw new HPKEError('no shared secret with this public key', 'invalid_key')
+  }
+  let any = 0
+  for (let i = 0; i < shared.length; i++) any |= shared[i]
+  if (shared.length !== N_DH || any === 0) throw new HPKEError('no shared secret with this public key', 'invalid_key')
+  return shared
 }
 
 /** publicFromPrivate recovers the public half of an X25519 key. */
@@ -192,7 +215,10 @@ async function keySchedule(shared: Bytes, info: Bytes, use: KeyUsage): Promise<C
   return { key, baseNonce }
 }
 
-/** seal produces a single-shot HPKE ciphertext to publicRaw. */
+/**
+ * seal produces a single-shot HPKE ciphertext to publicRaw. A public key no
+ * secret can be agreed with (one of low order) is HPKEError invalid_key.
+ */
 export async function seal(publicRaw: Bytes, info: Bytes, aad: Bytes, plaintext: Bytes): Promise<{ enc: Bytes; ciphertext: Bytes }> {
   const { enc, shared } = await encap(publicRaw)
   const ctx = await keySchedule(shared, info, 'encrypt')
@@ -203,8 +229,8 @@ export async function seal(publicRaw: Bytes, info: Bytes, aad: Bytes, plaintext:
 }
 
 /**
- * open reverses a single-shot seal. Every failure, an encapsulated key with no
- * shared secret included, is HPKEError open_failed.
+ * open reverses a single-shot seal. Every failure, an encapsulated key of low
+ * order included, is HPKEError open_failed.
  */
 export async function open(priv: PrivateKey, enc: Bytes, info: Bytes, aad: Bytes, ciphertext: Bytes): Promise<Bytes> {
   if (enc.length !== ENC_LEN) throw new HPKEError('the encapsulated key must contain 32 bytes', 'open_failed')

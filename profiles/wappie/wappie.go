@@ -125,16 +125,16 @@ func Passkey() passkey.Profile {
 	}
 }
 
-// PasskeyAAD is the AAD of a passkey wrap: the JSON array
-// ["wappie/passkey-vault", 1, rpID, userID, credentialID].
-func PasskeyAAD(rpID, userID, credentialID string) []byte {
+// PasskeyAAD is the AAD of a passkey wrap: the JCS text of the JSON array
+// ["wappie/passkey-vault", 1, rpID, userID, credentialID]. A string that is
+// not valid UTF-8 has no JSON text, and is refused rather than bound loosely:
+// two such bindings must not share an AAD.
+func PasskeyAAD(rpID, userID, credentialID string) ([]byte, error) {
 	b, err := jcs.Marshal([]any{"wappie/passkey-vault", 1, rpID, userID, credentialID})
 	if err != nil {
-		// Only a string that is not valid UTF-8 fails, and such a string has
-		// no JavaScript counterpart to agree with.
-		return nil
+		return nil, fmt.Errorf("wappie: passkey binding: %w", err)
 	}
-	return b
+	return b, nil
 }
 
 // ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@ import { formatUUID, parseUUID, type Bytes } from '../src/bytes.js'
 import { importPrivateKey, publicFromPrivate, type PrivateKey } from '../src/hpke.js'
 import { bind, ContentKey, contentKeyID, aad, info, openDirect, row, sealDirect, SealError, contentKeyRow, grantRow, parseHeader } from '../src/seal.js'
 import { Kind, kindName, wappieSeal } from '../src/profiles/wappie.js'
-import { b64, codeOf, files, forTS, raw, toB64, unhandled, withDraws, type VectorCase, type VectorFile } from './vectors.js'
+import { b64, codeOf, files, forTS, raw, toB64, unhandled, withDraws, withLenientX25519, type VectorCase, type VectorFile } from './vectors.js'
 
 const p = wappieSeal
 const u = parseUUID
@@ -57,7 +57,11 @@ async function runSealCase(c: VectorCase, keys: Map<string, { priv: PrivateKey; 
       return
     case 'seal.seal_direct': {
       if (c.error) {
-        expect(await codeOf(() => sealDirect(p, keys.get(i.key)?.pub ?? new Uint8Array(0), i.kind, u(i.tenant), u(i.row), i.epoch, b64(i.plaintext_b64)))).toBe(c.error)
+        const pub = i.public_key_b64 !== undefined ? b64(i.public_key_b64) : keys.get(i.key)?.pub ?? new Uint8Array(0)
+        const attempt = () => sealDirect(p, pub as Bytes, i.kind, u(i.tenant), u(i.row), i.epoch, b64(i.plaintext_b64))
+        expect(await codeOf(attempt)).toBe(c.error)
+        // A low-order key: refused even where WebCrypto would agree a secret with it.
+        if (i.public_key_b64 !== undefined) expect(await codeOf(() => withLenientX25519(attempt))).toBe(c.error)
         return
       }
       const opened = await openDirect(p, priv, i.kind, u(i.tenant), u(i.row), b64(c.out.envelope_b64))
@@ -72,8 +76,11 @@ async function runSealCase(c: VectorCase, keys: Map<string, { priv: PrivateKey; 
     }
     case 'seal.open_direct': {
       const attempt = () => openDirect(p, priv, i.kind, u(i.tenant), u(i.row), b64(i.envelope_b64))
-      if (c.error) expect(await codeOf(attempt)).toBe(c.error)
-      else expect(toB64(await attempt())).toBe(c.out.plaintext_b64)
+      if (c.error) {
+        expect(await codeOf(attempt)).toBe(c.error)
+        // A forged grant: refused even where WebCrypto would let it through.
+        if (i.forged_plaintext_b64) expect(await codeOf(() => withLenientX25519(attempt))).toBe(c.error)
+      } else expect(toB64(await attempt())).toBe(c.out.plaintext_b64)
       return
     }
     case 'seal.new_content_key': {

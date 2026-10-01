@@ -11,8 +11,10 @@ package cross_test
 
 import (
 	"bytes"
+	"crypto/ecdh"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -25,6 +27,7 @@ import (
 
 	"github.com/thehappieco/kit/account"
 	"github.com/thehappieco/kit/hpke"
+	"github.com/thehappieco/kit/internal/forge"
 	"github.com/thehappieco/kit/jcs"
 	"github.com/thehappieco/kit/passkey"
 	"github.com/thehappieco/kit/profiles/wappie"
@@ -48,6 +51,7 @@ type vcase struct {
 	Out    map[string]any `json:"out,omitempty"`
 	Error  string         `json:"error,omitempty"`
 	Reason string         `json:"reason,omitempty"`
+	Note   string         `json:"note,omitempty"`
 }
 
 var b64 = base64.StdEncoding.EncodeToString
@@ -91,6 +95,27 @@ func write(t *testing.T, dir, name, module, note string, keys map[string]any, ca
 		t.Fatal(err)
 	}
 }
+
+// realDH returns an ephemeral public key and its X25519 output with pub: what
+// an honest sender computes, for the forger's control cases.
+func realDH(t *testing.T, pub hpke.PublicKey) (enc, dh []byte) {
+	t.Helper()
+	ephemeral, err := ecdh.X25519().GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recipient, err := ecdh.X25519().NewPublicKey(pub.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dh, err = ephemeral.ECDH(recipient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ephemeral.PublicKey().Bytes(), dh
+}
+
+const forgedNote = "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
 
 func must[T any](t *testing.T) func(T, error) T {
 	return func(v T, err error) T {
@@ -174,10 +199,47 @@ func writeSeal(t *testing.T, dir string) {
 			}
 		}
 	}
+	// Forged grants: a device key of the attacker's choosing, sealed to the
+	// archive key under the all-zero secret of a low-order encapsulated key.
+	// Plus one built the same way from a real X25519 output, which opens.
+	const epoch = 1
+	row := seal.GrantRow(tenant, device, user, epoch)
+	magic := wappie.SealDomain().Magic
+	hdr := []byte{magic[0], magic[1], seal.Version, seal.SuiteV1, seal.ModeDirect, 0, epoch, 0}
+	info, aad := seal.Info(wappie.KindDeviceGrant, tenant, epoch), seal.AAD(wappie.KindDeviceGrant, tenant, row, hdr)
+	chosen := bytes.Repeat([]byte{0x66}, 32)
+	envelope := func(enc, ct []byte) []byte { return append(append(append([]byte(nil), hdr...), enc...), ct...) }
+	enc, dh := realDH(t, pk)
+	control := envelope(enc, forge.Seal(dh, enc, pk.Bytes(), info, aad, chosen))
+	if got, err := seal.OpenDirect(sk, wappie.KindDeviceGrant, tenant, row, control); err != nil || !bytes.Equal(got, chosen) {
+		t.Fatalf("the forger's control does not open: %v", err)
+	}
+	cases = append(cases, vcase{ID: "seal/direct/forger-control/grant", Op: "seal.open_direct",
+		In:  map[string]any{"key": "archive", "kind": int(wappie.KindDeviceGrant), "tenant": tenant.String(), "row": row.String(), "envelope_b64": b64(control)},
+		Out: map[string]any{"plaintext_b64": b64(chosen)}})
+	for _, lo := range forge.LowOrder {
+		forged := envelope(lo.Point, forge.Seal(make([]byte, 32), lo.Point, pk.Bytes(), info, aad, chosen))
+		if _, err := seal.OpenDirect(sk, wappie.KindDeviceGrant, tenant, row, forged); !errors.Is(err, seal.ErrAuthentication) {
+			t.Fatalf("%s: a forged grant opened: %v", lo.Name, err)
+		}
+		cases = append(cases, vcase{ID: "seal/direct/forged/grant/" + lo.Name, Op: "seal.open_direct",
+			In:    map[string]any{"key": "archive", "kind": int(wappie.KindDeviceGrant), "tenant": tenant.String(), "row": row.String(), "envelope_b64": b64(forged), "forged_plaintext_b64": b64(chosen)},
+			Error: "authentication", Note: forgedNote})
+		bad, err := hpke.ParsePublicKey(lo.Point)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := seal.SealDirect(bad, wappie.KindDeviceGrant, tenant, row, epoch, chosen); !errors.Is(err, seal.ErrInvalidKey) {
+			t.Fatalf("%s: sealed to a low-order key: %v", lo.Name, err)
+		}
+		cases = append(cases, vcase{ID: "seal/direct/refuses/low-order-key/" + lo.Name, Op: "seal.seal_direct",
+			In:    map[string]any{"public_key_b64": b64(lo.Point), "kind": int(wappie.KindDeviceGrant), "tenant": tenant.String(), "row": row.String(), "epoch": epoch, "plaintext_b64": b64(chosen)},
+			Error: "invalid_key"})
+	}
 	for k := range 0x11 {
 		cases = append(cases, vcase{ID: fmt.Sprintf("seal/kind-name/%#x", k), Op: "seal.kind_name", In: map[string]any{"kind": k}, Out: map[string]any{"name": wappie.Kind(k).String()}})
 	}
-	write(t, dir, "seal-go.json", "seal", "Fresh envelopes sealed by the kit's Go with the Wappie profile, for the TypeScript tests to open.", keys, cases)
+	write(t, dir, "seal-go.json", "seal", "Fresh envelopes sealed by the kit's Go with the Wappie profile, for the TypeScript tests to open, with forged grants that must not open and low-order keys that must not be sealed to.", keys, cases)
 }
 
 func writeHPKE(t *testing.T, dir string) {
@@ -213,7 +275,37 @@ func writeHPKE(t *testing.T, dir string) {
 		cases = append(cases, vcase{ID: fmt.Sprintf("hpke/public-from-private/%d", i), Op: "hpke.public_from_private",
 			In: map[string]any{"private_key_b64": b64(raw)}, Out: map[string]any{"public_key_b64": b64(pub.Bytes())}})
 	}
-	write(t, dir, "hpke-go.json", "hpke", "Fresh HPKE seals by Go's crypto/hpke through the kit, for the TypeScript implementation to open.", keys, cases)
+	// RFC 9180 §7.1.4: forgeries under the all-zero secret must not open, and
+	// a low-order public key must not be sealed to.
+	info, aad, chosen := []byte("thehappie-id/v1/key-delivery"), []byte(`["thehappie-id/key-delivery",1]`), bytes.Repeat([]byte{0x66}, 32)
+	enc, dh := realDH(t, pk)
+	control := forge.Seal(dh, enc, pk.Bytes(), info, aad, chosen)
+	if got, err := hpke.Open(sk, enc, info, aad, control); err != nil || !bytes.Equal(got, chosen) {
+		t.Fatalf("the forger's control does not open: %v", err)
+	}
+	cases = append(cases, vcase{ID: "hpke/open/forger-control", Op: "hpke.open",
+		In:  map[string]any{"key": "r1", "enc_b64": b64(enc), "info_b64": b64(info), "aad_b64": b64(aad), "ciphertext_b64": b64(control)},
+		Out: map[string]any{"plaintext_b64": b64(chosen)}})
+	for _, lo := range forge.LowOrder {
+		forged := forge.Seal(make([]byte, 32), lo.Point, pk.Bytes(), info, aad, chosen)
+		if _, err := hpke.Open(sk, lo.Point, info, aad, forged); !errors.Is(err, hpke.ErrOpen) {
+			t.Fatalf("%s: a forgery opened: %v", lo.Name, err)
+		}
+		cases = append(cases, vcase{ID: "hpke/open/forged/" + lo.Name, Op: "hpke.open",
+			In:    map[string]any{"key": "r1", "enc_b64": b64(lo.Point), "info_b64": b64(info), "aad_b64": b64(aad), "ciphertext_b64": b64(forged), "forged_plaintext_b64": b64(chosen)},
+			Error: "open_failed", Note: forgedNote})
+		bad, err := hpke.ParsePublicKey(lo.Point)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := hpke.Seal(bad, info, aad, chosen); !errors.Is(err, hpke.ErrInvalidKey) {
+			t.Fatalf("%s: sealed to a low-order key: %v", lo.Name, err)
+		}
+		cases = append(cases, vcase{ID: "hpke/seal/refuses/low-order-key/" + lo.Name, Op: "hpke.seal",
+			In:    map[string]any{"public_key_b64": b64(lo.Point), "info_b64": b64(info), "aad_b64": b64(aad), "plaintext_b64": b64(chosen)},
+			Error: "invalid_key"})
+	}
+	write(t, dir, "hpke-go.json", "hpke", "Fresh HPKE seals by Go's crypto/hpke through the kit, for the TypeScript implementation to open, with forgeries under the all-zero secret that must not open and low-order keys that must not be sealed to.", keys, cases)
 }
 
 func writeAccount(t *testing.T, dir string) {
@@ -260,7 +352,41 @@ func writeAccount(t *testing.T, dir string) {
 		cases = append(cases, vcase{ID: fmt.Sprintf("account/recovery-key/%d", i), Op: "account.recovery_key", In: map[string]any{"code": code},
 			Out: map[string]any{"key_b64": b64(must[[]byte](t)(account.RecoveryKey(p, code)))}})
 	}
-	write(t, dir, "account-go.json", "account", "Fresh derivations and wraps by the kit's Go account scheme with the Wappie profile, for the TypeScript tests.", nil, cases)
+	// The Wappie profile has no bounds; these cases give it some, shaped like
+	// the platform's policy (a salt of exactly 16 bytes), to pin the checks.
+	bounds := &account.Bounds{Min: account.KDFParams{M: 8, T: 1, P: 1}, Max: account.KDFParams{M: 1024, T: 3, P: 1}, MaxCost: 2048, MinSaltLen: 16, MaxSaltLen: 16}
+	bounded := p
+	bounded.Bounds = bounds
+	jsonBounds := map[string]any{"min": map[string]any{"m": 8, "t": 1, "p": 1}, "max": map[string]any{"m": 1024, "t": 3, "p": 1}, "max_cost": 2048, "min_salt_len": 16, "max_salt_len": 16}
+	for _, b := range []struct {
+		name   string
+		salt   int
+		params account.KDFParams
+	}{
+		{"salt-16", 16, params},
+		{"refuses/salt-15", 15, params},
+		{"refuses/salt-17", 17, params},
+		{"refuses/salt-8", 8, params},
+		{"refuses/m-2048", 16, account.KDFParams{Alg: "argon2id", M: 2048, T: 1, P: 1}},
+		{"refuses/cost-3072", 16, account.KDFParams{Alg: "argon2id", M: 1024, T: 3, P: 1}},
+	} {
+		salt := bytes.Repeat([]byte{0x5b}, b.salt)
+		c := vcase{ID: "account/derive/bounded/" + b.name, Op: "account.derive", In: map[string]any{"password": "senha do kit", "salt_b64": b64(salt), "params": b.params, "bounds": jsonBounds}}
+		d, err := account.Derive(bounded, "senha do kit", salt, b.params)
+		if strings.HasPrefix(b.name, "refuses/") {
+			if !errors.Is(err, account.ErrOutOfBounds) {
+				t.Fatalf("%s: %v", b.name, err)
+			}
+			c.Error, c.Reason = "kdf", "out_of_bounds"
+		} else {
+			if err != nil {
+				t.Fatal(err)
+			}
+			c.Out = map[string]any{"auth_key": d.AuthKey, "auth_b64": b64(d.Auth), "wrap_b64": b64(d.Wrap)}
+		}
+		cases = append(cases, c)
+	}
+	write(t, dir, "account-go.json", "account", "Fresh derivations and wraps by the kit's Go account scheme with the Wappie profile, and derivations refused by KDF and salt bounds, for the TypeScript tests.", nil, cases)
 }
 
 func writePasskey(t *testing.T, dir string) {
@@ -269,7 +395,7 @@ func writePasskey(t *testing.T, dir string) {
 	key, prf := bytes.Repeat([]byte{0x11}, 32), bytes.Repeat([]byte{0x22}, 32)
 	for i, rp := range []string{"wappie.thehappie.co", "localhost"} {
 		user, cred := uuid.NewString(), "Y3JlZGVudGlhbC0"+fmt.Sprint(i)
-		aad := wappie.PasskeyAAD(rp, user, cred)
+		aad := must[[]byte](t)(wappie.PasskeyAAD(rp, user, cred))
 		env, err := passkey.Wrap(p, key, prf, rp, aad)
 		if err != nil {
 			t.Fatal(err)
@@ -288,7 +414,47 @@ func writePasskey(t *testing.T, dir string) {
 				In: map[string]any{"envelope_b64": b64(env), "prf_b64": b64(prf), "rp_id": rp, "user_id": user, "credential_id": cred + "x"}, Error: "open_failed"},
 		)
 	}
-	write(t, dir, "passkey-go.json", "passkey", "Fresh passkey wraps by the kit's Go with the Wappie profile, for the TypeScript tests.", nil, cases)
+	// Bindings that have no JSON text: a string that is not Unicode, given as
+	// WTF-8 (in Go, invalid UTF-8; in TypeScript, a lone surrogate). The AAD
+	// is refused rather than bound loosely. And a wrap bound to nothing.
+	for _, r := range []struct {
+		name, field string
+		wtf8        []byte
+	}{
+		{"lone-high-surrogate-user", "user_id", []byte("user-\xed\xa0\x80")},
+		{"lone-low-surrogate-credential", "credential_id", []byte("\xed\xb0\x80cred")},
+	} {
+		in := map[string]any{"rp_id": "wappie.thehappie.co", "user_id": "u", "credential_id": "c"}
+		delete(in, r.field)
+		in[r.field+"_wtf8_b64"] = b64(r.wtf8)
+		rp, user, cred := "wappie.thehappie.co", "u", "c"
+		if r.field == "user_id" {
+			user = string(r.wtf8)
+		} else {
+			cred = string(r.wtf8)
+		}
+		if _, err := wappie.PasskeyAAD(rp, user, cred); !errors.Is(err, jcs.ErrUnsupported) {
+			t.Fatalf("%s: %v", r.name, err)
+		}
+		cases = append(cases, vcase{ID: "passkey/aad/refuses/" + r.name, Op: "passkey.aad", In: in, Error: "jcs"})
+	}
+	env, err := passkey.Wrap(p, key, prf, "localhost", []byte("aad"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := passkey.Wrap(p, key, prf, "localhost", nil); !errors.Is(err, passkey.ErrBadAAD) {
+		t.Fatal(err)
+	}
+	if _, err := passkey.Unwrap(p, env, prf, "localhost", nil); !errors.Is(err, passkey.ErrBadAAD) {
+		t.Fatal(err)
+	}
+	cases = append(cases,
+		vcase{ID: "passkey/wrap/refuses/empty-aad", Op: "passkey.wrap",
+			In: map[string]any{"private_key_b64": b64(key), "prf_b64": b64(prf), "rp_id": "localhost", "aad_b64": "", "nonce_b64": b64(make([]byte, 12))}, Error: "bad_aad"},
+		vcase{ID: "passkey/unwrap/refuses/empty-aad", Op: "passkey.unwrap",
+			In: map[string]any{"envelope_b64": b64(env), "prf_b64": b64(prf), "rp_id": "localhost", "aad_b64": ""}, Error: "bad_aad"},
+	)
+	write(t, dir, "passkey-go.json", "passkey", "Fresh passkey wraps by the kit's Go with the Wappie profile, for the TypeScript tests, with bindings that must be refused.", nil, cases)
 }
 
 func writeRequestHMAC(t *testing.T, dir string) {

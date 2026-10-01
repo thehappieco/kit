@@ -7,7 +7,7 @@ GO_FILES = $$(find . -name '*.go' -not -path './js/*' -not -path './.git/*')
 WAPPIE ?= ../whatserver2
 WAPPIE_COMMIT ?= 8c0c1f74103bc6bb65a93b13613ad1964d4399c4
 
-.PHONY: all test test-go test-go-1.26.7 test-js lint-go cross vectors-check manifest vectors-kit vectors-regen-check pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser lint-go cross vectors-check manifest vectors-kit vectors-regen-check pack reproduce clean
 
 all: lint-go test-go test-js vectors-check cross
 
@@ -27,6 +27,11 @@ test-go-1.26.7:
 
 test-js:
 	cd js && npm ci --ignore-scripts --no-audit --no-fund && npm run typecheck && npm test && npm run build
+
+# The vector specs in real browsers. Needs Playwright's browsers once:
+# cd js && npx playwright install chromium firefox webkit
+test-browser:
+	cd js && npm run test:browser
 
 # Fresh round trips: each language writes vectors with fresh keys and the
 # other opens them.

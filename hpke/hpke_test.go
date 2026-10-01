@@ -102,6 +102,7 @@ func runHPKEFile(t *testing.T, f *vectest.File) {
 		t.Run(c.ID, func(t *testing.T) {
 			var in struct {
 				Key        string `json:"key"`
+				PublicKey  string `json:"public_key_b64"`
 				Info       string `json:"info_b64"`
 				AAD        string `json:"aad_b64"`
 				Plaintext  string `json:"plaintext_b64"`
@@ -113,6 +114,7 @@ func runHPKEFile(t *testing.T, f *vectest.File) {
 				Enc        string `json:"enc_b64"`
 				Ciphertext string `json:"ciphertext_b64"`
 				PublicKey  string `json:"public_key_b64"`
+				Plaintext  string `json:"plaintext_b64"`
 			}
 			vectest.Decode(t, c.In, &in)
 			if c.Error == "" {
@@ -121,12 +123,27 @@ func runHPKEFile(t *testing.T, f *vectest.File) {
 			b := func(s string) []byte { return vectest.B64(t, s) }
 			switch c.Op {
 			case "hpke.seal":
+				if c.Error != "" {
+					pub, err := hpke.ParsePublicKey(b(in.PublicKey))
+					if err != nil {
+						t.Fatal(err)
+					}
+					if _, _, err := hpke.Seal(pub, b(in.Info), b(in.AAD), b(in.Plaintext)); !errors.Is(err, hpke.ErrInvalidKey) || c.Error != "invalid_key" {
+						t.Errorf("error %v, want %s", err, c.Error)
+					}
+					return
+				}
 				got, err := hpke.Open(privs[in.Key], b(out.Enc), b(in.Info), b(in.AAD), b(out.Ciphertext))
 				if err != nil || !bytes.Equal(got, b(in.Plaintext)) {
 					t.Errorf("open: %v", err)
 				}
 			case "hpke.open":
-				if _, err := hpke.Open(privs[in.Key], b(in.Enc), b(in.Info), b(in.AAD), b(in.Ciphertext)); !errors.Is(err, hpke.ErrOpen) || c.Error != "open_failed" {
+				got, err := hpke.Open(privs[in.Key], b(in.Enc), b(in.Info), b(in.AAD), b(in.Ciphertext))
+				if c.Error == "" {
+					if err != nil || !bytes.Equal(got, b(out.Plaintext)) {
+						t.Errorf("open: %v", err)
+					}
+				} else if !errors.Is(err, hpke.ErrOpen) || c.Error != "open_failed" {
 					t.Errorf("error %v, want %s", err, c.Error)
 				}
 			case "hpke.public_from_private":

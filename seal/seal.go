@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -15,6 +16,8 @@ import (
 var (
 	errNoPublicKey  = &classified{"seal: no public key", ErrInvalidKey}
 	errNoPrivateKey = &classified{"seal: no private key", ErrInvalidKey}
+	// A public key of low order: whoever served it could open the seal.
+	errLowOrderKey = &classified{"seal: no secret can be agreed with this public key", ErrInvalidKey}
 )
 
 // ---------------------------------------------------------------------------
@@ -27,6 +30,7 @@ var (
 //
 // Used for content keys and grants. Never for high-volume content: one
 // asymmetric operation per value is what makes a large history slow to open.
+// A public key of low order is refused with an error matching ErrInvalidKey.
 func SealDirect[K Kind](pub hpke.PublicKey, kind K, tenant, row uuid.UUID, epoch uint16, plaintext []byte) ([]byte, error) {
 	if !pub.Valid() {
 		return nil, errNoPublicKey
@@ -37,6 +41,9 @@ func SealDirect[K Kind](pub hpke.PublicKey, kind K, tenant, row uuid.UUID, epoch
 	}
 	hdr := encodeHeader(d, ModeDirect, epoch)
 	enc, ct, err := hpke.Seal(pub, Info(kind, tenant, epoch), AAD(kind, tenant, row, hdr), plaintext)
+	if errors.Is(err, hpke.ErrInvalidKey) {
+		return nil, errLowOrderKey
+	}
 	if err != nil {
 		return nil, fmt.Errorf("seal: %w", err)
 	}

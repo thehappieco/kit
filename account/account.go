@@ -41,14 +41,18 @@ type KDFParams struct {
 // DefaultKDFParams are the parameters new accounts are created with.
 var DefaultKDFParams = KDFParams{Alg: "argon2id", M: 64 * 1024, T: 3, P: 1}
 
-// Bounds are the KDF parameters a client accepts from a server before
-// deriving. Without them a server, or anybody who can write its database, can
-// hand a client cheap parameters and turn its next login into a cheap offline
-// target.
+// Bounds are the KDF parameters and salt a client accepts from a server
+// before deriving. Without them a server, or anybody who can write its
+// database, can hand a client cheap parameters, or a salt it has used before,
+// and turn its next login into a cheap offline target.
 type Bounds struct {
 	Min, Max KDFParams
 	// MaxCost bounds M×T; zero means no bound.
 	MaxCost uint64
+	// MinSaltLen and MaxSaltLen bound the salt's length in bytes; zero means
+	// no bound beyond Argon2id's own 8. Equal values fix it (the platform's
+	// policy: exactly 16).
+	MinSaltLen, MaxSaltLen int
 }
 
 // Sizes the scheme fixes.
@@ -76,7 +80,7 @@ type Profile struct {
 	LegacyV1 bool
 
 	// Prepare turns a password into the bytes Argon2id reads. Nil means its
-	// UTF-8 bytes, unchanged.
+	// UTF-8 bytes, unchanged. Derive clears the slice it returns.
 	Prepare func(password string) ([]byte, error)
 	// Bounds, when set, are enforced before any derivation.
 	Bounds *Bounds
@@ -130,6 +134,18 @@ var (
 	ErrRecoveryLength = &Error{Code: "recovery", Reason: "recovery_length"}
 )
 
+// CheckSalt reports whether a salt has a length this profile derives with.
+func (p Profile) CheckSalt(salt []byte) error {
+	b := p.Bounds
+	if b == nil {
+		return nil
+	}
+	if (b.MinSaltLen > 0 && len(salt) < b.MinSaltLen) || (b.MaxSaltLen > 0 && len(salt) > b.MaxSaltLen) {
+		return ErrOutOfBounds
+	}
+	return nil
+}
+
 // Check reports whether params are ones this profile derives with.
 func (p Profile) Check(params KDFParams) error {
 	if params.Alg != "argon2id" {
@@ -161,8 +177,15 @@ type Derived struct {
 //	master = Argon2id(prepared, salt, m, t, p, dkLen = 32, version 0x13)
 //	auth   = HKDF-SHA256(IKM = master, salt = ∅, info = AuthLabel, L = 32)
 //	wrap   = HKDF-SHA256(IKM = master, salt = ∅, info = WrapLabel, L = 32)
+//
+// The parameters and the salt are checked against the profile's bounds
+// before anything is derived. The prepared password and the master key are
+// cleared before it returns.
 func Derive(p Profile, password string, salt []byte, params KDFParams) (Derived, error) {
 	if err := p.Check(params); err != nil {
+		return Derived{}, err
+	}
+	if err := p.CheckSalt(salt); err != nil {
 		return Derived{}, err
 	}
 	// The limits the reference implementation enforces. x/crypto/argon2
@@ -178,6 +201,9 @@ func Derive(p Profile, password string, salt []byte, params KDFParams) (Derived,
 		}
 	}
 	master := argon2.IDKey(prepared, salt, params.T, params.M, params.P, KeyLen)
+	// Clearing is best effort in Go: the runtime may have copied either
+	// buffer, and the password string itself cannot be cleared.
+	clear(prepared)
 	defer clear(master)
 	auth, err := hkdf.Key(sha256.New, master, nil, p.AuthLabel, KeyLen)
 	if err != nil {

@@ -130,7 +130,8 @@ var (
 	// ErrKeyMismatch is a batch envelope presented to a content key other
 	// than the one it names.
 	ErrKeyMismatch = errors.New("seal: content key mismatch")
-	// ErrInvalidKey is a missing public or private key.
+	// ErrInvalidKey is a missing public or private key, or a public key of
+	// low order, with which no secret can be agreed.
 	ErrInvalidKey = errors.New("seal: no key")
 )
 

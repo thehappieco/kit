@@ -30,7 +30,7 @@ What a product chooses is a **profile** (section 3): labels, prefixes, magic byt
 - **base64** is RFC 4648 section 4 with padding; **base64url** is section 5 without padding. Vector files use base64.
 - **HKDF** is HKDF-SHA256 (RFC 5869). "salt = empty" means the zero-length salt, which RFC 5869 treats as `HashLen` zero bytes.
 - **AES-GCM** is AES-256-GCM with a 12-byte nonce and a 16-byte tag; "ciphertext" includes the tag at its end.
-- A **JSON AAD** is the UTF-8 of the JCS serialisation (section 10) of a JSON array. For the arrays in use (strings and small integers) it equals ECMAScript `JSON.stringify`.
+- A **JSON AAD** is the UTF-8 of the JCS serialisation (section 10) of a JSON array. For the arrays in use (well-formed strings and small integers) it equals ECMAScript `JSON.stringify`. A string that is not Unicode (invalid UTF-8 in Go, a lone surrogate in TypeScript) has no JCS text, and a builder refuses it rather than writing an escape or a replacement character, so two such bindings never share an AAD (`kit/passkey-go.json#passkey/aad/refuses/*`).
 
 ## 3. Profiles
 
@@ -42,7 +42,7 @@ What a product chooses is a **profile** (section 3): labels, prefixes, magic byt
 | seal | label: AAD prefix and HPKE info prefix | `wsv1` |
 | seal | kind names | section 4.8 |
 | account | password preparation | none: the UTF-8 bytes of the password as typed |
-| account | KDF bounds enforced by the client | none |
+| account | KDF and salt bounds enforced by the client | none |
 | account | auth label | `whatserver2/auth` |
 | account | wrap label | `whatserver2/wrap` |
 | account | wrap header | `0x02` |
@@ -122,6 +122,11 @@ envelope = header (mode 0x01) || enc (32) || HPKE.SealBase(pk, info, AAD, plaint
 
 At least 56 bytes (`DirectOverhead`). Any failure after the header checks, including an encapsulated key that yields no shared secret, is [`authentication`] (`seal-go.json#seal/direct/refuses/enc-zero`).
 
+**Low-order keys** (RFC 9180 §7.1.4). An X25519 public key of low order gives an all-zero Diffie-Hellman output whatever the private key, and DHKEM must abort there, in both directions:
+
+- Opening: with such an encapsulated key, anybody who knows the recipient's public key can compute the shared secret and seal a value of their choosing, such as a grant of a device key they hold. An implementation checks the X25519 output itself, rejecting 32 zero bytes, and does not rely on its crypto library to: such an envelope is [`authentication`]. The kit's vectors carry these forgeries, each sealed under the all-zero secret, for every low-order encoding (`kit/seal-go.json#seal/direct/forged/grant/zero`, `kit/hpke-go.json#hpke/open/forged/order-8-a`); `kit/seal-go.json#seal/direct/forger-control/grant` is the same construction with a real secret, and opens.
+- Sealing: a server that hands out a low-order "public key" could open whatever is sealed to it. Sealing refuses such a key [`invalid_key`] (`kit/seal-go.json#seal/direct/refuses/low-order-key/one`); `hpke.seal` alone refuses it too [`invalid_key`] (`kit/hpke-go.json#hpke/seal/refuses/low-order-key/p`).
+
 ### 4.5 Batch mode
 
 ```
@@ -174,7 +179,7 @@ Per profile. Wappie prepares nothing: two Unicode spellings of the same password
 {"alg": "argon2id", "m": 65536, "t": 3, "p": 1}
 ```
 
-`m` is in KiB. A client refuses any other `alg` [`kdf`/`unsupported_alg`] and, when the profile has bounds, parameters outside them [`kdf`/`out_of_bounds`], before deriving anything. Argon2id's own limits (t ≥ 1, p ≥ 1, m ≥ 8p, salt at least 8 bytes) fail as [`kdf`/`kdf_failed`]. Security note: without bounds (the Wappie profile), whoever writes the server's database can hand a client cheap parameters.
+`m` is in KiB. A client refuses any other `alg` [`kdf`/`unsupported_alg`] and, when the profile has bounds, parameters outside them and a salt whose length is outside them [`kdf`/`out_of_bounds`], before deriving anything. Bounds are a minimum and maximum for each of m, t and p, optionally a maximum for m×t, and optionally a minimum and maximum salt length in bytes (equal values fix it; the platform's policy is exactly 16) (`kit/account-go.json#account/derive/bounded/refuses/salt-15`). Argon2id's own limits (t ≥ 1, p ≥ 1, m ≥ 8p, salt at least 8 bytes) fail as [`kdf`/`kdf_failed`]. Security note: without bounds (the Wappie profile), whoever writes the server's database can hand a client cheap parameters, or a short or reused salt.
 
 ### 6.3 Derivation
 
@@ -221,7 +226,7 @@ K                = HKDF(IKM = PRF first output (32), salt = UTF-8(rpID), info = 
 envelope         = header || nonce (12) || AES-256-GCM(K, nonce, key (32), AAD)
 ```
 
-Wrapping refuses a key that is not 32 bytes [`bad_key`] and then a PRF output that is not 32 bytes [`bad_prf`]. Opening refuses an envelope of the wrong length or header [`bad_envelope`]; every other failure, a PRF output of the wrong length included, is [`open_failed`] (`passkey-ts.json#passkey/unwrap/refuses/prf-31`). The PRF output never leaves the client, and a server must refuse to receive it. Passkeys are bound to their RP ID; a passkey of one RP never opens another's envelope.
+Wrapping refuses a key that is not 32 bytes [`bad_key`], then an empty AAD [`bad_aad`], then a PRF output that is not 32 bytes [`bad_prf`]. Opening refuses an empty AAD [`bad_aad`], then an envelope of the wrong length or header [`bad_envelope`]; every other failure, a PRF output of the wrong length included, is [`open_failed`] (`passkey-ts.json#passkey/unwrap/refuses/prf-31`). A wrap bound to nothing could be presented for any passkey, so an AAD is never empty (`kit/passkey-go.json#passkey/wrap/refuses/empty-aad`); Wappie's builder refuses a binding with no JSON text (section 2). The PRF output never leaves the client, and a server must refuse to receive it. Passkeys are bound to their RP ID; a passkey of one RP never opens another's envelope.
 
 ## 8. A key at rest in the browser
 
@@ -230,6 +235,8 @@ A raw 32-byte X25519 private key is kept encrypted under a fresh non-extractable
 ```
 AAD = JSON AAD [tag, version, userID, base64(public key)]
 ```
+
+A user id with no JSON text (section 2) is refused.
 
 On open, the key's public half is recomputed and compared with the recorded one. There are no vectors of the envelope itself, because its key cannot be exported; its AAD and its validation are vectored (`browser-account-ts.json`).
 
@@ -279,12 +286,15 @@ The format, the layout, the op catalogue and the provenance of every file are in
 ## 13. Security considerations
 
 - **The key id is outside the batch AAD** (section 4.5): bound through the content key's row instead.
-- **No zeroisation in Go.** Go cannot reliably clear memory; the TypeScript side zeroes what it can.
+- **Zeroisation is best effort.** Neither language can clear a string (the password as typed), and Go's runtime may have copied a buffer before it is cleared. What each clears:
+  - Go: in `account.Derive`, the prepared password bytes and the Argon2id master key.
+  - TypeScript: in `derive`, the prepared password bytes, the master key and the raw wrap key, success or failure; the KDF worker clears its own copy of the password bytes; the recovery code's HKDF input and the raw recovery key after import; a content key's raw bytes after import (`ContentKey.unwrap`); the raw key after import in `openBrowserAccountKey`.
+  - Keys held as values (Go's content keys and private keys, TypeScript's non-extractable `CryptoKey`s) live as long as the values that hold them.
 - **Random nonces.** At most 2^20 values per content key (section 4.9).
 - **Wappie's wrap binds the email** (section 6.6): an email change needs a re-wrap.
 - **No KDF bounds in the Wappie profile** (section 6.2): a downgrade by whoever writes the database. New profiles set bounds.
 - **Passkeys are bound to the RP ID** (section 7).
-- **All-zero shared secrets.** An encapsulated key of low order yields an all-zero X25519 output. Go's `crypto/ecdh` refuses it; TypeScript relies on WebCrypto (Node 25 refuses it). Either way the envelope does not open.
+- **All-zero shared secrets** (section 4.4). A public or encapsulated key of low order yields an all-zero X25519 output. Go's `crypto/ecdh` refuses it. The TypeScript implementation checks the output itself, with no early exit, whatever WebCrypto does, in sealing and in opening; its tests run every forgery also on a stand-in engine that lets the zeros through. The vectors carry real forgeries, which an implementation missing the check opens.
 - **The reserved header byte** is bound by the AAD, not checked (section 4.1).
 - **Decoy salts** for unknown accounts are a server concern and outside the kit.
 - **Error codes, not messages.** Direct-mode failures are one code, so a reader is not an oracle for which binding failed.
@@ -307,4 +317,4 @@ The format, the layout, the op catalogue and the provenance of every file are in
 
 ## Appendix B. Changes
 
-- Spec 1 (kit v0.1.0): first version, from Wappie at `8c0c1f74103bc6bb65a93b13613ad1964d4399c4`.
+- Spec 1 (kit v0.1.0): first version, from Wappie at `8c0c1f74103bc6bb65a93b13613ad1964d4399c4`. Beyond Wappie, and only for inputs that never produced openable data: the low-order checks of section 4.4 in TypeScript, the salt bound of section 6.2, the refusal of empty passkey AADs (section 7) and of JSON AADs with no JCS text (section 2).

@@ -39,12 +39,22 @@ export interface KDFParams {
 
 export const defaultKDFParams: KDFParams = Object.freeze({ alg: 'argon2id', m: 64 * 1024, t: 3, p: 1 }) as KDFParams
 
-/** KDFBounds are the parameters a client accepts from a server before deriving. */
+/**
+ * KDFBounds are the parameters and salt a client accepts from a server before
+ * deriving. Without them whoever writes the server's database can hand a
+ * client cheap parameters, or a salt it has used before.
+ */
 export interface KDFBounds {
   min: { m: number; t: number; p: number }
   max: { m: number; t: number; p: number }
   /** Bounds m times t; absent means no bound. */
   maxCost?: number
+  /**
+   * Bound the salt's length in bytes; absent means no bound beyond Argon2id's
+   * own 8. Equal values fix it (the platform's policy: exactly 16).
+   */
+  minSaltLen?: number
+  maxSaltLen?: number
 }
 
 /** AccountProfile is everything a product chooses about the scheme. */
@@ -59,7 +69,10 @@ export interface AccountProfile {
   readonly legacyV1: boolean
   /** How the auth key and the recovery proof are written as text. */
   readonly encoding: 'base64' | 'base64url'
-  /** Turns a password into the bytes Argon2id reads; absent means UTF-8, unchanged. */
+  /**
+   * Turns a password into the bytes Argon2id reads; absent means UTF-8,
+   * unchanged. derive zeroes the array it returns.
+   */
   readonly prepare?: (password: string) => Bytes
   /** Enforced before any derivation; absent means none. */
   readonly bounds?: KDFBounds
@@ -86,6 +99,15 @@ export function checkKDFParams(p: AccountProfile, params: KDFParams): void {
   }
 }
 
+/** checkSalt throws unless the salt has a length this profile derives with. */
+export function checkSalt(p: AccountProfile, salt: Bytes): void {
+  const b = p.bounds
+  if (!b) return
+  if ((b.minSaltLen !== undefined && salt.length < b.minSaltLen) || (b.maxSaltLen !== undefined && salt.length > b.maxSaltLen)) {
+    throw new AccountError('the salt is out of bounds', 'kdf', 'out_of_bounds')
+  }
+}
+
 /** Derived is the pair a password becomes. Neither half is the password. */
 export interface Derived {
   /** Sent to the server, in the profile's encoding. */
@@ -108,24 +130,41 @@ export interface DeriveOptions {
  *   master = Argon2id(prepared password, salt, m, t, p, dkLen 32, version 0x13)
  *   auth   = HKDF-SHA256(master, salt empty, info authLabel)
  *   wrap   = HKDF-SHA256(master, salt empty, info wrapLabel)
+ *
+ * The parameters and the salt are checked against the profile's bounds before
+ * anything is derived. The prepared password bytes, the master key and the raw
+ * wrap key are zeroed before it returns; the password string itself cannot be.
  */
 export async function derive(p: AccountProfile, password: string, salt: Bytes, params: KDFParams, options: DeriveOptions = {}): Promise<Derived> {
   checkKDFParams(p, params)
+  checkSalt(p, salt)
   let prepared: Bytes
   try {
     prepared = p.prepare ? p.prepare(password) : encodeUTF8(password)
   } catch {
     throw new AccountError('the password was refused', 'password', 'rejected')
   }
-  const master = await stretch(prepared, salt, params, options)
-  const base = await crypto.subtle.importKey('raw', master, 'HKDF', false, ['deriveBits'])
-  const branch = (label: string) =>
-    crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: encodeUTF8(label) }, base, 256)
-  const [auth, wrap] = await Promise.all([branch(p.authLabel), branch(p.wrapLabel)])
-  master.fill(0)
-  return {
-    authKey: encode(p, new Uint8Array(auth)),
-    wrapKey: await crypto.subtle.importKey('raw', wrap, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']),
+  let master: Bytes
+  try {
+    master = await stretch(prepared, salt, params, options)
+  } finally {
+    prepared.fill(0)
+  }
+  try {
+    const base = await crypto.subtle.importKey('raw', master, 'HKDF', false, ['deriveBits'])
+    const branch = (label: string) =>
+      crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: encodeUTF8(label) }, base, 256)
+    const [auth, wrap] = (await Promise.all([branch(p.authLabel), branch(p.wrapLabel)])).map((bits) => new Uint8Array(bits))
+    try {
+      return {
+        authKey: encode(p, auth),
+        wrapKey: await crypto.subtle.importKey('raw', wrap, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']),
+      }
+    } finally {
+      wrap.fill(0)
+    }
+  } finally {
+    master.fill(0)
   }
 }
 
@@ -260,10 +299,15 @@ export function normaliseRecoveryCode(code: string): string {
   return group(cleaned)
 }
 
-async function recoveryBranch(p: AccountProfile, code: string, label: string): Promise<ArrayBuffer> {
+async function recoveryBranch(p: AccountProfile, code: string, label: string): Promise<Bytes> {
   const normalised = p.normaliseRecovery ? p.normaliseRecovery(code) : normaliseRecoveryCode(code)
-  const material = await crypto.subtle.importKey('raw', encodeUTF8(normalised), 'HKDF', false, ['deriveBits'])
-  return crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: encodeUTF8(label) }, material, 256)
+  const text = encodeUTF8(normalised)
+  try {
+    const material = await crypto.subtle.importKey('raw', text, 'HKDF', false, ['deriveBits'])
+    return new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: encodeUTF8(label) }, material, 256))
+  } finally {
+    text.fill(0)
+  }
 }
 
 /**
@@ -272,12 +316,16 @@ async function recoveryBranch(p: AccountProfile, code: string, label: string): P
  */
 export async function recoveryKey(p: AccountProfile, code: string): Promise<CryptoKey> {
   const bits = await recoveryBranch(p, code, p.recoveryKeyLabel)
-  return crypto.subtle.importKey('raw', bits, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
+  try {
+    return await crypto.subtle.importKey('raw', bits, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
+  } finally {
+    bits.fill(0)
+  }
 }
 
 /** recoveryProof is the branch of the code that is sent, independent of the key. */
 export async function recoveryProof(p: AccountProfile, code: string): Promise<string> {
-  return encode(p, new Uint8Array(await recoveryBranch(p, code, p.recoveryProofLabel)))
+  return encode(p, await recoveryBranch(p, code, p.recoveryProofLabel))
 }
 
 /** bind fixes a profile, for a product's own wrappers. */
@@ -285,6 +333,7 @@ export function bind(p: AccountProfile) {
   return {
     profile: p,
     checkKDFParams: (params: KDFParams) => checkKDFParams(p, params),
+    checkSalt: (salt: Bytes) => checkSalt(p, salt),
     derive: (password: string, salt: Bytes, params: KDFParams, options?: DeriveOptions) => derive(p, password, salt, params, options),
     wrapPrivateKey: (privateKey: Bytes, under: CryptoKey, aad: Bytes) => wrapPrivateKey(p, privateKey, under, aad),
     unwrapPrivateKey: (blob: Bytes, under: CryptoKey, aad: Bytes) => unwrapPrivateKey(p, blob, under, aad),

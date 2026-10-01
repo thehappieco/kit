@@ -4,6 +4,15 @@
 //   node scripts/pack.mjs --reproduce     do it twice from clean and compare
 //   node scripts/pack.mjs --tag v0.1.0    also require the version to match a tag
 //
+// What reproduces is the tar inside the .tgz: npm writes it with fixed
+// times, owners and order, so the same tree and the same npm give the same
+// tar on any machine. The gzip around it is Node's zlib, whose output changes
+// between Node versions (22 and 25 give different .tgz bytes around the same
+// tar). So SHA256SUMS records both: the .tgz, which is what a lockfile's
+// integrity pins and what CI built with the Node in .node-version, and the
+// tar (as thehappieco-kit-<v>.tar), which anyone rebuilding from the tag
+// compares, whatever their Node: gunzip -c the release asset | sha256sum.
+//
 // Every byte of the tarball ends up measured in Wappie's enclave image, so the
 // checks are strict: only dist/ plus the files npm always adds and NOTICE; no
 // src/ or test/ directory and no source map under dist/ (Wappie's enclave
@@ -16,6 +25,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { gunzipSync } from 'node:zlib'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -57,17 +67,22 @@ function build() {
     files,
     sha256: createHash('sha256').update(bytes).digest('hex'),
     integrity: 'sha512-' + createHash('sha512').update(bytes).digest('base64'),
+    tarSHA256: createHash('sha256').update(gunzipSync(bytes)).digest('hex'),
   }
 }
 
+const npm = execFileSync('npm', ['--version'], { cwd: root, encoding: 'utf8' }).trim()
 const first = build()
 if (args.includes('--reproduce')) {
   const again = build()
+  if (again.tarSHA256 !== first.tarSHA256) fail(`two builds from clean differ: tar ${first.tarSHA256} and ${again.tarSHA256}`)
   if (again.integrity !== first.integrity) fail(`two builds from clean differ: ${first.integrity} and ${again.integrity}`)
-  console.log(`reproducible: two builds from clean are both ${first.integrity}`)
+  console.log(`reproducible: two builds from clean are both tar ${first.tarSHA256}, ${first.integrity}`)
 }
-writeFileSync(join(root, 'SHA256SUMS'), `${first.sha256}  ${first.filename}\n`)
-console.log(`${first.filename}: ${first.files.length} files`)
-console.log(`sha256    ${first.sha256}`)
-console.log(`integrity ${first.integrity}`)
+const tarName = first.filename.replace(/\.tgz$/, '.tar')
+writeFileSync(join(root, 'SHA256SUMS'), `${first.sha256}  ${first.filename}\n${first.tarSHA256}  ${tarName}\n`)
+console.log(`${first.filename}: ${first.files.length} files, node ${process.version}, npm ${npm}`)
+console.log(`sha256     ${first.sha256}`)
+console.log(`integrity  ${first.integrity}`)
+console.log(`tar sha256 ${first.tarSHA256} (the reproducible part: gunzip -c ${first.filename} | sha256sum)`)
 if (!existsSync(join(root, first.filename))) fail('the tarball is missing')

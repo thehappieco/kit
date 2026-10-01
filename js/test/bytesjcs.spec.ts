@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 
 import { formatUUID, fromBase64, fromHex, parseUUID, toBase64, toBase64URL, uuidV5, type Bytes } from '../src/bytes.js'
@@ -35,7 +34,7 @@ for (const [path, f] of files('wappie/golden/bytes-jcs-ts.json', 'kit/jcs-go.jso
             const value = pattern(i.length, i.pattern.mul, i.pattern.add)
             const text = toBase64(value)
             if (c.out.base64 !== undefined) expect(text).toBe(c.out.base64)
-            else expect(createHash('sha256').update(text).digest('hex')).toBe(c.out.base64_sha256_hex)
+            else expect(Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))), (b) => b.toString(16).padStart(2, '0')).join('')).toBe(c.out.base64_sha256_hex)
             expect(toB64(fromBase64(text))).toBe(toB64(value))
             return
           }

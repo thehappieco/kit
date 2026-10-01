@@ -41,7 +41,7 @@ type Profile struct {
 	Header []byte
 }
 
-// Error says which check failed: bad_key, bad_prf, bad_envelope or
+// Error says which check failed: bad_key, bad_aad, bad_prf, bad_envelope or
 // open_failed.
 type Error struct{ Reason string }
 
@@ -49,7 +49,10 @@ func (e *Error) Error() string { return "passkey: " + e.Reason }
 
 // The failures, as values errors.Is matches by identity.
 var (
-	ErrBadKey      = &Error{"bad_key"}
+	ErrBadKey = &Error{"bad_key"}
+	// ErrBadAAD is an empty AAD. A wrap binds its passkey (the RP, the user,
+	// the credential); one bound to nothing could be moved to any of them.
+	ErrBadAAD      = &Error{"bad_aad"}
 	ErrBadPRF      = &Error{"bad_prf"}
 	ErrBadEnvelope = &Error{"bad_envelope"}
 	ErrOpenFailed  = &Error{"open_failed"}
@@ -70,11 +73,14 @@ func Key(p Profile, prf []byte, rpID string) ([]byte, error) {
 	return hkdf.Key(sha256.New, prf, []byte(rpID), p.WrapInfo, KeyLen)
 }
 
-// Wrap seals a 32-byte key under a PRF output. Only the envelope may leave the
-// client.
+// Wrap seals a 32-byte key under a PRF output, bound to aad, which must not
+// be empty. Only the envelope may leave the client.
 func Wrap(p Profile, privateKey, prf []byte, rpID string, aad []byte) ([]byte, error) {
 	if len(privateKey) != KeyLen {
 		return nil, ErrBadKey
+	}
+	if len(aad) == 0 {
+		return nil, ErrBadAAD
 	}
 	nonce := make([]byte, NonceLen)
 	if _, err := rand.Read(nonce); err != nil {
@@ -87,6 +93,9 @@ func wrap(p Profile, privateKey, prf []byte, rpID string, aad, nonce []byte) ([]
 	if len(privateKey) != KeyLen {
 		return nil, ErrBadKey
 	}
+	if len(aad) == 0 {
+		return nil, ErrBadAAD
+	}
 	gcm, err := newGCM(p, prf, rpID)
 	if err != nil {
 		return nil, err
@@ -97,10 +106,13 @@ func wrap(p Profile, privateKey, prf []byte, rpID string, aad, nonce []byte) ([]
 	return gcm.Seal(out, nonce, privateKey, aad), nil
 }
 
-// Unwrap opens an envelope. An envelope of the wrong length or header is
-// ErrBadEnvelope; everything after that, a PRF of the wrong length included,
-// is ErrOpenFailed, as in the reference client.
+// Unwrap opens an envelope. An empty aad is ErrBadAAD; an envelope of the
+// wrong length or header is ErrBadEnvelope; everything after that, a PRF of
+// the wrong length included, is ErrOpenFailed, as in the reference client.
 func Unwrap(p Profile, envelope, prf []byte, rpID string, aad []byte) ([]byte, error) {
+	if len(aad) == 0 {
+		return nil, ErrBadAAD
+	}
 	h := len(p.Header)
 	if len(envelope) != h+NonceLen+KeyLen+TagLen || string(envelope[:h]) != string(p.Header) {
 		return nil, ErrBadEnvelope

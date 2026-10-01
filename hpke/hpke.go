@@ -39,6 +39,12 @@ const (
 // They are deliberately one error.
 var ErrOpen = errors.New("hpke: open failed")
 
+// ErrInvalidKey is a public key no secret can be agreed with: one of low
+// order, whose X25519 output is all zeros. RFC 9180 §7.1.4 requires DHKEM to
+// abort there; crypto/ecdh does. Whoever served such a key could open
+// whatever was sealed to it.
+var ErrInvalidKey = errors.New("hpke: no shared secret with this public key")
+
 func suite() (hpke.KEM, hpke.KDF, hpke.AEAD) {
 	return hpke.DHKEM(ecdh.X25519()), hpke.HKDFSHA256(), hpke.AES256GCM()
 }
@@ -122,7 +128,8 @@ func (p PrivateKey) PublicKey() (PublicKey, error) {
 func (p PrivateKey) Valid() bool { return p.sk != nil }
 
 // Seal encrypts plaintext to pub in one shot. The ephemeral key comes from
-// crypto/rand; enc is its public half, which the recipient needs.
+// crypto/rand; enc is its public half, which the recipient needs. A public key
+// of low order is ErrInvalidKey.
 func Seal(pub PublicKey, info, aad, plaintext []byte) (enc, ciphertext []byte, err error) {
 	if !pub.Valid() {
 		return nil, nil, errors.New("hpke: no public key")
@@ -130,7 +137,9 @@ func Seal(pub PublicKey, info, aad, plaintext []byte) (enc, ciphertext []byte, e
 	_, kdf, aead := suite()
 	enc, sender, err := hpke.NewSender(pub.pk, kdf, aead, info)
 	if err != nil {
-		return nil, nil, fmt.Errorf("hpke: sender: %w", err)
+		// The encapsulation's X25519 refused the key: it is of low order.
+		// crypto/rand cannot fail since Go 1.24, so nothing else gets here.
+		return nil, nil, fmt.Errorf("%w: %v", ErrInvalidKey, err)
 	}
 	ciphertext, err = sender.Seal(aad, plaintext)
 	if err != nil {

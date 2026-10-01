@@ -1,13 +1,20 @@
 name: ci
 
+# On a v* tag this runs from release.yml (workflow_call), which publishes
+# nothing unless every job here passes.
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
+
+# The tarball's .tgz bytes depend on Node's zlib and its tar on npm, so the
+# jobs that pack use exactly these (js/.node-version and NPM_VERSION).
+env:
+  NPM_VERSION: '11.9.0'
 
 jobs:
   # Decision 0017 of the platform: the kit's Go compiles and passes with Go
@@ -91,6 +98,26 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  # The same vector specs in real browsers, where WebCrypto's X25519, PKCS#8
+  # export and module workers are the browser's own. Required before a
+  # release: release.yml runs this workflow and publishes only if it passes.
+  js-browser:
+    name: typescript in chromium, firefox and webkit
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: js/.node-version
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:browser
+
   # Fresh round trips: Go seals and TypeScript opens, TypeScript seals and Go
   # opens, with keys and nonces made in this run.
   cross:
@@ -142,7 +169,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '22'
+          node-version-file: js/.node-version
+      - run: npm install --global "npm@${NPM_VERSION}" && npm --version | grep -qx "${NPM_VERSION}"
+      - run: node --version | grep -qx "v$(cat .node-version)"
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: pack twice from clean and compare
         run: |

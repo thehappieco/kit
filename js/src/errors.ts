@@ -45,7 +45,7 @@ export class AccountError extends Error {
   }
 }
 
-export type PasskeyErrorReason = 'bad_prf' | 'bad_key' | 'bad_envelope' | 'open_failed'
+export type PasskeyErrorReason = 'bad_prf' | 'bad_key' | 'bad_aad' | 'bad_envelope' | 'open_failed'
 
 export class PasskeyError extends Error {
   constructor(

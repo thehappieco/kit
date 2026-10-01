@@ -11,6 +11,7 @@
 
 import { encodeUTF8, toBase64, type Bytes } from './bytes.js'
 import { importPrivateKey, type PrivateKey } from './hpke.js'
+import { canonicalJSON } from './jcs.js'
 
 export interface BrowserAccountProfile {
   /** The first element of the JSON AAD. */
@@ -27,9 +28,13 @@ export interface BrowserKeyEnvelope {
   publicRaw: Bytes
 }
 
-/** browserAccountAAD is the JSON array [tag, version, userID, base64(publicRaw)]. */
+/**
+ * browserAccountAAD is the JCS text of the JSON array [tag, version, userID,
+ * base64(publicRaw)]. A user id with a lone surrogate throws
+ * CanonicalJSONError.
+ */
 export function browserAccountAAD(p: BrowserAccountProfile, userID: string, publicRaw: Bytes): Bytes {
-  return encodeUTF8(JSON.stringify([p.tag, p.version, userID, toBase64(publicRaw)]))
+  return encodeUTF8(canonicalJSON([p.tag, p.version, userID, toBase64(publicRaw)]))
 }
 
 export function validBrowserKeyEnvelope(value: unknown): value is BrowserKeyEnvelope {

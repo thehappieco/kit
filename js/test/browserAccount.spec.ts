@@ -2,8 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { generateAccountKeys } from '../src/account.js'
 import { browserAccountAAD, openBrowserAccountKey, sealBrowserAccountKey, validBrowserKeyEnvelope } from '../src/browserAccount.js'
+import { CanonicalJSONError } from '../src/jcs.js'
 import { wappieBrowserAccount } from '../src/profiles/wappie.js'
-import { b64, forTS, load, toB64, unhandled } from './vectors.js'
+import { b64, forTS, load, toB64, unhandled, utf8 } from './vectors.js'
 
 const p = wappieBrowserAccount
 const f = load('wappie/golden/browser-account-ts.json')
@@ -56,5 +57,14 @@ describe('the key at rest', () => {
     const ciphertext = envelope.ciphertext.slice(0); new Uint8Array(ciphertext)[0] ^= 1
     await expect(openBrowserAccountKey(p, { ...envelope, ciphertext }, 'user-one')).rejects.toThrow()
     await expect(openBrowserAccountKey({ ...p, tag: 'other' }, envelope, 'user-one')).rejects.toThrow()
+  })
+})
+
+describe('the AAD', () => {
+  it('is JCS: the bytes JSON.stringify gave for a well-formed user id, and a lone surrogate refused', async () => {
+    const { publicKey } = await generateAccountKeys()
+    const user = '018f3a2b-0000-7000-8000-000000000003 \u2028\u{1f511}"'
+    expect(toB64(browserAccountAAD(p, user, publicKey))).toBe(toB64(utf8(JSON.stringify([p.tag, p.version, user, toB64(publicKey)]))))
+    for (const bad of ['\ud800', 'user-\udfff']) expect(() => browserAccountAAD(p, bad, publicKey)).toThrow(CanonicalJSONError)
   })
 })

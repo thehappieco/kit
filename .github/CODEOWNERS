@@ -1,5 +1,7 @@
-# The standard and its data need the lead's review.
-/SPEC.md         @thehappieco/kit-maintainers
-/vectors/        @thehappieco/kit-maintainers
-/profiles/       @thehappieco/kit-maintainers
-/js/src/profiles/ @thehappieco/kit-maintainers
+# The standard and its data need the lead's review. One person for now; a
+# team (with at least two people) replaces the handle when there is one.
+/SPEC.md          @frrestum
+/vectors/         @frrestum
+/profiles/        @frrestum
+/js/src/profiles/ @frrestum
+/.github/         @frrestum

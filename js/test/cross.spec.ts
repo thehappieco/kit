@@ -14,15 +14,30 @@ import { join } from 'node:path'
 import { argon2id } from '@noble/hashes/argon2.js'
 import { describe, expect, it } from 'vitest'
 
-import { derive, newRecoveryCode, normaliseRecoveryCode, recoveryProof, unwrapPrivateKey, wrapPrivateKey } from '../src/account.js'
+import { derive, newRecoveryCode, normaliseRecoveryCode, recoveryProof, unwrapPrivateKey, wrapPrivateKey, type AccountProfile, type KDFParams } from '../src/account.js'
 import { formatUUID, parseUUID, uuidV5, type Bytes } from '../src/bytes.js'
 import { generateKeyPair, importPrivateKey, publicFromPrivate, seal as hpkeSeal } from '../src/hpke.js'
-import { canonicalJSON } from '../src/jcs.js'
-import { prfSalt, wrapPasskey } from '../src/passkey.js'
+import { canonicalJSON, CanonicalJSONError } from '../src/jcs.js'
+import { prfSalt, unwrapPasskey, wrapPasskey } from '../src/passkey.js'
 import { canonical, signature } from '../src/reqhmac.js'
 import { grantRow, openDirect, sealDirect } from '../src/seal.js'
 import { accountWrapAAD, DIRECTION_TO_READER, Kind, passkeyAAD, wappieAccount, wappieMCPHMAC, wappiePasskey, wappieSeal } from '../src/profiles/wappie.js'
-import { recording, toB64, utf8, type VectorCase } from './vectors.js'
+import { codeOf, recording, toB64, toWTF8, utf8, type VectorCase } from './vectors.js'
+
+// X25519 public keys of low order, which nothing may be sealed to (the same
+// list as the Go side's internal/forge).
+const lowOrder: [string, string][] = [
+  ['zero', '0000000000000000000000000000000000000000000000000000000000000000'],
+  ['one', '0100000000000000000000000000000000000000000000000000000000000000'],
+  ['order-8-a', 'e0eb7a7c3b41b8ae1656e3faf19fc46ada098deb9c32b1fd866205165f49b800'],
+  ['order-8-b', '5f9c95bca3508c24b1d0b1559c83ef5b04445cc4581c8e86d8224eddd09f1157'],
+  ['p-minus-1', 'ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f'],
+  ['p', 'edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f'],
+  ['p-plus-1', 'eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f'],
+  ['zero-bit-255', '0000000000000000000000000000000000000000000000000000000000000080'],
+  ['order-8-a-bit-255', 'e0eb7a7c3b41b8ae1656e3faf19fc46ada098deb9c32b1fd866205165f49b880'],
+]
+const hex = (h: string) => new Uint8Array(h.match(/../g)!.map((b) => parseInt(b, 16))) as Bytes
 
 const OUT = process.env.KIT_CROSS_OUT ?? ''
 
@@ -81,7 +96,14 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
     cases.push({ id: 'seal/direct/draft', op: 'seal.seal_direct',
       in: { key: 'archive', kind: Kind.McpDraft, tenant: formatUUID(tenant), row: formatUUID(device), epoch: 2, plaintext_b64: toB64(draftPT), ephemeral_private_key_b64: toB64(x25519[0]) },
       out: { envelope_b64: toB64(draft) } })
-    write('seal-ts.json', 'seal', 'Fresh grants and a draft sealed by the kit\'s TypeScript with the Wappie profile, for Go to open.', cases, keys)
+    for (const [name, point] of lowOrder) {
+      const pt = new Uint8Array(32).fill(0x66) as Bytes
+      const row = await grantRow(tenant, device, user, 1)
+      expect(await codeOf(() => sealDirect(wappieSeal, hex(point), Kind.DeviceGrant, tenant, row, 1, pt))).toBe('invalid_key')
+      cases.push({ id: `seal/direct/refuses/low-order-key/${name}`, op: 'seal.seal_direct',
+        in: { public_key_b64: toB64(hex(point)), kind: Kind.DeviceGrant, tenant: formatUUID(tenant), row: formatUUID(row), epoch: 1, plaintext_b64: toB64(pt) }, error: 'invalid_key' })
+    }
+    write('seal-ts.json', 'seal', 'Fresh grants and a draft sealed by the kit\'s TypeScript with the Wappie profile, for Go to open, and low-order keys it refuses to seal to.', cases, keys)
 
     const hcases: VectorCase[] = []
     for (const [n, [info, aad, pt]] of ([[utf8(''), utf8(''), utf8('')], [utf8('thehappie-id/v1/key-delivery'), utf8(canonicalJSON(['thehappie-id/key-delivery', 1, 'sub'])), crypto.getRandomValues(new Uint8Array(32))],
@@ -95,7 +117,13 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
       const priv = crypto.getRandomValues(new Uint8Array(32)) as Bytes
       hcases.push({ id: `hpke/public-from-private/${n}`, op: 'hpke.public_from_private', in: { private_key_b64: toB64(priv) }, out: { public_key_b64: toB64(await publicFromPrivate(priv)) } })
     }
-    write('hpke-ts.json', 'hpke', 'Fresh HPKE seals by the kit\'s WebCrypto implementation, for Go\'s crypto/hpke to open.', hcases, { r1: keys.archive })
+    for (const [name, point] of lowOrder) {
+      const [info, aad, pt] = [utf8('thehappie-id/v1/key-delivery'), utf8('["thehappie-id/key-delivery",1]'), new Uint8Array(32).fill(0x66) as Bytes]
+      expect(await codeOf(() => hpkeSeal(hex(point), info, aad, pt))).toBe('invalid_key')
+      hcases.push({ id: `hpke/seal/refuses/low-order-key/${name}`, op: 'hpke.seal',
+        in: { public_key_b64: toB64(hex(point)), info_b64: toB64(info), aad_b64: toB64(aad), plaintext_b64: toB64(pt) }, error: 'invalid_key' })
+    }
+    write('hpke-ts.json', 'hpke', 'Fresh HPKE seals by the kit\'s WebCrypto implementation, for Go\'s crypto/hpke to open, and low-order keys it refuses to seal to.', hcases, { r1: keys.archive })
   })
 
   it('writes account-ts.json and passkey-ts.json', async () => {
@@ -129,7 +157,25 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
       cases.push({ id: `account/recovery-proof/${n}`, op: 'account.recovery_proof', in: { code: typed }, out: { proof: await recoveryProof(p, typed) } })
       cases.push({ id: `account/recovery-key/${n}`, op: 'account.recovery_key', in: { code }, out: { key_b64: toB64(await hkdf(utf8(code), new Uint8Array(0) as Bytes, p.recoveryKeyLabel)) } })
     }
-    write('account-ts.json', 'account', 'Fresh derivations and wraps by the kit\'s TypeScript account scheme with the Wappie profile, for Go.', cases)
+    // The Wappie profile has no bounds; these cases give it some, shaped like
+    // the platform's policy (a salt of exactly 16 bytes), to pin the checks.
+    const jsonBounds = { min: { m: 8, t: 1, p: 1 }, max: { m: 1024, t: 3, p: 1 }, max_cost: 2048, min_salt_len: 16, max_salt_len: 16 }
+    const bounded: AccountProfile = { ...p, bounds: { min: jsonBounds.min, max: jsonBounds.max, maxCost: 2048, minSaltLen: 16, maxSaltLen: 16 } }
+    for (const [name, len, kdf] of [['salt-16', 16, params], ['refuses/salt-15', 15, params], ['refuses/salt-17', 17, params], ['refuses/salt-8', 8, params],
+      ['refuses/m-2048', 16, { alg: 'argon2id', m: 2048, t: 1, p: 1 }], ['refuses/cost-3072', 16, { alg: 'argon2id', m: 1024, t: 3, p: 1 }]] as [string, number, KDFParams][]) {
+      const s = crypto.getRandomValues(new Uint8Array(len)) as Bytes
+      const c: VectorCase = { id: `account/derive/bounded/${name}`, op: 'account.derive', in: { password: 'senha do kit', salt_b64: toB64(s), params: kdf, bounds: jsonBounds } }
+      if (name.startsWith('refuses/')) {
+        expect(await codeOf(() => derive(bounded, 'senha do kit', s, kdf))).toBe('kdf')
+        Object.assign(c, { error: 'kdf', reason: 'out_of_bounds' })
+      } else {
+        const d = await derive(bounded, 'senha do kit', s, kdf)
+        const master = argon2id(utf8('senha do kit'), s, { m: kdf.m, t: kdf.t, p: kdf.p, dkLen: 32 }) as Bytes
+        c.out = { auth_key: d.authKey, auth_b64: toB64(await hkdf(master, new Uint8Array(0) as Bytes, p.authLabel)), wrap_b64: toB64(await hkdf(master, new Uint8Array(0) as Bytes, p.wrapLabel)) }
+      }
+      cases.push(c)
+    }
+    write('account-ts.json', 'account', 'Fresh derivations and wraps by the kit\'s TypeScript account scheme with the Wappie profile, and derivations refused by KDF and salt bounds, for Go.', cases)
 
     const pk = wappiePasskey
     const pcases: VectorCase[] = []
@@ -146,7 +192,21 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
       pcases.push({ id: `passkey/wrap/${n}`, op: 'passkey.wrap', in: { private_key_b64: toB64(key), prf_b64: toB64(prf), ...ids, nonce_b64: toB64(bytes[0]) }, out: { envelope_b64: toB64(env) } })
       pcases.push({ id: `passkey/unwrap/${n}/other-user`, op: 'passkey.unwrap', in: { envelope_b64: toB64(env), prf_b64: toB64(prf), ...ids, user_id: 'someone-else' }, error: 'open_failed' })
     }
-    write('passkey-ts.json', 'passkey', 'Fresh passkey wraps by the kit\'s TypeScript with the Wappie profile, for Go.', pcases)
+    // Bindings with no JSON text (a lone surrogate, carried as WTF-8), and a
+    // wrap bound to nothing: refused.
+    for (const [name, field, value] of [['lone-high-surrogate-user', 'user_id', 'user-\ud800'], ['lone-low-surrogate-credential', 'credential_id', '\udc00cred']]) {
+      const b = { rpID: 'wappie.thehappie.co', userID: field === 'user_id' ? value : 'u', credentialID: field === 'credential_id' ? value : 'c' }
+      expect(() => passkeyAAD(b)).toThrow(CanonicalJSONError)
+      const ids: Record<string, string> = { rp_id: b.rpID, user_id: b.userID, credential_id: b.credentialID }
+      delete ids[field]
+      pcases.push({ id: `passkey/aad/refuses/${name}`, op: 'passkey.aad', in: { ...ids, [`${field}_wtf8_b64`]: toB64(toWTF8(value)) }, error: 'jcs' })
+    }
+    const env = await wrapPasskey(pk, key, prf, 'localhost', utf8('aad'))
+    expect(await codeOf(() => wrapPasskey(pk, key, prf, 'localhost', new Uint8Array(0) as Bytes))).toBe('bad_aad')
+    expect(await codeOf(() => unwrapPasskey(pk, env, prf, 'localhost', new Uint8Array(0) as Bytes))).toBe('bad_aad')
+    pcases.push({ id: 'passkey/wrap/refuses/empty-aad', op: 'passkey.wrap', in: { private_key_b64: toB64(key), prf_b64: toB64(prf), rp_id: 'localhost', aad_b64: '', nonce_b64: toB64(new Uint8Array(12)) }, error: 'bad_aad' })
+    pcases.push({ id: 'passkey/unwrap/refuses/empty-aad', op: 'passkey.unwrap', in: { envelope_b64: toB64(env), prf_b64: toB64(prf), rp_id: 'localhost', aad_b64: '' }, error: 'bad_aad' })
+    write('passkey-ts.json', 'passkey', 'Fresh passkey wraps by the kit\'s TypeScript with the Wappie profile, for Go, with bindings that must be refused.', pcases)
   })
 
   it('writes reqhmac-ts.json and jcs-ts.json', async () => {

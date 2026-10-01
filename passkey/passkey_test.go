@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/thehappieco/kit/internal/vectest"
+	"github.com/thehappieco/kit/jcs"
 	"github.com/thehappieco/kit/passkey"
 	"github.com/thehappieco/kit/profiles/wappie"
 )
@@ -24,10 +25,14 @@ func TestWappiePasskeyVectors(t *testing.T) {
 					RPID         string `json:"rp_id"`
 					UserID       string `json:"user_id"`
 					CredentialID string `json:"credential_id"`
-					PRF          string `json:"prf_b64"`
-					PrivateKey   string `json:"private_key_b64"`
-					Nonce        string `json:"nonce_b64"`
-					Envelope     string `json:"envelope_b64"`
+					// A string that is not Unicode, as WTF-8: in Go, the bytes.
+					UserIDWTF8       string  `json:"user_id_wtf8_b64"`
+					CredentialIDWTF8 string  `json:"credential_id_wtf8_b64"`
+					AAD              *string `json:"aad_b64"`
+					PRF              string  `json:"prf_b64"`
+					PrivateKey       string  `json:"private_key_b64"`
+					Nonce            string  `json:"nonce_b64"`
+					Envelope         string  `json:"envelope_b64"`
 				}
 				var out struct {
 					Salt       string `json:"salt_b64"`
@@ -41,7 +46,19 @@ func TestWappiePasskeyVectors(t *testing.T) {
 					vectest.Decode(t, c.Out, &out)
 				}
 				b := func(s string) []byte { return vectest.B64(t, s) }
-				aad := wappie.PasskeyAAD(in.RPID, in.UserID, in.CredentialID)
+				if in.UserIDWTF8 != "" {
+					in.UserID = string(b(in.UserIDWTF8))
+				}
+				if in.CredentialIDWTF8 != "" {
+					in.CredentialID = string(b(in.CredentialIDWTF8))
+				}
+				aad, aadErr := wappie.PasskeyAAD(in.RPID, in.UserID, in.CredentialID)
+				if in.AAD != nil {
+					aad, aadErr = b(*in.AAD), nil
+				}
+				if aadErr != nil && c.Op != "passkey.aad" {
+					t.Fatalf("aad: %v", aadErr)
+				}
 				wantErr := func(err error) {
 					t.Helper()
 					var e *passkey.Error
@@ -55,8 +72,12 @@ func TestWappiePasskeyVectors(t *testing.T) {
 						t.Errorf("salt %x", got)
 					}
 				case "passkey.aad":
-					if !bytes.Equal(aad, b(out.AAD)) {
-						t.Errorf("aad %q, want %q", aad, b(out.AAD))
+					if c.Error != "" {
+						if c.Error != "jcs" || !errors.Is(aadErr, jcs.ErrUnsupported) {
+							t.Errorf("aad %q, %v; want a refusal (%s)", aad, aadErr, c.Error)
+						}
+					} else if aadErr != nil || !bytes.Equal(aad, b(out.AAD)) {
+						t.Errorf("aad %q, want %q: %v", aad, b(out.AAD), aadErr)
 					}
 				case "passkey.key":
 					if got, err := passkey.Key(p, b(in.PRF), in.RPID); err != nil || !bytes.Equal(got, b(out.Key)) {
@@ -90,7 +111,10 @@ func TestWappiePasskeyVectors(t *testing.T) {
 func TestRoundTripAndRefusals(t *testing.T) {
 	p := wappie.Passkey()
 	key, prf := bytes.Repeat([]byte{1}, 32), bytes.Repeat([]byte{2}, 32)
-	aad := wappie.PasskeyAAD("wappie.thehappie.co", "u", "c")
+	aad, err := wappie.PasskeyAAD("wappie.thehappie.co", "u", "c")
+	if err != nil {
+		t.Fatal(err)
+	}
 	env, err := passkey.Wrap(p, key, prf, "wappie.thehappie.co", aad)
 	if err != nil || len(env) != 61 || env[0] != 1 {
 		t.Fatalf("%x %v", env, err)
@@ -116,5 +140,20 @@ func TestRoundTripAndRefusals(t *testing.T) {
 	}
 	if s1, s2 := passkey.PRFSalt(p, "x"), passkey.PRFSalt(p2, "x"); s1 == s2 {
 		t.Error("two profiles share a PRF salt")
+	}
+	// A wrap bound to nothing could be moved to any passkey: refused both ways.
+	for _, empty := range [][]byte{nil, {}} {
+		if _, err := passkey.Wrap(p, key, prf, "wappie.thehappie.co", empty); !errors.Is(err, passkey.ErrBadAAD) {
+			t.Errorf("wrapped with no AAD: %v", err)
+		}
+		if _, err := passkey.Unwrap(p, env, prf, "wappie.thehappie.co", empty); !errors.Is(err, passkey.ErrBadAAD) {
+			t.Errorf("unwrapped with no AAD: %v", err)
+		}
+	}
+	// Two bindings that are not Unicode must not share an AAD: refused.
+	for _, b := range [][3]string{{"\xff", "u", "c"}, {"rp", "\xed\xa0\x80", "c"}, {"rp", "u", "c\xc0"}} {
+		if got, err := wappie.PasskeyAAD(b[0], b[1], b[2]); err == nil {
+			t.Errorf("%q: an AAD for a binding that is not UTF-8: %q", b, got)
+		}
 	}
 }

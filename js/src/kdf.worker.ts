@@ -19,12 +19,15 @@ export interface KDFRequest {
 
 self.onmessage = (event: MessageEvent<KDFRequest>) => {
   const { password, salt, m, t, p } = event.data
+  const bytes = typeof password === 'string' ? new TextEncoder().encode(password) : password
   try {
-    const bytes = typeof password === 'string' ? new TextEncoder().encode(password) : password
     const out = argon2id(bytes, salt, { m, t, p, dkLen: 32 })
     // Transferred rather than copied: the buffer is done with here.
     ;(self as unknown as Worker).postMessage({ ok: true, master: out }, [out.buffer])
   } catch (err) {
     ;(self as unknown as Worker).postMessage({ ok: false, error: err instanceof Error ? err.message : String(err) })
+  } finally {
+    // This worker's copy of the prepared password. The caller zeroes its own.
+    bytes.fill(0)
   }
 }

@@ -36,16 +36,23 @@ func TestWappieAccountVectors(t *testing.T) {
 		}
 		t.Run(c.ID, func(t *testing.T) {
 			var in struct {
-				Password   string            `json:"password"`
-				Salt       string            `json:"salt_b64"`
-				Params     account.KDFParams `json:"params"`
-				Email      string            `json:"email"`
-				WrapKey    string            `json:"wrap_key_b64"`
-				PrivateKey string            `json:"private_key_b64"`
-				Nonce      string            `json:"nonce_b64"`
-				Blob       string            `json:"blob_b64"`
-				Random     string            `json:"random_b64"`
-				Code       string            `json:"code"`
+				Password string            `json:"password"`
+				Salt     string            `json:"salt_b64"`
+				Params   account.KDFParams `json:"params"`
+				Bounds   *struct {
+					Min        account.KDFParams `json:"min"`
+					Max        account.KDFParams `json:"max"`
+					MaxCost    uint64            `json:"max_cost"`
+					MinSaltLen int               `json:"min_salt_len"`
+					MaxSaltLen int               `json:"max_salt_len"`
+				} `json:"bounds"`
+				Email      string `json:"email"`
+				WrapKey    string `json:"wrap_key_b64"`
+				PrivateKey string `json:"private_key_b64"`
+				Nonce      string `json:"nonce_b64"`
+				Blob       string `json:"blob_b64"`
+				Random     string `json:"random_b64"`
+				Code       string `json:"code"`
 			}
 			var out struct {
 				Params     account.KDFParams `json:"params"`
@@ -77,6 +84,11 @@ func TestWappieAccountVectors(t *testing.T) {
 					t.Errorf("%+v", account.DefaultKDFParams)
 				}
 			case "account.derive":
+				p := p
+				if in.Bounds != nil {
+					// Wappie's profile has no bounds; these cases give it some.
+					p.Bounds = &account.Bounds{Min: in.Bounds.Min, Max: in.Bounds.Max, MaxCost: in.Bounds.MaxCost, MinSaltLen: in.Bounds.MinSaltLen, MaxSaltLen: in.Bounds.MaxSaltLen}
+				}
 				d, err := account.Derive(p, in.Password, b(in.Salt), in.Params)
 				if c.Error != "" {
 					wantErr(err)
@@ -197,6 +209,17 @@ func TestAnotherProfile(t *testing.T) {
 	for _, params := range []account.KDFParams{{Alg: "argon2id", M: 4096, T: 1, P: 1}, {Alg: "argon2id", M: 1024, T: 3, P: 1}, {Alg: "argon2id", M: 8, T: 1, P: 2}} {
 		if _, err := account.Derive(p, "long enough password", salt, params); !errors.Is(err, account.ErrOutOfBounds) {
 			t.Errorf("%+v: %v", params, err)
+		}
+	}
+	// The platform's policy fixes the salt at 16 bytes. Without the bound,
+	// Argon2id would take any salt of 8 bytes or more.
+	p.Bounds.MinSaltLen, p.Bounds.MaxSaltLen = 16, 16
+	for _, n := range []int{8, 15, 17, 32} {
+		if _, err := account.Derive(p, "long enough password", bytes.Repeat([]byte{2}, n), cheap); !errors.Is(err, account.ErrOutOfBounds) {
+			t.Errorf("a %d-byte salt: %v", n, err)
+		}
+		if err := p.CheckSalt(make([]byte, n)); !errors.Is(err, account.ErrOutOfBounds) {
+			t.Errorf("CheckSalt, %d bytes: %v", n, err)
 		}
 	}
 	d, err := account.Derive(p, "long enough password", salt, cheap)

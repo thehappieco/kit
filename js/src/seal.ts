@@ -12,7 +12,7 @@
 // functions with it fixed, which is how a product keeps its old call sites.
 
 import { type Bytes, concat, encodeUTF8, formatUUID, readUint16BE, readUint32BE, uuidV5 } from './bytes.js'
-import { SealError } from './errors.js'
+import { HPKEError, SealError } from './errors.js'
 import { ENC_LEN, open as hpkeOpen, seal as hpkeSeal, type PrivateKey } from './hpke.js'
 
 export { SealError }
@@ -111,7 +111,8 @@ function encodeHeader(p: SealProfile, mode: number, epoch: number): Bytes {
  *
  * Getting the binding wrong fails silently in the worst way: a grant stores,
  * and what it was meant to unlock stays unreadable. So the inputs are checked:
- * ids of 16 bytes, an epoch and a kind that fit their fields.
+ * ids of 16 bytes, an epoch and a kind that fit their fields. A public key of
+ * low order is refused as invalid_key: whoever served it could open the seal.
  */
 export async function sealDirect(p: SealProfile, publicRaw: Bytes, kind: number, tenant: Bytes, row: Bytes, epoch: number, plaintext: Bytes): Promise<Bytes> {
   if (!(publicRaw instanceof Uint8Array) || publicRaw.length !== 32) throw new SealError('no public key', 'invalid_key')
@@ -120,8 +121,14 @@ export async function sealDirect(p: SealProfile, publicRaw: Bytes, kind: number,
   checkID('the row', row)
   checkUint('the epoch', epoch, 0xffff)
   const header = encodeHeader(p, MODE_DIRECT, epoch)
-  const { enc, ciphertext } = await hpkeSeal(publicRaw, info(p, kind, tenant, epoch), aad(p, kind, tenant, row, header), plaintext)
-  return concat(header, enc, ciphertext)
+  let sealed: { enc: Bytes; ciphertext: Bytes }
+  try {
+    sealed = await hpkeSeal(publicRaw, info(p, kind, tenant, epoch), aad(p, kind, tenant, row, header), plaintext)
+  } catch (err) {
+    if (err instanceof HPKEError && err.code === 'invalid_key') throw new SealError('no secret can be agreed with this public key', 'invalid_key')
+    throw err
+  }
+  return concat(header, sealed.enc, sealed.ciphertext)
 }
 
 /**

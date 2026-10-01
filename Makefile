@@ -51,11 +51,15 @@ vectors-check:
 manifest:
 	cd vectors && find wappie kit platform -type f | LC_ALL=C sort | xargs shasum -a 256 > MANIFEST.sha256
 
-# Writes vectors/kit/*.json from both languages, at release time. Refuses to
-# overwrite: files of a tagged release never change.
+# Writes vectors/kit/*.json from both languages, at release time, into a
+# temporary directory, and adds only the files vectors/kit does not hold yet:
+# files of a tagged release never change.
 vectors-kit:
-	KIT_CROSS_OUT=$(CURDIR)/vectors/kit go test -count=1 -run TestWriteCrossVectors ./internal/cross
-	cd js && KIT_CROSS_OUT=$(CURDIR)/vectors/kit npx vitest run test/cross.spec.ts
+	tmp=$$(mktemp -d) && \
+	KIT_CROSS_OUT=$$tmp go test -count=1 -run TestWriteCrossVectors ./internal/cross && \
+	(cd js && KIT_CROSS_OUT=$$tmp npx vitest run test/cross.spec.ts) && \
+	for f in $$tmp/*.json; do n=$$(basename "$$f"); if [ -e "vectors/kit/$$n" ]; then echo "kept vectors/kit/$$n"; else cp "$$f" "vectors/kit/$$n" && echo "added vectors/kit/$$n"; fi; done && \
+	rm -rf "$${tmp:?}"
 	$(MAKE) manifest
 
 # Regenerates Wappie's vectors from Wappie's code at WAPPIE_COMMIT into a

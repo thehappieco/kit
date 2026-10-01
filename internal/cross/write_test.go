@@ -47,6 +47,7 @@ type file struct {
 type vcase struct {
 	ID     string         `json:"id"`
 	Op     string         `json:"op"`
+	Langs  []string       `json:"langs,omitempty"`
 	In     map[string]any `json:"in"`
 	Out    map[string]any `json:"out,omitempty"`
 	Error  string         `json:"error,omitempty"`
@@ -70,8 +71,13 @@ func source() string {
 
 func write(t *testing.T, dir, name, module, note string, keys map[string]any, cases []vcase) {
 	t.Helper()
+	writeProfile(t, dir, name, module, "wappie", note, keys, cases)
+}
+
+func writeProfile(t *testing.T, dir, name, module, profile, note string, keys map[string]any, cases []vcase) {
+	t.Helper()
 	f := file{
-		Format: "thehappieco-kit-vectors/1", Module: module, Profile: "wappie",
+		Format: "thehappieco-kit-vectors/1", Module: module, Profile: profile,
 		GeneratedBy: map[string]any{
 			"lang": "go", "source": source() + " " + module, "toolchain": runtime.Version(),
 			"randomness": "crypto/rand; seals record what they drew where the format has room for it",
@@ -141,6 +147,7 @@ func TestWriteCrossVectors(t *testing.T) {
 	writePasskey(t, dir)
 	writeRequestHMAC(t, dir)
 	writeJCS(t, dir)
+	writePlatform(t, dir)
 }
 
 func writeSeal(t *testing.T, dir string) {

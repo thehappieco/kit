@@ -15,13 +15,14 @@ import { argon2id } from '@noble/hashes/argon2.js'
 import { describe, expect, it } from 'vitest'
 
 import { derive, newRecoveryCode, normaliseRecoveryCode, recoveryProof, unwrapPrivateKey, wrapPrivateKey, type AccountProfile, type KDFParams } from '../src/account.js'
-import { formatUUID, parseUUID, uuidV5, type Bytes } from '../src/bytes.js'
+import { formatUUID, parseUUID, toBase64URL, uuidV5, type Bytes } from '../src/bytes.js'
 import { generateKeyPair, importPrivateKey, publicFromPrivate, seal as hpkeSeal } from '../src/hpke.js'
 import { canonicalJSON, CanonicalJSONError } from '../src/jcs.js'
 import { prfSalt, unwrapPasskey, wrapPasskey } from '../src/passkey.js'
 import { canonical, signature } from '../src/reqhmac.js'
 import { grantRow, openDirect, sealDirect } from '../src/seal.js'
 import { accountWrapAAD, DIRECTION_TO_READER, Kind, passkeyAAD, wappieAccount, wappieMCPHMAC, wappiePasskey, wappieSeal } from '../src/profiles/wappie.js'
+import * as platform from '../src/profiles/platform.js'
 import { codeOf, recording, toB64, toWTF8, utf8, type VectorCase } from './vectors.js'
 
 // X25519 public keys of low order, which nothing may be sealed to (the same
@@ -52,10 +53,10 @@ function source(): string {
   }
 }
 
-function write(name: string, module: string, note: string, cases: VectorCase[], keys?: Record<string, unknown>) {
+function write(name: string, module: string, note: string, cases: VectorCase[], keys?: Record<string, unknown>, profile = 'wappie') {
   const pkg = JSON.parse(readFileSync(new URL('../node_modules/@noble/hashes/package.json', import.meta.url), 'utf8'))
   const file = {
-    format: 'thehappieco-kit-vectors/1', module, profile: 'wappie',
+    format: 'thehappieco-kit-vectors/1', module, profile,
     generated_by: {
       lang: 'ts', source: `${source()} js/src`, toolchain: `node ${process.version}; @noble/hashes ${pkg.version}`,
       randomness: 'crypto.getRandomValues; each case records the bytes and X25519 keys it drew', generator: 'js/test/cross.spec.ts',
@@ -235,5 +236,139 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
       jcases.push({ id: `bytes/uuid-v5/${n}`, op: 'bytes.uuid_v5', in: { namespace: formatUUID(ns), name_b64: toB64(name) }, out: { uuid: formatUUID(await uuidV5(ns, name as Bytes)) } })
     }
     write('jcs-ts.json', 'bytes+jcs', 'Canonical JSON and UUIDv5 by the kit\'s TypeScript, for Go. Each input is JSON.stringify of the value.', jcases)
+  })
+
+  it('writes platform-ts.json', async () => {
+    const cases: VectorCase[] = []
+    const below = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n
+    const bytes = (n: number) => crypto.getRandomValues(new Uint8Array(n)) as Bytes
+    const ch = (...cps: number[]) => String.fromCodePoint(...cps)
+    // Code points assigned long before Unicode 15.0, whose normalisation is
+    // the same in ICU and in Go's tables: the same blocks as the Go writer.
+    const blocks: [number, number][] = [
+      [0x61, 0x7a], [0x41, 0x5a], [0x30, 0x39], [0x20, 0x7e], [0xc0, 0xff], [0x100, 0x17f], [0x300, 0x34e], [0x391, 0x3c9],
+      [0x410, 0x44f], [0x905, 0x939], [0x93e, 0x94c], [0x1100, 0x1112], [0x1161, 0x1175], [0x11a8, 0x11c2], [0xac00, 0xd7a3],
+      [0x4e00, 0x9fa5], [0x2000, 0x200a], [0xa0, 0xa0], [0x3000, 0x3000], [0x1f600, 0x1f64f],
+    ]
+    const randomPassword = () => {
+      let s = ''
+      for (let n = 12 + below(30); n > 0; n--) {
+        const [lo, hi] = blocks[below(blocks.length)]
+        s += ch(lo + below(hi - lo + 1))
+      }
+      return s
+    }
+    const names = ['password_invalid', 'password_too_short', 'password_too_long', 'kdf_policy', 'wrap', 'recovery_code', 'email', 'product_key', 'bundle', 'encoding']
+    const code = async (fn: () => unknown) => {
+      const c = await codeOf(fn)
+      if (!names.includes(c)) throw new Error(`a refusal outside the protocol's names: ${c}`)
+      return c
+    }
+    const empty = new Uint8Array(0) as Bytes
+
+    // The password profile.
+    const inputs: [string, boolean][] = [
+      ['a' + ch(0x301) + ch(0x323).repeat(29) + 'bcdefghijk', true],
+      ['a' + ch(0x301).repeat(31), false],
+      [ch(0x1100, 0x1161, 0x11a8) + ' ' + ch(0x212b) + 'ngstr' + ch(0xf6) + 'm' + ch(0xa0, 0x3000), false],
+      ['short', true],
+      ['pass' + ch(0x85) + 'word-1234', false],
+    ]
+    for (let i = 0; i < 12; i++) inputs.push([randomPassword(), below(2) === 1])
+    for (const [n, [password, isNew]] of inputs.entries()) {
+      const c: VectorCase = { id: `platform/prepare-password/${n}`, op: 'platform.prepare_password', in: { password, new: isNew } }
+      try {
+        c.out = { prepared_b64: toB64(platform.preparePassword(password, { isNew })) }
+      } catch {
+        c.error = await code(() => platform.preparePassword(password, { isNew }))
+      }
+      cases.push(c)
+    }
+
+    // The KDF at the floor, its wrap key computed beside the kit's.
+    {
+      const prepared = platform.preparePassword(randomPassword(), { isNew: true })
+      const salt = bytes(16)
+      const d = await platform.derivePassword(prepared, salt, platform.DEFAULT_KDF)
+      const master = argon2id(prepared, salt, { m: 65536, t: 3, p: 1, dkLen: 32 }) as Bytes
+      expect(toBase64URL(await hkdf(master, empty, platform.LABEL_PASSWORD_AUTH))).toBe(d.authKey)
+      cases.push({ id: 'platform/derive-password/0', op: 'platform.derive_password', in: { prepared_b64: toB64(prepared), salt_b64: toB64(salt), kdf: platform.DEFAULT_KDF },
+        out: { auth_key: d.authKey, wrap_b64: toB64(await hkdf(master, empty, platform.LABEL_PASSWORD_WRAP)) } })
+      cases.push({ id: 'platform/derive-password/refuses/fractional-m', op: 'platform.derive_password',
+        in: { prepared_b64: toB64(prepared), salt_b64: toB64(salt), kdf: { alg: 'argon2id', m: 65536.5, t: 3, p: 1 } }, error: 'kdf_policy', langs: ['ts'] })
+    }
+
+    // Root wraps of each kind, with the nonce they drew.
+    for (const kind of ['password', 'recovery', 'passkey'] as platform.WrapKind[]) {
+      const sub = crypto.randomUUID()
+      const epoch = 1 + below(2 ** 31 - 1)
+      const passkey = kind === 'passkey' ? { rpId: 'id.thehappie.co', credentialId: toBase64URL(bytes(16)) } : undefined
+      const key = bytes(32), root = bytes(32)
+      const { value: wrap, bytes: drawn } = await recording(() => platform.sealRootWrap(kind, key, root, sub, epoch, passkey))
+      const extra = passkey ? { rp_id: passkey.rpId, credential_id: passkey.credentialId } : {}
+      cases.push({ id: `platform/root-wrap/${kind}`, op: 'platform.root_wrap', in: { kind, key_b64: toB64(key), root_b64: toB64(root), sub, epoch, nonce_b64: toB64(drawn[0]), ...extra },
+        out: { aad: platform.rootWrapAAD(kind, sub, epoch, passkey), wrap_b64: toB64(wrap) } })
+      cases.push({ id: `platform/root-wrap/${kind}/other-epoch`, op: 'platform.open_root_wrap', in: { kind, key_b64: toB64(key), sub, epoch: epoch === 1 ? 2 : epoch - 1, wrap_b64: toB64(wrap), ...extra }, error: 'wrap' })
+    }
+
+    // Recovery codes.
+    for (let n = 0; n < 2; n++) {
+      const raw = bytes(30)
+      const rc = platform.recoveryCodeFromBytes(raw)
+      const keys = await platform.deriveRecovery(rc.display)
+      cases.push({ id: `platform/recovery-code/${n}`, op: 'platform.recovery_code', in: { random_b64: toB64(raw), typed: rc.display.toLowerCase().replace(/-/g, ' ') },
+        out: { canonical: rc.canonical, display: rc.display, wrap_b64: toB64(await hkdf(utf8(rc.canonical), empty, platform.LABEL_RECOVERY_WRAP)), recovery_auth: keys.recoveryAuth } })
+    }
+    cases.push({ id: 'platform/recovery-code/refuses/dotless-i', op: 'platform.recovery_code', in: { typed: ch(0x131) + '0'.repeat(29) }, error: 'recovery_code' })
+
+    // Product keys, verifiers and addresses.
+    for (const [n, product] of ['mailie', 'a-future-product'].entries()) {
+      const root = bytes(32), epoch = 1 + below(2 ** 31 - 1)
+      const k = await platform.deriveProductKey(root, product, epoch)
+      cases.push({ id: `platform/product-key/${n}`, op: 'platform.product_key', in: { root_b64: toB64(root), product, epoch }, out: { sk_b64: toB64(k.sk), pub_b64: toB64(k.pub), product_key_id: k.id } })
+    }
+    for (const [n, recovery] of [false, true].entries()) {
+      const sub = crypto.randomUUID(), key = bytes(32)
+      cases.push(recovery
+        ? { id: `platform/verifier/${n}`, op: 'platform.verifier', in: { sub, r_proof_b64: toB64(key) }, out: { recovery_verifier_b64: toB64(await platform.recoveryVerifier(sub, key)) } }
+        : { id: `platform/verifier/${n}`, op: 'platform.verifier', in: { sub, k_auth_b64: toB64(key) }, out: { auth_verifier_b64: toB64(await platform.authVerifier(sub, key)) } })
+    }
+    for (const [n, input] of ['\tBia+Kit@Mail.Example.ORG ', 'a@b.c0', 'a..b@example.com', 'ana@ex' + ch(0xe4) + 'mple.com'].entries()) {
+      const c: VectorCase = { id: `platform/normalize-email/${n}`, op: 'platform.normalize_email', in: { input } }
+      try {
+        c.out = { email_norm: platform.normalizeEmail(input) }
+      } catch {
+        c.error = await code(() => platform.normalizeEmail(input))
+      }
+      cases.push(c)
+    }
+
+    // A key bundle, written as JSON.stringify writes it, opened with the
+    // password and with the recovery code.
+    {
+      const root = platform.newRoot(), salt = bytes(16), sub = crypto.randomUUID(), password = randomPassword()
+      const d = await platform.derivePasswordKeys(password, salt, platform.DEFAULT_KDF)
+      const rc = platform.newRecoveryCode()
+      const rk = await platform.deriveRecovery(rc.canonical)
+      const b64url = toBase64URL
+      const bundle = {
+        format: platform.KEY_BUNDLE_FORMAT, version: platform.KEY_BUNDLE_VERSION, issuer: 'https://id.thehappie.co', sub, email: 'ana@example.com',
+        account_key_epoch: 1, kdf: platform.DEFAULT_KDF, kdf_salt: b64url(salt),
+        password_wrap: b64url(await platform.sealRootWrap('password', d.wrapKey, root, sub, 1)),
+        recovery_wrap: b64url(await platform.sealRootWrap('recovery', rk.wrapKey, root, sub, 1)),
+        product_keys: [
+          { product: 'mailie', epoch: 1, pub: b64url(await platform.productPublicKey(root, 'mailie', 1)) },
+          { product: 'wappie', epoch: 1, pub: b64url(await platform.productPublicKey(root, 'wappie', 1)) },
+        ],
+        created_at: new Date().toISOString(),
+      }
+      const text = JSON.stringify(bundle, null, 2) + '\n'
+      expect(toB64(await platform.openKeyBundleWithRecoveryCode(text, rc.display))).toBe(toB64(root))
+      cases.push({ id: 'platform/key-bundle/password', op: 'platform.key_bundle', in: { bundle_text: text, password }, out: { root_b64: toB64(root) } })
+      cases.push({ id: 'platform/key-bundle/recovery-code', op: 'platform.key_bundle', in: { bundle_text: text, recovery_code: rc.display }, out: { root_b64: toB64(root) } })
+      cases.push({ id: 'platform/key-bundle/repeated-member', op: 'platform.key_bundle',
+        in: { bundle_text: text.replace('"issuer":', '"issuer": "https://other.example",\n  "issuer":'), recovery_code: rc.display }, error: 'bundle' })
+    }
+    write('platform-ts.json', 'platform', 'Fresh cases of the platform profile (SPEC section 11) by the kit\'s TypeScript, for Go: random passwords from blocks whose normalisation is stable since Unicode 15.0, a derivation, root wraps with the nonce they drew, recovery codes with the bytes they came from, product keys, verifiers, addresses and a key bundle written by JSON.stringify.', cases, undefined, 'platform')
   })
 })

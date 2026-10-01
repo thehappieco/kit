@@ -4,7 +4,7 @@
   "profile": "wappie",
   "generated_by": {
     "lang": "ts",
-    "source": "github.com/thehappieco/kit@unknown js/src",
+    "source": "github.com/thehappieco/kit@5c28c42b20b411593844f760b49aa957322f2518 js/src",
     "toolchain": "node v25.6.1; @noble/hashes 2.4.0",
     "randomness": "crypto.getRandomValues; each case records the bytes and X25519 keys it drew",
     "generator": "js/test/cross.spec.ts"
@@ -15,18 +15,18 @@
       "id": "reqhmac/signature/0",
       "op": "reqhmac.signature",
       "in": {
-        "secret": "9c0c6a3b-0934-4062-84a6-9688d479d4db",
+        "secret": "1c0a059b-f6bf-4e19-b0bb-34668914d8b7",
         "direction": "to-reader",
         "sender": "enclave",
         "method": "post",
         "target": "/internal/requests/x/prepare",
         "timestamp": "1790300000",
         "nonce": "AAAAAAAAAAAAAAAAAAAAAA",
-        "body_b64": "OTQ2OTI3NzItYWZjNy00ZjRlLTg3NDUtYjg4YTRmMDFmZGQ4"
+        "body_b64": "MTk4YTZiYWMtM2Q1NS00N2FhLWI3NGEtNjFjZWEwNTUyZjlh"
       },
       "out": {
-        "signature": "v1=10241b5d161fc1ca89900a4488db0de19e9c63945a2646f4a64edbdbb3de6b99",
-        "canonical": "wappie-mcp-hmac/v1\nto-reader\nenclave\nPOST\n/internal/requests/x/prepare\n1790300000\nAAAAAAAAAAAAAAAAAAAAAA\ne1510f0312b4f3d3949b701b659ef3ec4d1fc49398c121e17e9e721ebfe658dd"
+        "signature": "v1=d8c97c11d2976c32cb36a8dd291038c45e5f6f486f42b580749b8f4c71e931f8",
+        "canonical": "wappie-mcp-hmac/v1\nto-reader\nenclave\nPOST\n/internal/requests/x/prepare\n1790300000\nAAAAAAAAAAAAAAAAAAAAAA\nbfff1fdfd75d5e7ccfa1f22fd1ab8ab56d9ef3493c444c4e7ebe1ab6a8e8f29f"
       }
     },
     {
@@ -40,11 +40,11 @@
         "target": "/v1/x?y=%2F",
         "timestamp": "1790300000",
         "nonce": "BBBBBBBBBBBBBBBBBBBBBB",
-        "body_b64": "MDQ2MGViYmUtMzRmZS00OTIxLWIxZmYtNDBmZjhiYzA3MTg0"
+        "body_b64": "YmVmM2UyY2ItN2MwMC00NTJhLWJhOTktNGIxYzQzNTcwYWEw"
       },
       "out": {
-        "signature": "v1=5d4869d1ab2bb1e5e8fad7d735c5737a8b3aa5b4dcea2e3a5a8a141078c3f876",
-        "canonical": "wappie-mcp-hmac/v1\nto-reader\nenclave\nGET\n/v1/x?y=%2F\n1790300000\nBBBBBBBBBBBBBBBBBBBBBB\nf61ea943e248807a16cd0f10281869efac48993b59a21cdf0cae4299517cf03f"
+        "signature": "v1=52f7fbaf6fb15f97202cbd2a1c14af474d067a326a49babf68da98faed947165",
+        "canonical": "wappie-mcp-hmac/v1\nto-reader\nenclave\nGET\n/v1/x?y=%2F\n1790300000\nBBBBBBBBBBBBBBBBBBBBBB\n82d83991041cc7178110e59c06b171a4d7b586ca702df689f906972fd76651ad"
       }
     },
     {
@@ -58,11 +58,11 @@
         "target": "/",
         "timestamp": "1790300000",
         "nonce": "CCCCCCCCCCCCCCCCCCCCCC",
-        "body_b64": "MTg2OWYwYTYtMTQzNS00ZTJmLWFlZGUtMWEyZWMzYzAwODQx"
+        "body_b64": "ZTA5ZDVlNWMtZjY0NS00M2JlLWJjYzMtNTQ1ZDEyOTgxMDg0"
       },
       "out": {
-        "signature": "v1=409510464cc4568dc2f8277cf0de29fcdf8797ecaed66eae0261bd584209165a",
-        "canonical": "wappie-mcp-hmac/v1\nto-reader\nenclave\nDELETE\n/\n1790300000\nCCCCCCCCCCCCCCCCCCCCCC\n7b1ab880a6b24efc3972dfdc4f36bada56b31fe7243ceee4158e54d96abcec62"
+        "signature": "v1=6ea4e0a580c052a19ab94e1eb0bbe842b7542fd9efc35dfa63e1f679c91de4e0",
+        "canonical": "wappie-mcp-hmac/v1\nto-reader\nenclave\nDELETE\n/\n1790300000\nCCCCCCCCCCCCCCCCCCCCCC\n089d44eb3245ccfcf8dd1b14616a7f0322ca4fed8d81ea686e436807f03d3909"
       }
     }
   ]

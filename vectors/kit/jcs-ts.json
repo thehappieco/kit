@@ -4,7 +4,7 @@
   "profile": "wappie",
   "generated_by": {
     "lang": "ts",
-    "source": "github.com/thehappieco/kit@unknown js/src",
+    "source": "github.com/thehappieco/kit@5c28c42b20b411593844f760b49aa957322f2518 js/src",
     "toolchain": "node v25.6.1; @noble/hashes 2.4.0",
     "randomness": "crypto.getRandomValues; each case records the bytes and X25519 keys it drew",
     "generator": "js/test/cross.spec.ts"
@@ -45,33 +45,33 @@
       "id": "bytes/uuid-v5/0",
       "op": "bytes.uuid_v5",
       "in": {
-        "namespace": "d476cd89-bcdf-4f24-b4c6-6eefe4c725b1",
+        "namespace": "09193ab3-0220-4009-a078-2cfcd7f8f373",
         "name_b64": ""
       },
       "out": {
-        "uuid": "477709af-c16f-5380-92dc-9edb20d4ab9c"
+        "uuid": "9f19c333-010e-59ce-b357-d45c2cccdb1e"
       }
     },
     {
       "id": "bytes/uuid-v5/1",
       "op": "bytes.uuid_v5",
       "in": {
-        "namespace": "d476cd89-bcdf-4f24-b4c6-6eefe4c725b1",
+        "namespace": "09193ab3-0220-4009-a078-2cfcd7f8f373",
         "name_b64": "YcOnw6Nv"
       },
       "out": {
-        "uuid": "4473025f-9add-5329-94c4-cb494c8d7666"
+        "uuid": "8a72bcf4-9ec6-53dd-8fbf-f24c53922427"
       }
     },
     {
       "id": "bytes/uuid-v5/2",
       "op": "bytes.uuid_v5",
       "in": {
-        "namespace": "d476cd89-bcdf-4f24-b4c6-6eefe4c725b1",
+        "namespace": "09193ab3-0220-4009-a078-2cfcd7f8f373",
         "name_b64": "CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQ=="
       },
       "out": {
-        "uuid": "ff6d4810-4d5c-5e02-9a2d-41b8ea6b8d77"
+        "uuid": "11b10f03-3dce-53e5-ba20-2e76a90f0ca2"
       }
     }
   ]

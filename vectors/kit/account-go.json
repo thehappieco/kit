@@ -6,7 +6,7 @@
     "generator": "internal/cross/write_test.go",
     "lang": "go",
     "randomness": "crypto/rand; seals record what they drew where the format has room for it",
-    "source": "github.com/thehappieco/kit@unknown account",
+    "source": "github.com/thehappieco/kit@5c28c42b20b411593844f760b49aa957322f2518 account",
     "toolchain": "go1.27.1"
   },
   "note": "Fresh derivations and wraps by the kit's Go account scheme with the Wappie profile, for the TypeScript tests.",
@@ -102,19 +102,19 @@
       "op": "account.wrap",
       "in": {
         "email": "ana@example.com",
-        "nonce_b64": "gUAjy/zRoLTREiem",
+        "nonce_b64": "2kutRasYhlt+R4DG",
         "private_key_b64": "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=",
         "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
       },
       "out": {
-        "blob_b64": "AoFAI8v80aC00RInpt62k8nkG/sWhy7FxAhU7unTBYz2tEWkoNl0NrQaopJ4LJpRMuYKc9s00YErDuDn3g=="
+        "blob_b64": "AtpLrUWrGIZbfkeAxrhQosq0TaWhCTkAQRgYw1ic2e07+jfckL5E/Io3drVNQ8Cl5+KKAswpOnab3phosQ=="
       }
     },
     {
       "id": "account/unwrap/0/other-email",
       "op": "account.unwrap",
       "in": {
-        "blob_b64": "AoFAI8v80aC00RInpt62k8nkG/sWhy7FxAhU7unTBYz2tEWkoNl0NrQaopJ4LJpRMuYKc9s00YErDuDn3g==",
+        "blob_b64": "AtpLrUWrGIZbfkeAxrhQosq0TaWhCTkAQRgYw1ic2e07+jfckL5E/Io3drVNQ8Cl5+KKAswpOnab3phosQ==",
         "email": "bob@example.com",
         "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
       },
@@ -136,19 +136,19 @@
       "op": "account.wrap",
       "in": {
         "email": " İstanbul@EXAMPLE.com﻿",
-        "nonce_b64": "5GKnVeMefa1qgJgK",
+        "nonce_b64": "SW73EVgRi1qjv8Wp",
         "private_key_b64": "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=",
         "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
       },
       "out": {
-        "blob_b64": "AuRip1XjHn2taoCYCr7Cgx9PCrhNPcycZIPXy/tz5bBC2Ucn6ymlu+BYomLRMucCmsFMdW4Bo8Rq1aBNHQ=="
+        "blob_b64": "Aklu9xFYEYtao7/FqfLxVAXNkqAkHT3RWmnbu700AzxiPO8tfzufcdP61kh+mOubI/NhOyx69PRfxRsjrA=="
       }
     },
     {
       "id": "account/unwrap/1/other-email",
       "op": "account.unwrap",
       "in": {
-        "blob_b64": "AuRip1XjHn2taoCYCr7Cgx9PCrhNPcycZIPXy/tz5bBC2Ucn6ymlu+BYomLRMucCmsFMdW4Bo8Rq1aBNHQ==",
+        "blob_b64": "Aklu9xFYEYtao7/FqfLxVAXNkqAkHT3RWmnbu700AzxiPO8tfzufcdP61kh+mOubI/NhOyx69PRfxRsjrA==",
         "email": "bob@example.com",
         "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
       },
@@ -170,19 +170,19 @@
       "op": "account.wrap",
       "in": {
         "email": "ΟΔΥΣΣΕΥΣ@x.gr",
-        "nonce_b64": "al53yY8P6jdgGwAz",
+        "nonce_b64": "6ZH/nCdPGq3BQ8R4",
         "private_key_b64": "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=",
         "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
       },
       "out": {
-        "blob_b64": "Amped8mPD+o3YBsAM1xph266l4VSyXNHtnqpEIR0gnblVF6CF5C76reFn20GL59+isvvD+ZgentEE1iyVg=="
+        "blob_b64": "AumR/5wnTxqtwUPEeJnYgcj3A+iOpnGNqEqJRXj5jCM0xuvkrdZC7QbaTWA4f1ZQ1D4EvwyfG6kbBVtdjQ=="
       }
     },
     {
       "id": "account/unwrap/2/other-email",
       "op": "account.unwrap",
       "in": {
-        "blob_b64": "Amped8mPD+o3YBsAM1xph266l4VSyXNHtnqpEIR0gnblVF6CF5C76reFn20GL59+isvvD+ZgentEE1iyVg==",
+        "blob_b64": "AumR/5wnTxqtwUPEeJnYgcj3A+iOpnGNqEqJRXj5jCM0xuvkrdZC7QbaTWA4f1ZQ1D4EvwyfG6kbBVtdjQ==",
         "email": "bob@example.com",
         "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
       },
@@ -193,60 +193,60 @@
       "id": "account/normalise/0",
       "op": "account.normalise_recovery_code",
       "in": {
-        "code": "0pxd9 v9xgh 2g4br 5pg9n szksx 6z14e"
+        "code": "73459 qs38y ddzf1 egxyc 88jex dhty2"
       },
       "out": {
-        "code": "0PXD9-V9XGH-2G4BR-5PG9N-SZKSX-6Z14E"
+        "code": "73459-QS38Y-DDZF1-EGXYC-88JEX-DHTY2"
       }
     },
     {
       "id": "account/recovery-proof/0",
       "op": "account.recovery_proof",
       "in": {
-        "code": "0pxd9 v9xgh 2g4br 5pg9n szksx 6z14e"
+        "code": "73459 qs38y ddzf1 egxyc 88jex dhty2"
       },
       "out": {
-        "proof": "9SXQtFvDriPfANQmLsa+XuWTEMpnYkbKTYAEuclRDvQ="
+        "proof": "71RQ7E4UnmJ6h/cnn+Kn/C08DKswmGp93d1JJ/jWbZw="
       }
     },
     {
       "id": "account/recovery-key/0",
       "op": "account.recovery_key",
       "in": {
-        "code": "0PXD9-V9XGH-2G4BR-5PG9N-SZKSX-6Z14E"
+        "code": "73459-QS38Y-DDZF1-EGXYC-88JEX-DHTY2"
       },
       "out": {
-        "key_b64": "JgGrelZdl2KgypITEZ7U3zSuD6u0uZ2bqOdUcseBbPQ="
+        "key_b64": "bhARECiYDZ31ePF2JALZkuw2s0YlH0osbWjjuUTrp2M="
       }
     },
     {
       "id": "account/normalise/1",
       "op": "account.normalise_recovery_code",
       "in": {
-        "code": "4w21t dybxg 3b00y n4zh2 nhdwn 8fw9h"
+        "code": "vknqn g5f3d b0qca 1qyen 4zmxe 35m13"
       },
       "out": {
-        "code": "4W21T-DYBXG-3B00Y-N4ZH2-NHDWN-8FW9H"
+        "code": "VKNQN-G5F3D-B0QCA-1QYEN-4ZMXE-35M13"
       }
     },
     {
       "id": "account/recovery-proof/1",
       "op": "account.recovery_proof",
       "in": {
-        "code": "4w21t dybxg 3b00y n4zh2 nhdwn 8fw9h"
+        "code": "vknqn g5f3d b0qca 1qyen 4zmxe 35m13"
       },
       "out": {
-        "proof": "YwGAZQbZy8jyIbdTkGkz1nA3FeGFmG+uVVzEBgzxqTA="
+        "proof": "EjfoQ+AXHJeEr94n6/OSys4jgJ53YgxBx1eXuikDtY4="
       }
     },
     {
       "id": "account/recovery-key/1",
       "op": "account.recovery_key",
       "in": {
-        "code": "4W21T-DYBXG-3B00Y-N4ZH2-NHDWN-8FW9H"
+        "code": "VKNQN-G5F3D-B0QCA-1QYEN-4ZMXE-35M13"
       },
       "out": {
-        "key_b64": "m72efzSMM7lvyqwdRjW2YH3O8T0HJh3gCmF2hSoLP/A="
+        "key_b64": "XZxo+j7JGpQBBGFnr2/vf24iNkeswJvz3ttIYsFrBrI="
       }
     }
   ]

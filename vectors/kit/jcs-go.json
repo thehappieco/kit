@@ -6,7 +6,7 @@
     "generator": "internal/cross/write_test.go",
     "lang": "go",
     "randomness": "crypto/rand; seals record what they drew where the format has room for it",
-    "source": "github.com/thehappieco/kit@unknown bytes+jcs",
+    "source": "github.com/thehappieco/kit@5c28c42b20b411593844f760b49aa957322f2518 bytes+jcs",
     "toolchain": "go1.27.1"
   },
   "note": "Canonical JSON and UUIDv5 by the kit's Go, for the TypeScript tests. Each input is Go's encoding/json text of the value.",
@@ -46,10 +46,10 @@
       "op": "bytes.uuid_v5",
       "in": {
         "name_b64": "",
-        "namespace": "52b3bd47-b86c-46a8-ac55-fd469978d5aa"
+        "namespace": "7f6745b4-1b25-4daf-a43e-d67c12cbf959"
       },
       "out": {
-        "uuid": "e741b120-1e89-5208-ba15-20f923f0c569"
+        "uuid": "0efb37a4-8450-5c13-b638-d1461cdb94bf"
       }
     },
     {
@@ -57,10 +57,10 @@
       "op": "bytes.uuid_v5",
       "in": {
         "name_b64": "YcOnw6Nv",
-        "namespace": "52b3bd47-b86c-46a8-ac55-fd469978d5aa"
+        "namespace": "7f6745b4-1b25-4daf-a43e-d67c12cbf959"
       },
       "out": {
-        "uuid": "68522812-7e21-5eaa-b128-c30ac85d69d6"
+        "uuid": "cc73ae2f-2c77-5b81-93f7-eef33e7e40a6"
       }
     },
     {
@@ -68,10 +68,10 @@
       "op": "bytes.uuid_v5",
       "in": {
         "name_b64": "CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQ==",
-        "namespace": "52b3bd47-b86c-46a8-ac55-fd469978d5aa"
+        "namespace": "7f6745b4-1b25-4daf-a43e-d67c12cbf959"
       },
       "out": {
-        "uuid": "c280d799-09e9-53a0-aea6-267d11215d58"
+        "uuid": "7db71707-1f57-5395-962c-476907d32dc5"
       }
     }
   ]

@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test vectors and their generators: every key in them was generated for the vectors and protects no real data (vectors/PROVENANCE.md)"
+paths = [
+ '''^vectors/''',
+]

@@ -29,7 +29,7 @@ The platform profile (`thehappie-id/v1/...`, SPEC.md section 11) is the platform
 Go, through the module proxy, pinned in `go.sum` and the checksum database:
 
 ```
-go get github.com/thehappieco/kit@v0.1.0
+go get github.com/thehappieco/kit@v0.2.0
 ```
 
 Do not cover this module with `GOPRIVATE`, `GONOSUMDB` or `GONOPROXY` wildcards such as `github.com/thehappieco/*`: that skips the checksum database. Name only the private repositories.
@@ -37,7 +37,7 @@ Do not cover this module with `GOPRIVATE`, `GONOSUMDB` or `GONOPROXY` wildcards 
 TypeScript, from the GitHub release asset (the package is not published to a registry); the lockfile records the URL and a sha512 integrity, and `npm ci` refuses other bytes:
 
 ```
-npm install --save-exact https://github.com/thehappieco/kit/releases/download/v0.1.0/thehappieco-kit-0.1.0.tgz
+npm install --save-exact https://github.com/thehappieco/kit/releases/download/v0.2.0/thehappieco-kit-0.2.0.tgz
 ```
 
 Take the integrity from the published asset, never from a local build: `curl -sL <asset URL> | openssl dgst -sha512 -binary | base64` gives the part after `sha512-`, and the release notes print it. Then remove any older `node_modules/@thehappieco/kit` entry from the lockfile before `npm install`, or npm refuses the new bytes with `EINTEGRITY`.

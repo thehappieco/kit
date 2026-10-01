@@ -1,5 +1,6 @@
-// Vectors captured now for kit v0.2.0, which moves Wappie's attestation
-// verifier, AI keychain and derived records into the kit.
+// Vectors captured with v0.1.0 for the kit version that moves Wappie's
+// attestation verifier, AI keychain and derived records into the kit (named
+// for v0.2.0, which shipped the platform profile instead).
 //
 // The kit does not ship those modules yet, so these tests hold the vectors to
 // an independent reference written here from the formats Wappie documents

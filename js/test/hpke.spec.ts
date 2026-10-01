@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { type Bytes } from '../src/bytes.js'
 import { ENC_LEN, generateKeyPair, HPKEError, importPrivateKey, open, publicFromPrivate, seal } from '../src/hpke.js'
-import { b64, codeOf, files, forTS, toB64, unhandled, utf8, withDraws, withLenientX25519 } from './vectors.js'
+import { b64, codeOf, files, forTS, toB64, unhandled, utf8, withDraws, withEngineRefusingX25519, withLenientX25519 } from './vectors.js'
 
 /** Cases whose answer depends on the WebCrypto engine (see the case below). */
 const ENGINE_DEPENDENT = new Set(['hpke/public-from-private/zeros'])
@@ -119,6 +119,28 @@ describe('hpke', () => {
     expect(imported.length).toBe(1)
     expect(exported.length).toBe(1)
     for (const b of [...imported, ...exported.map((x) => new Uint8Array(x))]) expect(b.every((x) => x === 0)).toBe(true)
+  })
+
+  // v0.1.0's codes stay as they were: an engine's refusal is invalid_key.
+  // What the engine threw is the error's cause, so a caller can tell an
+  // engine without X25519 (NotSupportedError) from one that refused the key.
+  it('keeps what the engine threw as the cause of invalid_key', async () => {
+    const pair = await generateKeyPair()
+    for (const name of ['NotSupportedError', 'DataError']) {
+      for (const fn of [() => importPrivateKey(pair.privateKey), () => publicFromPrivate(pair.privateKey), () => seal(pair.publicKey, utf8('i'), utf8('a'), utf8('p'))]) {
+        let caught: unknown
+        await withEngineRefusingX25519(name, async () => {
+          try {
+            await fn()
+          } catch (err) {
+            caught = err
+          }
+        })
+        expect(caught).toBeInstanceOf(HPKEError)
+        expect((caught as HPKEError).code).toBe('invalid_key')
+        expect(((caught as HPKEError).cause as DOMException).name).toBe(name)
+      }
+    }
   })
 
   it('checks the PKCS#8 export before taking the raw key from it', async () => {

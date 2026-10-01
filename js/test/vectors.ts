@@ -108,6 +108,41 @@ export function raw(path: string): any {
 
 export const forTS = (c: VectorCase) => !c.langs || c.langs.includes('ts')
 
+// ---------------------------------------------------------------------------
+// The platform's own format (vectors/README.md, "The platform's format"), in
+// which vectors/platform/id-v1 is written. Bundled like every other file, so
+// these run in the browsers too, and never skipped.
+// ---------------------------------------------------------------------------
+
+export const PLATFORM_FORMAT = 'thehappie-id/vectors'
+
+export interface PlatformCase {
+  name: string
+  error?: string
+  // The members are the kind's; each runner reads them by name.
+  [member: string]: any
+}
+
+export interface PlatformFile {
+  format: string
+  version: number
+  kind: string
+  cases: PlatformCase[]
+}
+
+/** loadPlatform reads platform/id-v1/<kind>.json and checks its header and names. */
+export function loadPlatform(kind: string): PlatformFile {
+  const path = `platform/id-v1/${kind}.json`
+  const f = JSON.parse(text(path)) as PlatformFile
+  if (f.format !== PLATFORM_FORMAT || f.version !== 1 || f.kind !== kind) throw new Error(`${path}: header ${f.format} ${f.version} ${f.kind}`)
+  const names = new Set<string>()
+  for (const c of f.cases) {
+    if (typeof c.name !== 'string' || c.name === '' || names.has(c.name)) throw new Error(`${path}: an empty or repeated case name`)
+    names.add(c.name)
+  }
+  return f
+}
+
 export const b64 = (s: string) => Uint8Array.from(atob(s), (ch) => ch.charCodeAt(0)) as Bytes
 export function toB64(b: Uint8Array): string {
   let binary = ''
@@ -178,6 +213,32 @@ export async function withLenientX25519<T>(fn: () => Promise<T> | T): Promise<T>
     return await fn()
   } finally {
     spy.mockRestore()
+  }
+}
+
+/**
+ * withEngineRefusingX25519 runs fn on a WebCrypto that throws a DOMException
+ * with the given name for every X25519 key it is asked to import or
+ * generate: NotSupportedError is an engine without X25519 at all, as Firefox
+ * was before version 130; DataError one that refuses the key it is given.
+ */
+export async function withEngineRefusingX25519<T>(name: string, fn: () => Promise<T> | T): Promise<T> {
+  const isX25519 = (algorithm: unknown) => (typeof algorithm === 'string' ? algorithm : (algorithm as { name?: string }).name) === 'X25519'
+  const realImport = crypto.subtle.importKey.bind(crypto.subtle)
+  const realGenerate = crypto.subtle.generateKey.bind(crypto.subtle)
+  const importSpy = vi.spyOn(crypto.subtle, 'importKey').mockImplementation(((format: KeyFormat, data: BufferSource, algorithm: unknown, ...rest: unknown[]) => {
+    if (isX25519(algorithm)) return Promise.reject(new DOMException('the engine refuses X25519 here', name))
+    return (realImport as (...a: unknown[]) => Promise<CryptoKey>)(format, data, algorithm, ...rest)
+  }) as never)
+  const generateSpy = vi.spyOn(crypto.subtle, 'generateKey').mockImplementation(((algorithm: unknown, ...rest: unknown[]) => {
+    if (isX25519(algorithm)) return Promise.reject(new DOMException('the engine refuses X25519 here', name))
+    return (realGenerate as (...a: unknown[]) => Promise<CryptoKeyPair>)(algorithm, ...rest)
+  }) as never)
+  try {
+    return await fn()
+  } finally {
+    importSpy.mockRestore()
+    generateSpy.mockRestore()
   }
 }
 

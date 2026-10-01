@@ -1,7 +1,7 @@
 {
   "name": "@thehappieco/kit",
-  "version": "0.1.0",
-  "description": "The Happie Co's shared cryptographic kit: HPKE, sealed envelopes, the zero-knowledge account scheme, passkey PRF wraps and request signing.",
+  "version": "0.2.0",
+  "description": "The Happie Co's shared cryptographic kit: HPKE, sealed envelopes, the zero-knowledge account scheme, passkey PRF wraps, request signing and the platform's account protocol.",
   "type": "module",
   "license": "Apache-2.0",
   "repository": "github:thehappieco/kit",
@@ -26,7 +26,8 @@
     "./passkey": { "types": "./dist/passkey.d.ts", "import": "./dist/passkey.js" },
     "./browserAccount": { "types": "./dist/browserAccount.d.ts", "import": "./dist/browserAccount.js" },
     "./reqhmac": { "types": "./dist/reqhmac.d.ts", "import": "./dist/reqhmac.js" },
-    "./profiles/wappie": { "types": "./dist/profiles/wappie.d.ts", "import": "./dist/profiles/wappie.js" }
+    "./profiles/wappie": { "types": "./dist/profiles/wappie.d.ts", "import": "./dist/profiles/wappie.js" },
+    "./profiles/platform": { "types": "./dist/profiles/platform.d.ts", "import": "./dist/profiles/platform.js" }
   },
   "dependencies": {
     "@noble/hashes": "2.4.0"

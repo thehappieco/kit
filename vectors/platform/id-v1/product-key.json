@@ -1,0 +1,163 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "product-key",
+  "cases": [
+    {
+      "name": "mailie at epoch 1",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "mailie",
+      "epoch": 1,
+      "sk": "r3ePygqxs4qW8qK3-U6gHPFXt1e7UKE1JKPlXbH38gI",
+      "pub": "OtXTcb_YPmTFWlDzFzThkWR2m9NANZDFkfxfQXP70GE",
+      "product_key_id": "mailie:1"
+    },
+    {
+      "name": "wappie at epoch 1",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "wappie",
+      "epoch": 1,
+      "sk": "yBQ2dhEI4js8vG0KXdtXCi4BAd3hWLJcRwSLCE8xm9U",
+      "pub": "x5zWdGhvuInOkim83J2tdeOzm1kI2AC3CVOiXcL-mG8",
+      "product_key_id": "wappie:1"
+    },
+    {
+      "name": "wappie at epoch 2",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "wappie",
+      "epoch": 2,
+      "sk": "vrog6flBkD0GVO4XPTI6TGb1fcnlUf0szHt4c3Mk2ZM",
+      "pub": "JWyzQAfm-UcZnNyYIh7dvm2FWZvugOJ5i6Y1zBhw1g8",
+      "product_key_id": "wappie:2"
+    },
+    {
+      "name": "wappie at epoch 1 from another root",
+      "root": "UnskxZcpqlqvQdGoa6kQOz8ajbW_2P0oO7IPvAqVhnU",
+      "product": "wappie",
+      "epoch": 1,
+      "sk": "RaRWWK5Rodb6p4cXM6xgY7jnX9d4WLhNyvXdqBtsu-U",
+      "pub": "z1Klj9xvi9klybJ5hLG37FU-kaRKxBW055I9ebXbU0s",
+      "product_key_id": "wappie:1"
+    },
+    {
+      "name": "a valid product id outside the registry",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "a-future-product",
+      "epoch": 1,
+      "sk": "iv4J8EvsgtqBndLzE7Gln624EEfEfTHm_rrulT62bNo",
+      "pub": "WGfMQr1qSYg5YK0QXQ28F5oeow4QrpGFNyM7CQIgEX0",
+      "product_key_id": "a-future-product:1"
+    },
+    {
+      "name": "the longest product id",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "p0123456789-0123456789-abcdefghi",
+      "epoch": 1,
+      "sk": "0ZyILe1cXKnkF4OQCatFZon-S47eRXGLxP716XYKRec",
+      "pub": "Xt1ovbKx4tA3PUxc-vjU0tzgRRthvdx4s8tugOeNjFU",
+      "product_key_id": "p0123456789-0123456789-abcdefghi:1"
+    },
+    {
+      "name": "the largest epoch",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "wappie",
+      "epoch": 2147483647,
+      "sk": "_OQk6brdmiNwTuoVUqQv0XMO4FOTxO-MK65kIS0xXZ0",
+      "pub": "6byJtPE6KnQgCqkOYY5zspcRXbX01THvSJ1YGq4Y2Xs",
+      "product_key_id": "wappie:2147483647"
+    },
+    {
+      "name": "an all-zero root",
+      "root": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "product": "wappie",
+      "epoch": 1,
+      "sk": "7uyCZCFSc5IZKuKEjKMXZ8ZI5uOwZ0c_LgUVlSEuJDo",
+      "pub": "Fv9FWGBrldnRQWx7NNS1RbJSME9r_zbVGIxEczU0viE",
+      "product_key_id": "wappie:1"
+    },
+    {
+      "name": "a product id in upper case",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "Wappie",
+      "epoch": 1,
+      "error": "product_key"
+    },
+    {
+      "name": "an empty product id",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "",
+      "epoch": 1,
+      "error": "product_key"
+    },
+    {
+      "name": "a product id starting with a digit",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "1wappie",
+      "epoch": 1,
+      "error": "product_key"
+    },
+    {
+      "name": "a product id starting with a dash",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "-wappie",
+      "epoch": 1,
+      "error": "product_key"
+    },
+    {
+      "name": "a product id with an underscore",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "wap_pie",
+      "epoch": 1,
+      "error": "product_key"
+    },
+    {
+      "name": "a product id with a pipe",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "wappie|1",
+      "epoch": 1,
+      "error": "product_key"
+    },
+    {
+      "name": "a product id of 33 characters",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "p0123456789-0123456789-abcdefghij",
+      "epoch": 1,
+      "error": "product_key"
+    },
+    {
+      "name": "epoch 0",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "wappie",
+      "epoch": 0,
+      "error": "product_key"
+    },
+    {
+      "name": "a negative epoch",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "wappie",
+      "epoch": -1,
+      "error": "product_key"
+    },
+    {
+      "name": "an epoch of 2^31",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGng",
+      "product": "wappie",
+      "epoch": 2147483648,
+      "error": "product_key"
+    },
+    {
+      "name": "a 31-byte root",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGg",
+      "product": "wappie",
+      "epoch": 1,
+      "error": "product_key"
+    },
+    {
+      "name": "a 33-byte root",
+      "root": "AcnVUQPhPAovlA0bcSi1rnabUxw9p15ynJWAVvXPGngA",
+      "product": "wappie",
+      "epoch": 1,
+      "error": "product_key"
+    }
+  ]
+}

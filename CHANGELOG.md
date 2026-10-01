@@ -2,6 +2,30 @@
 
 One version covers both languages. Before 1.0.0 a minor version may change APIs but never bytes; a patch changes neither.
 
+## v0.2.0
+
+The release date is the tag's.
+
+- The platform profile, part 1 (SPEC section 11), in Go (`profiles/platform`) and TypeScript (`@thehappieco/kit/profiles/platform`): the account core of the platform's protocol id-v1, taken from the platform at `5e66d84`. It covers:
+  - the password profile `thehappie-password/v1`: NFC, mapped spaces, controls refused, 12 to 256 code points, and runs of more than 30 marks or Hangul vowel and final jamo refused, counted in the compatibility decomposition, so that Go (whose normaliser inserts U+034F past 30 non-starters) and ICU never prepare one password two ways. This counts more than the platform's rule at `5e66d84` (marks in the canonical decomposition), under which some passwords were accepted on both sides and prepared differently; every platform vector keeps its outcome;
+  - the KDF floor and ceiling, refused before anything is derived, with the salt the server hands out (no salt is ever drawn);
+  - the 62-byte root wrap, bound by a restricted JCS AAD to the account and the epoch, never the email, and self-tested when sealed;
+  - the recovery code's canonical form;
+  - per-product keys and the server's check of their public keys (canonical, not of low order);
+  - the server verifiers, email normalisation, strict base64url, and the strict key-bundle reader.
+- The profile reuses the kit's schemes with the platform's values: Argon2id and the split, the recovery branches and the wrap envelope through `account`, the AAD through `jcs`, product public keys through `hpke`. In TypeScript, derived wrap keys are non-extractable `CryptoKey`s. The Go API keeps the names and signatures of the platform's `internal/crypto/idcrypto`, without the product registry and the ceremony helpers, which stay in the platform.
+- Vectors: the platform's id-v1 vectors (257 cases, 180 of which must fail), byte for byte from platform commit `5e66d84`, under `vectors/platform/id-v1/`, with the platform's generator for provenance. Both languages reproduce every case and refuse every must-fail case with its exact error, the TypeScript side in Node and in Chromium, Firefox and WebKit. `make cross` also round-trips the platform profile in both directions, and `vectors/kit/platform-{go,ts}.json` keep those cases as golden vectors; `vectors/kit/platform-password-{go,ts}.json` keep the fixed passwords at and one past the limit of the run rule. `make vectors-platform-check` regenerates the platform's files from its commit.
+- Added, changing nothing that exists:
+  - Go: `account.DerivePrepared`.
+  - TypeScript: `account.derivePrepared` (and `bind(p).derivePrepared`), `bytes.fromBase64URL`, `bytes.isBase64URL`, `errors.PlatformError`, `errors.isPlatformError`, `errors.PlatformErrorCode` and `errors.Base64Error`.
+  - TypeScript: `HPKEError` takes an optional third argument, `ErrorOptions`, and the hpke module's `invalid_key` errors carry what the engine threw as their `cause`, so a caller can tell an engine without X25519 (`NotSupportedError`) from one that refused the key. The codes are unchanged.
+  - `vectors.FS` also holds `platform/`.
+- The Go module now requires `golang.org/x/text` (v0.42.0, which needs Go 1.26.0 or later) for NFC.
+- The npm tarball also holds `dist/internal/`, the platform profile's implementation behind its subpath; it is not a subpath export. Every byte of the tarball is new, so an enclave that measures it measures a new image even if it does not import the new subpath.
+- `make vectors-kit` adds only the files `vectors/kit` does not hold yet, so it never rewrites a tagged file.
+- Nothing changes for Wappie: its profile, its vectors and every byte they pin are as in v0.1.0.
+- The Nitro attestation verifier, the AI keychain and derived records, announced for this version, move to a later one; their vectors stay as captured.
+
 ## v0.1.0
 
 The release date is the tag's.

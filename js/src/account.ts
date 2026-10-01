@@ -150,6 +150,25 @@ export async function derive(p: AccountProfile, password: string, salt: Bytes, p
   } finally {
     prepared.fill(0)
   }
+  return split(p, master)
+}
+
+/**
+ * derivePrepared is derive for a password the caller has already prepared:
+ * the bytes Argon2id reads, such as a profile's own preparation produced
+ * them. The profile's prepare is not called. The parameters and the salt are
+ * checked exactly as derive checks them, before anything is derived, and the
+ * master key and the raw wrap key are zeroed before it returns; prepared stays
+ * the caller's to zero.
+ */
+export async function derivePrepared(p: AccountProfile, prepared: Bytes, salt: Bytes, params: KDFParams, options: DeriveOptions = {}): Promise<Derived> {
+  checkKDFParams(p, params)
+  checkSalt(p, salt)
+  return split(p, await stretch(prepared, salt, params, options))
+}
+
+/** split derives the two branches from the master key, and zeroes it. */
+async function split(p: AccountProfile, master: Bytes): Promise<Derived> {
   try {
     const base = await crypto.subtle.importKey('raw', master, 'HKDF', false, ['deriveBits'])
     const branch = (label: string) =>
@@ -335,6 +354,7 @@ export function bind(p: AccountProfile) {
     checkKDFParams: (params: KDFParams) => checkKDFParams(p, params),
     checkSalt: (salt: Bytes) => checkSalt(p, salt),
     derive: (password: string, salt: Bytes, params: KDFParams, options?: DeriveOptions) => derive(p, password, salt, params, options),
+    derivePrepared: (prepared: Bytes, salt: Bytes, params: KDFParams, options?: DeriveOptions) => derivePrepared(p, prepared, salt, params, options),
     wrapPrivateKey: (privateKey: Bytes, under: CryptoKey, aad: Bytes) => wrapPrivateKey(p, privateKey, under, aad),
     unwrapPrivateKey: (blob: Bytes, under: CryptoKey, aad: Bytes) => unwrapPrivateKey(p, blob, under, aad),
     recoveryKey: (code: string) => recoveryKey(p, code),

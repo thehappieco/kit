@@ -182,16 +182,8 @@ type Derived struct {
 // before anything is derived. The prepared password and the master key are
 // cleared before it returns.
 func Derive(p Profile, password string, salt []byte, params KDFParams) (Derived, error) {
-	if err := p.Check(params); err != nil {
+	if err := p.checkDerivation(salt, params); err != nil {
 		return Derived{}, err
-	}
-	if err := p.CheckSalt(salt); err != nil {
-		return Derived{}, err
-	}
-	// The limits the reference implementation enforces. x/crypto/argon2
-	// would panic on some of them and round others silently.
-	if params.T < 1 || params.P < 1 || params.M < 8*uint32(params.P) || len(salt) < minSaltLen {
-		return Derived{}, ErrKDFFailed
 	}
 	prepared := []byte(password)
 	if p.Prepare != nil {
@@ -200,10 +192,45 @@ func Derive(p Profile, password string, salt []byte, params KDFParams) (Derived,
 			return Derived{}, &Error{Code: "password", Reason: "rejected", Err: err}
 		}
 	}
+	// Clearing is best effort in Go: the runtime may have copied the buffer,
+	// and the password string itself cannot be cleared.
+	defer clear(prepared)
+	return p.derive(prepared, salt, params)
+}
+
+// DerivePrepared is Derive for a password the caller has already prepared:
+// the bytes Argon2id reads, such as a profile's own preparation produced
+// them. The profile's Prepare is not called. The parameters and the salt are
+// checked exactly as Derive checks them, before anything is derived, and the
+// master key is cleared before it returns; prepared stays the caller's to
+// clear.
+func DerivePrepared(p Profile, prepared, salt []byte, params KDFParams) (Derived, error) {
+	if err := p.checkDerivation(salt, params); err != nil {
+		return Derived{}, err
+	}
+	return p.derive(prepared, salt, params)
+}
+
+// checkDerivation is what Derive and DerivePrepared refuse before deriving:
+// the profile's bounds, then Argon2id's own limits.
+func (p Profile) checkDerivation(salt []byte, params KDFParams) error {
+	if err := p.Check(params); err != nil {
+		return err
+	}
+	if err := p.CheckSalt(salt); err != nil {
+		return err
+	}
+	// The limits the reference implementation enforces. x/crypto/argon2
+	// would panic on some of them and round others silently.
+	if params.T < 1 || params.P < 1 || params.M < 8*uint32(params.P) || len(salt) < minSaltLen {
+		return ErrKDFFailed
+	}
+	return nil
+}
+
+// derive runs Argon2id over prepared bytes and splits the master key.
+func (p Profile) derive(prepared, salt []byte, params KDFParams) (Derived, error) {
 	master := argon2.IDKey(prepared, salt, params.T, params.M, params.P, KeyLen)
-	// Clearing is best effort in Go: the runtime may have copied either
-	// buffer, and the password string itself cannot be cleared.
-	clear(prepared)
 	defer clear(master)
 	auth, err := hkdf.Key(sha256.New, master, nil, p.AuthLabel, KeyLen)
 	if err != nil {

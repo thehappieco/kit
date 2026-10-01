@@ -1,0 +1,311 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "root-wrap",
+  "cases": [
+    {
+      "name": "a password wrap",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "nonce": "3nDRwO5UZizVG-mK",
+      "root": "2wj2QyFTjjarPniEku4k4ObwI_I4g0d4Y0LaebJXjCg",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "aad": "[\"thehappie-id/root-wrap\",1,\"password\",\"01a0f755-f200-7905-a09a-824fb3056ba0\",1]",
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw"
+    },
+    {
+      "name": "a recovery wrap of the same root",
+      "kind": "recovery",
+      "key": "HHvtn8PUbENUSGJ4SaqQbVm2uKkjzquj0IZ3FrFO0_8",
+      "nonce": "_LEC2kH1z30WPjyW",
+      "root": "2wj2QyFTjjarPniEku4k4ObwI_I4g0d4Y0LaebJXjCg",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "aad": "[\"thehappie-id/root-wrap\",1,\"recovery\",\"01a0f755-f200-7905-a09a-824fb3056ba0\",1]",
+      "wrap": "AQL8sQLaQfXPfRY-PJbvAZY8-zDroZM96TCBDg9Q8Y66r7UX7Bpyw4xSXZ1JGNN30in7QND3se5KFISvC-U"
+    },
+    {
+      "name": "a passkey wrap of the same root",
+      "kind": "passkey",
+      "key": "6b31P2WuP1lWP7nhseMC8JdzyxfJ3LQF5Lk_1cTSMec",
+      "nonce": "M4KT0yK0cobV4VUy",
+      "root": "2wj2QyFTjjarPniEku4k4ObwI_I4g0d4Y0LaebJXjCg",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "rp_id": "id.thehappie.co",
+      "credential_id": "p1qtFPWGCmPYTpzuFeIWDQ",
+      "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f755-f200-7905-a09a-824fb3056ba0\",1,\"id.thehappie.co\",\"p1qtFPWGCmPYTpzuFeIWDQ\"]",
+      "wrap": "AQMzgpPTIrRyhtXhVTLJhnZQzmf41eGXnF82KV-MQ6PTw2m4EAGiuIwSopUc5yL7ugHoYugnTd3avzLnxZ8"
+    },
+    {
+      "name": "a password wrap at the largest epoch",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "nonce": "wREUS-YxcvahPVq-",
+      "root": "2wj2QyFTjjarPniEku4k4ObwI_I4g0d4Y0LaebJXjCg",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 2147483647,
+      "aad": "[\"thehappie-id/root-wrap\",1,\"password\",\"01a0f755-f200-7905-a09a-824fb3056ba0\",2147483647]",
+      "wrap": "AQHBERRL5jFy9qE9Wr76t4O47bFS0XFIhZEwNBXjHZtvnWHGWUNEzbG48TUgcsndAgyBhKCIHl5W6_jpdME"
+    },
+    {
+      "name": "a password wrap of an all-zero root under an all-zero nonce",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "nonce": "AAAAAAAAAAAAAAAA",
+      "root": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "sub": "01a0f755-f200-7cb2-8d06-2c0acd2fdb30",
+      "epoch": 1,
+      "aad": "[\"thehappie-id/root-wrap\",1,\"password\",\"01a0f755-f200-7cb2-8d06-2c0acd2fdb30\",1]",
+      "wrap": "AQEAAAAAAAAAAAAAAAATdeUvEkDoL0gqF2gq5W4Vzn5v3qKLLCm1t0GHCpj9LOa09548ftnYRX6p8owWwGY"
+    },
+    {
+      "name": "a flipped ciphertext bit",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQHecNHA7lRmLNUb6Yqu9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "a flipped bit in the last ciphertext byte",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvB7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "a flipped tag bit",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtu0",
+      "error": "wrap"
+    },
+    {
+      "name": "a flipped nonce bit",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQHfcNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "version byte 0x02",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AgHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "version byte 0x00",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AAHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "opened as another kind",
+      "kind": "recovery",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "the kind byte relabelled and opened as that kind",
+      "kind": "recovery",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQLecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "an unknown kind byte",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQTecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "another sub",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7cb2-8d06-2c0acd2fdb30",
+      "epoch": 1,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "another epoch",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 2,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "another key",
+      "kind": "password",
+      "key": "HHvtn8PUbENUSGJ4SaqQbVm2uKkjzquj0IZ3FrFO0_8",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "truncated to 61 bytes",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtg",
+      "error": "wrap"
+    },
+    {
+      "name": "a trailing byte",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuwA",
+      "error": "wrap"
+    },
+    {
+      "name": "empty",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "",
+      "error": "wrap"
+    },
+    {
+      "name": "a passkey wrap for another relying party",
+      "kind": "passkey",
+      "key": "6b31P2WuP1lWP7nhseMC8JdzyxfJ3LQF5Lk_1cTSMec",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "rp_id": "id.thehappie.localhost",
+      "credential_id": "p1qtFPWGCmPYTpzuFeIWDQ",
+      "wrap": "AQMzgpPTIrRyhtXhVTLJhnZQzmf41eGXnF82KV-MQ6PTw2m4EAGiuIwSopUc5yL7ugHoYugnTd3avzLnxZ8",
+      "error": "wrap"
+    },
+    {
+      "name": "a passkey wrap for another credential",
+      "kind": "passkey",
+      "key": "6b31P2WuP1lWP7nhseMC8JdzyxfJ3LQF5Lk_1cTSMec",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "rp_id": "id.thehappie.co",
+      "credential_id": "WZGnORvk26q8yFx-zESXlA",
+      "wrap": "AQMzgpPTIrRyhtXhVTLJhnZQzmf41eGXnF82KV-MQ6PTw2m4EAGiuIwSopUc5yL7ugHoYugnTd3avzLnxZ8",
+      "error": "wrap"
+    },
+    {
+      "name": "a passkey wrap opened as a password wrap",
+      "kind": "password",
+      "key": "6b31P2WuP1lWP7nhseMC8JdzyxfJ3LQF5Lk_1cTSMec",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "wrap": "AQMzgpPTIrRyhtXhVTLJhnZQzmf41eGXnF82KV-MQ6PTw2m4EAGiuIwSopUc5yL7ugHoYugnTd3avzLnxZ8",
+      "error": "wrap"
+    },
+    {
+      "name": "a passkey wrap with a flipped tag bit",
+      "kind": "passkey",
+      "key": "6b31P2WuP1lWP7nhseMC8JdzyxfJ3LQF5Lk_1cTSMec",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "rp_id": "id.thehappie.co",
+      "credential_id": "p1qtFPWGCmPYTpzuFeIWDQ",
+      "wrap": "AQMzgpPTIrRyhtXhVTLJhnZQzmf41eGXnF82KV-MQ6PTw2m4EAGiuIwSopUc5yL7ugHoYugnTd3avzLnxZ4",
+      "error": "wrap"
+    },
+    {
+      "name": "a sub in upper case",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01A0F755-F200-7905-A09A-824FB3056BA0",
+      "epoch": 1,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "epoch 0",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 0,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "an epoch of 2^31",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 2147483648,
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    },
+    {
+      "name": "a passkey wrap without its relying party",
+      "kind": "passkey",
+      "key": "6b31P2WuP1lWP7nhseMC8JdzyxfJ3LQF5Lk_1cTSMec",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "credential_id": "p1qtFPWGCmPYTpzuFeIWDQ",
+      "wrap": "AQMzgpPTIrRyhtXhVTLJhnZQzmf41eGXnF82KV-MQ6PTw2m4EAGiuIwSopUc5yL7ugHoYugnTd3avzLnxZ8",
+      "error": "wrap"
+    },
+    {
+      "name": "a relying party outside the AAD alphabet",
+      "kind": "passkey",
+      "key": "6b31P2WuP1lWP7nhseMC8JdzyxfJ3LQF5Lk_1cTSMec",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "rp_id": "id thehappie.co",
+      "credential_id": "p1qtFPWGCmPYTpzuFeIWDQ",
+      "wrap": "AQMzgpPTIrRyhtXhVTLJhnZQzmf41eGXnF82KV-MQ6PTw2m4EAGiuIwSopUc5yL7ugHoYugnTd3avzLnxZ8",
+      "error": "wrap"
+    },
+    {
+      "name": "a padded credential id",
+      "kind": "passkey",
+      "key": "6b31P2WuP1lWP7nhseMC8JdzyxfJ3LQF5Lk_1cTSMec",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "rp_id": "id.thehappie.co",
+      "credential_id": "p1qtFPWGCmPYTpzuFeIWDQ==",
+      "wrap": "AQMzgpPTIrRyhtXhVTLJhnZQzmf41eGXnF82KV-MQ6PTw2m4EAGiuIwSopUc5yL7ugHoYugnTd3avzLnxZ8",
+      "error": "wrap"
+    },
+    {
+      "name": "a password wrap opened with passkey fields",
+      "kind": "password",
+      "key": "PJ25xSFHGiF-UPUa7-34ZtxMDptPaVlI8MNqQGD6mqI",
+      "sub": "01a0f755-f200-7905-a09a-824fb3056ba0",
+      "epoch": 1,
+      "rp_id": "id.thehappie.co",
+      "credential_id": "p1qtFPWGCmPYTpzuFeIWDQ",
+      "wrap": "AQHecNHA7lRmLNUb6Yqv9oKDdIyZHklpr3GGDhvarTOnd8p8tgBb3pYwHbbvh7iZw5yiiVgz8eoKvyUjtuw",
+      "error": "wrap"
+    }
+  ]
+}

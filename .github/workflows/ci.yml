@@ -49,6 +49,8 @@ jobs:
         run: |
           go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./seal
           go test -run '^$' -fuzz '^FuzzRead$' -fuzztime 30s ./reqhmac
+          go test -run '^$' -fuzz '^FuzzParseKeyBundle$' -fuzztime 30s ./profiles/platform
+          go test -run '^$' -fuzz '^FuzzPreparePassword$' -fuzztime 30s ./profiles/platform
 
   go-current:
     name: go stable
@@ -152,7 +154,7 @@ jobs:
         run: |
           previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)
           if [ -z "$previous" ]; then echo "no earlier tag"; exit 0; fi
-          changed=$(git diff --name-status "$previous" HEAD -- vectors/wappie vectors/kit | grep -v '^A' || true)
+          changed=$(git diff --name-status "$previous" HEAD -- vectors/wappie vectors/kit vectors/platform | grep -v '^A' || true)
           if [ -n "$changed" ]; then echo "vector files of $previous changed or disappeared:"; echo "$changed"; exit 1; fi
 
   # Every byte of the tarball is measured in Wappie's enclave image: check what

@@ -92,7 +92,14 @@ BASE_POINT[0] = 9
 
 async function importPrivate(raw: Bytes): Promise<CryptoKey> {
   if (raw.length !== 32) throw new Error('an X25519 private key must contain 32 bytes')
-  return crypto.subtle.importKey('pkcs8', concat(PKCS8_X25519_PREFIX, raw), { name: 'X25519' }, false, ['deriveBits'])
+  // A second copy of the key, which WebCrypto copies again when it imports:
+  // zeroed once it has, so the page's heap does not keep one per import.
+  const pkcs8 = concat(PKCS8_X25519_PREFIX, raw)
+  try {
+    return await crypto.subtle.importKey('pkcs8', pkcs8, { name: 'X25519' }, false, ['deriveBits'])
+  } finally {
+    pkcs8.fill(0)
+  }
 }
 
 async function importPublic(raw: Bytes): Promise<CryptoKey> {
@@ -159,11 +166,16 @@ export interface KeyPair {
 export async function generateKeyPair(): Promise<KeyPair> {
   const pair = (await crypto.subtle.generateKey({ name: 'X25519' }, true, ['deriveBits'])) as CryptoKeyPair
   const pkcs8 = new Uint8Array(await crypto.subtle.exportKey('pkcs8', pair.privateKey))
-  const raw = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey))
-  if (pkcs8.length !== PKCS8_X25519_PREFIX.length + 32 || PKCS8_X25519_PREFIX.some((b, i) => pkcs8[i] !== b)) {
-    throw new Error('unexpected PKCS#8 encoding of an X25519 key')
+  try {
+    const raw = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey))
+    if (pkcs8.length !== PKCS8_X25519_PREFIX.length + 32 || PKCS8_X25519_PREFIX.some((b, i) => pkcs8[i] !== b)) {
+      throw new Error('unexpected PKCS#8 encoding of an X25519 key')
+    }
+    return { publicKey: raw as Bytes, privateKey: pkcs8.slice(PKCS8_X25519_PREFIX.length) as Bytes }
+  } finally {
+    // The export holds the private key too; the caller gets its own copy.
+    pkcs8.fill(0)
   }
-  return { publicKey: raw as Bytes, privateKey: pkcs8.slice(PKCS8_X25519_PREFIX.length) as Bytes }
 }
 
 /** importPrivateKey imports a raw 32-byte X25519 key, non-extractable. */

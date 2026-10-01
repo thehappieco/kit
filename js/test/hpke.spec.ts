@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { type Bytes } from '../src/bytes.js'
 import { ENC_LEN, generateKeyPair, HPKEError, importPrivateKey, open, publicFromPrivate, seal } from '../src/hpke.js'
@@ -80,6 +80,34 @@ describe('hpke', () => {
     if (typeof zeros !== 'string') expect(Array.from(zeros)).toEqual(Array.from(new Uint8Array(32)))
     // And the kit refuses to seal to such a key there too.
     expect(await codeOf(() => withLenientX25519(() => seal(new Uint8Array(32) as Bytes, utf8('i'), utf8('a'), utf8('p'))))).toBe('invalid_key')
+  })
+
+  it('zeroes its own PKCS#8 copies of a private key', async () => {
+    const imported: Uint8Array[] = []
+    const realImport = crypto.subtle.importKey.bind(crypto.subtle)
+    const importSpy = vi.spyOn(crypto.subtle, 'importKey').mockImplementation(((format: KeyFormat, data: BufferSource, ...rest: unknown[]) => {
+      if (format === 'pkcs8') imported.push(data as Uint8Array)
+      return (realImport as (...a: unknown[]) => Promise<CryptoKey>)(format, data, ...rest)
+    }) as never)
+    const exported: ArrayBuffer[] = []
+    const realExport = crypto.subtle.exportKey.bind(crypto.subtle)
+    const exportSpy = vi.spyOn(crypto.subtle, 'exportKey').mockImplementation((async (format: KeyFormat, key: CryptoKey) => {
+      const out = (await realExport(format as 'pkcs8', key)) as ArrayBuffer
+      if (format === 'pkcs8') exported.push(out)
+      return out
+    }) as never)
+    try {
+      const pair = await generateKeyPair()
+      const priv = await importPrivateKey(pair.privateKey)
+      expect(toB64(priv.publicRaw)).toBe(toB64(pair.publicKey))
+      expect(pair.privateKey.some((b) => b !== 0)).toBe(true)
+    } finally {
+      importSpy.mockRestore()
+      exportSpy.mockRestore()
+    }
+    expect(imported.length).toBe(1)
+    expect(exported.length).toBe(1)
+    for (const b of [...imported, ...exported.map((x) => new Uint8Array(x))]) expect(b.every((x) => x === 0)).toBe(true)
   })
 
   it('checks the PKCS#8 export before taking the raw key from it', async () => {

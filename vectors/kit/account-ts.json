@@ -4,19 +4,19 @@
   "profile": "wappie",
   "generated_by": {
     "lang": "ts",
-    "source": "github.com/thehappieco/kit@5c28c42b20b411593844f760b49aa957322f2518 js/src",
+    "source": "github.com/thehappieco/kit@9cc95a3d672c3bff0a1fe610a6ec82ba64103fbe js/src",
     "toolchain": "node v25.6.1; @noble/hashes 2.4.0",
     "randomness": "crypto.getRandomValues; each case records the bytes and X25519 keys it drew",
     "generator": "js/test/cross.spec.ts"
   },
-  "note": "Fresh derivations and wraps by the kit's TypeScript account scheme with the Wappie profile, for Go.",
+  "note": "Fresh derivations and wraps by the kit's TypeScript account scheme with the Wappie profile, and derivations refused by KDF and salt bounds, for Go.",
   "cases": [
     {
       "id": "account/derive/0",
       "op": "account.derive",
       "in": {
         "password": "senha do kit",
-        "salt_b64": "pqsrrko7kK9HWcSJ2sOHNA==",
+        "salt_b64": "l5dPGoywI0I3G6HG50IVAA==",
         "params": {
           "alg": "argon2id",
           "m": 16,
@@ -25,9 +25,9 @@
         }
       },
       "out": {
-        "auth_key": "ND1LCn7t9rRcMj/Bply1uW5IR7qOir9YmoQV0J2QHag=",
-        "auth_b64": "ND1LCn7t9rRcMj/Bply1uW5IR7qOir9YmoQV0J2QHag=",
-        "wrap_b64": "WtJ9g2l3INm4iuJRXXvPUkwDyeTOxhJCibtEaCottGA="
+        "auth_key": "95xlfMHKVdUak6OxVxewb0DzHxOIVmyyDZv34Dlgp/g=",
+        "auth_b64": "95xlfMHKVdUak6OxVxewb0DzHxOIVmyyDZv34Dlgp/g=",
+        "wrap_b64": "nZk0LiZ7tWglYoR6imrtBDatKoZDGthzSdehmxfvz+M="
       }
     },
     {
@@ -35,7 +35,7 @@
       "op": "account.derive",
       "in": {
         "password": "",
-        "salt_b64": "pqsrrko7kK9HWcSJ2sOHNA==",
+        "salt_b64": "l5dPGoywI0I3G6HG50IVAA==",
         "params": {
           "alg": "argon2id",
           "m": 16,
@@ -44,9 +44,9 @@
         }
       },
       "out": {
-        "auth_key": "lm5mpDo415iHaQ/ptGmDtTpph3WcjqzGPsz6b3AJzL4=",
-        "auth_b64": "lm5mpDo415iHaQ/ptGmDtTpph3WcjqzGPsz6b3AJzL4=",
-        "wrap_b64": "/5f1dcHN0RKF12rI6lYs22VuP5b+JKRIS2c5N2iEIU0="
+        "auth_key": "iLYcXxo10WIMQ+VJbQAWxZfqncEzsHVHL0EXHr7YGG8=",
+        "auth_b64": "iLYcXxo10WIMQ+VJbQAWxZfqncEzsHVHL0EXHr7YGG8=",
+        "wrap_b64": "Ujl0um+wgESPBlSzwkYhsh/ol4vCFMA7h2dWYuki+ks="
       }
     },
     {
@@ -54,7 +54,7 @@
       "op": "account.derive",
       "in": {
         "password": "pässwörd 🔑",
-        "salt_b64": "pqsrrko7kK9HWcSJ2sOHNA==",
+        "salt_b64": "l5dPGoywI0I3G6HG50IVAA==",
         "params": {
           "alg": "argon2id",
           "m": 16,
@@ -63,9 +63,9 @@
         }
       },
       "out": {
-        "auth_key": "PpdRz6gGo7WAxKzhWrZgPpu6NxoR8swWl2b9QyUf5X4=",
-        "auth_b64": "PpdRz6gGo7WAxKzhWrZgPpu6NxoR8swWl2b9QyUf5X4=",
-        "wrap_b64": "5mbZwhJjs1JgNC1nEOLo0msvDAgwK0/yYZykv7bWco4="
+        "auth_key": "l9juicCJI8fCkPIcPQ0+rMRwtSAXyCmMWSICmdIk3YQ=",
+        "auth_b64": "l9juicCJI8fCkPIcPQ0+rMRwtSAXyCmMWSICmdIk3YQ=",
+        "wrap_b64": "W939WnUjhqQSo9+ExwEZHEgk9vqJilutFO7lfk5DozI="
       }
     },
     {
@@ -73,7 +73,7 @@
       "op": "account.derive",
       "in": {
         "password": "çççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççç",
-        "salt_b64": "pqsrrko7kK9HWcSJ2sOHNA==",
+        "salt_b64": "l5dPGoywI0I3G6HG50IVAA==",
         "params": {
           "alg": "argon2id",
           "m": 16,
@@ -82,9 +82,9 @@
         }
       },
       "out": {
-        "auth_key": "AjoRxD+ZG4jPFVxxgCnMPEbH4zmmtorLGusiCJ4Ggzo=",
-        "auth_b64": "AjoRxD+ZG4jPFVxxgCnMPEbH4zmmtorLGusiCJ4Ggzo=",
-        "wrap_b64": "HpyUFQYTFoEHeHibOMxCwDY/hYVbhrku66I9b5qC5oE="
+        "auth_key": "e2bZ+cKh541yuKzI1FekVfNKBdHuoYPX3Yco82OIU3E=",
+        "auth_b64": "e2bZ+cKh541yuKzI1FekVfNKBdHuoYPX3Yco82OIU3E=",
+        "wrap_b64": "19Hjb3nZWWennK2pXZd1bo9a0c497KhocZX94ZV8dfg="
       }
     },
     {
@@ -101,21 +101,21 @@
       "id": "account/wrap/0",
       "op": "account.wrap",
       "in": {
-        "wrap_key_b64": "WtJ9g2l3INm4iuJRXXvPUkwDyeTOxhJCibtEaCottGA=",
-        "private_key_b64": "2rL+VHR1y2zcYXDH+hUJ8UrK4IAgoKc0/W7df6Ej++w=",
+        "wrap_key_b64": "nZk0LiZ7tWglYoR6imrtBDatKoZDGthzSdehmxfvz+M=",
+        "private_key_b64": "D0lRUotiF4mHCgOcUJWKHsbKoahRYunpwAfihlLc32s=",
         "email": "ana@example.com",
-        "nonce_b64": "3tmitm/smYaSZsa6"
+        "nonce_b64": "amZ3q0JIUhTk1yGW"
       },
       "out": {
-        "blob_b64": "At7ZorZv7JmGkmbGumq4r2nsp/+/nkD1vKMi734w+149TivpviMeiKBToAAC+Xsz7pL4IE4lOdxF0QUvsw=="
+        "blob_b64": "Ampmd6tCSFIU5NchlibSMgDfxmMUhcDqOckeFvnSiylGfVZGVjfGRvW7nNi2wJ2s+cxgvpqZkHApBzg/Uw=="
       }
     },
     {
       "id": "account/unwrap/0/other-email",
       "op": "account.unwrap",
       "in": {
-        "wrap_key_b64": "WtJ9g2l3INm4iuJRXXvPUkwDyeTOxhJCibtEaCottGA=",
-        "blob_b64": "At7ZorZv7JmGkmbGumq4r2nsp/+/nkD1vKMi734w+149TivpviMeiKBToAAC+Xsz7pL4IE4lOdxF0QUvsw==",
+        "wrap_key_b64": "nZk0LiZ7tWglYoR6imrtBDatKoZDGthzSdehmxfvz+M=",
+        "blob_b64": "Ampmd6tCSFIU5NchlibSMgDfxmMUhcDqOckeFvnSiylGfVZGVjfGRvW7nNi2wJ2s+cxgvpqZkHApBzg/Uw==",
         "email": "bob@example.com"
       },
       "error": "wrap",
@@ -135,21 +135,21 @@
       "id": "account/wrap/1",
       "op": "account.wrap",
       "in": {
-        "wrap_key_b64": "WtJ9g2l3INm4iuJRXXvPUkwDyeTOxhJCibtEaCottGA=",
-        "private_key_b64": "2rL+VHR1y2zcYXDH+hUJ8UrK4IAgoKc0/W7df6Ej++w=",
+        "wrap_key_b64": "nZk0LiZ7tWglYoR6imrtBDatKoZDGthzSdehmxfvz+M=",
+        "private_key_b64": "D0lRUotiF4mHCgOcUJWKHsbKoahRYunpwAfihlLc32s=",
         "email": " İstanbul@EXAMPLE.com﻿",
-        "nonce_b64": "8kfD/1uDlW96YKLF"
+        "nonce_b64": "TDtBSxzKlSh4N2yv"
       },
       "out": {
-        "blob_b64": "AvJHw/9bg5VvemCixbqJXHo6qmXetcZ+NMzZXEl8scAdxbIg8CiGHSCdffVIFutALRxhLb4u/SNmySFPbg=="
+        "blob_b64": "Akw7QUscypUoeDdsrxkiAttCMGfRdqvTZiP45+7ckQ4p/pEadicNlMntYx9F3XccvD7KnwH4+IDSGVtXxQ=="
       }
     },
     {
       "id": "account/unwrap/1/other-email",
       "op": "account.unwrap",
       "in": {
-        "wrap_key_b64": "WtJ9g2l3INm4iuJRXXvPUkwDyeTOxhJCibtEaCottGA=",
-        "blob_b64": "AvJHw/9bg5VvemCixbqJXHo6qmXetcZ+NMzZXEl8scAdxbIg8CiGHSCdffVIFutALRxhLb4u/SNmySFPbg==",
+        "wrap_key_b64": "nZk0LiZ7tWglYoR6imrtBDatKoZDGthzSdehmxfvz+M=",
+        "blob_b64": "Akw7QUscypUoeDdsrxkiAttCMGfRdqvTZiP45+7ckQ4p/pEadicNlMntYx9F3XccvD7KnwH4+IDSGVtXxQ==",
         "email": "bob@example.com"
       },
       "error": "wrap",
@@ -169,21 +169,21 @@
       "id": "account/wrap/2",
       "op": "account.wrap",
       "in": {
-        "wrap_key_b64": "WtJ9g2l3INm4iuJRXXvPUkwDyeTOxhJCibtEaCottGA=",
-        "private_key_b64": "2rL+VHR1y2zcYXDH+hUJ8UrK4IAgoKc0/W7df6Ej++w=",
+        "wrap_key_b64": "nZk0LiZ7tWglYoR6imrtBDatKoZDGthzSdehmxfvz+M=",
+        "private_key_b64": "D0lRUotiF4mHCgOcUJWKHsbKoahRYunpwAfihlLc32s=",
         "email": "ΟΔΥΣΣΕΥΣ@x.gr",
-        "nonce_b64": "5d6oGHvHIkNpb72W"
+        "nonce_b64": "A1eHnYsFMBPs0DYt"
       },
       "out": {
-        "blob_b64": "AuXeqBh7xyJDaW+9loT47PsoT/x4jU76ma5InlKMP9R7tKr11KUKE2Tdgp6N1/mkpF/Oi3uneqGp6Im0JQ=="
+        "blob_b64": "AgNXh52LBTAT7NA2LdOtjoNG1DN4do5O7yp5I8dliWcSfZjpDiK1hSmnFpOPIdq4DTQUe4rLOjYukN261Q=="
       }
     },
     {
       "id": "account/unwrap/2/other-email",
       "op": "account.unwrap",
       "in": {
-        "wrap_key_b64": "WtJ9g2l3INm4iuJRXXvPUkwDyeTOxhJCibtEaCottGA=",
-        "blob_b64": "AuXeqBh7xyJDaW+9loT47PsoT/x4jU76ma5InlKMP9R7tKr11KUKE2Tdgp6N1/mkpF/Oi3uneqGp6Im0JQ==",
+        "wrap_key_b64": "nZk0LiZ7tWglYoR6imrtBDatKoZDGthzSdehmxfvz+M=",
+        "blob_b64": "AgNXh52LBTAT7NA2LdOtjoNG1DN4do5O7yp5I8dliWcSfZjpDiK1hSmnFpOPIdq4DTQUe4rLOjYukN261Q==",
         "email": "bob@example.com"
       },
       "error": "wrap",
@@ -193,61 +193,250 @@
       "id": "account/normalise/0",
       "op": "account.normalise_recovery_code",
       "in": {
-        "code": "6rcm1 wg7nd z7d9j he0y4 erevk a800h"
+        "code": "9yxzh 7tt3z rp6vf rpcve kp45m fsdsd"
       },
       "out": {
-        "code": "6RCM1-WG7ND-Z7D9J-HE0Y4-EREVK-A800H"
+        "code": "9YXZH-7TT3Z-RP6VF-RPCVE-KP45M-FSDSD"
       }
     },
     {
       "id": "account/recovery-proof/0",
       "op": "account.recovery_proof",
       "in": {
-        "code": "6rcm1 wg7nd z7d9j he0y4 erevk a800h"
+        "code": "9yxzh 7tt3z rp6vf rpcve kp45m fsdsd"
       },
       "out": {
-        "proof": "LOWMr3eaev+tRuHs8nJ1c4ugoCNJ0An++5V7wqMwmVI="
+        "proof": "A7ih5BCFUh/BylngOcbfryZNDJJu44LzAi3gRrqro6o="
       }
     },
     {
       "id": "account/recovery-key/0",
       "op": "account.recovery_key",
       "in": {
-        "code": "6RCM1-WG7ND-Z7D9J-HE0Y4-EREVK-A800H"
+        "code": "9YXZH-7TT3Z-RP6VF-RPCVE-KP45M-FSDSD"
       },
       "out": {
-        "key_b64": "WTlbUhPW2vGR+yIMc7N2ulRR35+0HE+WCF1b0pFGaxc="
+        "key_b64": "UAsFdFRuQhtZR98Vrm57jIUc/mtKdCO0hMf/fsRJ6a4="
       }
     },
     {
       "id": "account/normalise/1",
       "op": "account.normalise_recovery_code",
       "in": {
-        "code": "k3tq9 r4984 r0mc6 yjgkc j2qt6 q9jp7"
+        "code": "5b11h eftba nqkbj vzmrr gnps0 pqt1d"
       },
       "out": {
-        "code": "K3TQ9-R4984-R0MC6-YJGKC-J2QT6-Q9JP7"
+        "code": "5B11H-EFTBA-NQKBJ-VZMRR-GNPS0-PQT1D"
       }
     },
     {
       "id": "account/recovery-proof/1",
       "op": "account.recovery_proof",
       "in": {
-        "code": "k3tq9 r4984 r0mc6 yjgkc j2qt6 q9jp7"
+        "code": "5b11h eftba nqkbj vzmrr gnps0 pqt1d"
       },
       "out": {
-        "proof": "KBBZWn6aY9flPwhKeG0Gxuu04iM3BjWirNG1ewMzGeM="
+        "proof": "i7dsOpiCuBy1FbMREid5erbu8YChiEdv/TnwMLq1OI0="
       }
     },
     {
       "id": "account/recovery-key/1",
       "op": "account.recovery_key",
       "in": {
-        "code": "K3TQ9-R4984-R0MC6-YJGKC-J2QT6-Q9JP7"
+        "code": "5B11H-EFTBA-NQKBJ-VZMRR-GNPS0-PQT1D"
       },
       "out": {
-        "key_b64": "UdADOZ3yig9SYRZrlNbex3N8tHbytLv9F6za/d4MiKc="
+        "key_b64": "sZqlsDjn3raAMVxOmbPjeY/5L334okZrzZTzzkbrFMs="
       }
+    },
+    {
+      "id": "account/derive/bounded/salt-16",
+      "op": "account.derive",
+      "in": {
+        "password": "senha do kit",
+        "salt_b64": "z9T2eniYxTg76LsuuNjxQA==",
+        "params": {
+          "alg": "argon2id",
+          "m": 16,
+          "t": 2,
+          "p": 1
+        },
+        "bounds": {
+          "min": {
+            "m": 8,
+            "t": 1,
+            "p": 1
+          },
+          "max": {
+            "m": 1024,
+            "t": 3,
+            "p": 1
+          },
+          "max_cost": 2048,
+          "min_salt_len": 16,
+          "max_salt_len": 16
+        }
+      },
+      "out": {
+        "auth_key": "6ydwqaUmWu8SHBQw9E/SpY/YKpfS+bqQaHV5o4gZA+w=",
+        "auth_b64": "6ydwqaUmWu8SHBQw9E/SpY/YKpfS+bqQaHV5o4gZA+w=",
+        "wrap_b64": "KEctmf/wcGRJJWRoAWZhFW8MN1mUcCtauusjcJesYMw="
+      }
+    },
+    {
+      "id": "account/derive/bounded/refuses/salt-15",
+      "op": "account.derive",
+      "in": {
+        "password": "senha do kit",
+        "salt_b64": "W4D6upgOvD34HNmDsZsw",
+        "params": {
+          "alg": "argon2id",
+          "m": 16,
+          "t": 2,
+          "p": 1
+        },
+        "bounds": {
+          "min": {
+            "m": 8,
+            "t": 1,
+            "p": 1
+          },
+          "max": {
+            "m": 1024,
+            "t": 3,
+            "p": 1
+          },
+          "max_cost": 2048,
+          "min_salt_len": 16,
+          "max_salt_len": 16
+        }
+      },
+      "error": "kdf",
+      "reason": "out_of_bounds"
+    },
+    {
+      "id": "account/derive/bounded/refuses/salt-17",
+      "op": "account.derive",
+      "in": {
+        "password": "senha do kit",
+        "salt_b64": "G02jpSOuFrWZ+AnpdTMjwhk=",
+        "params": {
+          "alg": "argon2id",
+          "m": 16,
+          "t": 2,
+          "p": 1
+        },
+        "bounds": {
+          "min": {
+            "m": 8,
+            "t": 1,
+            "p": 1
+          },
+          "max": {
+            "m": 1024,
+            "t": 3,
+            "p": 1
+          },
+          "max_cost": 2048,
+          "min_salt_len": 16,
+          "max_salt_len": 16
+        }
+      },
+      "error": "kdf",
+      "reason": "out_of_bounds"
+    },
+    {
+      "id": "account/derive/bounded/refuses/salt-8",
+      "op": "account.derive",
+      "in": {
+        "password": "senha do kit",
+        "salt_b64": "MFgenAfx7P8=",
+        "params": {
+          "alg": "argon2id",
+          "m": 16,
+          "t": 2,
+          "p": 1
+        },
+        "bounds": {
+          "min": {
+            "m": 8,
+            "t": 1,
+            "p": 1
+          },
+          "max": {
+            "m": 1024,
+            "t": 3,
+            "p": 1
+          },
+          "max_cost": 2048,
+          "min_salt_len": 16,
+          "max_salt_len": 16
+        }
+      },
+      "error": "kdf",
+      "reason": "out_of_bounds"
+    },
+    {
+      "id": "account/derive/bounded/refuses/m-2048",
+      "op": "account.derive",
+      "in": {
+        "password": "senha do kit",
+        "salt_b64": "et/0Ox/Xi3P47/WtwhuXXA==",
+        "params": {
+          "alg": "argon2id",
+          "m": 2048,
+          "t": 1,
+          "p": 1
+        },
+        "bounds": {
+          "min": {
+            "m": 8,
+            "t": 1,
+            "p": 1
+          },
+          "max": {
+            "m": 1024,
+            "t": 3,
+            "p": 1
+          },
+          "max_cost": 2048,
+          "min_salt_len": 16,
+          "max_salt_len": 16
+        }
+      },
+      "error": "kdf",
+      "reason": "out_of_bounds"
+    },
+    {
+      "id": "account/derive/bounded/refuses/cost-3072",
+      "op": "account.derive",
+      "in": {
+        "password": "senha do kit",
+        "salt_b64": "QZKXDIccB0EYUSKaSc6LWA==",
+        "params": {
+          "alg": "argon2id",
+          "m": 1024,
+          "t": 3,
+          "p": 1
+        },
+        "bounds": {
+          "min": {
+            "m": 8,
+            "t": 1,
+            "p": 1
+          },
+          "max": {
+            "m": 1024,
+            "t": 3,
+            "p": 1
+          },
+          "max_cost": 2048,
+          "min_salt_len": 16,
+          "max_salt_len": 16
+        }
+      },
+      "error": "kdf",
+      "reason": "out_of_bounds"
     }
   ]
 }

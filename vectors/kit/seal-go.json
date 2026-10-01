@@ -6,14 +6,14 @@
     "generator": "internal/cross/write_test.go",
     "lang": "go",
     "randomness": "crypto/rand; seals record what they drew where the format has room for it",
-    "source": "github.com/thehappieco/kit@5c28c42b20b411593844f760b49aa957322f2518 seal",
+    "source": "github.com/thehappieco/kit@9cc95a3d672c3bff0a1fe610a6ec82ba64103fbe seal",
     "toolchain": "go1.27.1"
   },
-  "note": "Fresh envelopes sealed by the kit's Go with the Wappie profile, for the TypeScript tests to open.",
+  "note": "Fresh envelopes sealed by the kit's Go with the Wappie profile, for the TypeScript tests to open, with forged grants that must not open and low-order keys that must not be sealed to.",
   "keys": {
     "archive": {
-      "private_key_b64": "eO72thiBiPD7Z/sCZ7j3QtSSWWe8Y9Tf0QBdJ5GZKVQ=",
-      "public_key_b64": "ITuGXh24atgQAdUErjWObnZIsk81osxrrXnFXShmSy4="
+      "private_key_b64": "4PyNMMTEhy+UQxNakdLpHarAhVevB8QL0TvKNoefF3g=",
+      "public_key_b64": "yZp1/lM6KHb9zuyHGziieBLvdr5mDSqg4xF8QIUW2R0="
     }
   },
   "cases": [
@@ -25,35 +25,35 @@
         "key": "archive",
         "kind": 7,
         "plaintext_b64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-        "row": "2cfcb60b-da38-508f-85e5-a576af4e8ccc",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "3011d2ed-46c8-5808-b5fe-1bdd6f928f1c",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQEAAACragtolvfXb3lSBDVeXIEG8aBl09onmNLWy7l+VdVAftlY14dL7kg9vRfqrt1D+cFuh+RWpSdIHyrWi9X0P9AfQyY58vr5VPeEZZzTp8hWCQ=="
+        "envelope_b64": "V1MBAQEAAABDLRL0mVK9mrhnOjhRVQWYvIstgGlHXUnoBLUL/oa1G/McnTpaBksptqfZFwMShvza09/2a0Ip2LGENVNkTh1pfA29Oazh/gG4lK7FgI1Aug=="
       }
     },
     {
       "id": "seal/grant-row/epoch-0",
       "op": "seal.grant_row",
       "in": {
-        "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+        "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
         "epoch": 0,
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4",
-        "user": "c0223bfa-bb17-40c7-8366-63860d36abc0"
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420",
+        "user": "09ff44f9-fc29-4afb-8d67-9aff94772a35"
       },
       "out": {
-        "row": "2cfcb60b-da38-508f-85e5-a576af4e8ccc"
+        "row": "3011d2ed-46c8-5808-b5fe-1bdd6f928f1c"
       }
     },
     {
       "id": "seal/direct/grant/epoch-0/other-user",
       "op": "seal.open_direct",
       "in": {
-        "envelope_b64": "V1MBAQEAAACragtolvfXb3lSBDVeXIEG8aBl09onmNLWy7l+VdVAftlY14dL7kg9vRfqrt1D+cFuh+RWpSdIHyrWi9X0P9AfQyY58vr5VPeEZZzTp8hWCQ==",
+        "envelope_b64": "V1MBAQEAAABDLRL0mVK9mrhnOjhRVQWYvIstgGlHXUnoBLUL/oa1G/McnTpaBksptqfZFwMShvza09/2a0Ip2LGENVNkTh1pfA29Oazh/gG4lK7FgI1Aug==",
         "key": "archive",
         "kind": 7,
-        "row": "d5e68e17-6ba5-5e5f-96d0-88364b8f55ad",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "1dd377aa-ab5a-5f77-9d67-1f58705c44a7",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "error": "authentication"
     },
@@ -65,35 +65,35 @@
         "key": "archive",
         "kind": 7,
         "plaintext_b64": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
-        "row": "1373e856-83d7-5df0-8569-3a4a3f3ca404",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQEAAQCBJrIJckQeup3Hf+SzR1+tkD1JAH1MsCbfAsgUCybtLheY/QDpOhkEPM83pwy4shjTyJvhir4W3w6K9ICMCfIhQEqxgc24Va2uF99ORmjGaQ=="
+        "envelope_b64": "V1MBAQEAAQALbHBdRLdNgTUcELJwFMiNSfPI1wxeFlmSwjlEOHG2HNxbYH1Y/arjOlQAu3/t4v+FNmY3wxOJo0oPXXNKIUe+4drv+Z+ROqx8wOr6FBVIiQ=="
       }
     },
     {
       "id": "seal/grant-row/epoch-1",
       "op": "seal.grant_row",
       "in": {
-        "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+        "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
         "epoch": 1,
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4",
-        "user": "c0223bfa-bb17-40c7-8366-63860d36abc0"
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420",
+        "user": "09ff44f9-fc29-4afb-8d67-9aff94772a35"
       },
       "out": {
-        "row": "1373e856-83d7-5df0-8569-3a4a3f3ca404"
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33"
       }
     },
     {
       "id": "seal/direct/grant/epoch-1/other-user",
       "op": "seal.open_direct",
       "in": {
-        "envelope_b64": "V1MBAQEAAQCBJrIJckQeup3Hf+SzR1+tkD1JAH1MsCbfAsgUCybtLheY/QDpOhkEPM83pwy4shjTyJvhir4W3w6K9ICMCfIhQEqxgc24Va2uF99ORmjGaQ==",
+        "envelope_b64": "V1MBAQEAAQALbHBdRLdNgTUcELJwFMiNSfPI1wxeFlmSwjlEOHG2HNxbYH1Y/arjOlQAu3/t4v+FNmY3wxOJo0oPXXNKIUe+4drv+Z+ROqx8wOr6FBVIiQ==",
         "key": "archive",
         "kind": 7,
-        "row": "1a9e8fc2-5076-5641-acb6-28f804eb04be",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "bbef8893-1367-5fe1-a6c7-938e12abb3f0",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "error": "authentication"
     },
@@ -105,35 +105,35 @@
         "key": "archive",
         "kind": 7,
         "plaintext_b64": "//////////////////////////////////////////8=",
-        "row": "1c6e9bae-decd-5243-9ece-693240b42724",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "029010a3-95c1-5a18-872e-6dd1d3b6afe7",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQH//wCc8C9WwGzgCEtWdBOFar+7uVUn2XHprOthqBXATuq6LAC+SKU9meoYbbZtqqajHqSZeU0dNiDOhA5F+PE1nTWyIQ2JEzq4zoVYbrt7qW/BNg=="
+        "envelope_b64": "V1MBAQH//wByCO7xHLcFH7HmyxPL086HbLEyWz4V5QL4iRv78nx7FfqJY21oYN8TiQ3Ssy9WMRUWevq7iI2DFVuwKnKGwMRN0KBBhrGg6N8MZVd0wwQ5sA=="
       }
     },
     {
       "id": "seal/grant-row/epoch-65535",
       "op": "seal.grant_row",
       "in": {
-        "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+        "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
         "epoch": 65535,
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4",
-        "user": "c0223bfa-bb17-40c7-8366-63860d36abc0"
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420",
+        "user": "09ff44f9-fc29-4afb-8d67-9aff94772a35"
       },
       "out": {
-        "row": "1c6e9bae-decd-5243-9ece-693240b42724"
+        "row": "029010a3-95c1-5a18-872e-6dd1d3b6afe7"
       }
     },
     {
       "id": "seal/direct/grant/epoch-65535/other-user",
       "op": "seal.open_direct",
       "in": {
-        "envelope_b64": "V1MBAQH//wCc8C9WwGzgCEtWdBOFar+7uVUn2XHprOthqBXATuq6LAC+SKU9meoYbbZtqqajHqSZeU0dNiDOhA5F+PE1nTWyIQ2JEzq4zoVYbrt7qW/BNg==",
+        "envelope_b64": "V1MBAQH//wByCO7xHLcFH7HmyxPL086HbLEyWz4V5QL4iRv78nx7FfqJY21oYN8TiQ3Ssy9WMRUWevq7iI2DFVuwKnKGwMRN0KBBhrGg6N8MZVd0wwQ5sA==",
         "key": "archive",
         "kind": 7,
-        "row": "7719c512-59e1-5562-9c0c-87e382f4f30d",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "074085c3-ec4b-5d53-80df-5337501dd437",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "error": "authentication"
     },
@@ -141,11 +141,11 @@
       "id": "seal/content-key/id-1",
       "op": "seal.open_content_key",
       "in": {
-        "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+        "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
         "id": 1,
         "key": "archive",
-        "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
         "epoch": 7
@@ -155,12 +155,12 @@
       "id": "seal/content-key-row/id-1",
       "op": "seal.content_key_row",
       "in": {
-        "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+        "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
         "id": 1,
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "row": "bad22e4c-620a-5b60-a3fa-63ef418e771e"
+        "row": "5fbf1497-71a8-5e3b-8206-9c4949650e04"
       }
     },
     {
@@ -168,19 +168,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 1,
         "plaintext_b64": "Ym9keSBzZWFsZWQgYnkgdGhlIGtpdCdzIEdvIOKAlCBhw6fDo28g8J+UkQ==",
-        "row": "b089768d-48da-43ea-934b-e0d4be102580",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "98d06854-1a5a-433f-b342-99d6ca077e42",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABDIHGsClaWUlzBNcul2lcip7qqJkyv1/EwrW9VPI6v6pXEsMhFVBBe7XnqoTEZCszQVAakzgwtUxeDPmKy11Oy/NSj5rHZvU="
+        "envelope_b64": "V1MBAQIABwAAAAABIpqjO66Ux6m/RUQNxpbzGzLTon/23quKdF8arGWpiqB/m4+QygyohFp1suMPgI5oiLV7sp/KNxYvzumfCTIvRvR8TXvMAzk="
       }
     },
     {
@@ -188,16 +188,16 @@
       "op": "seal.open_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
-        "envelope_b64": "V1MBAQIABwAAAAABDIHGsClaWUlzBNcul2lcip7qqJkyv1/EwrW9VPI6v6pXEsMhFVBBe7XnqoTEZCszQVAakzgwtUxeDPmKy11Oy/NSj5rHZvU=",
+        "envelope_b64": "V1MBAQIABwAAAAABIpqjO66Ux6m/RUQNxpbzGzLTon/23quKdF8arGWpiqB/m4+QygyohFp1suMPgI5oiLV7sp/KNxYvzumfCTIvRvR8TXvMAzk=",
         "key": "archive",
         "kind": 9,
-        "row": "b089768d-48da-43ea-934b-e0d4be102580",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "98d06854-1a5a-433f-b342-99d6ca077e42",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "error": "authentication"
     },
@@ -205,7 +205,7 @@
       "id": "seal/content-key-id/id-1",
       "op": "seal.content_key_id",
       "in": {
-        "envelope_b64": "V1MBAQIABwAAAAABDIHGsClaWUlzBNcul2lcip7qqJkyv1/EwrW9VPI6v6pXEsMhFVBBe7XnqoTEZCszQVAakzgwtUxeDPmKy11Oy/NSj5rHZvU="
+        "envelope_b64": "V1MBAQIABwAAAAABIpqjO66Ux6m/RUQNxpbzGzLTon/23quKdF8arGWpiqB/m4+QygyohFp1suMPgI5oiLV7sp/KNxYvzumfCTIvRvR8TXvMAzk="
       },
       "out": {
         "epoch": 7,
@@ -217,19 +217,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 2,
         "plaintext_b64": "cmF3X3Byb3RvIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "bee3c813-a5ad-44f8-bf63-b6d1d42df959",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "0b63b741-7fbd-4208-b10b-bc240ac9d9ad",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABeONzxVAoADxDpnv3nrh7U/U9BLR7eMu+CtZfOFXwmD0Dmm2Eim9WNEd2ku/+UZi3imzHMow0Fan8ltxTYOERmiGGjqISXPw3+oGxVg=="
+        "envelope_b64": "V1MBAQIABwAAAAABHxuHqqUmlfIF16WskhgznOnSKNM6m+AKL8d1v98WhqHRzKZg51M0KLTp6SZoI8WjDz9tj8U8D/m3exwYZmnLMTe/Zc+mDKfREVW8fw=="
       }
     },
     {
@@ -237,19 +237,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 3,
         "plaintext_b64": "bWVkaWFfa2V5IHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "f5600a9f-bfee-44fc-acca-7e155a3940ae",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "6ed882ef-6de5-4162-9882-62b0aa8978ba",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABExMZ9KaolvHuj+Lg+mnKk0t9wRHx0F49MEjQZW3mQcZUYRegV/E8QMltlmsfW9gqPHtP7mgio2YedPDzWg/qa/CjlDqiNqW48tnIbQ=="
+        "envelope_b64": "V1MBAQIABwAAAAAB2fGehBD4ZbKq9DCh0IKy2Xv7xEdUHgVomwDLaOgaVMplNulcs1VXW0clxQZiJP7KXM+VmMQ46Pa+ZLG46jGQr52td7Z/ty1dKX7hkg=="
       }
     },
     {
@@ -257,19 +257,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 4,
         "plaintext_b64": "dGh1bWJuYWlsIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "cbc3d060-49ea-48e1-bdcc-0272c7ea3a83",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "f1f581a3-7955-4e2a-951f-53a60cdf70d1",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABOg+3xhq3raIqakZu20Dh352ObDoB/lAf4I2MPbqy7ZzBLpyRZwwhKTHJ2EvE9WUOSDOxqDbEko5jMSVvxvhAmhBvUtCQndf9wsHVWQ=="
+        "envelope_b64": "V1MBAQIABwAAAAABh2Lmp2tmq4dMCYCBrRRRZidF4VjhnkYmHBaQdTcy20r9mOCq7jFCDwA+TRfeuJPP9NC6XXwGrfMIXvUw/zZx4M6VsSHiOdKw6BFf2Q=="
       }
     },
     {
@@ -277,19 +277,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 5,
         "plaintext_b64": "Y29udGFjdF9uYW1lIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "2ea6f4df-9cfe-4a9c-bc88-51bdc122ce45",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "a910e898-ee3d-47a6-b09d-a3488fa6a050",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABwq0Ls4ZGOn2Wl1wjn0fYaYOH/s7XtV+WR2khC/uDESIfwFENtYKQ9s6xmNUo2dhjj+IYh1WiVHz0yUQDpltwpCDeQoaNhvhlJ8RADHIWyg=="
+        "envelope_b64": "V1MBAQIABwAAAAABHSY7+IMCDYS1zHMa4bz8FE9sBm0AepkaT82IY8tihUjHcurD2DJrvMb+rLC+8f06o18xCmjWVassXFzEKapCqfCe5JT9HxETY45V5JNAxA=="
       }
     },
     {
@@ -297,19 +297,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 6,
         "plaintext_b64": "Y29udGVudF9rZXkgc2VhbGVkIGJ5IHRoZSBraXQncyBHbyDigJQgYcOnw6NvIPCflJE=",
-        "row": "3f85dfb0-fff4-40e8-a427-6d9ce3e8d544",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "09b7f4e2-b65a-46cf-b1a0-1fa3f999c18a",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABfv/aGfL78S4OGsabZMaUpfgfZPKkTwaNKutpntwhkEg9X17s5vuFTsZ3KhIXPVZHrKYEb+VvZRUT8Jusu6V4W+Nkl360/qoxD4IgCI9W"
+        "envelope_b64": "V1MBAQIABwAAAAABKikOZxMiTIfJEmasQiZK0uO6XzzweJAO3b0KmtJEOo97oLDnMlmXDa3QS4Zf6PvdHU9d561FPEzi+W51q+GzUHNebvG6LkQyVnX0c6MV"
       }
     },
     {
@@ -317,19 +317,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 7,
         "plaintext_b64": "ZGV2aWNlX2dyYW50IHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "5d3a2870-3008-4c8e-89a7-0f8c9fe6caa2",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "4f381604-7d4f-48b0-b866-7564d83b7264",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABjwsmal0rDMB+iDQx0oQ58cvAj0OIUSZLOi+psBjTyA5cqmqxZRpIMMeR6i+C5G++RtRMWU6U9zR/1H3E8fupyx3EnFngIhTIKP5728DHeQ=="
+        "envelope_b64": "V1MBAQIABwAAAAABGs8wKTduWVMgAT4DwnWevtU0VktMSv81OycGGUycjssJ8keL24fhknVXcHKqFJujD6jKZk1zM5eVSi39B3Syz5bIsVCAJa9YYlZSZyXbQA=="
       }
     },
     {
@@ -337,19 +337,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 8,
         "plaintext_b64": "dXNlcl93cmFwIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "9347c55f-011e-4488-8c68-3ac4e750c53b",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "d4c21e29-6108-4bca-a1a7-fa9cf84d67d1",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABEZzAr8JhbzJqhxpGnAWyb6eNH2GloJ6077+t2WkF2exC5w9+xwGA2IO1/6V4HI99E4LhiC7Tim8Y73HsfG+oCmPiYpjXFe/77f+I7Q=="
+        "envelope_b64": "V1MBAQIABwAAAAABEuH5FdkTQ8dsJEI25cKt2zfd88WtDTdXiOpdXLP81AvFC/iC1JbmcsvFRtS/wl/eKxY4VbWg5nfynScRUpRXNOjmtITg6SOVIoUxKw=="
       }
     },
     {
@@ -357,19 +357,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 9,
         "plaintext_b64": "cGF5bG9hZCBzZWFsZWQgYnkgdGhlIGtpdCdzIEdvIOKAlCBhw6fDo28g8J+UkQ==",
-        "row": "a7e47c35-68a9-491d-9046-cb7b31ca6f7f",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "e472b6a4-e4de-4b64-8e72-7eca1ffece26",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABES8FK87U8GzBChlmc27KKJz6lEDiZsng1r2d/hf0Kw2tzBEHg/+1AGHR0m40DiazyY4N0lv1Iw0BhGl+6iXPOMpYa8tYkf/K/DI="
+        "envelope_b64": "V1MBAQIABwAAAAAB31pdcUB9PnPx2lJBWsHFIdeJw/L7gJRqxDo6japyl2YSXpze2fzLuRQCWfgIB0grabBzNTCyoK6wtRBtUo3IH3JP6ttiv/mrHZ4="
       }
     },
     {
@@ -377,19 +377,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 10,
         "plaintext_b64": "cHVzaF9uYW1lIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "dee81392-282c-4001-8a0e-edb3663e1cb4",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "da523e06-e825-4025-943e-9e14b88e23d8",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABuz94wST9Vdk6qSt+ANHdZVRoxuOcAW/xU7eLwgLFN+zo7fPvfLHrQw17JYvClI+fZ8H8zVFCVWURpeYFxrEu3XV3pf6sDB8bAJpxrw=="
+        "envelope_b64": "V1MBAQIABwAAAAABRbSk16aes4jazSe2XQGsPhgc6q8VUHmZx2P/FzIU2itbOeAR53eXFav7bLC5IDGfprYXeSx85hLhyYA5VxlLtUYaKLOrmzWi6tO9Gg=="
       }
     },
     {
@@ -397,19 +397,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 11,
         "plaintext_b64": "ZnVsbF9uYW1lIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "4e7b3d12-fff3-4fa5-9412-9dfb05c32997",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "2d0277b9-00e6-43f6-822d-bb6b774b1eec",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABFLGWaUn2nyPrXKHCXl0Ed06pHVsAPyBajBIvAzUseAxmh6iTL/3Mer1maZ9s4rpg1bedxX6P++uxv/Kbt8pJ6PpjQXIVoOFXf+ldag=="
+        "envelope_b64": "V1MBAQIABwAAAAABZcKUGo550LQOKaXFFsC5wrId1axsd5mkif1xqvdj8u9DIqu3HwCV5sggmp4Zi/6NOxjlBtCrVWEPOLwglvFI9Y6SRAuWY/A1uuqLoA=="
       }
     },
     {
@@ -417,19 +417,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 12,
         "plaintext_b64": "YnVzaW5lc3NfbmFtZSBzZWFsZWQgYnkgdGhlIGtpdCdzIEdvIOKAlCBhw6fDo28g8J+UkQ==",
-        "row": "73528fd9-c158-48ca-9275-816b8c87c67a",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "f958dc39-b095-4eeb-a956-3a1c0ace053e",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABWNyEt746jFqgC31P8QhpZ+4IfN6AOa9XDMmTvmAflO3QGhMnKYcDuxXfjeVQl8jJsX8V1aSx/ZqdZD08Brnf+krOFgbVvZpYjhlmLkInAoY="
+        "envelope_b64": "V1MBAQIABwAAAAABumXrihQCM+UQQiJIioqUEnryBxfHGqLicQHdY2XL5hDbzN+vlH2O4t6cK+Auul7IjbOh08QLNdg6Wi+8SEJwqmUaIyX1ZM0yKymZ1VCZIfQ="
       }
     },
     {
@@ -437,19 +437,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 13,
         "plaintext_b64": "YXZhdGFyIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "368a35ae-e22e-48f2-b7ab-3a76fcf8a45f",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "eddf62c6-f9e8-4360-9310-4abe235b9f74",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABaF5ttRRIhJatraSL1dr61ZEKdDmeCr/HXF8KjySlMyNYbNQ5JK4OFSVsf5nWl9dSnGtP+0aJF9zkt8mhCZr208v6fh1Q+lKxAQ=="
+        "envelope_b64": "V1MBAQIABwAAAAAByede9R5vRx1mrv4lutzsitQVzjVr3vhEXS2WGu6jVO2NvPwvOIemaltl0Dzau4c2ayyJzbtuRnlI0bzRV37BouLZ4RdMnkbgmQ=="
       }
     },
     {
@@ -457,19 +457,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 14,
         "plaintext_b64": "bWNwX2RyYWZ0IHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "5bc83f27-76af-4e33-a0fd-1f8a4ad1ec38",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "24ece1d2-f252-4d0c-bd96-77a4ffeca94f",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABEvQ+N3kiOfS7z2vVj4H3vJNWOUx6DyzOFLpFVttcNaODELP4WxuHWljCNuzMdOPgD+Q22E3+LW+PgLCAjEpfW5BvfnuLMvPf8HnDGw=="
+        "envelope_b64": "V1MBAQIABwAAAAABCwEOr79W31x2Ygvi4WDauqg0hztpICHJhOTjffJ6a1oo5ZO5RcvwLqrQrpuz/pH7RKm57HDTcCBHgfjjxejauIuzgT46l01ElCQQbA=="
       }
     },
     {
@@ -477,30 +477,30 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 1,
-          "sealed_b64": "V1MBAQEABwCCdEfhTKSuKfL2eeOiNRtfyLbOj9znMQJZm0QdtZyfUbWl5hRqmvocAP2j+5p2udiG1HxGcLc/nBaE91i+46dDjNmfFowLIKtIt13bNIkFOQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwCooCely5bNUcPOAAL6r0r0c8ICgTXZT5Wsmxt2LD98MqGJxWYwFayMV7G8ozNfdbqTZIS/UhEQbkvpOkwsJVsk5pU64nt5V8PFUxEo3ikNUA==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 15,
         "plaintext_b64": "a2luZCgweGYpIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "4d281bda-6e61-4fb1-8350-a6312bbf4e8e",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "cbd721c2-920e-40a3-8280-62afcacd9f5c",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwAAAAABNtwdD2SA79/rBco8WLZ2721rOa5bD+offzSGrACC6U32qnKFtJ9/xZOqAYT9tWPtA9zDYDEY/Tlce44LGEY81RlReX6bATdA+mgbjg=="
+        "envelope_b64": "V1MBAQIABwAAAAABoDjq/kwYEg4i7Eczx0jQY5Nn83dTyGakgzYAYfWsbjvMGtmV7tq+zDy7MTO5XdSr+bo5fM2FomRVzWyTKETFraR/KAQh9vcTjI65Lw=="
       }
     },
     {
       "id": "seal/content-key/id-4294967295",
       "op": "seal.open_content_key",
       "in": {
-        "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+        "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
         "id": 4294967295,
         "key": "archive",
-        "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
         "epoch": 7
@@ -510,12 +510,12 @@
       "id": "seal/content-key-row/id-4294967295",
       "op": "seal.content_key_row",
       "in": {
-        "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+        "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
         "id": 4294967295,
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "row": "85b03811-f00c-58c4-8912-56280a421170"
+        "row": "327cf643-9abb-564b-8434-4299c93bc413"
       }
     },
     {
@@ -523,19 +523,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 1,
         "plaintext_b64": "Ym9keSBzZWFsZWQgYnkgdGhlIGtpdCdzIEdvIOKAlCBhw6fDo28g8J+UkQ==",
-        "row": "b1cb33f5-d1f3-442c-9365-1cde9f8f34c9",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "c8cc4222-ed99-4c2e-8598-aa0ef5c4384a",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////MlzJXhVWqDiddNOhy122xisjio7DYodrHCwFLkkBHfb7sk775gv/l93VMTrZNnCgW7i95lenenRWc5tHziKTpaF3apqwV3g="
+        "envelope_b64": "V1MBAQIABwD/////qtZTEXUh1FEbtpkFskM/Y4xzymnIIeZpRfn24dC2AF4Cuhk9/MyzK8GoNCElUZLxso335xIJgfc92lTdkUVksBHkkpLrI5c="
       }
     },
     {
@@ -543,16 +543,16 @@
       "op": "seal.open_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
-        "envelope_b64": "V1MBAQIABwD/////MlzJXhVWqDiddNOhy122xisjio7DYodrHCwFLkkBHfb7sk775gv/l93VMTrZNnCgW7i95lenenRWc5tHziKTpaF3apqwV3g=",
+        "envelope_b64": "V1MBAQIABwD/////qtZTEXUh1FEbtpkFskM/Y4xzymnIIeZpRfn24dC2AF4Cuhk9/MyzK8GoNCElUZLxso335xIJgfc92lTdkUVksBHkkpLrI5c=",
         "key": "archive",
         "kind": 9,
-        "row": "b1cb33f5-d1f3-442c-9365-1cde9f8f34c9",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "c8cc4222-ed99-4c2e-8598-aa0ef5c4384a",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "error": "authentication"
     },
@@ -560,7 +560,7 @@
       "id": "seal/content-key-id/id-4294967295",
       "op": "seal.content_key_id",
       "in": {
-        "envelope_b64": "V1MBAQIABwD/////MlzJXhVWqDiddNOhy122xisjio7DYodrHCwFLkkBHfb7sk775gv/l93VMTrZNnCgW7i95lenenRWc5tHziKTpaF3apqwV3g="
+        "envelope_b64": "V1MBAQIABwD/////qtZTEXUh1FEbtpkFskM/Y4xzymnIIeZpRfn24dC2AF4Cuhk9/MyzK8GoNCElUZLxso335xIJgfc92lTdkUVksBHkkpLrI5c="
       },
       "out": {
         "epoch": 7,
@@ -572,19 +572,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 2,
         "plaintext_b64": "cmF3X3Byb3RvIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "6b519919-1183-42e7-985b-578146482bd6",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "bfd5d99e-fae4-41ad-8f63-edb5d9acf8e3",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////ADuw7KLojx+c3amgJS1/Vh65+jfRfWnRQL9DBPh90CZXSrDau1TxTEnVHelS7QaB97dnVKfFHTn+RlLSMRdQf39np1PanbEkz6f0gg=="
+        "envelope_b64": "V1MBAQIABwD/////5hqxjHZQFJf4WlBw9EQCZuUfceQ3CcE94GMh8kHD7cGsMJEEjT3ztQ0qDtMHi0/kbFm7QrTUoBS0QiOaaS9lrC2aOgmJOwvbgOIuBA=="
       }
     },
     {
@@ -592,19 +592,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 3,
         "plaintext_b64": "bWVkaWFfa2V5IHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "ebbf6581-2086-44d7-8a72-0bc38d3428af",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "a07b8336-570d-4e0a-8407-1ff144743ea5",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////nkhbdbEokAEFuc0Mvfv5FOkfpNFPhpsB9FotioKRCwaUmPn40OsZeqaED+eY7ENEi4/Jo2/TSZL5wbz+o4N7o6OISMPNogCtnAmPHA=="
+        "envelope_b64": "V1MBAQIABwD/////yzQsHwaqghAxirHM7OVS3FqMiAMoiprU0YHsAVRw3mrhyTHmwiTCzT/AVJzLwY7OAws5Fn0RnF/rgaxoscimF2CZkTvbRRvLB/crcQ=="
       }
     },
     {
@@ -612,19 +612,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 4,
         "plaintext_b64": "dGh1bWJuYWlsIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "a20fb5cd-f602-4473-bee5-ef78df0d72ef",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "9f9e5437-e11e-4c8d-a156-49f250d903d0",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////r1JBJM3r7WrX57twn5sfKzMPl8yfdbftnqjjFn+NnwgeFlwYoYguyB9kSCGSn5VR5YQact3ZfcpC5XwQqTWaSllgOUfREnYbqYzj3A=="
+        "envelope_b64": "V1MBAQIABwD/////tC9XhQ1RuJFqwr49C/EnABFHR1vGQ32GeLoj8V+6OcaCF+ODkCIWVaf5T7xP0gsnEN+2eb+0icwVimtQle8vcGPKhpv1Sgv9S4duCg=="
       }
     },
     {
@@ -632,19 +632,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 5,
         "plaintext_b64": "Y29udGFjdF9uYW1lIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "b9b5fed0-d91a-43d2-a278-b5e72ea2085f",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "a8a96325-d24c-4cb9-ae77-efe18bdf7b66",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////XqnjV6ECcqEay0DHYWEYzQtQxGfPse+/eNJUnw9z+wVzVoO6qcpMT+VN/Xq3+urZOMYkYKSYVL5zsVoCEL51VEi0iavT1tVj/jndTVelxA=="
+        "envelope_b64": "V1MBAQIABwD/////g6d0nHeg4y2G+tqE5kNGH3GtVjxkHbg5wyYiK9zjZrsKxSgbgVrkn2KcxbHxfSjunGaSwsVpXOoRDR4h+X+WRi9aVjyErVwcLIYjuMoA2A=="
       }
     },
     {
@@ -652,19 +652,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 6,
         "plaintext_b64": "Y29udGVudF9rZXkgc2VhbGVkIGJ5IHRoZSBraXQncyBHbyDigJQgYcOnw6NvIPCflJE=",
-        "row": "9a2ae566-e812-48e5-824d-0188ffedf7d6",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "833e388a-ba5d-41f1-b8ed-d8af46653108",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////LY2KPBCsstgI3UkfWfY6A8Nw9vVkfArL1iljUBNot4i1H1ZsjuRj9qkLNxm5Fq4qS+yeRr/ns7MqrV4obYyWD5AdKuWgcDEP8JsaLOhv"
+        "envelope_b64": "V1MBAQIABwD/////IZJtStJ3gTXzzOJny17PyoVANHRCADojKnQU3wOjfllcbSDNroJuqjdJ9p8s4WT5G6JO3ss+xbtjXppWFq/p6+qeIMt6EvjPnoB5x3W/"
       }
     },
     {
@@ -672,19 +672,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 7,
         "plaintext_b64": "ZGV2aWNlX2dyYW50IHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "36fb6970-ce47-4ee2-b255-76fa51e1c85b",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "cf0b0007-a5fd-431c-8cc8-222e16cfa8a4",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////M0LjJogbQglrXBQyWJHi1iQKe+JKn3Z68p7u8ZcfDpW6lmzreQZAFqErpazIUTAMyjTv+N14kehhCRaauBXOEfsQj+dyC4LsO39vynGQ2A=="
+        "envelope_b64": "V1MBAQIABwD/////rH31DpWK4REilIYpocP1mVnGFUIg6spu9UnadmnZi3bapJL7V8Ae4XwHWjgRS6c5cbWLLu0eNkeh5JNmHZEaNiPi4lLhsxeVV81ZkK5I4w=="
       }
     },
     {
@@ -692,19 +692,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 8,
         "plaintext_b64": "dXNlcl93cmFwIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "33bfa450-5c6d-4f0f-bc72-827e44a6fb3f",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "897a59f4-d40f-460d-8330-0514347f23f1",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////IYKgTLaaVyDdXPWn5b+Fztl/Np1G07ZXKpC+8GalQXHbgAlGvrR9V326PKvDSuxNPrFe9262Z809YY5jutQgAfZHmvG3VFt6WcCvdg=="
+        "envelope_b64": "V1MBAQIABwD/////PBKmQlN2Vk2MltTxB3q7fHazGDZcvlxlZzSTl913cgGNTtnUW/FIji1XmvGs60vaKJckAkAme2TklXPHMt8D9TOtv3ZFBsO57P1bRg=="
       }
     },
     {
@@ -712,19 +712,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 9,
         "plaintext_b64": "cGF5bG9hZCBzZWFsZWQgYnkgdGhlIGtpdCdzIEdvIOKAlCBhw6fDo28g8J+UkQ==",
-        "row": "31c8d4c1-550c-4a54-8318-ca056de24430",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "0b3554ef-cb4a-44ad-a6cf-15372eb4f725",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////olPwt7PxEXRWQ81hXuOy6A4sIRkzmXHJ7a6X/hVCpBrqi3yCHY/+McIU1Ndb+ujGSOV0lX3FSEoTF8oxs0W8xe2MMQcxNCN8zto="
+        "envelope_b64": "V1MBAQIABwD/////l+hI7kMOVWnbsF15Pp/zNySICqYkPK2prAu6SD/zJnVpaKyFfviGVJwEIrf665uq0v6+6Uu/VdKrgXsEiB28e+dT57SqJy+Nxvg="
       }
     },
     {
@@ -732,19 +732,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 10,
         "plaintext_b64": "cHVzaF9uYW1lIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "5c4b1ce3-5810-458f-9543-c48f7f32802b",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "d5812878-2ac8-4362-b806-bee8d31d7854",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////riS7hdybM8JSEbu/rT+1G7IhStbEgt57QyB0tTxwqOIx4uw7awFjnxFQYHtjr2FoNgz9sFzHeP22qTRV7pMfc35rep+31+3ymOQ6/Q=="
+        "envelope_b64": "V1MBAQIABwD/////aFvsKpyzsnXfh5NyHtEjVjhdyddz2K+sg/78fbUeTjFtYzdNfsCP6G8dK0rjKS6Q2en/t+d/eZQPC0mw0DoHJ8R9iTV5OkBm5RBkKQ=="
       }
     },
     {
@@ -752,19 +752,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 11,
         "plaintext_b64": "ZnVsbF9uYW1lIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "05e305b1-abbc-4e55-a7e8-37a7463c0a67",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "40a16f65-2a8d-4a17-8571-c16556344307",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////D7s1l/wMlOHbmek5qLiUvuKmwX+PlRmIQyh/fPVx/qFeBZTZruKtIfS8CNdM0yiCAJ/Mw0DylAheGmLcdyRRkNQTRGNAw5S/XPRfYA=="
+        "envelope_b64": "V1MBAQIABwD/////wHJuYjkkbYd+77g0ISsOSJHR3E8rLRpVjtlBLpcGmi5kouJ/iQi55Vm1sO5BtpcmbC79RADXmpK6Z48bIbRT3QjtF0yMMnZfpqckcQ=="
       }
     },
     {
@@ -772,19 +772,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 12,
         "plaintext_b64": "YnVzaW5lc3NfbmFtZSBzZWFsZWQgYnkgdGhlIGtpdCdzIEdvIOKAlCBhw6fDo28g8J+UkQ==",
-        "row": "538a646e-a6bf-4a63-af38-b88a76b0927c",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "c6592da3-809c-43ee-ae6c-e2f9e29d0bcd",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////jrOx4yaShm4TTovkb+hZzt4urNjudxeH+RkoussvLTiXaWnUKmVr2z3o0psgbJJd8Jqkk+UHTG4HwaswJ0Qib/zhjQGrHx6vqPG0qyCOBGQ="
+        "envelope_b64": "V1MBAQIABwD/////Myse3xARoFFx8XxC2s0bO9IkPJdMB8kVKjRb6VCf5z4Zt+0r7uva907Pyv0mU5jIjM1vrKzcECud7fAFcEVFN7SXzh1mRslS56wtniY7Oqk="
       }
     },
     {
@@ -792,19 +792,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 13,
         "plaintext_b64": "YXZhdGFyIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "3a3b9225-5989-4850-8b4c-1683a8361d06",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "e221b3df-20e3-4c88-9a3d-436729b6dd7f",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////7zZ9XzslOPgd/A5vwaeDIFsiEO9lxP+WeAky2+SYYz8X4d30Gc7Xk3Oob0FncHI+1A+435dlMVJP4BRNNThHIVvoeBNw2+WpKA=="
+        "envelope_b64": "V1MBAQIABwD/////j/b/Vf4JJyv9mv9H4F4iXNyv2k3U4qzoVqrt2Z7ElX+pC3O5lcIll4LIsh2G4tDZEgchrhfIjTvHG1cVMR+3CZOo3d5nyNGkNQ=="
       }
     },
     {
@@ -812,19 +812,19 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 14,
         "plaintext_b64": "bWNwX2RyYWZ0IHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "0a1fb94d-6915-4f16-b768-2d65f07fdfd9",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "a3b0d232-b0cf-44ca-bfbb-a20f1ae00a54",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////WsZ5RFbTkv9tRdlU+6X7/bDWz4cT9psXcY8MaEFPKM6TsnyBFitf4ANPCCqPL/+44rk8/++6inVO0VHfKqIjqKmYDu2UySLr4GbEYw=="
+        "envelope_b64": "V1MBAQIABwD/////7+urdF4ZFkeP/KfkqkKpyx2JY0S0Jdjb8pvpiH4SyPnkFtrfuMcAegn6PbScpRoscd+SZ8j3vrV/0ebFe8UgkW6J6WaGfMsMktwD7Q=="
       }
     },
     {
@@ -832,20 +832,277 @@
       "op": "seal.seal_batch",
       "in": {
         "content_key": {
-          "device": "06c08de7-6d33-4cd8-99c6-f9cdd2499a5e",
+          "device": "b0fa6445-5126-44b7-b64c-541c4299a3f3",
           "id": 4294967295,
-          "sealed_b64": "V1MBAQEABwBGjhS8k//YLDGWl0OoxHkFcCFBgQ2hFLrw/qrh6pqQTEP/yvjm96aaktk37FASVQAjxu31QZIJJBvmZhZimp3x8kH7/qorrfkmOVjgTLbFxQ==",
-          "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+          "sealed_b64": "V1MBAQEABwC2lo6PPoFC70h1OmWxCcl8APTLGVXw7xOY1DznoSGpBWpijpqZMuQnqz4c7rZwfH5HNSu4FCqFiknoDIA+HvGjhLMkVTy4YT7mbI3h3/cJig==",
+          "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
         },
         "key": "archive",
         "kind": 15,
         "plaintext_b64": "a2luZCgweGYpIHNlYWxlZCBieSB0aGUga2l0J3MgR28g4oCUIGHDp8OjbyDwn5SR",
-        "row": "9a215bae-1997-4467-9fc9-46732f7fcc3e",
-        "tenant": "7522dd7a-4754-434a-9d63-e89396a625a4"
+        "row": "ca57761c-2258-40c3-a1b1-c0c6fdc9d8de",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
       },
       "out": {
-        "envelope_b64": "V1MBAQIABwD/////9XUewHI6TzilZkoCvjGukSsprR/3Ctzu4p8MQ/KX+yTOVXlWpBm72VF28J1fGTS9OPqX1AeghAacArG55kKFXnM7yFCUwRgz7WZJBA=="
+        "envelope_b64": "V1MBAQIABwD//////5e4c0nX4+8FKQrcoKQ+j2f8CBK1noLJatjL5Ui9EMIgPoLilxv9rKjtyhJL/+mSnyB2I+CcVVdu+zhOA9V7PcskKn9zNd2bCYl+UA=="
       }
+    },
+    {
+      "id": "seal/direct/forger-control/grant",
+      "op": "seal.open_direct",
+      "in": {
+        "envelope_b64": "V1MBAQEAAQCy14ZDud/DIXy9QwDybwpGmptjWDH004iYSeUANkEASKp7g9RQbacZDFKkucheXVxWDlBrskGx7PpdkAnzoyQSwqjD3/EsWunf56NcV1b9PA==",
+        "key": "archive",
+        "kind": 7,
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "out": {
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY="
+      }
+    },
+    {
+      "id": "seal/direct/forged/grant/zero",
+      "op": "seal.open_direct",
+      "in": {
+        "envelope_b64": "V1MBAQEAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFKh8P3YmM2Xd3WUG8Np52W45BfUrD1t53CczL8+c0YbMpNY4NCchuEbXPxw5Ix4qg==",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "key": "archive",
+        "kind": 7,
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "authentication",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "seal/direct/refuses/low-order-key/zero",
+      "op": "seal.seal_direct",
+      "in": {
+        "epoch": 1,
+        "kind": 7,
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "seal/direct/forged/grant/one",
+      "op": "seal.open_direct",
+      "in": {
+        "envelope_b64": "V1MBAQEAAQABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI+QZbll1AdpT5sbEnu3DV5hxwWqGEqjrJiVZ4XEl21gwsB4K9a09kbP4fLMh7omCQ==",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "key": "archive",
+        "kind": 7,
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "authentication",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "seal/direct/refuses/low-order-key/one",
+      "op": "seal.seal_direct",
+      "in": {
+        "epoch": 1,
+        "kind": 7,
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "seal/direct/forged/grant/order-8-a",
+      "op": "seal.open_direct",
+      "in": {
+        "envelope_b64": "V1MBAQEAAQDg63p8O0G4rhZW4/rxn8Rq2gmN65wysf2GYgUWX0m4ACTRpZ6oPfE7YmE00fiW1Q/ZEbaObjIUgqR9meCokwW3s9Ui5R/H9i7OgvzC4OYUsw==",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "key": "archive",
+        "kind": 7,
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "authentication",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "seal/direct/refuses/low-order-key/order-8-a",
+      "op": "seal.seal_direct",
+      "in": {
+        "epoch": 1,
+        "kind": 7,
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "4Ot6fDtBuK4WVuP68Z/EatoJjeucMrH9hmIFFl9JuAA=",
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "seal/direct/forged/grant/order-8-b",
+      "op": "seal.open_direct",
+      "in": {
+        "envelope_b64": "V1MBAQEAAQBfnJW8o1CMJLHQsVWcg+9bBERcxFgcjobYIk7d0J8RV2t05zBIIGX9FuTHeV8Wnm2YmCDu5hQ57x+SpA08k5TXWlEZ9+IWwfjHOK+rBEcxjA==",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "key": "archive",
+        "kind": 7,
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "authentication",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "seal/direct/refuses/low-order-key/order-8-b",
+      "op": "seal.seal_direct",
+      "in": {
+        "epoch": 1,
+        "kind": 7,
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "X5yVvKNQjCSx0LFVnIPvWwREXMRYHI6G2CJO3dCfEVc=",
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "seal/direct/forged/grant/p-minus-1",
+      "op": "seal.open_direct",
+      "in": {
+        "envelope_b64": "V1MBAQEAAQDs////////////////////////////////////////fxH8cCGm/8N1utUDYf1T/e7RnrTp66+xcFOZKQPV3+JRT+WgVbSBP1kVLfvI4XVHMA==",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "key": "archive",
+        "kind": 7,
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "authentication",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "seal/direct/refuses/low-order-key/p-minus-1",
+      "op": "seal.seal_direct",
+      "in": {
+        "epoch": 1,
+        "kind": 7,
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "7P///////////////////////////////////////38=",
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "seal/direct/forged/grant/p",
+      "op": "seal.open_direct",
+      "in": {
+        "envelope_b64": "V1MBAQEAAQDt////////////////////////////////////////f5hF6MHz/Au67x1alDfuf4PknRPbPXTi0NE7CVwmhEtVx+Gz+fz28MPSUSVFV75rSg==",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "key": "archive",
+        "kind": 7,
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "authentication",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "seal/direct/refuses/low-order-key/p",
+      "op": "seal.seal_direct",
+      "in": {
+        "epoch": 1,
+        "kind": 7,
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "7f///////////////////////////////////////38=",
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "seal/direct/forged/grant/p-plus-1",
+      "op": "seal.open_direct",
+      "in": {
+        "envelope_b64": "V1MBAQEAAQDu////////////////////////////////////////f6BHJlMJU0K2XWAgsLAlKPfhPFwHe09+Zy6YMNRdAnaeIIGuurcS5S47bepksNgRBQ==",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "key": "archive",
+        "kind": 7,
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "authentication",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "seal/direct/refuses/low-order-key/p-plus-1",
+      "op": "seal.seal_direct",
+      "in": {
+        "epoch": 1,
+        "kind": 7,
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "7v///////////////////////////////////////38=",
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "seal/direct/forged/grant/zero-bit-255",
+      "op": "seal.open_direct",
+      "in": {
+        "envelope_b64": "V1MBAQEAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgCtxubR8n913QD/d87XibRS0oG8cJiBc2vN5u+N7hDhqcafhcH1uVL0QgyuiSTj+3w==",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "key": "archive",
+        "kind": 7,
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "authentication",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "seal/direct/refuses/low-order-key/zero-bit-255",
+      "op": "seal.seal_direct",
+      "in": {
+        "epoch": 1,
+        "kind": 7,
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA=",
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "seal/direct/forged/grant/order-8-a-bit-255",
+      "op": "seal.open_direct",
+      "in": {
+        "envelope_b64": "V1MBAQEAAQDg63p8O0G4rhZW4/rxn8Rq2gmN65wysf2GYgUWX0m4gLlpAFmEUSREoHjZ1VkUudUZw/g+sA1d04ubmu58UHIxr/BGQ8PGrbJI2ZXzr/UniA==",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "key": "archive",
+        "kind": 7,
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "authentication",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "seal/direct/refuses/low-order-key/order-8-a-bit-255",
+      "op": "seal.seal_direct",
+      "in": {
+        "epoch": 1,
+        "kind": 7,
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "4Ot6fDtBuK4WVuP68Z/EatoJjeucMrH9hmIFFl9JuIA=",
+        "row": "35b28471-d71d-5c7c-b70f-52304911de33",
+        "tenant": "75f5994c-d05b-4788-ae74-ff751c814420"
+      },
+      "error": "invalid_key"
     },
     {
       "id": "seal/kind-name/0x0",

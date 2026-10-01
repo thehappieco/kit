@@ -6,7 +6,7 @@
     "generator": "internal/cross/write_test.go",
     "lang": "go",
     "randomness": "crypto/rand; seals record what they drew where the format has room for it",
-    "source": "github.com/thehappieco/kit@5c28c42b20b411593844f760b49aa957322f2518 reqhmac",
+    "source": "github.com/thehappieco/kit@9cc95a3d672c3bff0a1fe610a6ec82ba64103fbe reqhmac",
     "toolchain": "go1.27.1"
   },
   "note": "Signatures by the kit's Go with Wappie's scheme, for the TypeScript tests.",
@@ -15,25 +15,25 @@
       "id": "reqhmac/signature/0",
       "op": "reqhmac.signature",
       "in": {
-        "body_b64": "YzY5ZWI5NmUtYmU0My00MjUzLTg3MTItMTk2NWU4MTkzNjZh",
+        "body_b64": "N2ZjZWNjMzQtNmM0ZS00Y2M3LWI2MDktY2QzYjY2NDM1ZmU4",
         "direction": "to-go",
         "method": "post",
         "nonce": "AAAAAAAAAAAAAAAAAAAAAA",
-        "secret": "a3b12dda-fe3e-4d0a-a7d8-4f166e95a753",
+        "secret": "128c7cb0-4b2d-45de-968b-a3fd2f425523",
         "sender": "enclave",
         "target": "/internal/requests/x/prepare",
         "timestamp": "1790300000"
       },
       "out": {
-        "canonical": "wappie-mcp-hmac/v1\nto-go\nenclave\nPOST\n/internal/requests/x/prepare\n1790300000\nAAAAAAAAAAAAAAAAAAAAAA\n5f3a79328c378ea067b71c046cbf0c3e3b34961423c274c2094903e5d97c6177",
-        "signature": "v1=8d960df2a0be0cac081248b4930a8237557850c32cb8dc4a76cb3230b5774593"
+        "canonical": "wappie-mcp-hmac/v1\nto-go\nenclave\nPOST\n/internal/requests/x/prepare\n1790300000\nAAAAAAAAAAAAAAAAAAAAAA\n00cfefdd8b9ee615e822f99e48b9ec7da7cfe6c3e97ef040b4f5bc283d05cf52",
+        "signature": "v1=58884cd54cc99043b5d48ec58f62d4aadd28a5c318a23025dfb13f974a5db4c0"
       }
     },
     {
       "id": "reqhmac/signature/1",
       "op": "reqhmac.signature",
       "in": {
-        "body_b64": "YTMwMzZmYWUtYjI5Ny00ODhkLWI5OTktZGIzODVlMTk4YWM3",
+        "body_b64": "YTI2ODVjZDEtZTdlYS00ZjZkLTlhZGQtNWE2NzVhNWY3ODM0",
         "direction": "to-go",
         "method": "GET",
         "nonce": "BBBBBBBBBBBBBBBBBBBBBB",
@@ -43,15 +43,15 @@
         "timestamp": "1790300000"
       },
       "out": {
-        "canonical": "wappie-mcp-hmac/v1\nto-go\nenclave\nGET\n/v1/mcp/enclave/cimd?url=a%2Fb\n1790300000\nBBBBBBBBBBBBBBBBBBBBBB\na6b0a837676bf286f9c92c27cf0f99c2dfbe4781f3054a4e0de57a27872faa0b",
-        "signature": "v1=fd10aea6b4e6a991c658d968c9a0c73314ba86b0edbcbef54384d49e11102f8a"
+        "canonical": "wappie-mcp-hmac/v1\nto-go\nenclave\nGET\n/v1/mcp/enclave/cimd?url=a%2Fb\n1790300000\nBBBBBBBBBBBBBBBBBBBBBB\n759dfd13f264d5c374055d01c81831ae1c982610385ebca49b516036df7bfc4d",
+        "signature": "v1=7ae70ef357f79c26c227cd8c51911fd5afa0161bd85de6267659c2626bdf2bf2"
       }
     },
     {
       "id": "reqhmac/signature/2",
       "op": "reqhmac.signature",
       "in": {
-        "body_b64": "ZjhhNzI5YjctNDIxNC00YTJhLTliY2YtY2QyZjRiMzczNDcz",
+        "body_b64": "NWQwMzMwNDctMjRhNS00NDQ5LThkNTEtY2MzM2Y4YTNmMzUw",
         "direction": "to-go",
         "method": "DELETE",
         "nonce": "CCCCCCCCCCCCCCCCCCCCCC",
@@ -61,8 +61,8 @@
         "timestamp": "1790300000"
       },
       "out": {
-        "canonical": "wappie-mcp-hmac/v1\nto-go\nenclave\nDELETE\n/\n1790300000\nCCCCCCCCCCCCCCCCCCCCCC\n5129fbc100f2c6f06fd41630f3c3fb28141dbdfaad33e0ecaf3a4e1722fb792a",
-        "signature": "v1=99c956802b56b03ae49a924fcf8b2767fadc694d2056f587dc08b3afe5d5a322"
+        "canonical": "wappie-mcp-hmac/v1\nto-go\nenclave\nDELETE\n/\n1790300000\nCCCCCCCCCCCCCCCCCCCCCC\n4ea1e4f754221a5e40cfb934069c7624dfb0d8916bbd90ae203709d7883cc9fe",
+        "signature": "v1=c303ce9662cefb0aa19180fcf678ef67d74193125726ebb3280add0f873f2051"
       }
     }
   ]

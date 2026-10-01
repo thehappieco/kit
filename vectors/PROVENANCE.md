@@ -72,3 +72,5 @@ sha256 (first 16 hex digits) at `8c0c1f74`: `internal/crypto/seal/envelope.go` `
 ## The kit's own vectors
 
 `kit/*-go.json` were written by `internal/cross/write_test.go` and `kit/*-ts.json` by `js/test/cross.spec.ts`, each at the kit commit recorded in its `generated_by.source`, with fresh randomness (`make vectors-kit`). They are the golden vectors of the kit's own implementations from v0.1.0 on.
+
+The current files were written at `9cc95a3d672c3bff0a1fe610a6ec82ba64103fbe` (go1.27.1 and Node v25.6.1 on darwin/arm64), replacing those written at `5c28c42` before any tag existed. They add the forgeries under the all-zero X25519 secret (`hpke/open/forged/*`, `seal/direct/forged/grant/*`, with their `forger-control` cases), the refusals to seal to a low-order key, the bounded derivations and the passkey binding refusals. The forgeries' low-order encodings are those of `internal/forge` (`LowOrder`).

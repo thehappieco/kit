@@ -6,14 +6,14 @@
     "generator": "internal/cross/write_test.go",
     "lang": "go",
     "randomness": "crypto/rand; seals record what they drew where the format has room for it",
-    "source": "github.com/thehappieco/kit@5c28c42b20b411593844f760b49aa957322f2518 hpke",
+    "source": "github.com/thehappieco/kit@9cc95a3d672c3bff0a1fe610a6ec82ba64103fbe hpke",
     "toolchain": "go1.27.1"
   },
-  "note": "Fresh HPKE seals by Go's crypto/hpke through the kit, for the TypeScript implementation to open.",
+  "note": "Fresh HPKE seals by Go's crypto/hpke through the kit, for the TypeScript implementation to open, with forgeries under the all-zero secret that must not open and low-order keys that must not be sealed to.",
   "keys": {
     "r1": {
-      "private_key_b64": "gHFFN3HBDCC4R/QwiMHdS2Bd6MO2ZYDkH2DdHgE0slU=",
-      "public_key_b64": "t+j4/fign8mlKXQ6V8nVuTMj57t4SdyviFINv7eH6EA="
+      "private_key_b64": "IPX7146rScNjeRMeoS/j4K/qp4vy0cb/Xddh1Ipn7kM=",
+      "public_key_b64": "3bLn+aZMCOr/VKtJt/E4RfsVmvlyc/cvXvK5Tb4E2DQ="
     }
   },
   "cases": [
@@ -27,8 +27,8 @@
         "plaintext_b64": ""
       },
       "out": {
-        "ciphertext_b64": "89to950586x3qoKrvkJLog==",
-        "enc_b64": "Gk6nhPsMzd5QHd+yNzUUZTrl2IPohzYStL4iIf4/VFw="
+        "ciphertext_b64": "kguJelAxPAf8E/qtA+LnVw==",
+        "enc_b64": "85ZTnis8jTmWuDD42mYUp9zOBGzxQzsjZ4rlMPbiK0c="
       }
     },
     {
@@ -41,8 +41,8 @@
         "plaintext_b64": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc="
       },
       "out": {
-        "ciphertext_b64": "QfeHa8pAckJ9WhopWHqwyTwnjFr4kGiWfcMWnOHGnkT1t8LoCDKrIQ4Uja+qozlm",
-        "enc_b64": "vyEyfz3r5yhrPxpbRbZb7C0rItSnDcxQWurVXQ4WhnU="
+        "ciphertext_b64": "GSlzboJt0yJ1ru1ioLoEUqHVcW8S9zHqtCDnrHzawWOnsQH+tXJo4uTYJcI7U7mE",
+        "enc_b64": "8YF7dXKDa3F7w8A4Y8SHEkpFSy61ZCNo5KUdZszJTCg="
       }
     },
     {
@@ -50,8 +50,8 @@
       "op": "hpke.open",
       "in": {
         "aad_b64": "eA==",
-        "ciphertext_b64": "QfeHa8pAckJ9WhopWHqwyTwnjFr4kGiWfcMWnOHGnkT1t8LoCDKrIQ4Uja+qozlm",
-        "enc_b64": "vyEyfz3r5yhrPxpbRbZb7C0rItSnDcxQWurVXQ4WhnU=",
+        "ciphertext_b64": "GSlzboJt0yJ1ru1ioLoEUqHVcW8S9zHqtCDnrHzawWOnsQH+tXJo4uTYJcI7U7mE",
+        "enc_b64": "8YF7dXKDa3F7w8A4Y8SHEkpFSy61ZCNo5KUdZszJTCg=",
         "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
         "key": "r1"
       },
@@ -67,39 +67,278 @@
         "plaintext_b64": "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM="
       },
       "out": {
-        "ciphertext_b64": "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",
-        "enc_b64": "BeoeXqX3DNay23hy7mXS1Y0M+rze0+wwDg7vU/5SzGo="
+        "ciphertext_b64": "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",
+        "enc_b64": "DQVLz2gNeOH0z5EIfTuVDZcvn8XqBpNOT4hDj8818Ww="
       }
     },
     {
       "id": "hpke/public-from-private/0",
       "op": "hpke.public_from_private",
       "in": {
-        "private_key_b64": "uOLFhUmrZkBqNTnJwLn7uff53bcLgE2UnqhaOPr9iEk="
+        "private_key_b64": "0FvHk02JJJGfI+98jwtkX/7OWFtpFlYZPbH8i5X4TV8="
       },
       "out": {
-        "public_key_b64": "b5o8YM2sAQCWgDYni+fSjqrd80cljlgGlaNGKbIZAgk="
+        "public_key_b64": "o2PmUCAGdJmDWa1+O4ifPa3somNkFIW0QZi1iesSsUo="
       }
     },
     {
       "id": "hpke/public-from-private/1",
       "op": "hpke.public_from_private",
       "in": {
-        "private_key_b64": "WML4G3DG8YsAyz6P9PwWsF14VjMMk0ajbEHEyu2d80c="
+        "private_key_b64": "EE1V66+NHqmSt+fgKaUnxhenY6ZLKNOuQF2ze7mMoEw="
       },
       "out": {
-        "public_key_b64": "Lm4dehC7kt4bNg2sGBH27GLY/MXFY3kD5rqtUM8ugwU="
+        "public_key_b64": "g1pJMM6RkyGz/wOMyuu6zoQ8wQ5863SAYl+MpfdfrCE="
       }
     },
     {
       "id": "hpke/public-from-private/2",
       "op": "hpke.public_from_private",
       "in": {
-        "private_key_b64": "OKNT5rBINTZ/MmcwYKGhtLnbLJS9KHtlnmS01JXLQV8="
+        "private_key_b64": "uOiL+PaVvPcma1l6gt3EExavKgjJDFL6ZJ2OsYJYqW0="
       },
       "out": {
-        "public_key_b64": "zM9aZeSZYulNTzlw/sJY5IKTmRZmmG8CfgOIJQ6WkjA="
+        "public_key_b64": "vZ1fTDAxxYUKvWECH3CYrvIWrSWLUcZPf1Rx9+e6Ywk="
       }
+    },
+    {
+      "id": "hpke/open/forger-control",
+      "op": "hpke.open",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "ciphertext_b64": "8jc7IiiX78YlYPnpzuP/3Xdl9uoXUxGOTS71cssrprjcuEHd82yqBNouS7VzRjJS",
+        "enc_b64": "F9mMAfAfUKwWQEKw2ztVYnXHR7YWKipNt+nTDwKVmyw=",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "key": "r1"
+      },
+      "out": {
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY="
+      }
+    },
+    {
+      "id": "hpke/open/forged/zero",
+      "op": "hpke.open",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "ciphertext_b64": "UjIm4nygyRLci3HqcV2b2oib8v7od/8OhiavOWgPB0era54+C1ApIQQrAa9whRYV",
+        "enc_b64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "key": "r1"
+      },
+      "error": "open_failed",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "hpke/seal/refuses/low-order-key/zero",
+      "op": "hpke.seal",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "hpke/open/forged/one",
+      "op": "hpke.open",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "ciphertext_b64": "X5yCzjRVVpJbQp6FGrFos4Pcxnao46tVI7OQoXtWtdQvs/OWDKOedR8o/Bku48+y",
+        "enc_b64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "key": "r1"
+      },
+      "error": "open_failed",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "hpke/seal/refuses/low-order-key/one",
+      "op": "hpke.seal",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "hpke/open/forged/order-8-a",
+      "op": "hpke.open",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "ciphertext_b64": "YnQ7/MT+i7n/3P1udtLQ0dGkbzP/6S3SPdYYP10qYvrN1UzQQdME+uweKbWmAE81",
+        "enc_b64": "4Ot6fDtBuK4WVuP68Z/EatoJjeucMrH9hmIFFl9JuAA=",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "key": "r1"
+      },
+      "error": "open_failed",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "hpke/seal/refuses/low-order-key/order-8-a",
+      "op": "hpke.seal",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "4Ot6fDtBuK4WVuP68Z/EatoJjeucMrH9hmIFFl9JuAA="
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "hpke/open/forged/order-8-b",
+      "op": "hpke.open",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "ciphertext_b64": "5D06a/Wu/KkyM+8CBO79GXiDloM6ILr0wfcqDqL1anWjA8P/STwKGluQ5+CnsAqW",
+        "enc_b64": "X5yVvKNQjCSx0LFVnIPvWwREXMRYHI6G2CJO3dCfEVc=",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "key": "r1"
+      },
+      "error": "open_failed",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "hpke/seal/refuses/low-order-key/order-8-b",
+      "op": "hpke.seal",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "X5yVvKNQjCSx0LFVnIPvWwREXMRYHI6G2CJO3dCfEVc="
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "hpke/open/forged/p-minus-1",
+      "op": "hpke.open",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "ciphertext_b64": "USnPimdLwRRH/wqFK2JyXTYQWKWMbHr3dE5P2KNfrjhENpyyMUqOmYsPmQx2rTry",
+        "enc_b64": "7P///////////////////////////////////////38=",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "key": "r1"
+      },
+      "error": "open_failed",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "hpke/seal/refuses/low-order-key/p-minus-1",
+      "op": "hpke.seal",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "7P///////////////////////////////////////38="
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "hpke/open/forged/p",
+      "op": "hpke.open",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "ciphertext_b64": "YkWyH4rapwbXVJAueKGl00CfTTR2lp43Y9+CCIjpKxd+amYWdmyv+DnFUJ+db08a",
+        "enc_b64": "7f///////////////////////////////////////38=",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "key": "r1"
+      },
+      "error": "open_failed",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "hpke/seal/refuses/low-order-key/p",
+      "op": "hpke.seal",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "7f///////////////////////////////////////38="
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "hpke/open/forged/p-plus-1",
+      "op": "hpke.open",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "ciphertext_b64": "W42VQVT00ehN0O+zfcXFBDmm5TscONU/KnTPCru96FUtqY/BkACcLv3SEyMHMZwF",
+        "enc_b64": "7v///////////////////////////////////////38=",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "key": "r1"
+      },
+      "error": "open_failed",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "hpke/seal/refuses/low-order-key/p-plus-1",
+      "op": "hpke.seal",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "7v///////////////////////////////////////38="
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "hpke/open/forged/zero-bit-255",
+      "op": "hpke.open",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "ciphertext_b64": "xt5zZcbbCxm/cN5fWnglcYbk7Is/kGhc7fz9OcKIQeu1xVNuAZNGOUmqfk78h79p",
+        "enc_b64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA=",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "key": "r1"
+      },
+      "error": "open_failed",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "hpke/seal/refuses/low-order-key/zero-bit-255",
+      "op": "hpke.seal",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA="
+      },
+      "error": "invalid_key"
+    },
+    {
+      "id": "hpke/open/forged/order-8-a-bit-255",
+      "op": "hpke.open",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "ciphertext_b64": "QUYQv+V5nb4XIlO8L8PNbGo75fmymGkKaSCKBUnMgEk2D9h/+XyAKK6bDfzbL0xJ",
+        "enc_b64": "4Ot6fDtBuK4WVuP68Z/EatoJjeucMrH9hmIFFl9JuIA=",
+        "forged_plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "key": "r1"
+      },
+      "error": "open_failed",
+      "note": "A forgery: the ciphertext is sealed under the secret DHKEM derives from an all-zero X25519 output, which anybody can compute for an encapsulated key of low order. A recipient that skips RFC 9180 §7.1.4's check opens it to forged_plaintext_b64; the forger-control case, built the same way from a real X25519 output, shows the construction is HPKE."
+    },
+    {
+      "id": "hpke/seal/refuses/low-order-key/order-8-a-bit-255",
+      "op": "hpke.seal",
+      "in": {
+        "aad_b64": "WyJ0aGVoYXBwaWUtaWQva2V5LWRlbGl2ZXJ5IiwxXQ==",
+        "info_b64": "dGhlaGFwcGllLWlkL3YxL2tleS1kZWxpdmVyeQ==",
+        "plaintext_b64": "ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmY=",
+        "public_key_b64": "4Ot6fDtBuK4WVuP68Z/EatoJjeucMrH9hmIFFl9JuIA="
+      },
+      "error": "invalid_key"
     }
   ]
 }

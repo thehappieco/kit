@@ -6,10 +6,10 @@
     "generator": "internal/cross/write_test.go",
     "lang": "go",
     "randomness": "crypto/rand; seals record what they drew where the format has room for it",
-    "source": "github.com/thehappieco/kit@5c28c42b20b411593844f760b49aa957322f2518 passkey",
+    "source": "github.com/thehappieco/kit@9cc95a3d672c3bff0a1fe610a6ec82ba64103fbe passkey",
     "toolchain": "go1.27.1"
   },
-  "note": "Fresh passkey wraps by the kit's Go with the Wappie profile, for the TypeScript tests.",
+  "note": "Fresh passkey wraps by the kit's Go with the Wappie profile, for the TypeScript tests, with bindings that must be refused.",
   "cases": [
     {
       "id": "passkey/prf-salt/0",
@@ -27,10 +27,10 @@
       "in": {
         "credential_id": "Y3JlZGVudGlhbC00",
         "rp_id": "wappie.thehappie.co",
-        "user_id": "995f02ec-969b-45fc-a815-3d6f4dcc2314"
+        "user_id": "88a5892d-50b0-4bd7-96d6-b790c6b28777"
       },
       "out": {
-        "aad_b64": "WyJ3YXBwaWUvcGFzc2tleS12YXVsdCIsMSwid2FwcGllLnRoZWhhcHBpZS5jbyIsIjk5NWYwMmVjLTk2OWItNDVmYy1hODE1LTNkNmY0ZGNjMjMxNCIsIlkzSmxaR1Z1ZEdsaGJDMDAiXQ=="
+        "aad_b64": "WyJ3YXBwaWUvcGFzc2tleS12YXVsdCIsMSwid2FwcGllLnRoZWhhcHBpZS5jbyIsIjg4YTU4OTJkLTUwYjAtNGJkNy05NmQ2LWI3OTBjNmIyODc3NyIsIlkzSmxaR1Z1ZEdsaGJDMDAiXQ=="
       }
     },
     {
@@ -40,7 +40,7 @@
         "credential_id": "Y3JlZGVudGlhbC00",
         "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
         "rp_id": "wappie.thehappie.co",
-        "user_id": "995f02ec-969b-45fc-a815-3d6f4dcc2314"
+        "user_id": "88a5892d-50b0-4bd7-96d6-b790c6b28777"
       },
       "out": {
         "key_b64": "4h92FcnzF7Q0C+4ReaRL+ZAiqYjJodYrhm3AW+Hjt68="
@@ -51,14 +51,14 @@
       "op": "passkey.wrap",
       "in": {
         "credential_id": "Y3JlZGVudGlhbC00",
-        "nonce_b64": "Vt1ipMedppWKJ5N4",
+        "nonce_b64": "hj7gPWCJTfWgDTl8",
         "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
         "private_key_b64": "ERERERERERERERERERERERERERERERERERERERERERE=",
         "rp_id": "wappie.thehappie.co",
-        "user_id": "995f02ec-969b-45fc-a815-3d6f4dcc2314"
+        "user_id": "88a5892d-50b0-4bd7-96d6-b790c6b28777"
       },
       "out": {
-        "envelope_b64": "AVbdYqTHnaaViieTeLEHxOXI+S0IrpiOGfVYGtCMaOaqeP8mUr2azRT1JZWUOS3fiGprn+Mqmc/7bZ3bfA=="
+        "envelope_b64": "AYY+4D1giU31oA05fDOUebeZZSES4P8G2uPetfiZGWmNXjcyzRmcqagVb5MaRq/30tn/rUGR9XdVaNH7UQ=="
       }
     },
     {
@@ -66,10 +66,10 @@
       "op": "passkey.unwrap",
       "in": {
         "credential_id": "Y3JlZGVudGlhbC00x",
-        "envelope_b64": "AVbdYqTHnaaViieTeLEHxOXI+S0IrpiOGfVYGtCMaOaqeP8mUr2azRT1JZWUOS3fiGprn+Mqmc/7bZ3bfA==",
+        "envelope_b64": "AYY+4D1giU31oA05fDOUebeZZSES4P8G2uPetfiZGWmNXjcyzRmcqagVb5MaRq/30tn/rUGR9XdVaNH7UQ==",
         "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
         "rp_id": "wappie.thehappie.co",
-        "user_id": "995f02ec-969b-45fc-a815-3d6f4dcc2314"
+        "user_id": "88a5892d-50b0-4bd7-96d6-b790c6b28777"
       },
       "error": "open_failed"
     },
@@ -89,10 +89,10 @@
       "in": {
         "credential_id": "Y3JlZGVudGlhbC01",
         "rp_id": "localhost",
-        "user_id": "95f382cd-2ca5-427a-b69d-58fceed6d607"
+        "user_id": "35764613-b183-497c-b7c4-0f38992c00dc"
       },
       "out": {
-        "aad_b64": "WyJ3YXBwaWUvcGFzc2tleS12YXVsdCIsMSwibG9jYWxob3N0IiwiOTVmMzgyY2QtMmNhNS00MjdhLWI2OWQtNThmY2VlZDZkNjA3IiwiWTNKbFpHVnVkR2xoYkMwMSJd"
+        "aad_b64": "WyJ3YXBwaWUvcGFzc2tleS12YXVsdCIsMSwibG9jYWxob3N0IiwiMzU3NjQ2MTMtYjE4My00OTdjLWI3YzQtMGYzODk5MmMwMGRjIiwiWTNKbFpHVnVkR2xoYkMwMSJd"
       }
     },
     {
@@ -102,7 +102,7 @@
         "credential_id": "Y3JlZGVudGlhbC01",
         "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
         "rp_id": "localhost",
-        "user_id": "95f382cd-2ca5-427a-b69d-58fceed6d607"
+        "user_id": "35764613-b183-497c-b7c4-0f38992c00dc"
       },
       "out": {
         "key_b64": "MDzlnKu8cOnVey8NVorVJUJIbpzmBeA4HD+izOjFnas="
@@ -113,14 +113,14 @@
       "op": "passkey.wrap",
       "in": {
         "credential_id": "Y3JlZGVudGlhbC01",
-        "nonce_b64": "aSrC+MOMYdIiaXUq",
+        "nonce_b64": "kTc177td4/1Paj4U",
         "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
         "private_key_b64": "ERERERERERERERERERERERERERERERERERERERERERE=",
         "rp_id": "localhost",
-        "user_id": "95f382cd-2ca5-427a-b69d-58fceed6d607"
+        "user_id": "35764613-b183-497c-b7c4-0f38992c00dc"
       },
       "out": {
-        "envelope_b64": "AWkqwvjDjGHSIml1KtaMzVa/mL030LtLqvG9atQkw7yT1McPD2FR7VvUO5YJ6D0xm8PxnsYkdQ+nixPLiA=="
+        "envelope_b64": "AZE3Ne+7XeP9T2o+FH0zHs+Opi0inTyMFHLeGRbKfnon6IyS1J3F7CMILtpFaIonprDRUbi45UCWEQ0dXg=="
       }
     },
     {
@@ -128,12 +128,55 @@
       "op": "passkey.unwrap",
       "in": {
         "credential_id": "Y3JlZGVudGlhbC01x",
-        "envelope_b64": "AWkqwvjDjGHSIml1KtaMzVa/mL030LtLqvG9atQkw7yT1McPD2FR7VvUO5YJ6D0xm8PxnsYkdQ+nixPLiA==",
+        "envelope_b64": "AZE3Ne+7XeP9T2o+FH0zHs+Opi0inTyMFHLeGRbKfnon6IyS1J3F7CMILtpFaIonprDRUbi45UCWEQ0dXg==",
         "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
         "rp_id": "localhost",
-        "user_id": "95f382cd-2ca5-427a-b69d-58fceed6d607"
+        "user_id": "35764613-b183-497c-b7c4-0f38992c00dc"
       },
       "error": "open_failed"
+    },
+    {
+      "id": "passkey/aad/refuses/lone-high-surrogate-user",
+      "op": "passkey.aad",
+      "in": {
+        "credential_id": "c",
+        "rp_id": "wappie.thehappie.co",
+        "user_id_wtf8_b64": "dXNlci3toIA="
+      },
+      "error": "jcs"
+    },
+    {
+      "id": "passkey/aad/refuses/lone-low-surrogate-credential",
+      "op": "passkey.aad",
+      "in": {
+        "credential_id_wtf8_b64": "7bCAY3JlZA==",
+        "rp_id": "wappie.thehappie.co",
+        "user_id": "u"
+      },
+      "error": "jcs"
+    },
+    {
+      "id": "passkey/wrap/refuses/empty-aad",
+      "op": "passkey.wrap",
+      "in": {
+        "aad_b64": "",
+        "nonce_b64": "AAAAAAAAAAAAAAAA",
+        "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+        "private_key_b64": "ERERERERERERERERERERERERERERERERERERERERERE=",
+        "rp_id": "localhost"
+      },
+      "error": "bad_aad"
+    },
+    {
+      "id": "passkey/unwrap/refuses/empty-aad",
+      "op": "passkey.unwrap",
+      "in": {
+        "aad_b64": "",
+        "envelope_b64": "AYaP6yDnuPI4/J1tGyuMiZ3xvbaOONGKw4GhYrq8TL1t4OlmGs/pOqiQbVTIZoxLc8BymED6Sw0TL3r4zA==",
+        "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+        "rp_id": "localhost"
+      },
+      "error": "bad_aad"
     }
   ]
 }

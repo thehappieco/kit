@@ -88,7 +88,7 @@ sha256 (first 16 hex digits) at `8c0c1f74`: `internal/crypto/seal/envelope.go` `
 | `platform/id-v1/email.json` | email | 46 | 33 | `a0cffa73f07782d4feca2c3dea293f3e8de75164b3ee043106b0d6b0b3e0575d` |
 | `platform/id-v1/key-bundle.json` | key-bundle | 59 | 50 | `364b4c24046ca70b04dbbc04ead6417445f1aa8bede2c930068cbd1adfc61a6e` |
 
-Of the 257 cases, 180 must fail. Both of the kit's implementations reproduce every output and refuse every must-fail case with the error name it records (`profiles/platform/vectors_test.go`, `js/test/platform.spec.ts`); `vectors/vectors_test.go` checks the counts above, so a truncated copy fails.
+Of the 257 cases, 180 must fail. Both of the kit's implementations reproduce every output and refuse every must-fail case with the error name it records (`profiles/platform/vectors_test.go`, `js/test/platform.spec.ts`); `vectors/vectors_test.go` checks the sha256 and the counts above, so an edited, re-copied or truncated file fails even after `make manifest` has recorded it.
 
 ### platform/_generators
 

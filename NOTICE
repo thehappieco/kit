@@ -9,8 +9,16 @@ internal/crypto/seal, the request signature of internal/mcpauth/hmac.go, and
 the browser cryptography of packages/client/src/crypto. The vectors under
 vectors/wappie were produced by Wappie's own code at that commit.
 
+The platform profile (profiles/platform, js/src/profiles/platform.ts and
+js/src/internal) was taken from The Happie Co platform
+(github.com/thehappieco/platform, Apache-2.0) at commit
+5e66d841145b33dcd73cd575f2816a866793d774: the Go package
+internal/crypto/idcrypto and the browser cryptography of web/shared/crypto.
+The vectors under vectors/platform were produced by the platform's own code
+at that commit.
+
 This project includes dependencies distributed under their own licenses. Go
-dependencies and versions are recorded in go.mod/go.sum (golang.org/x/crypto
-and github.com/google/uuid, both BSD-3-Clause); the npm package's dependency
-is recorded in js/package.json (@noble/hashes, MIT). Third-party source is not
-relicensed by this project's Apache-2.0 license.
+dependencies and versions are recorded in go.mod/go.sum (golang.org/x/crypto,
+golang.org/x/text and github.com/google/uuid, all BSD-3-Clause); the npm
+package's dependency is recorded in js/package.json (@noble/hashes, MIT).
+Third-party source is not relicensed by this project's Apache-2.0 license.

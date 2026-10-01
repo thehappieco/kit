@@ -21,9 +21,9 @@
 | `passkey-ts.json` | passkey | 23 | TS | `packages/client/src/crypto/passkey.ts` | Node v25.6.1 | `09ac4f8231e8c87449a59cebb33635e8e244ad257a934d770a3258e801545c35` |
 | `browser-account-ts.json` | browser_account | 11 | TS | `packages/client/src/crypto/browserAccount.ts` | Node v25.6.1 | `439be2055653db141bff30484484cdf6d8a3dd694686622cfb55f667537431a6` |
 | `bytes-jcs-ts.json` | bytes+jcs | 89 | TS | `packages/client/src/crypto/bytes.ts`, `jcs.ts`; JCS texts from `packages/mcp-http/enclave/test/{device-check,ai-config}-vectors.json` | Node v25.6.1 | `acc301591f4690b551c70595d9c31fb7b65958fa913141d7e7503dcd4a3aa4dc` |
-| `derived-ts.json` | derived (v0.2.0) | 22 | TS | `packages/client/src/crypto/derived.ts` | Node v25.6.1 | `1126b160b4ce9a0af5dff96aa4bef6a956114a9923d11de1b6d977b59908a942` |
-| `keychain-ts.json` | keychain (v0.2.0) | 6 | TS | `packages/client/src/crypto/aikeychain.ts` | Node v25.6.1 | `289610947d434178e9bde5544183d07d6e37a92213456b7eb519d696964a7859` |
-| `attestation-ts.json` | attestation (v0.2.0) | 7 | TS | `packages/client/src/crypto/attestation.ts` (user_data) | Node v25.6.1 | `1712c2b61cf2bf121f6e5712e62d66737124f9fd1b8666df8625b5693aacc906` |
+| `derived-ts.json` | derived (later) | 22 | TS | `packages/client/src/crypto/derived.ts` | Node v25.6.1 | `1126b160b4ce9a0af5dff96aa4bef6a956114a9923d11de1b6d977b59908a942` |
+| `keychain-ts.json` | keychain (later) | 6 | TS | `packages/client/src/crypto/aikeychain.ts` | Node v25.6.1 | `289610947d434178e9bde5544183d07d6e37a92213456b7eb519d696964a7859` |
+| `attestation-ts.json` | attestation (later) | 7 | TS | `packages/client/src/crypto/attestation.ts` (user_data) | Node v25.6.1 | `1712c2b61cf2bf121f6e5712e62d66737124f9fd1b8666df8625b5693aacc906` |
 
 Where Wappie's code keeps a value private (an AAD, a non-extractable key), the generator computed it independently and recorded it only after proving it against the code's output (a blob the code produced decrypts under it). Each file's `note` says which values those are.
 
@@ -44,7 +44,7 @@ Byte-for-byte copies at `8c0c1f74`. "Last changed" is the last Wappie commit tha
 
 ### Baseline of fixtures that stay in Wappie
 
-Not copied: they belong to code that stays in Wappie, or (attestation) to a module that moves in v0.2.0 with its verifier. Their hashes at `8c0c1f74` are recorded so Wappie's CI can check that nothing drifts (`sha256sum -c` over these lines, from Wappie's root).
+Not copied: they belong to code that stays in Wappie, or (attestation) to a module that moves into the kit later, with its verifier. Their hashes at `8c0c1f74` are recorded so Wappie's CI can check that nothing drifts (`sha256sum -c` over these lines, from Wappie's root).
 
 ```
 cbfdc36c14fdf86ea59598498fe77bc7a81b54c547eab7e2acca5c8e7c1cf453  internal/crypto/wamedia/testdata/vectors.json

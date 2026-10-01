@@ -1,0 +1,44 @@
+{
+  "name": "@thehappieco/kit",
+  "version": "0.1.0",
+  "description": "The Happie Co's shared cryptographic kit: HPKE, sealed envelopes, the zero-knowledge account scheme, passkey PRF wraps and request signing.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": "github:thehappieco/kit",
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "NOTICE"
+  ],
+  "sideEffects": [
+    "./dist/kdf.worker.js"
+  ],
+  "exports": {
+    "./bytes": { "types": "./dist/bytes.d.ts", "import": "./dist/bytes.js" },
+    "./jcs": { "types": "./dist/jcs.d.ts", "import": "./dist/jcs.js" },
+    "./errors": { "types": "./dist/errors.d.ts", "import": "./dist/errors.js" },
+    "./hpke": { "types": "./dist/hpke.d.ts", "import": "./dist/hpke.js" },
+    "./seal": { "types": "./dist/seal.d.ts", "import": "./dist/seal.js" },
+    "./account": { "types": "./dist/account.d.ts", "import": "./dist/account.js" },
+    "./kdf.worker": { "types": "./dist/kdf.worker.d.ts", "import": "./dist/kdf.worker.js" },
+    "./passkey": { "types": "./dist/passkey.d.ts", "import": "./dist/passkey.js" },
+    "./browserAccount": { "types": "./dist/browserAccount.d.ts", "import": "./dist/browserAccount.js" },
+    "./reqhmac": { "types": "./dist/reqhmac.d.ts", "import": "./dist/reqhmac.js" },
+    "./profiles/wappie": { "types": "./dist/profiles/wappie.d.ts", "import": "./dist/profiles/wappie.js" }
+  },
+  "dependencies": {
+    "@noble/hashes": "2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  }
+}

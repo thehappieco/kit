@@ -1,0 +1,16 @@
+The Happie Co kit
+Copyright 2026 The Happie Co and contributors.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The kit was extracted from Wappie (github.com/thehappieco/wappie, Apache-2.0)
+at commit 8c0c1f74103bc6bb65a93b13613ad1964d4399c4: the Go package
+internal/crypto/seal, the request signature of internal/mcpauth/hmac.go, and
+the browser cryptography of packages/client/src/crypto. The vectors under
+vectors/wappie were produced by Wappie's own code at that commit.
+
+This project includes dependencies distributed under their own licenses. Go
+dependencies and versions are recorded in go.mod/go.sum (golang.org/x/crypto
+and github.com/google/uuid, both BSD-3-Clause); the npm package's dependency
+is recorded in js/package.json (@noble/hashes, MIT). Third-party source is not
+relicensed by this project's Apache-2.0 license.

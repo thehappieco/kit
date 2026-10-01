@@ -1,0 +1,150 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Decision 0017 of the platform: the kit's Go compiles and passes with Go
+  # 1.26.7, the version Wappie uses. GOTOOLCHAIN=local stops go from switching
+  # toolchains; go vet's stdversion analyzer flags any newer standard-library
+  # API. The seeded replays of Wappie's Go vectors run only here.
+  go-1-26-7:
+    name: go 1.26.7 (race, vet, gofmt, replays, fuzz)
+    runs-on: ubuntu-24.04
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.7'
+          cache: false
+      - run: go version | grep -q 'go1.26.7 '
+      - run: go mod verify
+      - name: gofmt
+        run: test -z "$(gofmt -l $(find . -name '*.go' -not -path './js/*'))"
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+      - name: the replays ran rather than skipped
+        run: |
+          out=$(go test -count=1 -v -run 'TestWappieSealVectors|TestWappieRequestHMACVectors' ./seal ./reqhmac)
+          if echo "$out" | grep -q 'replay needs'; then echo "replays skipped on go1.26.7"; exit 1; fi
+      - name: fuzz the parsers
+        run: |
+          go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./seal
+          go test -run '^$' -fuzz '^FuzzRead$' -fuzztime 30s ./reqhmac
+
+  go-current:
+    name: go stable
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache: false
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+
+  govulncheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache: false
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+
+  js:
+    name: typescript (node ${{ matrix.node }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '25']
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  # Fresh round trips: Go seals and TypeScript opens, TypeScript seals and Go
+  # opens, with keys and nonces made in this run.
+  cross:
+    runs-on: ubuntu-24.04
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.7'
+          cache: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: js
+      - run: make cross
+
+  vectors:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: manifest
+        run: cd vectors && sha256sum -c --quiet MANIFEST.sha256
+      - name: files of the last tag are unchanged
+        run: |
+          previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)
+          if [ -z "$previous" ]; then echo "no earlier tag"; exit 0; fi
+          changed=$(git diff --name-status "$previous" HEAD -- vectors/wappie vectors/kit | grep -v '^A' || true)
+          if [ -n "$changed" ]; then echo "vector files of $previous changed or disappeared:"; echo "$changed"; exit 1; fi
+
+  # Every byte of the tarball is measured in Wappie's enclave image: check what
+  # is in it, that two builds from clean are identical, and that it installs
+  # and works as a consumer gets it.
+  package:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: pack twice from clean and compare
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = tag ]; then node scripts/pack.mjs --reproduce --tag "${GITHUB_REF_NAME}"; else node scripts/pack.mjs --reproduce; fi
+      - run: node scripts/smoke.mjs

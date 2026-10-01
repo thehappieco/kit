@@ -1,0 +1,69 @@
+{
+  "format": "thehappieco-kit-vectors/1",
+  "module": "reqhmac",
+  "profile": "wappie",
+  "generated_by": {
+    "generator": "internal/cross/write_test.go",
+    "lang": "go",
+    "randomness": "crypto/rand; seals record what they drew where the format has room for it",
+    "source": "github.com/thehappieco/kit@unknown reqhmac",
+    "toolchain": "go1.27.1"
+  },
+  "note": "Signatures by the kit's Go with Wappie's scheme, for the TypeScript tests.",
+  "cases": [
+    {
+      "id": "reqhmac/signature/0",
+      "op": "reqhmac.signature",
+      "in": {
+        "body_b64": "MDAxNWZhYjYtMGJhNC00ODk5LWFlZWEtZjM4Y2FiMDhlZmQw",
+        "direction": "to-go",
+        "method": "post",
+        "nonce": "AAAAAAAAAAAAAAAAAAAAAA",
+        "secret": "a2b11ca6-063c-43aa-aef5-47c66dee26ab",
+        "sender": "enclave",
+        "target": "/internal/requests/x/prepare",
+        "timestamp": "1790300000"
+      },
+      "out": {
+        "canonical": "wappie-mcp-hmac/v1\nto-go\nenclave\nPOST\n/internal/requests/x/prepare\n1790300000\nAAAAAAAAAAAAAAAAAAAAAA\nc1d6bed02b4acdf426ad3e4f14796336968dc2e73c77c1f5522b6a86737dc7cc",
+        "signature": "v1=2e3f718fed9f79b3afc64ad3b91bf0516440d160ceec5db226c141da94d37288"
+      }
+    },
+    {
+      "id": "reqhmac/signature/1",
+      "op": "reqhmac.signature",
+      "in": {
+        "body_b64": "ZDY5YmY2ZjEtMjQ2ZS00NTMwLWFiY2YtYTBkMTcyNmJjYzJj",
+        "direction": "to-go",
+        "method": "GET",
+        "nonce": "BBBBBBBBBBBBBBBBBBBBBB",
+        "secret": "segredo-ção-🔑",
+        "sender": "enclave",
+        "target": "/v1/mcp/enclave/cimd?url=a%2Fb",
+        "timestamp": "1790300000"
+      },
+      "out": {
+        "canonical": "wappie-mcp-hmac/v1\nto-go\nenclave\nGET\n/v1/mcp/enclave/cimd?url=a%2Fb\n1790300000\nBBBBBBBBBBBBBBBBBBBBBB\na5e780a1e02ebb86d40b1407c74211b82f7b81a05ec8a8758c6ae05012b565a3",
+        "signature": "v1=fd99fce389b7ac8dd4bb3f60ebd49d9210577b513db6b27217713b8a6c1f4618"
+      }
+    },
+    {
+      "id": "reqhmac/signature/2",
+      "op": "reqhmac.signature",
+      "in": {
+        "body_b64": "ZjMyOTdiNjctODNhNS00MmYwLWE0ZjYtZmVkMGEzNWNmODQw",
+        "direction": "to-go",
+        "method": "DELETE",
+        "nonce": "CCCCCCCCCCCCCCCCCCCCCC",
+        "secret": "",
+        "sender": "enclave",
+        "target": "/",
+        "timestamp": "1790300000"
+      },
+      "out": {
+        "canonical": "wappie-mcp-hmac/v1\nto-go\nenclave\nDELETE\n/\n1790300000\nCCCCCCCCCCCCCCCCCCCCCC\nc2553a3fdf21233fe18aefa3bbeed8e10a4cf251dfda9813365bee696ab0fa7d",
+        "signature": "v1=3eb364252c53186bbe359f430603e871c25734d0945fb5b5465be2ebf9937e63"
+      }
+    }
+  ]
+}

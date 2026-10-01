@@ -1,0 +1,139 @@
+{
+  "format": "thehappieco-kit-vectors/1",
+  "module": "passkey",
+  "profile": "wappie",
+  "generated_by": {
+    "generator": "internal/cross/write_test.go",
+    "lang": "go",
+    "randomness": "crypto/rand; seals record what they drew where the format has room for it",
+    "source": "github.com/thehappieco/kit@unknown passkey",
+    "toolchain": "go1.27.1"
+  },
+  "note": "Fresh passkey wraps by the kit's Go with the Wappie profile, for the TypeScript tests.",
+  "cases": [
+    {
+      "id": "passkey/prf-salt/0",
+      "op": "passkey.prf_salt",
+      "in": {
+        "rp_id": "wappie.thehappie.co"
+      },
+      "out": {
+        "salt_b64": "+7Fqsy73e8DFK9Kmaixp61AThcs/ZJZ+bPksOytHDzI="
+      }
+    },
+    {
+      "id": "passkey/aad/0",
+      "op": "passkey.aad",
+      "in": {
+        "credential_id": "Y3JlZGVudGlhbC00",
+        "rp_id": "wappie.thehappie.co",
+        "user_id": "a8e99824-bddb-48a8-88f9-590f96a6afe9"
+      },
+      "out": {
+        "aad_b64": "WyJ3YXBwaWUvcGFzc2tleS12YXVsdCIsMSwid2FwcGllLnRoZWhhcHBpZS5jbyIsImE4ZTk5ODI0LWJkZGItNDhhOC04OGY5LTU5MGY5NmE2YWZlOSIsIlkzSmxaR1Z1ZEdsaGJDMDAiXQ=="
+      }
+    },
+    {
+      "id": "passkey/key/0",
+      "op": "passkey.key",
+      "in": {
+        "credential_id": "Y3JlZGVudGlhbC00",
+        "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+        "rp_id": "wappie.thehappie.co",
+        "user_id": "a8e99824-bddb-48a8-88f9-590f96a6afe9"
+      },
+      "out": {
+        "key_b64": "4h92FcnzF7Q0C+4ReaRL+ZAiqYjJodYrhm3AW+Hjt68="
+      }
+    },
+    {
+      "id": "passkey/wrap/0",
+      "op": "passkey.wrap",
+      "in": {
+        "credential_id": "Y3JlZGVudGlhbC00",
+        "nonce_b64": "clfTUCguRs+LMGP/",
+        "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+        "private_key_b64": "ERERERERERERERERERERERERERERERERERERERERERE=",
+        "rp_id": "wappie.thehappie.co",
+        "user_id": "a8e99824-bddb-48a8-88f9-590f96a6afe9"
+      },
+      "out": {
+        "envelope_b64": "AXJX01AoLkbPizBj/8WuFFieVTC3lOam698++aH/ouJ9IRkd7qzzKqx65D9fX5DqhFFuC+xVNkH/Ur5TyA=="
+      }
+    },
+    {
+      "id": "passkey/unwrap/0/other-credential",
+      "op": "passkey.unwrap",
+      "in": {
+        "credential_id": "Y3JlZGVudGlhbC00x",
+        "envelope_b64": "AXJX01AoLkbPizBj/8WuFFieVTC3lOam698++aH/ouJ9IRkd7qzzKqx65D9fX5DqhFFuC+xVNkH/Ur5TyA==",
+        "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+        "rp_id": "wappie.thehappie.co",
+        "user_id": "a8e99824-bddb-48a8-88f9-590f96a6afe9"
+      },
+      "error": "open_failed"
+    },
+    {
+      "id": "passkey/prf-salt/1",
+      "op": "passkey.prf_salt",
+      "in": {
+        "rp_id": "localhost"
+      },
+      "out": {
+        "salt_b64": "j/3RNmnQqOdPwENSsQejLcibFdNKVc5Zhd3JpLmOTrg="
+      }
+    },
+    {
+      "id": "passkey/aad/1",
+      "op": "passkey.aad",
+      "in": {
+        "credential_id": "Y3JlZGVudGlhbC01",
+        "rp_id": "localhost",
+        "user_id": "5eae6b1e-0220-4e95-8889-8074f0f3113e"
+      },
+      "out": {
+        "aad_b64": "WyJ3YXBwaWUvcGFzc2tleS12YXVsdCIsMSwibG9jYWxob3N0IiwiNWVhZTZiMWUtMDIyMC00ZTk1LTg4ODktODA3NGYwZjMxMTNlIiwiWTNKbFpHVnVkR2xoYkMwMSJd"
+      }
+    },
+    {
+      "id": "passkey/key/1",
+      "op": "passkey.key",
+      "in": {
+        "credential_id": "Y3JlZGVudGlhbC01",
+        "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+        "rp_id": "localhost",
+        "user_id": "5eae6b1e-0220-4e95-8889-8074f0f3113e"
+      },
+      "out": {
+        "key_b64": "MDzlnKu8cOnVey8NVorVJUJIbpzmBeA4HD+izOjFnas="
+      }
+    },
+    {
+      "id": "passkey/wrap/1",
+      "op": "passkey.wrap",
+      "in": {
+        "credential_id": "Y3JlZGVudGlhbC01",
+        "nonce_b64": "TP1153AhqC47yfaw",
+        "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+        "private_key_b64": "ERERERERERERERERERERERERERERERERERERERERERE=",
+        "rp_id": "localhost",
+        "user_id": "5eae6b1e-0220-4e95-8889-8074f0f3113e"
+      },
+      "out": {
+        "envelope_b64": "AUz9dedwIaguO8n2sBDcX2Luw2ByBmVTJnAB06Xe15tibxXRpEMtBJWq/TzE9uQaO5/zZygYniMITRV3Cg=="
+      }
+    },
+    {
+      "id": "passkey/unwrap/1/other-credential",
+      "op": "passkey.unwrap",
+      "in": {
+        "credential_id": "Y3JlZGVudGlhbC01x",
+        "envelope_b64": "AUz9dedwIaguO8n2sBDcX2Luw2ByBmVTJnAB06Xe15tibxXRpEMtBJWq/TzE9uQaO5/zZygYniMITRV3Cg==",
+        "prf_b64": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+        "rp_id": "localhost",
+        "user_id": "5eae6b1e-0220-4e95-8889-8074f0f3113e"
+      },
+      "error": "open_failed"
+    }
+  ]
+}

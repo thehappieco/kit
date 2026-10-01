@@ -1,0 +1,69 @@
+{
+  "format": "thehappieco-kit-vectors/1",
+  "module": "reqhmac",
+  "profile": "wappie",
+  "generated_by": {
+    "lang": "ts",
+    "source": "github.com/thehappieco/kit@unknown js/src",
+    "toolchain": "node v25.6.1; @noble/hashes 2.4.0",
+    "randomness": "crypto.getRandomValues; each case records the bytes and X25519 keys it drew",
+    "generator": "js/test/cross.spec.ts"
+  },
+  "note": "Signatures by the kit's TypeScript with Wappie's scheme, for Go.",
+  "cases": [
+    {
+      "id": "reqhmac/signature/0",
+      "op": "reqhmac.signature",
+      "in": {
+        "secret": "9c0c6a3b-0934-4062-84a6-9688d479d4db",
+        "direction": "to-reader",
+        "sender": "enclave",
+        "method": "post",
+        "target": "/internal/requests/x/prepare",
+        "timestamp": "1790300000",
+        "nonce": "AAAAAAAAAAAAAAAAAAAAAA",
+        "body_b64": "OTQ2OTI3NzItYWZjNy00ZjRlLTg3NDUtYjg4YTRmMDFmZGQ4"
+      },
+      "out": {
+        "signature": "v1=10241b5d161fc1ca89900a4488db0de19e9c63945a2646f4a64edbdbb3de6b99",
+        "canonical": "wappie-mcp-hmac/v1\nto-reader\nenclave\nPOST\n/internal/requests/x/prepare\n1790300000\nAAAAAAAAAAAAAAAAAAAAAA\ne1510f0312b4f3d3949b701b659ef3ec4d1fc49398c121e17e9e721ebfe658dd"
+      }
+    },
+    {
+      "id": "reqhmac/signature/1",
+      "op": "reqhmac.signature",
+      "in": {
+        "secret": "segredo-ção-🔑",
+        "direction": "to-reader",
+        "sender": "enclave",
+        "method": "GET",
+        "target": "/v1/x?y=%2F",
+        "timestamp": "1790300000",
+        "nonce": "BBBBBBBBBBBBBBBBBBBBBB",
+        "body_b64": "MDQ2MGViYmUtMzRmZS00OTIxLWIxZmYtNDBmZjhiYzA3MTg0"
+      },
+      "out": {
+        "signature": "v1=5d4869d1ab2bb1e5e8fad7d735c5737a8b3aa5b4dcea2e3a5a8a141078c3f876",
+        "canonical": "wappie-mcp-hmac/v1\nto-reader\nenclave\nGET\n/v1/x?y=%2F\n1790300000\nBBBBBBBBBBBBBBBBBBBBBB\nf61ea943e248807a16cd0f10281869efac48993b59a21cdf0cae4299517cf03f"
+      }
+    },
+    {
+      "id": "reqhmac/signature/2",
+      "op": "reqhmac.signature",
+      "in": {
+        "secret": "",
+        "direction": "to-reader",
+        "sender": "enclave",
+        "method": "DELETE",
+        "target": "/",
+        "timestamp": "1790300000",
+        "nonce": "CCCCCCCCCCCCCCCCCCCCCC",
+        "body_b64": "MTg2OWYwYTYtMTQzNS00ZTJmLWFlZGUtMWEyZWMzYzAwODQx"
+      },
+      "out": {
+        "signature": "v1=409510464cc4568dc2f8277cf0de29fcdf8797ecaed66eae0261bd584209165a",
+        "canonical": "wappie-mcp-hmac/v1\nto-reader\nenclave\nDELETE\n/\n1790300000\nCCCCCCCCCCCCCCCCCCCCCC\n7b1ab880a6b24efc3972dfdc4f36bada56b31fe7243ceee4158e54d96abcec62"
+      }
+    }
+  ]
+}

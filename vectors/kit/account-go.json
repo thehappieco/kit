@@ -1,0 +1,253 @@
+{
+  "format": "thehappieco-kit-vectors/1",
+  "module": "account",
+  "profile": "wappie",
+  "generated_by": {
+    "generator": "internal/cross/write_test.go",
+    "lang": "go",
+    "randomness": "crypto/rand; seals record what they drew where the format has room for it",
+    "source": "github.com/thehappieco/kit@unknown account",
+    "toolchain": "go1.27.1"
+  },
+  "note": "Fresh derivations and wraps by the kit's Go account scheme with the Wappie profile, for the TypeScript tests.",
+  "cases": [
+    {
+      "id": "account/derive/0",
+      "op": "account.derive",
+      "in": {
+        "params": {
+          "alg": "argon2id",
+          "m": 16,
+          "t": 2,
+          "p": 1
+        },
+        "password": "senha do kit",
+        "salt_b64": "WlpaWlpaWlpaWlpaWlpaWg=="
+      },
+      "out": {
+        "auth_b64": "eDvMsJSK5evXOuIM8WfYKPjTgiBlwaF5Xa6eRWg1Xy4=",
+        "auth_key": "eDvMsJSK5evXOuIM8WfYKPjTgiBlwaF5Xa6eRWg1Xy4=",
+        "wrap_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
+      }
+    },
+    {
+      "id": "account/derive/1",
+      "op": "account.derive",
+      "in": {
+        "params": {
+          "alg": "argon2id",
+          "m": 16,
+          "t": 2,
+          "p": 1
+        },
+        "password": "",
+        "salt_b64": "WlpaWlpaWlpaWlpaWlpaWg=="
+      },
+      "out": {
+        "auth_b64": "6OtG+BXej+ehWmHCN2TOrXFPdu8R1Ho7bdqc+rKKK8I=",
+        "auth_key": "6OtG+BXej+ehWmHCN2TOrXFPdu8R1Ho7bdqc+rKKK8I=",
+        "wrap_b64": "sqRxH9VLgMXp0Hnxv7eLbE0HXO+lcF3GgekSyLTISZo="
+      }
+    },
+    {
+      "id": "account/derive/2",
+      "op": "account.derive",
+      "in": {
+        "params": {
+          "alg": "argon2id",
+          "m": 16,
+          "t": 2,
+          "p": 1
+        },
+        "password": "pässwörd 🔑",
+        "salt_b64": "WlpaWlpaWlpaWlpaWlpaWg=="
+      },
+      "out": {
+        "auth_b64": "J7LNjBV75MeAAPAmjuj+ZyIGxhLLFsZm85UGoz6eE8I=",
+        "auth_key": "J7LNjBV75MeAAPAmjuj+ZyIGxhLLFsZm85UGoz6eE8I=",
+        "wrap_b64": "j9hf2pp+dEifq1JDIPU/0Rjh37ZRP3g/8vR1J2SGWns="
+      }
+    },
+    {
+      "id": "account/derive/3",
+      "op": "account.derive",
+      "in": {
+        "params": {
+          "alg": "argon2id",
+          "m": 16,
+          "t": 2,
+          "p": 1
+        },
+        "password": "çççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççççç",
+        "salt_b64": "WlpaWlpaWlpaWlpaWlpaWg=="
+      },
+      "out": {
+        "auth_b64": "lr5J54ewFhU6xESRr1ZDWad4Ux9GbpS9J8PcHieQ+14=",
+        "auth_key": "lr5J54ewFhU6xESRr1ZDWad4Ux9GbpS9J8PcHieQ+14=",
+        "wrap_b64": "Ddj7ghlUl4WEk33leRanbJG1ZI1J4b4XoeBwttuQdF4="
+      }
+    },
+    {
+      "id": "account/wrap-aad/0",
+      "op": "account.wrap_aad",
+      "in": {
+        "email": "ana@example.com"
+      },
+      "out": {
+        "aad_b64": "d2hhdHNlcnZlcjIvdXNrfGFuYUBleGFtcGxlLmNvbQ=="
+      }
+    },
+    {
+      "id": "account/wrap/0",
+      "op": "account.wrap",
+      "in": {
+        "email": "ana@example.com",
+        "nonce_b64": "gUAjy/zRoLTREiem",
+        "private_key_b64": "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=",
+        "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
+      },
+      "out": {
+        "blob_b64": "AoFAI8v80aC00RInpt62k8nkG/sWhy7FxAhU7unTBYz2tEWkoNl0NrQaopJ4LJpRMuYKc9s00YErDuDn3g=="
+      }
+    },
+    {
+      "id": "account/unwrap/0/other-email",
+      "op": "account.unwrap",
+      "in": {
+        "blob_b64": "AoFAI8v80aC00RInpt62k8nkG/sWhy7FxAhU7unTBYz2tEWkoNl0NrQaopJ4LJpRMuYKc9s00YErDuDn3g==",
+        "email": "bob@example.com",
+        "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
+      },
+      "error": "wrap",
+      "reason": "wrong_key"
+    },
+    {
+      "id": "account/wrap-aad/1",
+      "op": "account.wrap_aad",
+      "in": {
+        "email": " İstanbul@EXAMPLE.com﻿"
+      },
+      "out": {
+        "aad_b64": "d2hhdHNlcnZlcjIvdXNrfGnMh3N0YW5idWxAZXhhbXBsZS5jb20="
+      }
+    },
+    {
+      "id": "account/wrap/1",
+      "op": "account.wrap",
+      "in": {
+        "email": " İstanbul@EXAMPLE.com﻿",
+        "nonce_b64": "5GKnVeMefa1qgJgK",
+        "private_key_b64": "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=",
+        "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
+      },
+      "out": {
+        "blob_b64": "AuRip1XjHn2taoCYCr7Cgx9PCrhNPcycZIPXy/tz5bBC2Ucn6ymlu+BYomLRMucCmsFMdW4Bo8Rq1aBNHQ=="
+      }
+    },
+    {
+      "id": "account/unwrap/1/other-email",
+      "op": "account.unwrap",
+      "in": {
+        "blob_b64": "AuRip1XjHn2taoCYCr7Cgx9PCrhNPcycZIPXy/tz5bBC2Ucn6ymlu+BYomLRMucCmsFMdW4Bo8Rq1aBNHQ==",
+        "email": "bob@example.com",
+        "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
+      },
+      "error": "wrap",
+      "reason": "wrong_key"
+    },
+    {
+      "id": "account/wrap-aad/2",
+      "op": "account.wrap_aad",
+      "in": {
+        "email": "ΟΔΥΣΣΕΥΣ@x.gr"
+      },
+      "out": {
+        "aad_b64": "d2hhdHNlcnZlcjIvdXNrfM6/zrTPhc+Dz4POtc+Fz4JAeC5ncg=="
+      }
+    },
+    {
+      "id": "account/wrap/2",
+      "op": "account.wrap",
+      "in": {
+        "email": "ΟΔΥΣΣΕΥΣ@x.gr",
+        "nonce_b64": "al53yY8P6jdgGwAz",
+        "private_key_b64": "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=",
+        "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
+      },
+      "out": {
+        "blob_b64": "Amped8mPD+o3YBsAM1xph266l4VSyXNHtnqpEIR0gnblVF6CF5C76reFn20GL59+isvvD+ZgentEE1iyVg=="
+      }
+    },
+    {
+      "id": "account/unwrap/2/other-email",
+      "op": "account.unwrap",
+      "in": {
+        "blob_b64": "Amped8mPD+o3YBsAM1xph266l4VSyXNHtnqpEIR0gnblVF6CF5C76reFn20GL59+isvvD+ZgentEE1iyVg==",
+        "email": "bob@example.com",
+        "wrap_key_b64": "/gy6mzjbdsF6dgFzQAqDbDtKazDb9FUbvJpOQVD4mY0="
+      },
+      "error": "wrap",
+      "reason": "wrong_key"
+    },
+    {
+      "id": "account/normalise/0",
+      "op": "account.normalise_recovery_code",
+      "in": {
+        "code": "0pxd9 v9xgh 2g4br 5pg9n szksx 6z14e"
+      },
+      "out": {
+        "code": "0PXD9-V9XGH-2G4BR-5PG9N-SZKSX-6Z14E"
+      }
+    },
+    {
+      "id": "account/recovery-proof/0",
+      "op": "account.recovery_proof",
+      "in": {
+        "code": "0pxd9 v9xgh 2g4br 5pg9n szksx 6z14e"
+      },
+      "out": {
+        "proof": "9SXQtFvDriPfANQmLsa+XuWTEMpnYkbKTYAEuclRDvQ="
+      }
+    },
+    {
+      "id": "account/recovery-key/0",
+      "op": "account.recovery_key",
+      "in": {
+        "code": "0PXD9-V9XGH-2G4BR-5PG9N-SZKSX-6Z14E"
+      },
+      "out": {
+        "key_b64": "JgGrelZdl2KgypITEZ7U3zSuD6u0uZ2bqOdUcseBbPQ="
+      }
+    },
+    {
+      "id": "account/normalise/1",
+      "op": "account.normalise_recovery_code",
+      "in": {
+        "code": "4w21t dybxg 3b00y n4zh2 nhdwn 8fw9h"
+      },
+      "out": {
+        "code": "4W21T-DYBXG-3B00Y-N4ZH2-NHDWN-8FW9H"
+      }
+    },
+    {
+      "id": "account/recovery-proof/1",
+      "op": "account.recovery_proof",
+      "in": {
+        "code": "4w21t dybxg 3b00y n4zh2 nhdwn 8fw9h"
+      },
+      "out": {
+        "proof": "YwGAZQbZy8jyIbdTkGkz1nA3FeGFmG+uVVzEBgzxqTA="
+      }
+    },
+    {
+      "id": "account/recovery-key/1",
+      "op": "account.recovery_key",
+      "in": {
+        "code": "4W21T-DYBXG-3B00Y-N4ZH2-NHDWN-8FW9H"
+      },
+      "out": {
+        "key_b64": "m72efzSMM7lvyqwdRjW2YH3O8T0HJh3gCmF2hSoLP/A="
+      }
+    }
+  ]
+}

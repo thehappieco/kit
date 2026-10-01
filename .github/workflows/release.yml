@@ -1,0 +1,46 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: js
+      - name: build the tarball twice from clean and compare
+        run: node scripts/pack.mjs --reproduce --tag "${GITHUB_REF_NAME}"
+        working-directory: js
+      - run: node scripts/smoke.mjs
+        working-directory: js
+      - name: create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          tarball="thehappieco-kit-${version}.tgz"
+          integrity="sha512-$(openssl dgst -sha512 -binary "js/${tarball}" | base64 -w0)"
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${tarball}"
+          cat > notes.md <<NOTES
+          Go: \`go get github.com/thehappieco/kit@${GITHUB_REF_NAME}\`
+
+          TypeScript: \`npm install --save-exact ${url}\`
+
+          Tarball integrity: \`${integrity}\`
+
+          Built with node $(node --version) and npm $(npm --version). Rebuild it from the tag with the same versions, \`cd js && npm ci --ignore-scripts && node scripts/pack.mjs\`, and compare.
+          NOTES
+          gh release create "${GITHUB_REF_NAME}" "js/${tarball}" js/SHA256SUMS --title "${GITHUB_REF_NAME}" --notes-file notes.md --verify-tag

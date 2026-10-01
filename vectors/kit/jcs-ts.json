@@ -1,0 +1,78 @@
+{
+  "format": "thehappieco-kit-vectors/1",
+  "module": "bytes+jcs",
+  "profile": "wappie",
+  "generated_by": {
+    "lang": "ts",
+    "source": "github.com/thehappieco/kit@unknown js/src",
+    "toolchain": "node v25.6.1; @noble/hashes 2.4.0",
+    "randomness": "crypto.getRandomValues; each case records the bytes and X25519 keys it drew",
+    "generator": "js/test/cross.spec.ts"
+  },
+  "note": "Canonical JSON and UUIDv5 by the kit's TypeScript, for Go. Each input is JSON.stringify of the value.",
+  "cases": [
+    {
+      "id": "jcs/canonical/0",
+      "op": "jcs.canonical",
+      "in": {
+        "json": "{\"z\":[1,\"two\",null,true],\"a\":{\"😀\":1,\"\":2,\"<&>\":\" \"}}"
+      },
+      "out": {
+        "jcs": "{\"a\":{\"<&>\":\" \",\"😀\":1,\"\":2},\"z\":[1,\"two\",null,true]}"
+      }
+    },
+    {
+      "id": "jcs/canonical/1",
+      "op": "jcs.canonical",
+      "in": {
+        "json": "[\"wappie/passkey-vault\",1,\"wappie.thehappie.co\",\"a\\\"b\\\\c\\u0001\",\" é\"]"
+      },
+      "out": {
+        "jcs": "[\"wappie/passkey-vault\",1,\"wappie.thehappie.co\",\"a\\\"b\\\\c\\u0001\",\" é\"]"
+      }
+    },
+    {
+      "id": "jcs/canonical/2",
+      "op": "jcs.canonical",
+      "in": {
+        "json": "{\"max\":9007199254740991,\"min\":-9007199254740991,\"ctl\":\"\\u0000\\u001f\"}"
+      },
+      "out": {
+        "jcs": "{\"ctl\":\"\\u0000\\u001f\",\"max\":9007199254740991,\"min\":-9007199254740991}"
+      }
+    },
+    {
+      "id": "bytes/uuid-v5/0",
+      "op": "bytes.uuid_v5",
+      "in": {
+        "namespace": "d476cd89-bcdf-4f24-b4c6-6eefe4c725b1",
+        "name_b64": ""
+      },
+      "out": {
+        "uuid": "477709af-c16f-5380-92dc-9edb20d4ab9c"
+      }
+    },
+    {
+      "id": "bytes/uuid-v5/1",
+      "op": "bytes.uuid_v5",
+      "in": {
+        "namespace": "d476cd89-bcdf-4f24-b4c6-6eefe4c725b1",
+        "name_b64": "YcOnw6Nv"
+      },
+      "out": {
+        "uuid": "4473025f-9add-5329-94c4-cb494c8d7666"
+      }
+    },
+    {
+      "id": "bytes/uuid-v5/2",
+      "op": "bytes.uuid_v5",
+      "in": {
+        "namespace": "d476cd89-bcdf-4f24-b4c6-6eefe4c725b1",
+        "name_b64": "CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQ=="
+      },
+      "out": {
+        "uuid": "ff6d4810-4d5c-5e02-9a2d-41b8ea6b8d77"
+      }
+    }
+  ]
+}

@@ -1,10 +1,13 @@
-// The platform profile, part 1 (SPEC section 11): the account core of The
-// Happie Co platform's protocol id-v1 (thehappie-id/v1). The password
+// The platform profile (SPEC section 11) of The Happie Co platform's
+// protocol id-v1 (thehappie-id/v1). Part 1, the account core: the password
 // profile thehappie-password/v1 and its KDF bounds, the 62-byte root wrap,
 // the recovery code, per-product keys, the server verifiers, email
-// normalisation and the strict key-bundle reader, the same in Go
-// (profiles/platform) and pinned by the platform's vectors
-// (vectors/platform/id-v1).
+// normalisation and the strict key-bundle reader. Part 2: the sealed
+// delivery of a product key to the product's page (section 11.12), PKCE
+// S256 (section 11.13), and the X25519 helpers the relying party's page
+// uses. The same in Go (profiles/platform), and pinned by the platform's
+// vectors (vectors/platform/id-v1). The relying party itself is
+// @thehappieco/kit/oidc-rp.
 //
 // Unlike the kit's generic modules, these functions take no profile: they
 // are the platform's protocol. Where a generic module already does the work,
@@ -21,7 +24,9 @@
 // pieces, page rules such as refusing a password equal to the address, the
 // decoy salts and every server secret. The implementation is in
 // ../internal/platform, taken from the platform's web/shared/crypto at
-// commit 5e66d84.
+// commit 5e66d84 (part 1) and 4476bf4 (part 2). Key delivery's HPKE wipes
+// its key schedule and is internal: no page code can choose an ephemeral
+// key.
 
 export { isPlatformError, PlatformError, type PlatformErrorCode } from '../errors.js'
 export type { DeriveOptions, Derived } from '../account.js'
@@ -71,3 +76,28 @@ export {
   type KeyBundleProductKey,
   type ParsedKeyBundle,
 } from '../internal/platform/keybundle.js'
+export {
+  deliverProductKey,
+  isProductKeyId,
+  KEY_DELIVERY_AAD_LABEL,
+  KEY_DELIVERY_INFO,
+  KEY_DELIVERY_VERSION,
+  keyDeliveryAAD,
+  openProductKey,
+  SEALED_PRODUCT_KEY_LEN,
+  sealProductKey,
+  type DeliveredProductKey,
+  type KeyDeliveryBinding,
+  type KeyDeliveryRequest,
+  type SealProductKeyInput,
+} from '../internal/platform/keydelivery.js'
+export { CODE_CHALLENGE_LEN, CODE_VERIFIER_PATTERN, isCodeVerifier, newCodeVerifier, pkceChallenge } from '../internal/platform/pkce.js'
+export {
+  checkX25519PublicKey,
+  generateX25519KeyPair,
+  importX25519PrivateKey,
+  isCanonicalX25519,
+  X25519_KEY_LEN,
+  x25519PublicFromKey,
+  type X25519KeyPair,
+} from '../internal/platform/x25519.js'

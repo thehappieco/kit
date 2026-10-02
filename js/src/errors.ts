@@ -123,10 +123,14 @@ export type PlatformErrorCode =
   | 'recovery_code'
   /** An address the profile's email normalisation does not accept. */
   | 'email'
-  /** A product id, epoch or root that names no product key, or a listed key the root does not derive. */
+  /** A product id, epoch or root that names no product key, a listed key the root does not derive, or a delivered key whose public half is not the binding's (SPEC section 11.12). */
   | 'product_key'
   /** Not a key bundle this version reads. */
   | 'bundle'
+  /** A key delivery that cannot be sealed or did not open (SPEC section 11.12); which check failed is not said. */
+  | 'key_delivery'
+  /** A PKCE code verifier outside RFC 7636: not 43 to 128 characters of [A-Za-z0-9._~-] (SPEC section 11.13). */
+  | 'pkce'
   /** A value not in its one accepted spelling where no other name fits (a verifier's inputs). */
   | 'encoding'
 

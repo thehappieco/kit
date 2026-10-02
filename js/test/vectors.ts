@@ -118,6 +118,8 @@ export const PLATFORM_FORMAT = 'thehappie-id/vectors'
 
 export interface PlatformCase {
   name: string
+  /** Which side refuses a must-fail key-delivery case: "open" or "seal". */
+  op?: string
   error?: string
   // The members are the kind's; each runner reads them by name.
   [member: string]: any
@@ -130,15 +132,27 @@ export interface PlatformFile {
   cases: PlatformCase[]
 }
 
-/** loadPlatform reads platform/id-v1/<kind>.json and checks its header and names. */
+/**
+ * caseId is how the kit identifies and cites a case of the platform's
+ * format: its name, or op "/" name when it carries an op. key-delivery.json
+ * gives five names to two cases each, one with op "open" and one with op
+ * "seal".
+ */
+export function caseId(c: PlatformCase): string {
+  return c.op === undefined ? c.name : `${c.op}/${c.name}`
+}
+
+/** loadPlatform reads platform/id-v1/<kind>.json and checks its header and case ids. */
 export function loadPlatform(kind: string): PlatformFile {
   const path = `platform/id-v1/${kind}.json`
   const f = JSON.parse(text(path)) as PlatformFile
   if (f.format !== PLATFORM_FORMAT || f.version !== 1 || f.kind !== kind) throw new Error(`${path}: header ${f.format} ${f.version} ${f.kind}`)
-  const names = new Set<string>()
+  const ids = new Set<string>()
   for (const c of f.cases) {
-    if (typeof c.name !== 'string' || c.name === '' || names.has(c.name)) throw new Error(`${path}: an empty or repeated case name`)
-    names.add(c.name)
+    if (typeof c.name !== 'string' || c.name === '' || (c.op !== undefined && typeof c.op !== 'string') || ids.has(caseId(c))) {
+      throw new Error(`${path}: an empty or repeated case id`)
+    }
+    ids.add(caseId(c))
   }
   return f
 }

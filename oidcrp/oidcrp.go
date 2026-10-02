@@ -62,7 +62,12 @@
 //
 // What the package does not do: serve HTTP (the session endpoint, its
 // same-origin rules and the product's own session are the product's), hold
-// an SQL driver, or verify ID tokens (the server trusts only userinfo).
+// an SQL driver, or verify ID tokens (the server trusts only userinfo). The
+// same-origin rules are required: the session handler example refuses, before
+// it reads the body, any request but a POST with exactly the page's Origin,
+// Sec-Fetch-Site: same-origin and an application/json body, or another site
+// could post an access token of its own account and open a session for that
+// account in the person's browser.
 //
 // Taken from the platform's tools/fakeproduct at commit 4476bf4 (its
 // userinfo client and its pin), without encoding/json/v2, which Go 1.26

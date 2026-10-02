@@ -554,7 +554,7 @@ Any failure shows a security error and leaves no state that holds a key: the flo
 
 ### 11.15 The relying party: the product's server
 
-The page posts the access token to its own server, same origin. The server (Go `oidcrp`, whose parameters are the issuer, the `client_id` and the product's key label):
+The page posts the access token to its own server, same origin. The server reads the body only of a POST with exactly its own `Origin`, `Sec-Fetch-Site: same-origin` and `Content-Type: application/json`, which no other site's page can send; otherwise another site could post an access token of its own account and open a session for that account in the person's browser (login CSRF). These checks are the product's: Go `oidcrp` serves no HTTP, and its session handler example makes them. The server (Go `oidcrp`, whose parameters are the issuer, the `client_id` and the product's key label):
 
 1. Refuses a string that is not `thid_at_` followed by the strict base64url of 32 bytes, without sending it anywhere (`access_token`).
 2. Calls `GET {issuer}/oauth2/userinfo` with `Authorization: Bearer <token>`, server to server: GET only, no redirect followed, no cookie. The token works once and lives 300 seconds, so a refusal is never retried. A 401 is `token_refused`; any answer but 200 with `application/json`, at most 16 KiB, is `userinfo`.

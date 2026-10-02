@@ -7,7 +7,7 @@ GO_FILES = $$(find . -name '*.go' -not -path './js/*' -not -path './.git/*')
 WAPPIE ?= ../whatserver2
 WAPPIE_COMMIT ?= 8c0c1f74103bc6bb65a93b13613ad1964d4399c4
 PLATFORM ?= ../platform
-PLATFORM_COMMIT ?= 5e66d841145b33dcd73cd575f2816a866793d774
+PLATFORM_COMMIT ?= 4476bf4b446297ee2b74a6f032fede7786345327
 
 .PHONY: all test test-go test-go-1.26.7 test-js test-browser lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check pack reproduce clean
 
@@ -72,14 +72,17 @@ vectors-regen-check:
 
 # Regenerates the platform's id-v1 vectors from the platform's code at
 # PLATFORM_COMMIT (git archive into a temporary directory; the platform's
-# repository is only read) and compares them with the committed ones. Not in
-# CI: the platform's repository is private.
+# repository is only read) and compares each file it writes with the
+# committed one, so an older commit checks the files it wrote: 11 of 11 at
+# 4476bf4, 8 of 11 at 5e66d84. Not in CI: the platform's repository is
+# private.
 vectors-platform-check:
 	tmp=$$(mktemp -d) && \
 	git -C $(PLATFORM) archive $(PLATFORM_COMMIT) | tar -x -C $$tmp && \
 	(cd $$tmp && go run ./tools/vectors -out $$tmp/out) && \
-	diff -r $$tmp/out vectors/platform/id-v1 && \
-	rm -rf "$${tmp:?}" && echo "platform vectors reproduce from $(PLATFORM_COMMIT)"
+	for f in $$tmp/out/*.json; do cmp -s "$$f" "vectors/platform/id-v1/$${f##*/}" || { echo "$${f##*/} differs from $(PLATFORM_COMMIT)"; exit 1; }; done && \
+	echo "$$(ls $$tmp/out | wc -l | tr -d ' ') of $$(ls vectors/platform/id-v1 | wc -l | tr -d ' ') platform files reproduce from $(PLATFORM_COMMIT)" && \
+	rm -rf "$${tmp:?}"
 
 pack:
 	cd js && node scripts/pack.mjs

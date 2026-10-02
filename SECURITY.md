@@ -10,4 +10,5 @@ The kit has not yet had the external cryptographic review that the platform's de
 
 - WebCrypto in browsers and Node (X25519, AES-GCM, HKDF, HMAC, SHA), `@noble/hashes` for Argon2id, and Go's standard library (`crypto/hpke`, `crypto/ecdh`, `crypto/hkdf`) with `golang.org/x/crypto/argon2`.
 - For the platform profile's password preparation: `golang.org/x/text/unicode/norm` in Go and the engine's `String.prototype.normalize` (ICU) in TypeScript. Both must normalise alike; the Unicode caveat is in SPEC.md section 11.2.
+- For the relying party (SPEC sections 11.14 and 11.15): IndexedDB and non-extractable AES-GCM keys for the page's flow store; the issuer's TLS for the ID token, whose signature the page does not check, and for userinfo; Go's `net/http` for the server's userinfo call; and each product's insert-only pin table, which is what stops a substituted product key (HPKE base mode does not authenticate the sender).
 - The security considerations of each format are in SPEC.md section 13.

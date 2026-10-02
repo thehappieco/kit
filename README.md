@@ -63,7 +63,8 @@ make test-go-1.26.7    # with the byte-for-byte replays of Wappie's Go vectors
 make test-browser      # the TypeScript specs in Chromium, Firefox and WebKit
 make cross             # fresh vectors in each direction, opened by the other language
 make lint-go vectors-check reproduce
-make vectors-platform-check PLATFORM=../platform   # regenerate the platform's vectors at 4476bf4 and compare
+make vectors-platform-check PLATFORM=../platform   # regenerate all eleven of the platform's files at 4476bf4 and compare
+make vectors-platform-check PLATFORM=../platform PLATFORM_COMMIT=5e66d84 PLATFORM_FILES=8   # the eight part-1 files at 5e66d84
 ```
 
 The Go code must compile with Go 1.26.7; CI builds and tests it with exactly that toolchain. A `v*` tag publishes a release only after every CI job passes on the tagged commit, browsers included, and only if that commit is on `main`. Everything in this repository is written in English (the platform's decision 0021); products map the kit's error codes to their own messages.

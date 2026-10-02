@@ -20,8 +20,9 @@
 // requests of one transaction.
 //
 // From the platform's web/shared/oidc-rp/flows.ts at 4476bf4; the record
-// also holds the product's key label (product), which the platform's
-// records lack, so a record the platform's copy wrote is not read.
+// also holds the issuer the request was sent to (issuer) and the product's
+// key label (product), which the platform's records lack, so a record the
+// platform's copy wrote is not read.
 
 export const DB_NAME = 'thehappie-rp'
 export const DB_VERSION = 1
@@ -33,6 +34,8 @@ export const FLOW_TTL_MS = 10 * 60 * 1000
 /** FlowRecord is what begin stores (section 11.14, begin step 3). */
 export interface FlowRecord {
   v: 1
+  /** The issuer the authorization request was sent to, which the callback's iss must name (RFC 9207, section 2.4). */
+  issuer: string
   client_id: string
   redirect_uri: string
   /** The product's key label, the product of product_key_id; required with key delivery, else optional. */
@@ -62,7 +65,7 @@ export function isLive(value: unknown, now: number): value is FlowRecord {
   if (typeof value !== 'object' || value === null) return false
   const r = value as Record<keyof FlowRecord, unknown>
   if (r.v !== 1 || typeof r.created_at !== 'number' || !Number.isFinite(r.created_at)) return false
-  for (const text of [r.client_id, r.redirect_uri, r.nonce, r.code_verifier, r.return_to]) {
+  for (const text of [r.issuer, r.client_id, r.redirect_uri, r.nonce, r.code_verifier, r.return_to]) {
     if (typeof text !== 'string') return false
   }
   if (r.product !== null && typeof r.product !== 'string') return false

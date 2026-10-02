@@ -3,15 +3,15 @@
 // it, to receive the product key sealed to that page alone.
 //
 // The rule it enforces: a callback completes only the flow this page began,
-// once, within 10 minutes, from this issuer; a product key comes out of it
-// only when it opens with that flow's ephemeral key and is the private half
-// of the product_key the ID token names; and finishSignIn and
-// keepProductKey hand that key to the product's storage only when the
-// product's own server has named the same sub, product_key_id and
-// product_key, because HPKE base mode does not authenticate the sender (an
-// ID token and a blob that agree can both be someone else's). Any failure
-// throws an RPError and leaves no state that holds a key: the flow is
-// deleted before the code is exchanged, whatever happens next, and a key
+// once, within 10 minutes, from the issuer its request was sent to; a
+// product key comes out of it only when it opens with that flow's ephemeral
+// key and is the private half of the product_key the ID token names; and
+// finishSignIn and keepProductKey hand that key to the product's storage
+// only when the product's own server has named the same sub, product_key_id
+// and product_key, because HPKE base mode does not authenticate the sender
+// (an ID token and a blob that agree can both be someone else's). Any
+// failure throws an RPError and leaves no state that holds a key: the flow
+// is deleted before the code is exchanged, whatever happens next, and a key
 // that fails a check is zeroed before the error is thrown.
 //
 // Product-neutral: its parameters are the issuer, the client_id, the
@@ -324,6 +324,7 @@ export async function begin(o: BeginOptions): Promise<string> {
   const now = Date.now()
   const record: FlowRecord = {
     v: 1,
+    issuer,
     client_id: clientId,
     redirect_uri: redirect.href,
     product: o.product ?? null,
@@ -481,10 +482,10 @@ async function openFlowKey(flow: FlowRecord, state: string): Promise<CryptoKey> 
  * callback completes a flow (section 11.14, callback steps 1 to 7) from the
  * URL the authorization server redirected to. In order: it drops the query
  * from the address bar; checks iss; takes the flow by state, which deletes
- * it; passes on an error response as authorization_error; exchanges the
- * code; checks the ID token; and, with key delivery, opens the product key
- * and checks it against the ID token's product_key. It stores nothing that
- * holds a key.
+ * it, and checks that its request went to this issuer; passes on an error
+ * response as authorization_error; exchanges the code; checks the ID token;
+ * and, with key delivery, opens the product key and checks it against the
+ * ID token's product_key. It stores nothing that holds a key.
  *
  * Steps 8 to 10 are finishSignIn's, which a product should call instead:
  * the key returned here must not be kept before the product's server has
@@ -517,7 +518,13 @@ export async function callback(url: string | URL, o: CallbackOptions): Promise<C
   } catch {
     throw new RPError('state_unknown', 'the flow store is unavailable')
   }
-  if (flow === null || flow.client_id !== clientId) throw new RPError('state_unknown')
+  if (flow === null) throw new RPError('state_unknown')
+  // RFC 9207, section 2.4: iss must be the issuer this flow's request was
+  // sent to, not merely the one this call was given, or a page that serves
+  // more than one issuer would send the code and its verifier to the wrong
+  // one. The flow is already deleted.
+  if (flow.issuer !== issuer) throw new RPError('iss_mismatch')
+  if (flow.client_id !== clientId) throw new RPError('state_unknown')
 
   if (error !== undefined) throw new RPError('authorization_error', undefined, oauthError(error))
   if (typeof code !== 'string' || code === '') throw new RPError('token_error', 'no code')

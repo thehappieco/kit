@@ -246,9 +246,10 @@ describe('begin', () => {
     const [state, value] = flows[0] as [string, FlowRecord]
     expect(state).toBe(a.state)
     expect(Object.keys(value).sort()).toEqual(
-      ['v', 'client_id', 'redirect_uri', 'product', 'nonce', 'code_verifier', 'akd_pub', 'aes_key', 'iv', 'sealed_eph', 'return_to', 'created_at'].sort(),
+      ['v', 'issuer', 'client_id', 'redirect_uri', 'product', 'nonce', 'code_verifier', 'akd_pub', 'aes_key', 'iv', 'sealed_eph', 'return_to', 'created_at'].sort(),
     )
     expect(value.v).toBe(1)
+    expect(value.issuer).toBe(ISSUER)
     expect(value.client_id).toBe(CLIENT_ID)
     expect(value.redirect_uri).toBe(REDIRECT_URI)
     expect(value.product).toBe(PRODUCT)
@@ -473,6 +474,35 @@ describe('callback', () => {
       expect(await storedFlows(), label).toHaveLength(0)
     }
     expect(id.tokenRequests).toHaveLength(0)
+  })
+
+  it('stops at a flow begun with another issuer, even when iss is the issuer it is given, before sending anything', async () => {
+    // RFC 9207, section 2.4: iss is compared with the issuer the request was
+    // sent to. A page that serves two issuers (staging and production) and
+    // is called back with the other sends the code and its verifier to
+    // neither, and asks its server nothing.
+    const OTHER = 'https://id.thehappie.co'
+    const session = vi.fn(async (): Promise<PinnedKey> => expect.fail('the server was asked'))
+    const store = vi.fn(() => expect.fail('a key was stored'))
+    const cases = [
+      ['begun with the issuer, called back with another', ISSUER, OTHER, false],
+      ['begun with another, called back with the issuer', OTHER, ISSUER, false],
+      ['begun with the issuer, finished with another', ISSUER, OTHER, true],
+    ] as const
+    for (const [label, beganWith, calledWith, finish] of cases) {
+      const state = new URL(await begin(options({ issuer: beganWith }))).searchParams.get('state')!
+      const u = new URL(REDIRECT_URI)
+      u.searchParams.set('code', `thid_c_${toBase64URL(random(32) as Bytes)}`)
+      u.searchParams.set('state', state)
+      u.searchParams.set('iss', calledWith)
+      browser.visit(u.href)
+      const o = { issuer: calledWith, clientId: CLIENT_ID }
+      await expectRPError(() => (finish ? finishSignIn(u.href, { ...o, session, store }) : callback(u.href, o)), 'iss_mismatch', label)
+      expect(await storedFlows(), `${label}: the flow is ended`).toHaveLength(0)
+    }
+    expect(id.tokenRequests).toHaveLength(0)
+    expect(session).not.toHaveBeenCalled()
+    expect(store).not.toHaveBeenCalled()
   })
 
   it('passes an error response on as authorization_error, and ends the flow', async () => {
@@ -706,6 +736,12 @@ describe('callback', () => {
         const { product: _, ...rest } = f
         return rest
       }],
+      // Nor does it write the issuer.
+      ['no issuer', (f: FlowRecord) => {
+        const { issuer: _, ...rest } = f
+        return rest
+      }],
+      ['an issuer that is not a string', (f: FlowRecord) => ({ ...f, issuer: null })],
       ['a key without a product', (f: FlowRecord) => ({ ...f, product: null })],
       ['a product that is not a string', (f: FlowRecord) => ({ ...f, product: 7 })],
     ] as const) {

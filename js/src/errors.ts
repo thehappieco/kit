@@ -163,7 +163,7 @@ export function isPlatformError(err: unknown, code?: PlatformErrorCode): err is 
 export type RPErrorCode =
   /** No live flow for this state: unknown, used already, another client's, or older than 10 minutes. */
   | 'state_unknown'
-  /** The callback's iss is not the issuer, exactly (RFC 9207). */
+  /** The callback's iss is not the issuer, exactly, or the flow's request went to another issuer (RFC 9207). */
   | 'iss_mismatch'
   /** The authorization server answered with an error; oauthError says which. */
   | 'authorization_error'

@@ -76,6 +76,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/thehappieco/kit/profiles/platform"
@@ -213,11 +214,15 @@ func NewHTTPClient(dial func(ctx context.Context, network, addr string) (net.Con
 
 func noRedirect(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 
+// defaultHTTP is NewHTTPClient(nil), made once, so that every Client
+// without its own shares one pool of connections.
+var defaultHTTP = sync.OnceValue(func() *http.Client { return NewHTTPClient(nil) })
+
 // httpClient is the client to make the userinfo request with: c.HTTP (or
 // the default), with redirects and cookies switched off whatever it says.
 func (c *Client) httpClient() *http.Client {
 	if c.HTTP == nil {
-		return NewHTTPClient(nil)
+		return defaultHTTP()
 	}
 	hc := *c.HTTP
 	hc.CheckRedirect = noRedirect

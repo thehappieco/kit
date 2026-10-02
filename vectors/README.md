@@ -111,7 +111,7 @@ Every dispatcher fails on a case for its language whose op it does not handle.
 }
 ```
 
-- A case has a `name`, unique in its file, and either its outputs or `"error": "<name>"`, one of the platform profile's error names (SPEC section 11.10). Every implementation runs every case.
+- A case has a `name`, unique in its file, or, in a file whose cases carry an `op`, a unique `op` and `name` (next bullet), and either its outputs or `"error": "<name>"`, one of the platform profile's error names (SPEC section 11.10). Every implementation runs every case.
 - In a file whose cases carry an `op` (`key-delivery`, where a must-fail case says which side refuses it: `open` or `seal`), a case is identified by its `op` and `name` together, which are unique; such a case is cited as `<file>#<op>/<name>` (`platform/id-v1/key-delivery.json#open/a sub in upper case`), and a case without an `op` by its name alone.
 - Binary values are base64url without padding (no `_b64` suffix); texts are JSON strings; every file is ASCII, with non-ASCII characters as `\u` escapes, and ends with one newline.
 - Kinds and their members:

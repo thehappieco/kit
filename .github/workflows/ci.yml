@@ -53,6 +53,7 @@ jobs:
           go test -run '^$' -fuzz '^FuzzPreparePassword$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzOpenProductKey$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzPKCEChallenge$' -fuzztime 30s ./profiles/platform
+          go test -run '^$' -fuzz '^FuzzReadUserinfo$' -fuzztime 30s ./oidcrp
 
   go-current:
     name: go stable

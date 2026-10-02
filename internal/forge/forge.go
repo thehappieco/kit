@@ -1,5 +1,6 @@
 // Package forge seals HPKE ciphertexts under a chosen Diffie-Hellman output,
-// for tests that need what an attacker can make.
+// for tests that need what an attacker can make, and under a chosen
+// ephemeral key, for tests that replay a recorded seal byte for byte.
 //
 // With an encapsulated key of low order, X25519 gives 32 zero bytes whatever
 // the recipient's private key, so anybody who knows the recipient's public key
@@ -8,16 +9,23 @@
 // not opens what Seal makes. The kit's vectors carry these forgeries so that
 // an implementation missing the check fails them.
 //
+// A seal under a known ephemeral key is readable by anyone who knows that
+// key, so no shipped function of the kit takes one: SealBase lives here, in
+// an internal package, and TestOnlyTestsImportForge fails if any file but a
+// test imports it.
+//
 // Test code only: nothing outside the kit's tests imports it.
 package forge
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/ecdh"
 	"crypto/hkdf"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 )
 
 // The suite of package hpke: DHKEM(X25519, HKDF-SHA256), HKDF-SHA256,
@@ -94,4 +102,34 @@ func Seal(dh, enc, recipient, info, aad, plaintext []byte) []byte {
 		panic(err)
 	}
 	return gcm.Seal(nil, nonce, plaintext, aad)
+}
+
+// SealBase is RFC 9180 SealBase, single shot, for the suite of package hpke,
+// with the sender's ephemeral private key skE given rather than drawn: it
+// returns enc || ciphertext, where enc = X25519(skE, 9) and the
+// Diffie-Hellman output is X25519(skE, pkR), which crypto/ecdh refuses when
+// it is all zeros (a pkR of low order). It is Seal with the real exchange,
+// so it shares Seal's key schedule, which TestForgeIsHPKE ties to
+// crypto/hpke and TestSealBaseIsTheCFRGVector to RFC 9180's test vector for
+// this suite.
+//
+// The platform's key-delivery vectors record the ephemeral key of each good
+// case, and the tests replay their blobs with it.
+func SealBase(pkR, skE, info, aad, plaintext []byte) ([]byte, error) {
+	eph, err := ecdh.X25519().NewPrivateKey(skE)
+	if err != nil {
+		return nil, fmt.Errorf("forge: ephemeral key: %w", err)
+	}
+	recipient, err := ecdh.X25519().NewPublicKey(pkR)
+	if err != nil {
+		return nil, fmt.Errorf("forge: recipient key: %w", err)
+	}
+	dh, err := eph.ECDH(recipient)
+	if err != nil {
+		return nil, fmt.Errorf("forge: no shared secret: %w", err)
+	}
+	enc := eph.PublicKey().Bytes()
+	ct := Seal(dh, enc, pkR, info, aad, plaintext)
+	clear(dh)
+	return append(enc, ct...), nil
 }

@@ -89,6 +89,9 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | `platform.root_wrap` | compute; replay (nonce) | compute; replay (nonce) |
 | `platform.recovery_code` | compute from the recorded bytes | compute; replay |
 | `platform.check_public_key` (the server's) | compute | |
+| `platform.key_delivery_aad`, `platform.pkce_challenge` | compute | compute |
+| `platform.open_product_key` (a fresh seal, which cannot be replayed in the other language) | open | open |
+| `platform.seal_product_key` (refusals of `akd_pub`) | refuse | refuse |
 
 Every dispatcher fails on a case for its language whose op it does not handle.
 

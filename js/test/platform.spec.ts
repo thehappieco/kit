@@ -14,7 +14,7 @@ import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes
 import { HPKEError, PlatformError } from '../src/errors.js'
 import * as platform from '../src/profiles/platform.js'
 import { open as hpkeOpen, importPrivateKey } from '../src/hpke.js'
-import { b64 as std, caseId, files, forTS, loadPlatform, toB64, unhandled, withDraws, type PlatformCase, type VectorCase } from './vectors.js'
+import { b64 as std, caseId, files, forTS, freshOnly, loadPlatform, toB64, unhandled, withDraws, type PlatformCase, type VectorCase } from './vectors.js'
 
 /** The members each kind's cases may have, which are the members the runners below read. */
 const MEMBERS: Record<string, readonly string[]> = {
@@ -524,10 +524,43 @@ async function kitCase(c: VectorCase): Promise<void> {
       return
     }
   }
+  return kitDeliveryCase(c, code)
+}
+
+// The kit's own cases of part 2 (SPEC sections 11.12 and 11.13), in the
+// kit's format: key-delivery AADs, fresh deliveries opened (a fresh seal
+// cannot be replayed in the other language), the seal's refusals of akd_pub,
+// and PKCE challenges.
+async function kitDeliveryCase(c: VectorCase, code: (fn: () => unknown) => Promise<string>): Promise<void> {
+  const i = c.in
+  const request: platform.KeyDeliveryRequest = { issuer: i.iss, clientId: i.client_id, redirectUri: i.redirect_uri, sub: i.sub, codeChallenge: i.code_challenge, nonce: i.nonce }
+  const binding = (): platform.KeyDeliveryBinding => ({ ...request, productKeyId: i.product_key_id, productKey: std(i.pk_p_b64) })
+  switch (c.op) {
+    case 'platform.key_delivery_aad':
+      if (c.error) expect(await code(() => platform.keyDeliveryAAD(binding()))).toBe(c.error)
+      else expect(platform.keyDeliveryAAD(binding())).toBe(c.out.aad)
+      return
+    case 'platform.open_product_key': {
+      const open = () => platform.openProductKey(std(i.akd_priv_b64), std(i.akd_sealed_b64), binding())
+      if (c.error) expect(await code(open)).toBe(c.error)
+      else expect(toB64(await open())).toBe(c.out.sk_b64)
+      return
+    }
+    case 'platform.seal_product_key':
+      expect(await code(() => platform.sealProductKey({ root: std(i.root_b64), product: i.product, epoch: i.epoch, akdPub: toBase64URL(std(i.akd_pub_b64)), binding: request }))).toBe(c.error)
+      return
+    case 'platform.pkce_challenge':
+      if (c.error) expect(await code(() => platform.pkceChallenge(i.code_verifier))).toBe(c.error)
+      else expect(await platform.pkceChallenge(i.code_verifier)).toBe(c.out.code_challenge)
+      return
+  }
   unhandled(c)
 }
 
-for (const [path, f] of files('kit/platform-go.json', 'kit/platform-ts.json', 'kit/platform-password-go.json', 'kit/platform-password-ts.json')) {
+for (const [path, f] of [
+  ...files('kit/platform-go.json', 'kit/platform-ts.json', 'kit/platform-password-go.json', 'kit/platform-password-ts.json'),
+  ...freshOnly('platform-delivery-go.json'),
+]) {
   describe(path, () => {
     expect(f.profile).toBe('platform')
     for (const c of f.cases.filter(forTS)) it(c.id, () => kitCase(c))

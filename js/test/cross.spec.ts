@@ -12,10 +12,10 @@ import { execSync } from 'node:child_process'
 import { closeSync, mkdirSync, openSync, readFileSync, writeSync } from 'node:fs'
 import { join } from 'node:path'
 import { argon2id } from '@noble/hashes/argon2.js'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { derive, newRecoveryCode, normaliseRecoveryCode, recoveryProof, unwrapPrivateKey, wrapPrivateKey, type AccountProfile, type KDFParams } from '../src/account.js'
-import { formatUUID, parseUUID, toBase64URL, uuidV5, type Bytes } from '../src/bytes.js'
+import { formatUUID, fromBase64URL, parseUUID, toBase64URL, uuidV5, type Bytes } from '../src/bytes.js'
 import { generateKeyPair, importPrivateKey, publicFromPrivate, seal as hpkeSeal } from '../src/hpke.js'
 import { canonicalJSON, CanonicalJSONError } from '../src/jcs.js'
 import { prfSalt, unwrapPasskey, wrapPasskey } from '../src/passkey.js'
@@ -23,6 +23,7 @@ import { canonical, signature } from '../src/reqhmac.js'
 import { grantRow, openDirect, sealDirect } from '../src/seal.js'
 import { accountWrapAAD, DIRECTION_TO_READER, Kind, passkeyAAD, wappieAccount, wappieMCPHMAC, wappiePasskey, wappieSeal } from '../src/profiles/wappie.js'
 import * as platform from '../src/profiles/platform.js'
+import { sealBase } from '../src/internal/platform/hpkebase.js'
 import { codeOf, recording, toB64, toWTF8, utf8, type VectorCase } from './vectors.js'
 
 // X25519 public keys of low order, which nothing may be sealed to (the same
@@ -41,6 +42,7 @@ const lowOrder: [string, string][] = [
 const hex = (h: string) => new Uint8Array(h.match(/../g)!.map((b) => parseInt(b, 16))) as Bytes
 
 const OUT = process.env.KIT_CROSS_OUT ?? ''
+const fromB64URL = (s: string) => fromBase64URL(s, Math.floor((s.length * 3) / 4))
 
 function source(): string {
   try {
@@ -370,6 +372,193 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
         in: { bundle_text: text.replace('"issuer":', '"issuer": "https://other.example",\n  "issuer":'), recovery_code: rc.display }, error: 'bundle' })
     }
     write('platform-ts.json', 'platform', 'Fresh cases of the platform profile (SPEC section 11) by the kit\'s TypeScript, for Go: random passwords from blocks whose normalisation is stable since Unicode 15.0, a derivation, root wraps with the nonce they drew, recovery codes with the bytes they came from, product keys, verifiers, addresses and a key bundle written by JSON.stringify.', cases, undefined, 'platform')
+  })
+
+  // Fresh cases of part 2 (SPEC sections 11.12 and 11.13): the same kinds
+  // as internal/cross/platform_delivery_test.go writes. A fresh seal's
+  // ephemeral key comes from the engine, so deliveries are checked by
+  // opening. Each case's outcome is first checked here.
+  it('writes platform-delivery-ts.json', async () => {
+    const cases: VectorCase[] = []
+    const below = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n
+    const bytes = (n: number) => crypto.getRandomValues(new Uint8Array(n)) as Bytes
+    const pickOf = <T>(from: T[]) => from[below(from.length)]
+    const AAD = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._:/|@-'
+    const NONCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'
+    const VERIFIER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
+    const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+    const from = (alphabet: string, n: number) => Array.from({ length: n }, () => alphabet[below(alphabet.length)]).join('')
+    const text = (known: string[]) => (below(2) === 0 ? pickOf(known) : from(AAD, 1 + below(60)))
+    const product = () => [() => 'wappie', () => 'mailie', () => from('abcdefghijklmnopqrstuvwxyz', 1) + from('abcdefghijklmnopqrstuvwxyz0123456789-', below(32))][below(3)]()
+    const epoch = () => (below(2) === 0 ? 1 + below(3) : 1 + below(2 ** 31 - 1))
+    const verifier = () => from(VERIFIER, 43 + below(86))
+    const request = async (): Promise<platform.KeyDeliveryRequest> => ({
+      issuer: text(['https://id.thehappie.co', 'http://id.thehappie.localhost:8290']),
+      clientId: text(['wappie-app', 'mailie-app', 'mailie-console', 'fakeproduct']),
+      redirectUri: text(['https://app.wappie.thehappie.co/auth/callback', 'http://fakeproduct.thehappie.localhost:8292/auth/callback']),
+      sub: crypto.randomUUID(),
+      codeChallenge: await platform.pkceChallenge(verifier()),
+      nonce: from(NONCE, 22 + below(107)),
+    })
+    const bindingIn = (b: platform.KeyDeliveryBinding) => ({
+      iss: b.issuer, client_id: b.clientId, redirect_uri: b.redirectUri, sub: b.sub,
+      product_key_id: b.productKeyId, pk_p_b64: toB64(b.productKey), code_challenge: b.codeChallenge, nonce: b.nonce,
+    })
+    const expectCode = async (id: string, fn: () => unknown, want: string) => expect(await codeOf(fn), id).toBe(want)
+    const outside = [' ', '?', '#', '"', '\\', '%', '+', ',', '~', '\u00e9', '\u2028', '\t']
+    const insert = (s: string) => {
+      const at = below(s.length + 1)
+      return s.slice(0, at) + pickOf(outside) + s.slice(at)
+    }
+    const breakBinding = (b: platform.KeyDeliveryBinding): [platform.KeyDeliveryBinding, string] => {
+      const o = { ...b, productKey: b.productKey.slice() }
+      const [prod, ep] = o.productKeyId.split(':')
+      switch (below(8)) {
+        case 0: o.issuer = below(2) === 0 ? '' : insert(o.issuer); return [o, 'iss']
+        case 1: o.clientId = below(2) === 0 ? '' : insert(o.clientId); return [o, 'client_id']
+        case 2: o.redirectUri = below(2) === 0 ? '' : insert(o.redirectUri); return [o, 'redirect_uri']
+        case 3:
+          o.sub = pickOf([o.sub.slice(0, 9).toUpperCase() + 'A' + o.sub.slice(10), o.sub.replace(/-/g, ''), `{${o.sub}}`])
+          return [o, 'sub']
+        case 4:
+          o.productKeyId = pickOf([`${prod}:0${ep}`, `${prod}:0`, prod, `${prod}:`, `${prod}:+${ep}`, `${prod}:2147483648`, `${prod[0].toUpperCase()}${prod.slice(1)}:${ep}`,
+            `${prod}:${ep}:${ep}`, `${prod}|${ep}`, `${prod}:${ep} `])
+          return [o, 'product_key_id']
+        case 5: o.productKey = below(2) === 0 ? o.productKey.slice(0, 31) : new Uint8Array([...o.productKey, 0]); return [o, 'pk_p']
+        case 6: {
+          const c = o.codeChallenge
+          const at = B64URL.indexOf(c[42])
+          o.codeChallenge = pickOf([c.slice(0, 42), `${c}A`, `${c}=`, c.slice(0, 42) + B64URL[at | 3], `${c.slice(0, 20)}+${c.slice(21)}`])
+          return [o, 'code_challenge']
+        }
+        default:
+          o.nonce = pickOf([from(NONCE, 21), from(NONCE, 129), insert(o.nonce.slice(1))])
+          return [o, 'nonce']
+      }
+    }
+    const otherBinding = async (b: platform.KeyDeliveryBinding): Promise<[platform.KeyDeliveryBinding, string]> => {
+      const o = { ...b }
+      const r = await request()
+      const [prod, ep] = o.productKeyId.split(':')
+      switch (below(8)) {
+        case 0: o.issuer += '/'; return [o, 'iss']
+        case 1: o.clientId += '-2'; return [o, 'client_id']
+        case 2: o.redirectUri += '/'; return [o, 'redirect_uri']
+        case 3: o.sub = r.sub; return [o, 'sub']
+        case 4: o.productKeyId = `${prod}:${ep === '1' ? 2 : 1}`; return [o, 'product_key_id']
+        case 5: o.productKey = bytes(32); return [o, 'pk_p']
+        case 6: o.codeChallenge = r.codeChallenge; return [o, 'code_challenge']
+        default: o.nonce = r.nonce; return [o, 'nonce']
+      }
+    }
+
+    // The AAD, of valid bindings and of bindings with one field broken.
+    for (let n = 0; n < 200; n++) {
+      let b: platform.KeyDeliveryBinding = { ...(await request()), productKeyId: `${product()}:${epoch()}`, productKey: bytes(32) }
+      let id = `platform/key-delivery-aad/${n}`
+      if (n % 2 === 1) {
+        let field: string
+        ;[b, field] = breakBinding(b)
+        id += `/refuses/${field}`
+        await expectCode(id, () => platform.keyDeliveryAAD(b), 'key_delivery')
+        cases.push({ id, op: 'platform.key_delivery_aad', in: bindingIn(b), error: 'key_delivery' })
+      } else {
+        cases.push({ id, op: 'platform.key_delivery_aad', in: bindingIn(b), out: { aad: platform.keyDeliveryAAD(b) } })
+      }
+    }
+
+    // Fresh deliveries, each also opened in another flow, by another
+    // recipient and with a flipped bit; for a few, what a sealer outside the
+    // rules can make: enc spelled with bit 255 set (WebCrypto's export of the
+    // ephemeral public key respelled), and another key under the binding.
+    for (let n = 0; n < 24; n++) {
+      const akd = await platform.generateX25519KeyPair()
+      const root = bytes(32), prod = product(), ep = epoch()
+      const k = await platform.deriveProductKey(root, prod, ep)
+      const r = await request()
+      const b: platform.KeyDeliveryBinding = { ...r, productKeyId: k.id, productKey: k.pub }
+      const sealed = fromB64URL(await platform.sealProductKey({ root, product: prod, epoch: ep, akdPub: toBase64URL(akd.publicKey), binding: r }))
+      const id = `platform/open-product-key/${n}`
+      expect(toB64(await platform.openProductKey(akd.privateKey, sealed, b)), id).toBe(toB64(k.sk))
+      const base = { ...bindingIn(b), akd_priv_b64: toB64(akd.privateKey), akd_sealed_b64: toB64(sealed) }
+      cases.push({ id, op: 'platform.open_product_key', in: base, out: { sk_b64: toB64(k.sk) } })
+
+      const [other, field] = await otherBinding(b)
+      await expectCode(`${id}/other-${field}`, () => platform.openProductKey(akd.privateKey, sealed, other), 'key_delivery')
+      cases.push({ id: `${id}/refuses/other-${field}`, op: 'platform.open_product_key', in: { ...bindingIn(other), akd_priv_b64: toB64(akd.privateKey), akd_sealed_b64: toB64(sealed) }, error: 'key_delivery' })
+
+      const stranger = bytes(32)
+      await expectCode(`${id}/other-recipient`, () => platform.openProductKey(stranger, sealed, b), 'key_delivery')
+      cases.push({ id: `${id}/refuses/other-recipient`, op: 'platform.open_product_key', in: { ...base, akd_priv_b64: toB64(stranger) }, error: 'key_delivery' })
+
+      const flipped = sealed.slice()
+      const bit = below(flipped.length * 8)
+      flipped[bit >> 3] ^= 1 << (bit & 7)
+      await expectCode(`${id}/flipped-bit`, () => platform.openProductKey(akd.privateKey, flipped, b), 'key_delivery')
+      cases.push({ id: `${id}/refuses/flipped-bit-${bit}`, op: 'platform.open_product_key', in: { ...base, akd_sealed_b64: toB64(flipped) }, error: 'key_delivery' })
+
+      if (n >= 4) continue
+      const info = utf8(platform.KEY_DELIVERY_INFO)
+      const aad = utf8(platform.keyDeliveryAAD(b))
+      const exportKey = crypto.subtle.exportKey.bind(crypto.subtle) as (format: string, key: CryptoKey) => Promise<ArrayBuffer | JsonWebKey>
+      const spy = vi.spyOn(crypto.subtle, 'exportKey').mockImplementation((async (format: string, key: CryptoKey) => {
+        const out = await exportKey(format, key)
+        if (format !== 'raw' || key.type !== 'public') return out
+        const aliased = new Uint8Array(out as ArrayBuffer)
+        aliased[31] |= 0x80
+        return aliased.buffer
+      }) as typeof crypto.subtle.exportKey)
+      let aliased: Bytes
+      try {
+        aliased = await sealBase(akd.publicKey, info, aad, k.sk)
+      } finally {
+        spy.mockRestore()
+      }
+      expect(aliased[31] & 0x80).toBe(0x80)
+      await expectCode(`${id}/aliased-enc`, () => platform.openProductKey(akd.privateKey, aliased, b), 'key_delivery')
+      cases.push({ id: `${id}/refuses/aliased-enc`, op: 'platform.open_product_key', in: { ...base, akd_sealed_b64: toB64(aliased) }, error: 'key_delivery' })
+
+      const wrong = await platform.deriveProductKey(bytes(32), prod, ep)
+      const { enc, ciphertext } = await hpkeSeal(akd.publicKey, info, aad, wrong.sk)
+      const wrongSealed = new Uint8Array([...enc, ...ciphertext]) as Bytes
+      await expectCode(`${id}/another-key`, () => platform.openProductKey(akd.privateKey, wrongSealed, b), 'product_key')
+      cases.push({ id: `${id}/refuses/another-key`, op: 'platform.open_product_key', in: { ...base, akd_sealed_b64: toB64(wrongSealed) }, error: 'product_key' })
+    }
+
+    // The seal's refusals of akd_pub: every low-order encoding, and a valid
+    // key spelled with bit 255 set.
+    const high = (await platform.generateX25519KeyPair()).publicKey
+    high[31] |= 0x80
+    for (const [name, pub] of [['bit-255', high], ...lowOrder.map(([n, h]) => [n, hex(h)] as [string, Bytes])] as [string, Bytes][]) {
+      const root = bytes(32), prod = product(), ep = epoch()
+      const r = await request()
+      const id = `platform/seal-product-key/refuses/${name}`
+      await expectCode(id, () => platform.sealProductKey({ root, product: prod, epoch: ep, akdPub: toBase64URL(pub), binding: r }), 'key_delivery')
+      cases.push({ id, op: 'platform.seal_product_key', in: {
+        root_b64: toB64(root), product: prod, epoch: ep, akd_pub_b64: toB64(pub),
+        iss: r.issuer, client_id: r.clientId, redirect_uri: r.redirectUri, sub: r.sub, code_challenge: r.codeChallenge, nonce: r.nonce,
+      }, error: 'key_delivery' })
+    }
+
+    // PKCE: verifiers of every length the RFC allows, and malformed ones.
+    for (let n = 0; n < 64; n++) {
+      const v = verifier()
+      cases.push({ id: `platform/pkce-challenge/${n}`, op: 'platform.pkce_challenge', in: { code_verifier: v }, out: { code_challenge: await platform.pkceChallenge(v) } })
+    }
+    for (let n = 0; n < 32; n++) {
+      let v = verifier()
+      switch (below(3)) {
+        case 0: v = from(VERIFIER, below(43)); break
+        case 1: v = from(VERIFIER, 129 + below(64)); break
+        default: {
+          const at = below(v.length)
+          v = v.slice(0, at) + pickOf(['+', '/', '=', ' ', '%7E', '\u00e9', '\uff21', '\n', '\u0000', '!', '*']) + v.slice(at + 1)
+        }
+      }
+      await expectCode(`pkce ${n}`, () => platform.pkceChallenge(v), 'pkce')
+      cases.push({ id: `platform/pkce-challenge/refuses/${n}`, op: 'platform.pkce_challenge', in: { code_verifier: v }, error: 'pkce' })
+    }
+    write('platform-delivery-ts.json', 'platform', 'Fresh cases of the platform profile\'s part 2 (SPEC sections 11.12 and 11.13) by the kit\'s TypeScript, for Go: key-delivery AADs of random bindings, half with one field broken; fresh deliveries sealed by sealProductKey, each also opened in another flow, by another recipient and with a flipped bit, and a few blobs a sealer outside the rules can make (enc spelled with bit 255 set, which RFC 9180 opens; another key under the binding, which opens and is product_key); the seal\'s refusals of low-order and non-canonical akd_pub; and PKCE verifiers of every length, and malformed ones. A fresh seal\'s ephemeral key comes from the engine, so deliveries are checked by opening.', cases, undefined, 'platform')
   })
 
   // Fixed passwords at the limit of the run rule (SPEC section 11.2, step 2)

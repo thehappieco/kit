@@ -2,6 +2,26 @@
 
 One version covers both languages. Before 1.0.0 a minor version may change APIs but never bytes; a patch changes neither.
 
+## v0.3.0
+
+The release date is the tag's.
+
+- The platform profile, part 2 (SPEC sections 11.12 to 11.15), taken from the platform at `4476bf4`:
+  - sealed key delivery (11.12) in Go and TypeScript (`profiles/platform`): the key-delivery AAD, the id. page's seal and the relying party's open. Both openers refuse an encapsulated key that is not the canonical X25519 encoding, which RFC 9180 engines would open, and a blob that opens to another key than the binding's `pk_p` is `product_key`. In TypeScript the HPKE of key delivery wipes its key schedule; the `hpke` module is unchanged;
+  - PKCE S256 (11.13) in both languages;
+  - the relying party's page (11.14), `@thehappieco/kit/oidc-rp`, parameterised by the issuer, the client, its redirect URI and scopes, and the product's key label: `begin`, `callback`, `logoutURL`, and `finishSignIn` and `keepProductKey`, which keep a delivered key only once the product's server has named the same `sub`, `product_key_id` and `product_key`, because HPKE base mode does not authenticate the sender;
+  - the relying party's server (11.15), Go `oidcrp`: the userinfo call and its strict reading, the client check, the insert-only pin with `account_key_changed`, and the answer the page compares.
+- Vectors: the platform's `key-delivery.json` (73 cases, 64 must fail), `pkce.json` (18, 12) and `password-stream-safe.json` (19, 11), byte for byte from platform commit `4476bf4`, beside the eight part-1 files, which do not change (the platform's copies are the same bytes at that commit). Both languages reproduce every case, the sealed blobs byte for byte with the recorded ephemeral keys (which only tests can inject), and refuse every must-fail case with its exact error, the TypeScript side in Node and in Chromium, Firefox and WebKit. A key-delivery case is identified by its `op` and `name`, since the file names five pairs of cases alike. `kit/platform-delivery-{go,ts}.json` round-trip key delivery and PKCE between the languages. `make vectors-platform-check` regenerates all eleven files from `4476bf4` and compares them file by file; the generator at that commit is kept in `vectors/platform/_generators-4476bf4`.
+- `password-stream-safe.json` holds the platform's cases of the run rule the kit specified in v0.2.0 (SPEC section 11.2); no code changed for it.
+- Added, changing nothing that exists:
+  - Go: in `profiles/platform`, `KeyDeliveryBinding`, `KeyDeliveryAAD`, `SealProductKey`, `OpenProductKey`, `SealedProductKeyLen`, `KeyDeliveryInfo`, `KeyDeliverySuite`, `PKCEChallenge`, `MinCodeVerifierLen`, `MaxCodeVerifierLen`, `CodeChallengeLen`, `ValidProductKeyID`, `ValidSub`, `ErrKeyDelivery` and `ErrPKCE`, which `ErrorCode` names `key_delivery` and `pkce`; the package `oidcrp`.
+  - TypeScript: in `profiles/platform`, `keyDeliveryAAD`, `deliverProductKey`, `sealProductKey`, `openProductKey`, `isProductKeyId`, `KEY_DELIVERY_INFO`, `KEY_DELIVERY_AAD_LABEL`, `KEY_DELIVERY_VERSION`, `SEALED_PRODUCT_KEY_LEN`, `pkceChallenge`, `isCodeVerifier`, `newCodeVerifier`, `CODE_VERIFIER_PATTERN`, `CODE_CHALLENGE_LEN`, `importX25519PrivateKey`, `x25519PublicFromKey`, `isCanonicalX25519`, `checkX25519PublicKey`, `generateX25519KeyPair`, `X25519_KEY_LEN` and their types; the subpath `oidc-rp`; in `errors`, `RPError`, `isRPError`, `RPErrorCode`, `OAuthError`, and the codes `key_delivery` and `pkce` of `PlatformErrorCode`.
+  - On an engine without X25519, key delivery and the X25519 helpers throw the `hpke` module's `HPKEError` `invalid_key` with the engine's `NotSupportedError` as its `cause`, as product keys do since v0.2.0.
+- SPEC: the reservations for the passkey root-wrap key and the product contract move to sections 11.16 and 11.17.
+- The npm tarball holds new files (`dist/oidc-rp.*` and more under `dist/internal/`); an enclave that measures it measures a new image even if it imports nothing new.
+- Development only: `fake-indexeddb` 6.2.5 runs the relying party's specs in Node; in the browsers they use the browser's own IndexedDB.
+- Nothing changes for Wappie: its profile, its vectors and every byte they pin are as in v0.1.0; nothing in part 1 of the platform profile changes.
+
 ## v0.2.0
 
 The release date is the tag's.

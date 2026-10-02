@@ -9,17 +9,15 @@ import (
 )
 
 // TestKitPlatformDeliveryVectors reproduces the kit's own cases of the
-// platform profile's part 2 (SPEC sections 11.12 and 11.13) that the
-// TypeScript side wrote: key-delivery AADs, fresh deliveries opened (a fresh
-// seal cannot be replayed, so it is opened), the seal's refusals of akd_pub,
-// and PKCE challenges.
+// platform profile's part 2 (SPEC sections 11.12 and 11.13): those the
+// TypeScript side wrote (kit/platform-delivery-ts.json, and the fresh file of
+// the same name in $KIT_CROSS_IN in the cross-language job) and those this
+// side wrote at release time (kit/platform-delivery-go.json). Key-delivery
+// AADs, fresh deliveries opened (a fresh seal cannot be replayed, so it is
+// opened), the seal's refusals of akd_pub, and PKCE challenges.
 func TestKitPlatformDeliveryVectors(t *testing.T) {
 	std := func(s string) []byte { return vectest.B64(t, s) }
-	cases := vectest.Fresh(t, "platform-delivery-ts.json")
-	if len(cases) == 0 {
-		t.Skip("no fresh platform-delivery-ts.json: KIT_CROSS_IN is not set")
-	}
-	for _, c := range cases {
+	for _, c := range vectest.Cases(t, "kit/platform-delivery-ts.json", "kit/platform-delivery-go.json") {
 		if !c.ForGo() {
 			continue
 		}

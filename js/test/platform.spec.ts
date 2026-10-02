@@ -14,7 +14,7 @@ import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes
 import { HPKEError, PlatformError } from '../src/errors.js'
 import * as platform from '../src/profiles/platform.js'
 import { open as hpkeOpen, importPrivateKey } from '../src/hpke.js'
-import { b64 as std, caseId, files, forTS, freshOnly, loadPlatform, toB64, unhandled, withDraws, type PlatformCase, type VectorCase } from './vectors.js'
+import { b64 as std, caseId, files, forTS, loadPlatform, toB64, unhandled, withDraws, type PlatformCase, type VectorCase } from './vectors.js'
 
 /** The members each kind's cases may have, which are the members the runners below read. */
 const MEMBERS: Record<string, readonly string[]> = {
@@ -446,11 +446,12 @@ describe('platform/id-v1/key-delivery.json', () => {
 })
 
 // The kit's own platform cases, in the kit's format: those Go wrote
-// (kit/platform-go.json and kit/platform-password-go.json, and the fresh
-// files of the same names in $KIT_CROSS_IN in the cross-language job) and
-// those this side wrote at release time (kit/platform-ts.json and
-// kit/platform-password-ts.json), which keep later versions to the same
-// bytes.
+// (kit/platform-go.json, kit/platform-password-go.json and
+// kit/platform-delivery-go.json, and the fresh files of the same names in
+// $KIT_CROSS_IN in the cross-language job) and those this side wrote at
+// release time (kit/platform-ts.json, kit/platform-password-ts.json and
+// kit/platform-delivery-ts.json), which keep later versions to the same
+// bytes, or, for fresh seals, to opening them.
 async function kitCase(c: VectorCase): Promise<void> {
   const i = c.in
   const code = async (fn: () => unknown) => {
@@ -557,10 +558,14 @@ async function kitDeliveryCase(c: VectorCase, code: (fn: () => unknown) => Promi
   unhandled(c)
 }
 
-for (const [path, f] of [
-  ...files('kit/platform-go.json', 'kit/platform-ts.json', 'kit/platform-password-go.json', 'kit/platform-password-ts.json'),
-  ...freshOnly('platform-delivery-go.json'),
-]) {
+for (const [path, f] of files(
+  'kit/platform-go.json',
+  'kit/platform-ts.json',
+  'kit/platform-password-go.json',
+  'kit/platform-password-ts.json',
+  'kit/platform-delivery-go.json',
+  'kit/platform-delivery-ts.json',
+)) {
   describe(path, () => {
     expect(f.profile).toBe('platform')
     for (const c of f.cases.filter(forTS)) it(c.id, () => kitCase(c))

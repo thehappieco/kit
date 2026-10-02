@@ -29,6 +29,7 @@ import * as browserAccount from '@thehappieco/kit/browserAccount'
 import * as reqhmac from '@thehappieco/kit/reqhmac'
 import * as wappie from '@thehappieco/kit/profiles/wappie'
 import * as platform from '@thehappieco/kit/profiles/platform'
+import * as rp from '@thehappieco/kit/oidc-rp'
 
 const pair = await hpke.generateKeyPair()
 const id = bytes.parseUUID('018f3a2b-0000-7000-8000-000000000001')
@@ -56,6 +57,21 @@ assert.equal(platform.canonicalRecoveryCode('oi234-56789-abcde-fghjk-mnpqr-stvwx
 assert.throws(() => platform.normalizeEmail('ana'), platform.PlatformError)
 await assert.rejects(platform.derivePassword(new Uint8Array(1), new Uint8Array(16), { alg: 'argon2id', m: 8, t: 1, p: 1 }), (err) => platform.isPlatformError(err, 'kdf_policy'))
 assert.equal((await platform.deriveProductKey(new Uint8Array(32).fill(3), 'wappie', 1)).pub.length, 32)
+assert.equal(await platform.pkceChallenge('dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'), 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM')
+await assert.rejects(platform.pkceChallenge('short'), (err) => platform.isPlatformError(err, 'pkce'))
+const request = { issuer: 'https://id.thehappie.co', clientId: 'wappie-app', redirectUri: 'https://app.wappie.thehappie.co/auth/callback', sub, codeChallenge: 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM', nonce: 'n-0S6_WzA2Mj4Rm7tBQdLwK1vHqXf9cUe3yPbJsZkGo' }
+const productKey = await platform.deriveProductKey(new Uint8Array(32).fill(4), 'wappie', 1)
+const binding = { ...request, productKeyId: productKey.id, productKey: productKey.pub }
+assert.ok(platform.keyDeliveryAAD(binding).startsWith('["thehappie-id/key-delivery",1,"https://id.thehappie.co","wappie-app",'))
+const akd = await platform.generateX25519KeyPair()
+const delivered = await platform.deliverProductKey({ root: new Uint8Array(32).fill(4), product: 'wappie', epoch: 1, akdPub: bytes.toBase64URL(akd.publicKey), binding: request })
+assert.deepEqual(await platform.openProductKey(akd.privateKey, delivered.akd_sealed, binding), productKey.sk)
+assert.equal(rp.sameOriginPath('//x', 'https://app.wappie.thehappie.co'), null)
+const logout = new URL(rp.logoutURL({ issuer: 'https://id.thehappie.co', clientId: 'wappie-app', postLogoutRedirectUri: 'https://app.wappie.thehappie.co/' }))
+assert.deepEqual([logout.origin + logout.pathname, logout.searchParams.get('client_id'), logout.searchParams.get('post_logout_redirect_uri'), logout.searchParams.get('state').length], ['https://id.thehappie.co/oauth2/logout', 'wappie-app', 'https://app.wappie.thehappie.co/', 43])
+assert.equal(typeof rp.begin, 'function')
+assert.equal(typeof rp.finishSignIn, 'function')
+assert.ok(rp.isRPError(new rp.RPError('pin_mismatch'), 'pin_mismatch'))
 await import('@thehappieco/kit/kdf.worker').catch(err => assert.match(String(err), /self/))
 console.log('smoke: every export loads and works from the installed tarball')
 `)

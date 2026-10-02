@@ -27,7 +27,8 @@
     "./browserAccount": { "types": "./dist/browserAccount.d.ts", "import": "./dist/browserAccount.js" },
     "./reqhmac": { "types": "./dist/reqhmac.d.ts", "import": "./dist/reqhmac.js" },
     "./profiles/wappie": { "types": "./dist/profiles/wappie.d.ts", "import": "./dist/profiles/wappie.js" },
-    "./profiles/platform": { "types": "./dist/profiles/platform.d.ts", "import": "./dist/profiles/platform.js" }
+    "./profiles/platform": { "types": "./dist/profiles/platform.d.ts", "import": "./dist/profiles/platform.js" },
+    "./oidc-rp": { "types": "./dist/oidc-rp.d.ts", "import": "./dist/oidc-rp.js" }
   },
   "dependencies": {
     "@noble/hashes": "2.4.0"
@@ -35,6 +36,7 @@
   "devDependencies": {
     "@types/node": "26.6.0",
     "@vitest/browser": "3.2.7",
+    "fake-indexeddb": "6.2.5",
     "playwright": "1.63.0",
     "typescript": "5.9.3",
     "vitest": "3.2.7"

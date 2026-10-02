@@ -55,13 +55,17 @@ function source(): string {
   }
 }
 
-function write(name: string, module: string, note: string, cases: VectorCase[], keys?: Record<string, unknown>, profile = 'wappie') {
+// RANDOMNESS is what a file's generated_by says of the randomness its cases
+// drew, unless write is given its own account.
+const RANDOMNESS = 'crypto.getRandomValues; each case records the bytes and X25519 keys it drew'
+
+function write(name: string, module: string, note: string, cases: VectorCase[], keys?: Record<string, unknown>, profile = 'wappie', randomness = RANDOMNESS) {
   const pkg = JSON.parse(readFileSync(new URL('../node_modules/@noble/hashes/package.json', import.meta.url), 'utf8'))
   const file = {
     format: 'thehappieco-kit-vectors/1', module, profile,
     generated_by: {
       lang: 'ts', source: `${source()} js/src`, toolchain: `node ${process.version}; @noble/hashes ${pkg.version}`,
-      randomness: 'crypto.getRandomValues; each case records the bytes and X25519 keys it drew', generator: 'js/test/cross.spec.ts',
+      randomness, generator: 'js/test/cross.spec.ts',
     },
     note, ...(keys ? { keys } : {}), cases,
   }
@@ -558,7 +562,8 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
       await expectCode(`pkce ${n}`, () => platform.pkceChallenge(v), 'pkce')
       cases.push({ id: `platform/pkce-challenge/refuses/${n}`, op: 'platform.pkce_challenge', in: { code_verifier: v }, error: 'pkce' })
     }
-    write('platform-delivery-ts.json', 'platform', 'Fresh cases of the platform profile\'s part 2 (SPEC sections 11.12 and 11.13) by the kit\'s TypeScript, for Go: key-delivery AADs of random bindings, half with one field broken; fresh deliveries sealed by sealProductKey, each also opened in another flow, by another recipient and with a flipped bit, and a few blobs a sealer outside the rules can make (enc spelled with bit 255 set, which RFC 9180 opens; another key under the binding, which opens and is product_key); the seal\'s refusals of low-order and non-canonical akd_pub; and PKCE verifiers of every length, and malformed ones. A fresh seal\'s ephemeral key comes from the engine, so deliveries are checked by opening.', cases, undefined, 'platform')
+    write('platform-delivery-ts.json', 'platform', 'Fresh cases of the platform profile\'s part 2 (SPEC sections 11.12 and 11.13) by the kit\'s TypeScript, for Go: key-delivery AADs of random bindings, half with one field broken; fresh deliveries sealed by sealProductKey, each also opened in another flow, by another recipient and with a flipped bit, and a few blobs a sealer outside the rules can make (enc spelled with bit 255 set, which RFC 9180 opens; another key under the binding, which opens and is product_key); the seal\'s refusals of low-order and non-canonical akd_pub; and PKCE verifiers of every length, and malformed ones. A fresh seal\'s ephemeral key comes from the engine, so deliveries are checked by opening.', cases, undefined, 'platform',
+      'crypto.getRandomValues and WebCrypto X25519; nothing drawn is recorded, so seals are checked by opening')
   })
 
   // Fixed passwords at the limit of the run rule (SPEC section 11.2, step 2)

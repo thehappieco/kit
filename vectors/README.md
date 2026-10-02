@@ -39,7 +39,7 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 - Bytes are in fields ending `_b64` (standard base64 with padding), hashes in `_hex`, UUIDs as text, integers as JSON numbers up to 2^53, wire text as JSON strings.
 - Each case has exactly one of `out` and `error`. Account errors also carry a `reason`.
 - `langs`, when present, narrows which languages run a case; absent means every language that implements the op.
-- Seals record the randomness they consumed: `seed` (Go, `testing/cryptotest.SetGlobalRandom`, replayed only on the recorded toolchain), `ephemeral_private_key_b64` or `nonce_b64` (replayed by injecting exactly those bytes).
+- Seals record the randomness they consumed: `seed` (Go, `testing/cryptotest.SetGlobalRandom`, replayed only on the recorded toolchain), `ephemeral_private_key_b64` or `nonce_b64` (replayed by injecting exactly those bytes). The fresh key deliveries of `kit/platform-delivery-{go,ts}.json` record nothing they drew, as their `generated_by.randomness` says: they are checked by opening.
 - Ids are stable and unique within a file.
 - Refusals that need an input no profile function produces carry it directly: `public_key_b64` (a key of low order, on `hpke.seal` and `seal.seal_direct`), `aad_b64` (an AAD given as is, empty included, on `passkey.wrap` and `passkey.unwrap`), and `<field>_wtf8_b64` in place of a string field: a string that is not Unicode, as WTF-8 bytes, which Go takes as the (invalid UTF-8) string itself and TypeScript decodes to a string with a lone surrogate.
 - An `account.derive` case may give `bounds` (`min`, `max`, `max_cost`, `min_salt_len`, `max_salt_len`), which the test adds to the file's profile.

@@ -18,6 +18,7 @@
 
 import { type Bytes, concat, i2osp2, encodeUTF8 } from './bytes.js'
 import { HPKEError } from './errors.js'
+import { importX25519 } from './internal/x25519engine.js'
 
 export { HPKEError }
 
@@ -81,7 +82,10 @@ async function labeledExpand(suite: Bytes, prk: Bytes, label: string, info: Byte
 // ---------------------------------------------------------------------------
 
 // WebCrypto imports an X25519 private key from PKCS#8 and nothing shorter, so
-// the 32 raw bytes get the fixed DER prefix for id-X25519 wrapped round them.
+// the 32 raw bytes get the fixed DER prefix for id-X25519 wrapped round them,
+// and it exports a generated one in the same form. Imports go through
+// internal/x25519engine.ts, which makes every engine take any 32 bytes
+// (WebKit on Linux refuses a key whose first byte is zero).
 const PKCS8_X25519_PREFIX = new Uint8Array([0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x04, 0x22, 0x04, 0x20])
 
 // The X25519 base point. Multiplying a private key by it recovers the public
@@ -92,19 +96,16 @@ BASE_POINT[0] = 9
 
 async function importPrivate(raw: Bytes): Promise<CryptoKey> {
   if (raw.length !== 32) throw new Error('an X25519 private key must contain 32 bytes')
-  // A second copy of the key, which WebCrypto copies again when it imports:
-  // zeroed once it has, so the page's heap does not keep one per import.
-  const pkcs8 = concat(PKCS8_X25519_PREFIX, raw)
+  // importX25519 builds a second copy of the key, which WebCrypto copies
+  // again when it imports, and zeroes it once it has, so the page's heap does
+  // not keep one per import.
   try {
-    return await crypto.subtle.importKey('pkcs8', pkcs8, { name: 'X25519' }, false, ['deriveBits'])
+    return await importX25519(raw)
   } catch (err) {
-    // Engines differ on degenerate scalars (WebKit on Linux refuses an
-    // all-zero one, the others clamp it): a refusal is the kit's own error.
-    // The engine's own error is its cause, so a caller can tell an engine
-    // without X25519 (NotSupportedError) from one that refused this key.
+    // A refusal is the kit's own error. The engine's own error is its cause,
+    // so a caller can tell an engine without X25519 (NotSupportedError) from
+    // one that refused this key.
     throw new HPKEError('the engine refuses this private key', 'invalid_key', { cause: err })
-  } finally {
-    pkcs8.fill(0)
   }
 }
 

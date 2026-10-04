@@ -718,6 +718,25 @@ describe('callback', () => {
     expect(await storedFlows()).toHaveLength(0)
   })
 
+  // A product key whose sk_p starts with a zero byte (1 in 256; this root's
+  // wappie:125) is one WebKit on Linux used to refuse as PKCS#8, on the id.
+  // page and on the product's page alike: it is delivered, opened and
+  // checked as any other.
+  it('delivers a product key whose sk_p starts with a zero byte', async () => {
+    const want = await deriveProductKey(ROOT, PRODUCT, 125)
+    expect(want.sk[0]).toBe(0)
+    id.bends.product = { root: ROOT, product: PRODUCT, epoch: 125 }
+    const r = await signIn()
+    expect(r.idClaims.product_key_id).toBe('wappie:125')
+    same(r.productKey!, want.sk, 'the product key')
+    const stored: Uint8Array[] = []
+    await keepProductKey(r, { sub: SUB, product_key_id: 'wappie:125', product_key: toBase64URL(want.pub) }, (sk) => {
+      stored.push(sk.slice())
+    })
+    same(stored[0], want.sk, 'the kept key')
+    expect(isZero(r.productKey!)).toBe(true)
+  })
+
   it('falls back to the root for a tampered returnTo', async () => {
     const back = await id.authorize(await begin(options()))
     const [[state, flow]] = (await storedFlows()) as [[string, FlowRecord]]

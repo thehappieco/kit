@@ -7,7 +7,8 @@
 // spelling the server accepts. WebCrypto imports an X25519 private key only
 // as PKCS#8 and exports it only as PKCS#8 or JWK, so every import and export
 // goes through a PKCS#8 buffer; each is zeroed as soon as WebCrypto is done
-// with it.
+// with it. Imports go through ../x25519engine.ts, so that WebKit on Linux
+// takes any 32 bytes as a private key, as the other engines do.
 //
 // An engine refusal surfaces as the hpke module's HPKEError invalid_key, its
 // cause what the engine threw, so a caller can tell an engine without X25519
@@ -18,17 +19,15 @@
 
 import { equal, type Bytes } from '../../bytes.js'
 import { HPKEError, PlatformError, type PlatformErrorCode } from '../../errors.js'
+import { importX25519 } from '../x25519engine.js'
 import { isAllZero, zero } from '../zero.js'
 
 /** X25519_KEY_LEN is the length of every X25519 private and public key. */
 export const X25519_KEY_LEN = 32
 
-// The fixed DER prefix of a PKCS#8 id-X25519 private key; the 32 raw bytes
-// follow it (RFC 8410).
-const PKCS8_X25519_PREFIX = new Uint8Array([
-  0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x04, 0x22, 0x04, 0x20,
-])
-const PKCS8_LEN = PKCS8_X25519_PREFIX.length + X25519_KEY_LEN
+// The length of the PKCS#8 form of an id-X25519 private key (RFC 8410): a
+// 16-byte DER prefix, then the 32 raw bytes.
+const PKCS8_LEN = 16 + X25519_KEY_LEN
 
 // The X25519 base point, u = 9.
 const BASE_POINT = new Uint8Array(32)
@@ -64,22 +63,18 @@ export function engineError(err: unknown): HPKEError {
  * importX25519PrivateKey imports 32 raw bytes as a non-extractable X25519
  * key for deriveBits. The PKCS#8 buffer that carries them is zeroed once
  * importKey has finished with it, whatever happened; the raw bytes are the
- * caller's to zero. Bytes that are not 32 long are a TypeError; an engine
- * refusal is HPKEError invalid_key with the engine's error as its cause.
+ * caller's to zero. Any 32 bytes import, on every engine (../x25519engine.ts).
+ * Bytes that are not 32 long are a TypeError; an engine refusal is
+ * HPKEError invalid_key with the engine's error as its cause.
  */
 export async function importX25519PrivateKey(raw: Uint8Array): Promise<CryptoKey> {
   if (!(raw instanceof Uint8Array) || raw.length !== X25519_KEY_LEN) {
     throw new TypeError('an X25519 private key is 32 bytes')
   }
-  const pkcs8 = new Uint8Array(PKCS8_LEN)
   try {
-    pkcs8.set(PKCS8_X25519_PREFIX)
-    pkcs8.set(raw, PKCS8_X25519_PREFIX.length)
-    return await crypto.subtle.importKey('pkcs8', pkcs8, { name: 'X25519' }, false, ['deriveBits'])
+    return await importX25519(raw)
   } catch (err) {
     throw engineRefused('this X25519 private key', err)
-  } finally {
-    zero(pkcs8)
   }
 }
 

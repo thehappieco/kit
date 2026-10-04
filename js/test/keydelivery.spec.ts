@@ -14,7 +14,7 @@ import { seal as hpkeSeal } from '../src/hpke.js'
 import { openBase, sealBase } from '../src/internal/platform/hpkebase.js'
 import { rawFromPKCS8 } from '../src/internal/platform/x25519.js'
 import * as platform from '../src/profiles/platform.js'
-import { withEngineRefusingX25519 } from './vectors.js'
+import { fromHex, LEADING_ZERO_KEYS, toHex, withDraws, withEngineRefusingX25519 } from './vectors.js'
 
 const ROOT = new Uint8Array(32).map((_, i) => 0x5a ^ (i * 7))
 
@@ -420,14 +420,56 @@ describe('the X25519 public key check (section 11.4)', () => {
     expect(rawFromPKCS8(new Uint8Array(47))).toBeNull()
   })
 
-  it('imports a private key only of 32 bytes, through a buffer it zeroes', async () => {
+  // Fixed keys, so that every run imports the same ones: each starts with a
+  // zero byte, which WebKit on Linux refused as PKCS#8 (1 key in 256; the
+  // sk_p of kit/platform-delivery-go.json#platform/open-product-key/13 is
+  // one), and again with 1 first, which X25519 reads as the same scalar.
+  it('imports any private key of 32 bytes, a first byte of zero included, through a buffer it zeroes', async () => {
     for (const n of [0, 31, 33]) await expect(platform.importX25519PrivateKey(new Uint8Array(n))).rejects.toThrow(TypeError)
-    const importSpy = vi.spyOn(crypto.subtle, 'importKey')
-    const key = await platform.importX25519PrivateKey(random(32))
-    expect(key.extractable).toBe(false)
-    const pkcs8 = importSpy.mock.calls.filter(([format]) => format === 'pkcs8').map((c) => c[1] as Uint8Array)
-    expect(pkcs8).toHaveLength(1)
-    expect(isZero(pkcs8[0])).toBe(true)
+    for (const [privHex, pubHex] of LEADING_ZERO_KEYS) {
+      for (const first of [0x00, 0x01]) {
+        const priv = fromHex(privHex)
+        priv[0] = first
+        const importSpy = vi.spyOn(crypto.subtle, 'importKey')
+        const key = await platform.importX25519PrivateKey(priv)
+        const pkcs8 = importSpy.mock.calls.filter(([format]) => format === 'pkcs8').map((c) => c[1] as Uint8Array)
+        importSpy.mockRestore()
+        expect(key.extractable).toBe(false)
+        expect(pkcs8).toHaveLength(1)
+        expect(isZero(pkcs8[0]), 'the PKCS#8 copy was zeroed').toBe(true)
+        expect(toHex(await platform.x25519PublicFromKey(key)), `${privHex}, first byte ${first}`).toBe(pubHex)
+        expect(priv[0], 'the caller\'s bytes').toBe(first)
+      }
+    }
+  })
+
+  it('hands out a generated key whose first byte is zero as it is', async () => {
+    // Node, Firefox and Safari generate such keys; WebKit on Linux never
+    // does, so the draw is replayed.
+    for (const [privHex, pubHex] of LEADING_ZERO_KEYS) {
+      const pair = await withDraws({ x25519: [fromHex(privHex)] }, platform.generateX25519KeyPair)
+      expect([toHex(pair.privateKey), toHex(pair.publicKey)]).toEqual([privHex, pubHex])
+    }
+  })
+})
+
+// A product key whose sk_p starts with a zero byte, as 1 in 256 do (here
+// ROOT's wappie:78), sealed to a recipient key that starts with one too:
+// WebKit on Linux refused both as PKCS#8, so the id. page could neither
+// derive pk_p nor seal, and the product's page could not check what it
+// opened. The public keys are Go's.
+describe('a product key whose sk_p starts with a zero byte', () => {
+  it('is derived, sealed and opened as any other', async () => {
+    const want = await platform.deriveProductKey(ROOT, 'wappie', 78)
+    expect(toHex(want.sk)).toBe('00384da5f6d8ef00bee5c378d04b625fd8554dcec498f7c538749c0a97a20aaa')
+    expect(toHex(want.pub)).toBe('0d12b37272161d95cab7b24497256e1a3251c7e72fbfcfc8a3685c0930cc0065')
+    const [akdPrivHex, akdPubHex] = LEADING_ZERO_KEYS[1]
+    const r = await request()
+    const delivered = await platform.deliverProductKey({ root: ROOT, product: 'wappie', epoch: 78, akdPub: toBase64URL(fromHex(akdPubHex)), binding: r })
+    expect([delivered.product_key, delivered.product_key_id]).toEqual([toBase64URL(want.pub), 'wappie:78'])
+    const binding = await bindingFor(r, 'wappie', 78)
+    same(await platform.openProductKey(fromHex(akdPrivHex), delivered.akd_sealed, binding), want.sk, 'opened by the raw key')
+    same(await platform.openProductKey(await platform.importX25519PrivateKey(fromHex(akdPrivHex)), delivered.akd_sealed, binding), want.sk, 'opened by the imported key')
   })
 })
 

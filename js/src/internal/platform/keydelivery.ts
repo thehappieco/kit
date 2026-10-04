@@ -297,8 +297,8 @@ async function importRecipient(raw: Uint8Array): Promise<CryptoKey> {
     return await importX25519PrivateKey(raw)
   } catch (err) {
     if (lacksX25519(err)) throw err
-    // Engines differ on degenerate scalars (WebKit on Linux refuses an
-    // all-zero one, the others clamp it).
+    // Every engine takes any 32 bytes (x25519.ts); one that does not has
+    // refused this key.
     throw new PlatformError('the engine refuses this recipient key', 'key_delivery')
   }
 }

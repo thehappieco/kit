@@ -13,7 +13,8 @@
 
 import { expect, vi } from 'vitest'
 
-import type { Bytes } from '../src/bytes.js'
+import { toBase64URL, type Bytes } from '../src/bytes.js'
+import { importX25519 } from '../src/internal/x25519engine.js'
 
 export const FORMAT = 'thehappieco-kit-vectors/1'
 
@@ -256,7 +257,50 @@ export async function withEngineRefusingX25519<T>(name: string, fn: () => Promis
   }
 }
 
-const PKCS8_X25519_PREFIX = new Uint8Array([0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x04, 0x22, 0x04, 0x20])
+/**
+ * LEADING_ZERO_KEYS are X25519 private keys whose first byte is 0x00, with
+ * the public key Go's crypto/ecdh computes for each, in hex: the class
+ * WebKit on Linux refuses to import as PKCS#8 (src/internal/x25519engine.ts):
+ * the all-zero key; the sk_p of
+ * kit/platform-delivery-go.json#platform/open-product-key/13; two zero
+ * bytes; a first zero byte and every other bit set; and a key whose last
+ * byte is zero too. The third public key ends with a zero byte.
+ */
+export const LEADING_ZERO_KEYS: readonly (readonly [string, string])[] = [
+  ['0000000000000000000000000000000000000000000000000000000000000000', '2fe57da347cd62431528daac5fbb290730fff684afc4cfc2ed90995f58cb3b74'],
+  ['00277d685c5256c1b0c110819dd6028f827f41c4ad8013e0cc26b5db69907173', '0adb1d2bfd62435c70a0ef7c9c3633db62360dc59504b481dc73edd39113e302'],
+  ['0000a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e', 'e524eee8008c95d857c5a486166904a1f2aadde00bc03199e7a2abe0a1a86f00'],
+  ['00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', '39b14aa19789cddd964648d85fefb87bd4cb5342e4535fcdd4f6d6c1888f481d'],
+  ['005a5d544f4679706b62651c170e0138332a2d24dfd6c9c0fbf2f5ece79e9100', '5456c35bb3f8044e375af4a4b3c0f0de75a071c66b9f5487c1a62db93ddc7334'],
+]
+
+export const fromHex = (s: string) => Uint8Array.from(s.match(/../g) ?? [], (h) => parseInt(h, 16)) as Bytes
+export const toHex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
+
+/**
+ * pairFrom is the pair X25519 generateKey would have made with priv as its
+ * private key, on every engine, a first byte of zero included: WebKit on
+ * Linux refuses such a key as PKCS#8 (src/internal/x25519engine.ts). The
+ * public half comes from the kit's own import. A non-extractable private
+ * key is that import; an extractable one is imported from a JWK with that
+ * public half, since its export must give back priv itself, which the
+ * kit's PKCS#8 copy does not hold.
+ */
+async function pairFrom(priv: Uint8Array, extractable: boolean, usages: KeyUsage[]): Promise<CryptoKeyPair> {
+  const derived = await importX25519(priv)
+  const publicRaw = new Uint8Array(await crypto.subtle.deriveBits({ name: 'X25519', public: await basePoint() }, derived, 256))
+  const sameUsages = usages.length === 1 && usages[0] === 'deriveBits'
+  const privateKey = !extractable && sameUsages
+    ? derived
+    : await crypto.subtle.importKey(
+      'jwk',
+      { kty: 'OKP', crv: 'X25519', d: toBase64URL(new Uint8Array(priv)), x: toBase64URL(publicRaw), ext: extractable },
+      { name: 'X25519' },
+      extractable,
+      usages,
+    )
+  return { privateKey, publicKey: await crypto.subtle.importKey('raw', publicRaw, { name: 'X25519' }, true, []) }
+}
 
 /**
  * withDraws runs fn with crypto.getRandomValues serving the recorded byte
@@ -279,10 +323,7 @@ export async function withDraws<T>(draws: { bytes?: Uint8Array[]; x25519?: Uint8
     if (name !== 'X25519') return realGenerateKey(algorithm as never, extractable, usages)
     const priv = x25519.shift()
     if (!priv) throw new Error('unexpected X25519 key generation')
-    const privateKey = await crypto.subtle.importKey('pkcs8', new Uint8Array([...PKCS8_X25519_PREFIX, ...priv]), { name: 'X25519' }, extractable, usages)
-    const scalarPublic = await crypto.subtle.deriveBits({ name: 'X25519', public: await basePoint() }, privateKey, 256)
-    const publicKey = await crypto.subtle.importKey('raw', scalarPublic, { name: 'X25519' }, true, [])
-    return { privateKey, publicKey }
+    return pairFrom(priv, extractable, usages)
   }) as never)
   try {
     const value = await fn()
@@ -334,9 +375,7 @@ export async function recording<T>(fn: () => Promise<T> | T): Promise<{ value: T
     if (name !== 'X25519') return realGenerateKey(algorithm as never, extractable, usages)
     const priv = real(new Uint8Array(32))
     x25519.push(priv.slice())
-    const privateKey = await crypto.subtle.importKey('pkcs8', new Uint8Array([...PKCS8_X25519_PREFIX, ...priv]), { name: 'X25519' }, extractable, usages)
-    const publicRaw = await crypto.subtle.deriveBits({ name: 'X25519', public: await basePoint() }, privateKey, 256)
-    return { privateKey, publicKey: await crypto.subtle.importKey('raw', publicRaw, { name: 'X25519' }, true, []) }
+    return pairFrom(priv, extractable, usages)
   }) as never)
   try {
     return { value: await fn(), bytes, x25519 }

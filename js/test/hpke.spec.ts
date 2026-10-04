@@ -16,6 +16,7 @@ import {
   withDraws,
   withEngineRefusingX25519,
   withLenientX25519,
+  withX25519Generation,
 } from './vectors.js'
 
 for (const [path, f] of files('wappie/golden/hpke-ts.json', 'kit/hpke-go.json')) {
@@ -180,6 +181,35 @@ describe('hpke', () => {
     for (const [privHex, pubHex] of LEADING_ZERO_KEYS) {
       const pair = await withDraws({ x25519: [fromHex(privHex)] }, generateKeyPair)
       expect([toHex(pair.privateKey), toHex(pair.publicKey)]).toEqual([privHex, pubHex])
+    }
+  })
+
+  // WebKit on Linux fails 1 generateKey in 256 with an OperationError. The
+  // kit asks again, four times in all; any other error is not asked again.
+  it('asks again when the engine fails to generate a key', async () => {
+    const flaky = (call: number) => (call < 3 ? 'OperationError' : null)
+    const generated = await withX25519Generation(flaky, generateKeyPair)
+    expect(generated.calls).toBe(4)
+    const pair = generated.value!
+    expect(toHex(await publicFromPrivate(pair.privateKey))).toBe(toHex(pair.publicKey))
+    const sealed = await withX25519Generation(flaky, () => seal(pair.publicKey, utf8('i'), utf8('a'), utf8('p')))
+    expect(sealed.calls).toBe(4)
+    const { enc, ciphertext } = sealed.value!
+    expect(new TextDecoder().decode(await open(await importPrivateKey(pair.privateKey), enc, utf8('i'), utf8('a'), ciphertext))).toBe('p')
+
+    // Four in a row: generateKeyPair throws what the engine threw, as in
+    // v0.1.0; seal throws invalid_key with it as the cause, which says
+    // nothing about the public key.
+    const never = await withX25519Generation(() => 'OperationError', generateKeyPair)
+    expect([never.calls, (never.error as DOMException).name]).toEqual([4, 'OperationError'])
+    const unsealed = await withX25519Generation(() => 'OperationError', () => seal(pair.publicKey, utf8('i'), utf8('a'), utf8('p')))
+    expect(unsealed.calls).toBe(4)
+    expect(unsealed.error).toBeInstanceOf(HPKEError)
+    expect((unsealed.error as HPKEError).code).toBe('invalid_key')
+    expect(((unsealed.error as HPKEError).cause as DOMException).name).toBe('OperationError')
+    for (const name of ['NotSupportedError', 'DataError']) {
+      const once = await withX25519Generation(() => name, generateKeyPair)
+      expect([once.calls, (once.error as DOMException).name]).toEqual([1, name])
     }
   })
 

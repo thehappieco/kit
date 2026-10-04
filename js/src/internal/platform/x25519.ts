@@ -7,19 +7,21 @@
 // spelling the server accepts. WebCrypto imports an X25519 private key only
 // as PKCS#8 and exports it only as PKCS#8 or JWK, so every import and export
 // goes through a PKCS#8 buffer; each is zeroed as soon as WebCrypto is done
-// with it. Imports go through ../x25519engine.ts, so that WebKit on Linux
-// takes any 32 bytes as a private key, as the other engines do.
+// with it. Imports and generation go through ../x25519engine.ts, so that
+// WebKit on Linux takes any 32 bytes as a private key, as the other engines
+// do, and a key it fails to generate is asked for again.
 //
 // An engine refusal surfaces as the hpke module's HPKEError invalid_key, its
 // cause what the engine threw, so a caller can tell an engine without X25519
 // (a NotSupportedError) from one that refused this key, as v0.2.0's product
-// keys do (SPEC section 11.10).
+// keys do (SPEC section 11.10). An engine that cannot generate a key is not
+// a verdict on any input either, and surfaces the same way.
 //
 // From the platform's web/shared/crypto/x25519.ts at 4476bf4.
 
 import { equal, type Bytes } from '../../bytes.js'
 import { HPKEError, PlatformError, type PlatformErrorCode } from '../../errors.js'
-import { importX25519 } from '../x25519engine.js'
+import { generateX25519, importX25519 } from '../x25519engine.js'
 import { isAllZero, zero } from '../zero.js'
 
 /** X25519_KEY_LEN is the length of every X25519 private and public key. */
@@ -78,6 +80,20 @@ export async function importX25519PrivateKey(raw: Uint8Array): Promise<CryptoKey
   }
 }
 
+/**
+ * generateX25519Key generates an X25519 pair for deriveBits, asking again
+ * where WebKit on Linux fails to (../x25519engine.ts). A refusal is never a
+ * verdict on any input: it is HPKEError invalid_key with the engine's last
+ * error as its cause, a NotSupportedError where the engine has no X25519.
+ */
+export async function generateX25519Key(extractable: boolean): Promise<CryptoKeyPair> {
+  try {
+    return await generateX25519(extractable)
+  } catch (err) {
+    throw engineRefused('to generate an X25519 key', err)
+  }
+}
+
 /** x25519PublicFromKey is X25519(priv, 9): the public half of an imported key. */
 export async function x25519PublicFromKey(priv: CryptoKey): Promise<Bytes> {
   try {
@@ -110,23 +126,31 @@ export function isCanonicalX25519(u: Uint8Array): boolean {
  * with a fresh random private key does not give the all-zero output, which
  * refuses the low-order points. WebCrypto itself throws on an all-zero
  * result, and the zero test below, which has no early exit, catches an
- * engine that does not. A refusal throws PlatformError(code); an engine
- * without X25519 throws HPKEError invalid_key with its NotSupportedError as
- * the cause.
+ * engine that does not. A refusal throws PlatformError(code). The fresh key
+ * says nothing about pub: an engine without X25519, or one that cannot
+ * generate that key, throws HPKEError invalid_key with the engine's error
+ * as the cause, never PlatformError(code).
  */
 export async function checkX25519PublicKey(pub: Uint8Array, code: PlatformErrorCode): Promise<void> {
   if (!(pub instanceof Uint8Array) || pub.length !== X25519_KEY_LEN) {
     throw new PlatformError('an X25519 public key is 32 bytes', code)
   }
   if (!isCanonicalX25519(pub)) throw new PlatformError('not a canonical X25519 encoding', code)
+  let peer: CryptoKey
+  try {
+    peer = await crypto.subtle.importKey('raw', new Uint8Array(pub), { name: 'X25519' }, true, [])
+  } catch (err) {
+    if (lacksX25519(err)) throw engineError(err)
+    // Firefox refuses the low-order points here already.
+    throw new PlatformError('not an X25519 public key, or a low-order point', code)
+  }
+  const probe = await generateX25519Key(false)
   let shared: Bytes | undefined
   try {
-    const peer = await crypto.subtle.importKey('raw', new Uint8Array(pub), { name: 'X25519' }, true, [])
-    const probe = (await crypto.subtle.generateKey({ name: 'X25519' }, false, ['deriveBits'])) as CryptoKeyPair
     shared = new Uint8Array(await crypto.subtle.deriveBits({ name: 'X25519', public: peer }, probe.privateKey, 256))
   } catch (err) {
     if (lacksX25519(err)) throw engineError(err)
-    throw new PlatformError('not an X25519 public key, or a low-order point', code)
+    throw new PlatformError('a low-order point', code)
   }
   try {
     if (isAllZero(shared)) throw new PlatformError('a low-order point', code)
@@ -178,12 +202,7 @@ export function rawFromPKCS8(der: Uint8Array): Bytes | null {
  * key that cannot open.
  */
 export async function generateX25519KeyPair(): Promise<X25519KeyPair> {
-  let pair: CryptoKeyPair
-  try {
-    pair = (await crypto.subtle.generateKey({ name: 'X25519' }, true, ['deriveBits'])) as CryptoKeyPair
-  } catch (err) {
-    throw engineRefused('to generate an X25519 key', err)
-  }
+  const pair = await generateX25519Key(true)
   const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey))
   const pkcs8 = new Uint8Array(await crypto.subtle.exportKey('pkcs8', pair.privateKey))
   let privateKey: Bytes | null = null

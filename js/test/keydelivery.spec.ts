@@ -14,7 +14,7 @@ import { seal as hpkeSeal } from '../src/hpke.js'
 import { openBase, sealBase } from '../src/internal/platform/hpkebase.js'
 import { rawFromPKCS8 } from '../src/internal/platform/x25519.js'
 import * as platform from '../src/profiles/platform.js'
-import { fromHex, LEADING_ZERO_KEYS, toHex, withDraws, withEngineRefusingX25519 } from './vectors.js'
+import { fromHex, LEADING_ZERO_KEYS, toHex, withDraws, withEngineRefusingX25519, withX25519Generation } from './vectors.js'
 
 const ROOT = new Uint8Array(32).map((_, i) => 0x5a ^ (i * 7))
 
@@ -450,6 +450,55 @@ describe('the X25519 public key check (section 11.4)', () => {
       const pair = await withDraws({ x25519: [fromHex(privHex)] }, platform.generateX25519KeyPair)
       expect([toHex(pair.privateKey), toHex(pair.publicKey)]).toEqual([privHex, pubHex])
     }
+  })
+})
+
+// WebKit on Linux fails 1 X25519 generateKey in 256 with an OperationError
+// (src/internal/x25519engine.ts). Each function that generates a key asks
+// again, four times in all; after that the engine's failure is the hpke
+// module's HPKEError invalid_key, its cause the engine's error, and never a
+// verdict on akd_pub or a blob.
+describe('an engine that fails to generate an X25519 key', () => {
+  const flaky = (call: number) => (call < 3 ? 'OperationError' : null)
+  const always = () => 'OperationError'
+
+  it('is asked again by every function that generates one', async () => {
+    const generated = await withX25519Generation(flaky, platform.generateX25519KeyPair)
+    expect(generated.calls).toBe(4)
+    const pair = generated.value!
+    same(await platform.x25519PublicFromKey(await platform.importX25519PrivateKey(pair.privateKey)), pair.publicKey, 'the pair')
+    const checked = await withX25519Generation(flaky, () => platform.checkX25519PublicKey(pair.publicKey, 'key_delivery'))
+    expect([checked.calls, checked.error]).toEqual([4, undefined])
+    // deliverProductKey generates the akd_pub check's probe, then the
+    // ephemeral key: three refusals of each.
+    const r = await request()
+    const input = { root: ROOT, product: 'wappie', epoch: 1, akdPub: toBase64URL(pair.publicKey), binding: r }
+    const delivered = await withX25519Generation((call) => (call % 4 === 3 ? null : 'OperationError'), () => platform.deliverProductKey(input))
+    expect(delivered.calls).toBe(8)
+    same(await platform.openProductKey(pair.privateKey, delivered.value!.akd_sealed, await bindingFor(r)), (await platform.deriveProductKey(ROOT, 'wappie', 1)).sk, 'sk_p')
+  })
+
+  it('is the engine\'s HPKEError after four refusals, never key_delivery', async () => {
+    const pair = await platform.generateX25519KeyPair()
+    const input = { root: ROOT, product: 'wappie', epoch: 1, akdPub: toBase64URL(pair.publicKey), binding: await request() }
+    const cases: [string, (call: number) => string | null, () => Promise<unknown>, number][] = [
+      ['generateX25519KeyPair', always, () => platform.generateX25519KeyPair(), 4],
+      ['checkX25519PublicKey', always, () => platform.checkX25519PublicKey(pair.publicKey, 'key_delivery'), 4],
+      ['the probe of deliverProductKey', always, () => platform.deliverProductKey(input), 4],
+      ['the ephemeral key of deliverProductKey', (call) => (call === 0 ? null : 'OperationError'), () => platform.deliverProductKey(input), 5],
+      ['the ephemeral key of sealProductKey', (call) => (call === 0 ? null : 'OperationError'), () => platform.sealProductKey(input), 5],
+    ]
+    for (const [label, refuse, fn, calls] of cases) {
+      const got = await withX25519Generation(refuse, fn)
+      expect(got.calls, label).toBe(calls)
+      expect(got.error, label).toBeInstanceOf(HPKEError)
+      expect((got.error as HPKEError).code, label).toBe('invalid_key')
+      expect(((got.error as HPKEError).cause as DOMException).name, label).toBe('OperationError')
+    }
+    // An engine without X25519 is not asked again.
+    const once = await withX25519Generation(() => 'NotSupportedError', () => platform.generateX25519KeyPair())
+    expect(once.calls).toBe(1)
+    expect(((once.error as HPKEError).cause as DOMException).name).toBe('NotSupportedError')
   })
 })
 

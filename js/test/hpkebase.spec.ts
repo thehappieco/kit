@@ -11,7 +11,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { concat, encodeUTF8, type Bytes } from '../src/bytes.js'
 import { generateKeyPair, importPrivateKey, open as referenceOpen, seal as referenceSeal } from '../src/hpke.js'
 import { ENC_LEN, openBase, sealBase, TAG_LEN } from '../src/internal/platform/hpkebase.js'
+import { HPKEError } from '../src/errors.js'
 import { generateX25519KeyPair, importX25519PrivateKey, x25519PublicFromKey } from '../src/internal/platform/x25519.js'
+import { withX25519Generation } from './vectors.js'
 
 const INFO = encodeUTF8('thehappie-id/v1/key-delivery')
 
@@ -168,6 +170,20 @@ describe('the HPKE of key delivery', () => {
     const eph = generated.at(-1)!
     expect(eph.privateKey.extractable).toBe(false)
     same(new Uint8Array(await crypto.subtle.exportKey('raw', eph.publicKey)), sealed.slice(0, ENC_LEN), 'enc')
+  })
+
+  it('asks again for the ephemeral key when the engine fails to generate one', async () => {
+    // WebKit on Linux fails 1 generateKey in 256 with an OperationError.
+    const r = await recipient()
+    const pt = random(32)
+    const sealed = await withX25519Generation((call) => (call < 3 ? 'OperationError' : null), () => sealBase(r.publicKey, INFO, new Uint8Array(0), pt))
+    expect(sealed.calls).toBe(4)
+    same(await openBase(r.key, r.publicKey, sealed.value!, INFO, new Uint8Array(0)), pt, 'the plaintext')
+    // Four in a row is the engine's failure, not the recipient's.
+    const refused = await withX25519Generation(() => 'OperationError', () => sealBase(r.publicKey, INFO, new Uint8Array(0), pt))
+    expect(refused.calls).toBe(4)
+    expect(refused.error).toBeInstanceOf(HPKEError)
+    expect(((refused.error as HPKEError).cause as DOMException).name).toBe('OperationError')
   })
 
   it('leaves no secret of the key schedule in a page buffer, sealing or opening', async () => {

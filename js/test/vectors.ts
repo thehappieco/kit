@@ -278,6 +278,37 @@ export const fromHex = (s: string) => Uint8Array.from(s.match(/../g) ?? [], (h) 
 export const toHex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
 
 /**
+ * withX25519Generation runs fn on a WebCrypto whose X25519 generateKey
+ * throws, on each call for which refuse names an error (counting from 0),
+ * a DOMException of that name, and generates as usual on the others:
+ * OperationError is what WebKit on Linux throws on 1 call in 256, and
+ * NotSupportedError an engine without X25519. It returns what fn returned
+ * or threw, and how many X25519 pairs fn asked for.
+ */
+export async function withX25519Generation<T>(
+  refuse: (call: number) => string | null,
+  fn: () => Promise<T>,
+): Promise<{ value?: T; error?: unknown; calls: number }> {
+  const realGenerate = crypto.subtle.generateKey.bind(crypto.subtle) as (...a: unknown[]) => Promise<CryptoKeyPair | CryptoKey>
+  let calls = 0
+  const spy = vi.spyOn(crypto.subtle, 'generateKey').mockImplementation(((algorithm: unknown, ...rest: unknown[]) => {
+    const name = typeof algorithm === 'string' ? algorithm : (algorithm as { name?: string }).name
+    if (name !== 'X25519') return realGenerate(algorithm, ...rest)
+    const error = refuse(calls++)
+    if (error !== null) return Promise.reject(new DOMException('the engine refuses to generate this key', error))
+    return realGenerate(algorithm, ...rest)
+  }) as never)
+  try {
+    const value = await fn()
+    return { value, calls }
+  } catch (error) {
+    return { error, calls }
+  } finally {
+    spy.mockRestore()
+  }
+}
+
+/**
  * pairFrom is the pair X25519 generateKey would have made with priv as its
  * private key, on every engine, a first byte of zero included: WebKit on
  * Linux refuses such a key as PKCS#8 (src/internal/x25519engine.ts). The

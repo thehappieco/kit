@@ -58,6 +58,7 @@ import {
   SUB,
   TOKEN_ENDPOINT,
 } from './oidcrpfake.js'
+import { withX25519Generation } from './vectors.js'
 
 const fakeIndexedDB = IN_BROWSER ? undefined : await import('fake-indexeddb')
 
@@ -201,6 +202,23 @@ describe('begin', () => {
     expect([...a.params.keys()].sort()).toEqual(
       ['akd_pub', 'client_id', 'code_challenge', 'code_challenge_method', 'login_hint', 'nonce', 'prompt', 'redirect_uri', 'response_type', 'scope', 'state', 'ui_locales'].sort(),
     )
+  })
+
+  it('asks again for the ephemeral key when the engine fails to generate one', async () => {
+    // WebKit on Linux fails 1 generateKey in 256 with an OperationError.
+    const asked = await withX25519Generation((call) => (call < 3 ? 'OperationError' : null), () => begin(options()))
+    expect(asked.calls).toBe(4)
+    const back = await id.authorize(asked.value!)
+    browser.visit(back)
+    const r = await callback(back, CALLBACK)
+    same(r.productKey!, (await deriveProductKey(ROOT, PRODUCT, EPOCH)).sk, 'the product key')
+    r.productKey!.fill(0)
+    // Four in a row is the engine's error, before anything is stored.
+    const refused = await withX25519Generation(() => 'OperationError', () => begin(options()))
+    expect(refused.error).toBeInstanceOf(HPKEError)
+    expect(((refused.error as HPKEError).cause as DOMException).name).toBe('OperationError')
+    expect(refused.calls).toBe(4)
+    expect(await storedFlows()).toHaveLength(0)
   })
 
   it('asks for identity only without akd_pub, and stores no key', async () => {

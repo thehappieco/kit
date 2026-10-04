@@ -36,12 +36,14 @@
 // product or epoch that names no key and for a blob that opens to another
 // key than pk_p. An engine without X25519 is not a verdict on a blob: the
 // hpke module's HPKEError invalid_key, its cause the engine's
-// NotSupportedError, passes through (SPEC section 11.10).
+// NotSupportedError, passes through (SPEC section 11.10), as it does, its
+// cause the engine's last error, from an engine that cannot generate the
+// akd_pub check's probe or the ephemeral key.
 //
 // From the platform's web/shared/crypto/keydelivery.ts at 4476bf4.
 
 import { Base64Error, encodeUTF8, equal, fromBase64URL, toBase64URL, type Bytes } from '../../bytes.js'
-import { PlatformError, type PlatformErrorCode } from '../../errors.js'
+import { HPKEError, PlatformError, type PlatformErrorCode } from '../../errors.js'
 import { canonicalJSON } from '../../jcs.js'
 import { zero } from '../zero.js'
 import { openBase, sealBase } from './hpkebase.js'
@@ -210,7 +212,9 @@ export async function deliverProductKey(i: SealProductKeyInput): Promise<Deliver
     try {
       sealed = await sealBase(akdPub, encodeUTF8(KEY_DELIVERY_INFO), encodeUTF8(aad), sk)
     } catch (err) {
-      if (lacksX25519(err)) throw engineError(err)
+      // An HPKEError is the engine's, which made no ephemeral key: not a
+      // verdict on akd_pub.
+      if (err instanceof HPKEError || lacksX25519(err)) throw engineError(err)
       throw new PlatformError('the product key could not be sealed to akd_pub', 'key_delivery')
     }
     if (sealed.length !== SEALED_PRODUCT_KEY_LEN) {

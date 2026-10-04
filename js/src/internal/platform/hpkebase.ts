@@ -20,8 +20,10 @@
 // a page buffer.
 //
 // The sender's ephemeral key is generated non-extractable: only its public
-// half leaves WebCrypto, as enc. No caller can choose it. Internal: only key
-// delivery uses this file, and it is not a subpath export.
+// half leaves WebCrypto, as enc. No caller can choose it. It is generated
+// through x25519.ts, which asks again where WebKit on Linux fails to
+// generate one. Internal: only key delivery uses this file, and it is not a
+// subpath export.
 //
 // From the platform's web/shared/crypto/hpkebase.ts at 4476bf4; the
 // all-zero check folds the bytes without an early exit, as the hpke module's
@@ -29,6 +31,7 @@
 
 import { concat, encodeUTF8, i2osp2, type Bytes } from '../../bytes.js'
 import { isAllZero, zero } from '../zero.js'
+import { generateX25519Key } from './x25519.js'
 
 const KEM_ID = 0x0020 // DHKEM(X25519, HKDF-SHA256)
 const KDF_ID = 0x0001 // HKDF-SHA256
@@ -181,11 +184,13 @@ async function withContext<T>(shared: Bytes, info: Bytes, use: 'encrypt' | 'decr
  * ends with the 16-byte tag. A fresh ephemeral key per seal is what makes
  * the sequence number zero safe: no two seals share a context. It throws
  * what the engine throws, or an Error for the all-zero exchange; callers
- * classify.
+ * classify. An engine that cannot generate the ephemeral key, which says
+ * nothing about the recipient, is the hpke module's HPKEError invalid_key
+ * with the engine's error as its cause (x25519.ts).
  */
 export async function sealBase(recipientPublic: Bytes, info: Bytes, aad: Bytes, plaintext: Bytes): Promise<Bytes> {
   if (recipientPublic.length !== ENC_LEN) throw new Error('hpke: an X25519 public key is 32 bytes')
-  const eph = (await crypto.subtle.generateKey({ name: 'X25519' }, false, ['deriveBits'])) as CryptoKeyPair
+  const eph = await generateX25519Key(false)
   const enc = new Uint8Array(await crypto.subtle.exportKey('raw', eph.publicKey))
   if (enc.length !== ENC_LEN) throw new Error('hpke: WebCrypto exported an X25519 public key of another length')
   const shared = await extractAndExpand(await x25519(eph.privateKey, recipientPublic), concat(enc, recipientPublic))

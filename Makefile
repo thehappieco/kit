@@ -10,7 +10,7 @@ PLATFORM ?= ../platform
 PLATFORM_COMMIT ?= 4476bf4b446297ee2b74a6f032fede7786345327
 PLATFORM_FILES ?= 11
 
-.PHONY: all test test-go test-go-1.26.7 test-js test-browser lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check pack reproduce clean
 
 all: lint-go test-go test-js vectors-check cross
 
@@ -35,6 +35,16 @@ test-js:
 # cd js && npx playwright install chromium firefox webkit
 test-browser:
 	cd js && npm run test:browser
+
+# The same specs as CI's js-browser job runs them, on Linux, where
+# Playwright's WebKit is WPE WebKit, whose WebCrypto is libgcrypt's rather
+# than Safari's (SPEC section 13). Needs Docker; runs the committed tree in
+# the Playwright image of js/package.json's playwright version, and passes
+# KIT_BROWSERS through (KIT_BROWSERS=webkit make test-browser-linux).
+PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v$$(node -p "require('./js/package.json').devDependencies.playwright")-noble
+test-browser-linux:
+	git archive --format=tar HEAD | docker run --rm -i --ipc=host -e KIT_BROWSERS $(PLAYWRIGHT_IMAGE) \
+		bash -c 'mkdir /kit && tar -x -C /kit && cd /kit/js && npm ci --ignore-scripts --no-audit --no-fund && npm run test:browser'
 
 # Fresh round trips: each language writes vectors with fresh keys and the
 # other opens them.

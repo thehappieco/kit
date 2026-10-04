@@ -61,6 +61,7 @@ One version tag, `vX.Y.Z`, covers both languages; `js/package.json` always carri
 make test              # Go (race) and TypeScript (typecheck, tests, build)
 make test-go-1.26.7    # with the byte-for-byte replays of Wappie's Go vectors
 make test-browser      # the TypeScript specs in Chromium, Firefox and WebKit
+make test-browser-linux   # the same in Playwright's Linux image, as CI runs them (Docker), where WebKit is WPE with libgcrypt
 make cross             # fresh vectors in each direction, opened by the other language
 make lint-go vectors-check reproduce
 make vectors-platform-check PLATFORM=../platform   # regenerate all eleven of the platform's files at 4476bf4 and compare

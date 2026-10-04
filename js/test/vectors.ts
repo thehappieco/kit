@@ -280,10 +280,16 @@ export const toHex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padS
 /**
  * withX25519Generation runs fn on a WebCrypto whose X25519 generateKey
  * throws, on each call for which refuse names an error (counting from 0),
- * a DOMException of that name, and generates as usual on the others:
- * OperationError is what WebKit on Linux throws on 1 call in 256, and
- * NotSupportedError an engine without X25519. It returns what fn returned
- * or threw, and how many X25519 pairs fn asked for.
+ * a DOMException of that name, and generates on the others: OperationError
+ * is what WebKit on Linux throws on 1 call in 256, and NotSupportedError an
+ * engine without X25519. It returns what fn returned or threw, and how many
+ * X25519 pairs fn asked for.
+ *
+ * Only refuse fails a call. A call it lets through goes to the real engine,
+ * which on WebKit for Linux fails 1 time in 256 as well; fn would then ask
+ * again, spend the script's next refusals, and the spec's counts would break
+ * on that engine alone. So that call asks the real engine again after an
+ * OperationError, up to REAL_GENERATE_ATTEMPTS times, and still counts once.
  */
 export async function withX25519Generation<T>(
   refuse: (call: number) => string | null,
@@ -296,7 +302,7 @@ export async function withX25519Generation<T>(
     if (name !== 'X25519') return realGenerate(algorithm, ...rest)
     const error = refuse(calls++)
     if (error !== null) return Promise.reject(new DOMException('the engine refuses to generate this key', error))
-    return realGenerate(algorithm, ...rest)
+    return generateDespiteEngine(() => realGenerate(algorithm, ...rest))
   }) as never)
   try {
     const value = await fn()
@@ -305,6 +311,24 @@ export async function withX25519Generation<T>(
     return { error, calls }
   } finally {
     spy.mockRestore()
+  }
+}
+
+// REAL_GENERATE_ATTEMPTS is how many times withX25519Generation asks the
+// real engine for one call the script lets through: all of them fail on
+// WebKit for Linux 1 time in 2^128.
+const REAL_GENERATE_ATTEMPTS = 16
+
+// generateDespiteEngine calls generate again after an OperationError, the
+// engine's own random failure, REAL_GENERATE_ATTEMPTS times in all, and
+// throws any other error at once.
+async function generateDespiteEngine<K>(generate: () => Promise<K>): Promise<K> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await generate()
+    } catch (err) {
+      if (attempt >= REAL_GENERATE_ATTEMPTS || (err as { name?: unknown } | null)?.name !== 'OperationError') throw err
+    }
   }
 }
 

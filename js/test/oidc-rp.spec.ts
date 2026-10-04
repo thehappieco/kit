@@ -128,6 +128,32 @@ async function callbackFailsWith(code: RPErrorCode, o: Partial<BeginOptions> = {
   expect(await storedFlows(), `${label}: no flow is left`).toHaveLength(0)
 }
 
+const algorithmName = (a: unknown): unknown => (typeof a === 'string' ? a : (a as { name?: unknown } | null)?.name)
+
+/**
+ * idTokenRefused runs a sign-in whose ID token a bend has changed and
+ * checks that callback refuses it at step 6 (SPEC section 11.14), before
+ * step 7 touches any key: id_token_invalid, with nothing decrypted (the
+ * flow's ephemeral key stays sealed) and no X25519 key imported, and no
+ * flow left. begin and the fake id. are the setup, and a failure there is
+ * not reported as the callback's answer.
+ */
+async function idTokenRefused(label: string, o: Partial<BeginOptions> = {}): Promise<void> {
+  const back = await id.authorize(await begin(options(o)))
+  browser.visit(back)
+  const decrypt = vi.spyOn(crypto.subtle, 'decrypt')
+  const importKey = vi.spyOn(crypto.subtle, 'importKey')
+  try {
+    await expectRPError(() => callback(back, CALLBACK), 'id_token_invalid', label)
+    expect(decrypt, `${label}: the flow's ephemeral key was opened`).not.toHaveBeenCalled()
+    expect(importKey.mock.calls.filter((c) => algorithmName(c[2]) === 'X25519'), `${label}: an X25519 key was imported`).toHaveLength(0)
+  } finally {
+    decrypt.mockRestore()
+    importKey.mockRestore()
+  }
+  expect(await storedFlows(), `${label}: no flow is left`).toHaveLength(0)
+}
+
 /** sealedEphemeralKey opens a stored flow's ephemeral key, as only a test should. */
 async function sealedEphemeralKey(state: string, flow: FlowRecord): Promise<Uint8Array> {
   return new Uint8Array(
@@ -578,7 +604,12 @@ describe('callback', () => {
     expect(await storedFlows()).toHaveLength(0)
   })
 
-  it('refuses an ID token that fails the checks of step 6', async () => {
+  // Step 6 comes before step 7: the binding the key opens under is built
+  // from the ID token's sub, product_key_id and product_key, so a token that
+  // fails its checks is refused before any key is opened. Each bend runs
+  // with the key and for identity only, where no key exists at all: the
+  // answer is the same, whatever the engine does with keys.
+  it('refuses an ID token that fails the checks of step 6, before it touches a key', async () => {
     const now = (): number => Math.floor(Date.now() / 1000)
     const claimBends: [string, (c: Record<string, unknown>) => Record<string, unknown>][] = [
       ['another iss', (c) => ({ ...c, iss: 'https://id.thehappie.co' })],
@@ -599,7 +630,8 @@ describe('callback', () => {
     ]
     for (const [label, bend] of claimBends) {
       id.bends.claims = bend
-      await callbackFailsWith('id_token_invalid', {}, label)
+      await idTokenRefused(label)
+      await idTokenRefused(`${label}, identity only`, { wantKey: false })
     }
     id.bends.claims = undefined
     const tokenBends: [string, (c: Record<string, unknown>) => string][] = [
@@ -621,7 +653,8 @@ describe('callback', () => {
     ]
     for (const [label, bend] of tokenBends) {
       id.bends.idToken = bend
-      await callbackFailsWith('id_token_invalid', {}, label)
+      await idTokenRefused(label)
+      await idTokenRefused(`${label}, identity only`, { wantKey: false })
     }
   })
 

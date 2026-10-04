@@ -8,9 +8,9 @@
 // buffer that carries it into HMAC, the PRKs, each HKDF-Expand block, the
 // AEAD key bytes, the base nonce and the context are zeroed before seal or
 // open returns, whatever happened. The hpke module (../../hpke.ts), which
-// the envelope uses and which stays byte-identical, leaves its schedule as
-// garbage it never wipes. WebCrypto keeps its own copies of what it
-// imports; those are beyond reach (SPEC section 13).
+// the envelope uses, leaves its schedule as garbage it never wipes, as it
+// always has. WebCrypto keeps its own copies of what it imports; those are
+// beyond reach (SPEC section 13).
 //
 // It is a second implementation of the same key schedule, which is how two
 // copies drift; three checks keep this one honest. The golden vectors

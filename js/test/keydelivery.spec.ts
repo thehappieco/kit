@@ -504,9 +504,9 @@ describe('an engine that fails to generate an X25519 key', () => {
 
 // A product key whose sk_p starts with a zero byte, as 1 in 256 do (here
 // ROOT's wappie:78), sealed to a recipient key that starts with one too:
-// WebKit on Linux refused both as PKCS#8, so the id. page could neither
-// derive pk_p nor seal, and the product's page could not check what it
-// opened. The public keys are Go's.
+// WebKit on Linux refused both as PKCS#8, so the kit's id.-page functions
+// could neither derive pk_p nor seal, and the product's page could not
+// check what it opened. The public keys are Go's.
 describe('a product key whose sk_p starts with a zero byte', () => {
   it('is derived, sealed and opened as any other', async () => {
     const want = await platform.deriveProductKey(ROOT, 'wappie', 78)

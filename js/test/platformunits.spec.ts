@@ -388,8 +388,9 @@ describe('product keys', () => {
   })
 
   // 1 sk_p in 256 starts with a zero byte, here ROOT's wappie:30. WebKit on
-  // Linux refused such a key as PKCS#8, so the id. page could not derive
-  // its pk_p, nor open a key bundle that lists it. The values are Go's.
+  // Linux refused such a key as PKCS#8, so the kit's id.-page functions
+  // could not derive its pk_p, nor open a key bundle that lists it. The
+  // values are Go's.
   it('derive a key whose sk_p starts with a zero byte', async () => {
     const k = await platform.deriveProductKey(ROOT, 'wappie', 30)
     expect(hex(k.sk)).toBe('003d232885a46a5b05e28fce7de96ebef2dc1bd986f6d84f3fc57bb795732748')

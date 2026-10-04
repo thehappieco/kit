@@ -3,13 +3,16 @@
 // ephemeral pair a relying party generates for one authorization request.
 //
 // The rule it enforces: a private key passes through page memory only in
-// buffers this module zeroes, and a public key is accepted only in the one
-// spelling the server accepts. WebCrypto imports an X25519 private key only
-// as PKCS#8 and exports it only as PKCS#8 or JWK, so every import and export
-// goes through a PKCS#8 buffer; each is zeroed as soon as WebCrypto is done
-// with it. Imports and generation go through ../x25519engine.ts, so that
-// WebKit on Linux takes any 32 bytes as a private key, as the other engines
-// do, and a key it fails to generate is asked for again.
+// buffers the kit zeroes, and a public key is accepted only in the one
+// spelling the server accepts. WebCrypto imports an X25519 private key
+// without its public half only as PKCS#8, and exports one only as PKCS#8 or
+// JWK, so every import and export goes through a PKCS#8 buffer, never a JWK
+// string nothing can zero: ../x25519engine.ts builds the buffer of an
+// import, and this module reads the one of an export; each is zeroed as
+// soon as WebCrypto is done with it. Imports and generation go through
+// ../x25519engine.ts, so that WebKit on Linux takes any 32 bytes as a
+// private key, as the other engines do, and a key it fails to generate is
+// asked for again.
 //
 // An engine refusal surfaces as the hpke module's HPKEError invalid_key, its
 // cause what the engine threw, so a caller can tell an engine without X25519

@@ -36,11 +36,14 @@ test-js:
 test-browser:
 	cd js && npm run test:browser
 
-# The same specs as CI's js-browser job runs them, on Linux, where
-# Playwright's WebKit is WPE WebKit, whose WebCrypto is libgcrypt's rather
-# than Safari's (SPEC section 13). Needs Docker; runs the committed tree in
-# the Playwright image of js/package.json's playwright version, and passes
-# KIT_BROWSERS through (KIT_BROWSERS=webkit make test-browser-linux).
+# The specs of CI's js-browser job, in the browser versions it installs, on
+# Linux, where Playwright's WebKit is WPE WebKit, whose WebCrypto is
+# libgcrypt's rather than Safari's (SPEC section 13). Needs Docker; runs the
+# committed tree in the Playwright image of js/package.json's playwright
+# version, and passes KIT_BROWSERS through (KIT_BROWSERS=webkit make
+# test-browser-linux). Two things differ from CI: vitest runs on the image's
+# Node (24 in v1.63.0-noble), not js/.node-version's 22, and the image runs
+# on the host's architecture (aarch64 on Apple silicon), not CI's x86_64.
 PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v$$(node -p "require('./js/package.json').devDependencies.playwright")-noble
 test-browser-linux:
 	git archive --format=tar HEAD | docker run --rm -i --ipc=host -e KIT_BROWSERS $(PLAYWRIGHT_IMAGE) \

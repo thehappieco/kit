@@ -69,6 +69,7 @@ func TestManifest(t *testing.T) {
 		"wappie/_generators/run.sh",
 		"platform/_generators/tools/vectors/main.go",
 		"platform/_generators-4476bf4/tools/vectors/main.go",
+		"platform/_generators-b5d9f69/tools/vectors/main.go",
 	} {
 		if _, err := fs.Stat(vectors.FS, generator); err == nil {
 			t.Errorf("the generators are embedded: %s", generator)
@@ -127,10 +128,54 @@ func TestSpecCitations(t *testing.T) {
 	}
 }
 
+// Every row of a table in SPEC.md has as many cells as its header. GFM
+// splits a table row on every '|' not escaped as '\|', inside code spans
+// too, so a label such as `thehappie-id/v1/passkey-prf|` written unescaped
+// in a table loses its '|' and the rest of its row on GitHub: the label a
+// reader copies from the rendered spec would hash to another salt.
+func TestSpecTables(t *testing.T) {
+	spec, err := os.ReadFile("../SPEC.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	separators := func(row string) int {
+		n := 0
+		for i := 0; i < len(row); i++ {
+			if row[i] == '|' && (i == 0 || row[i-1] != '\\') {
+				n++
+			}
+		}
+		return n
+	}
+	header, fenced, tables := 0, false, 0
+	for i, line := range strings.Split(string(spec), "\n") {
+		if strings.HasPrefix(line, "```") || strings.HasPrefix(line, "~~~") {
+			fenced = !fenced
+		}
+		if fenced || !strings.HasPrefix(line, "|") {
+			header = 0
+			continue
+		}
+		if header == 0 {
+			header = separators(line)
+			tables++
+			continue
+		}
+		if n := separators(line); n != header {
+			t.Errorf("SPEC.md line %d: %d cell separators, the header has %d (escape a '|' in a cell as '\\|')", i+1, n, header)
+		}
+	}
+	if tables < 5 {
+		t.Fatalf("only %d tables found", tables)
+	}
+}
+
 // platformCaseID is how the kit identifies and cites a case of the
 // platform's format: its name, or op "/" name when it carries an op. The
 // platform's key-delivery.json gives five names to two cases each, one with
-// op "open" and one with op "seal" (PROVENANCE.md).
+// op "open" and one with op "seal"; passkey.json's must-fail cases carry an
+// op too ("salt", "key" or "open"), under names that are also unique
+// (PROVENANCE.md).
 func platformCaseID(op, name string) string {
 	if op != "" {
 		return op + "/" + name
@@ -139,8 +184,8 @@ func platformCaseID(op, name string) string {
 }
 
 // The platform's id-v1 files are the ones captured at the platform commits
-// PROVENANCE.md records: the eight part-1 files at 5e66d84 and the three
-// part-2 files at 4476bf4. Each has the sha256 recorded there, so a copy from
+// PROVENANCE.md records: the eight part-1 files at 5e66d84, the three part-2
+// files at 4476bf4 and the two part-3 files at b5d9f69. Each has the sha256 recorded there, so a copy from
 // another platform commit or an edit fails here even after `make manifest`
 // has recorded it, and no tag can freeze other bytes as these. Then their
 // header, ASCII only with exactly one final newline, unique case ids (the
@@ -163,6 +208,8 @@ func TestPlatformVectorFiles(t *testing.T) {
 		{"key-delivery", 73, 64, "4476bf4", "2d7e322b1afc9e021f0fc4707e5fc666d9626608d082b22f2782ee2d4e4d40b2"},
 		{"pkce", 18, 12, "4476bf4", "b58002e68fff370e5a9dcc49847b3d4a2b27cd2836a140eb5e1a169c9a9bd010"},
 		{"password-stream-safe", 19, 11, "4476bf4", "6c0be5a1e236fab99e97cacbff527674b76f65a9a1c5b2630bdf8558465021cc"},
+		{"passkey", 44, 35, "b5d9f69", "dca9707d800996f219b62a5fc09b56b693be98a0487494bebb4bd6ad2606e286"},
+		{"client-extensions", 46, 37, "b5d9f69", "e5c6e6a4ac7dad59fbbd131f095721842d53432699fad72a7db82be6884afb3b"},
 	}
 	entries, err := fs.ReadDir(vectors.FS, "platform/id-v1")
 	if err != nil {
@@ -224,7 +271,7 @@ func TestPlatformVectorFiles(t *testing.T) {
 		total += len(f.Cases)
 		failing += bad
 	}
-	if total != 367 || failing != 267 {
-		t.Errorf("%d cases, %d must fail; want 367 and 267", total, failing)
+	if total != 457 || failing != 339 {
+		t.Errorf("%d cases, %d must fail; want 457 and 339", total, failing)
 	}
 }

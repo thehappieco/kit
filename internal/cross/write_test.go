@@ -161,6 +161,7 @@ func TestWriteCrossVectors(t *testing.T) {
 	writePlatform(t, dir)
 	writePlatformPassword(t, dir)
 	writePlatformDelivery(t, dir)
+	writePlatformPasskey(t, dir)
 }
 
 func writeSeal(t *testing.T, dir string) {

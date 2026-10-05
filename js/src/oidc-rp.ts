@@ -51,6 +51,7 @@ export {
   type CallbackResult,
   type FinishOptions,
   type FinishResult,
+  type KeyStore,
   type LogoutOptions,
   type PinnedKey,
 } from './internal/oidc-rp/rp.js'

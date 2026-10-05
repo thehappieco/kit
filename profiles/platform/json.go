@@ -14,7 +14,8 @@ import (
 // reads null as the zero value. The readers here walk the token stream so
 // every member is seen once and exactly as written (after unescaping), and
 // the value readers accept only their own JSON type. They exist for the key
-// bundle.
+// bundle and for the allowlist of WebAuthn client extension results (section
+// 11.16).
 
 var (
 	errNotObject     = errors.New("not a JSON object")
@@ -28,6 +29,21 @@ var (
 // readObject reads one JSON object whose members are exactly names, each
 // once. It returns the raw values by name.
 func readObject(raw []byte, names ...string) (map[string]json.RawMessage, error) {
+	out, err := readMembers(raw, names...)
+	if err != nil {
+		return nil, err
+	}
+	if len(out) != len(names) {
+		return nil, errMissing
+	}
+	return out, nil
+}
+
+// readMembers reads one JSON object whose members are drawn from names, each
+// at most once, and returns the raw values of those present by name. A name
+// matches only as written, after JSON unescaping: "PRF" is not "prf", while
+// "pr\u0066" is, as it is for every JSON reader.
+func readMembers(raw []byte, names ...string) (map[string]json.RawMessage, error) {
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	tok, err := dec.Token()
 	if err != nil {
@@ -61,9 +77,6 @@ func readObject(raw []byte, names ...string) (map[string]json.RawMessage, error)
 	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
 		return nil, errTrailing
 	}
-	if len(out) != len(names) {
-		return nil, errMissing
-	}
 	return out, nil
 }
 
@@ -92,6 +105,18 @@ func jsonInt(raw json.RawMessage) (int64, error) {
 		return 0, errType
 	}
 	return n, nil
+}
+
+// jsonBool reads the JSON literal true or false, refusing null and every
+// other type.
+func jsonBool(raw json.RawMessage) (bool, error) {
+	switch string(bytes.Trim(raw, " \t\r\n")) {
+	case "true":
+		return true, nil
+	case "false":
+		return false, nil
+	}
+	return false, errType
 }
 
 // jsonArray reads a JSON array, refusing null and every other type.

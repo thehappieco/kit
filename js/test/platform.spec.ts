@@ -5,11 +5,13 @@
 // records. Anything else thrown (an AccountError, an HPKEError, a
 // DOMException) is a failure of this implementation, not a refusal. Failure
 // messages name the case and the codes, never the values. A case is named
-// by its id: its name, or op/name for a key-delivery case with an op.
+// by its id: its name, or op/name for a key-delivery or passkey case with an
+// op.
 
 import { describe, expect, it } from 'vitest'
 
 import { unwrapPrivateKey } from '../src/account.js'
+import { prfSalt as passkeyPRFSalt, unwrapPasskey } from '../src/passkey.js'
 import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes.js'
 import { HPKEError, PlatformError } from '../src/errors.js'
 import * as platform from '../src/profiles/platform.js'
@@ -32,6 +34,8 @@ const MEMBERS: Record<string, readonly string[]> = {
     'code_challenge', 'nonce', 'akd_priv', 'akd_pub', 'eph_priv', 'aad', 'akd_sealed',
   ],
   pkce: ['name', 'error', 'code_verifier', 'code_challenge'],
+  passkey: ['name', 'op', 'error', 'rp_id', 'prf', 'root', 'sub', 'epoch', 'credential_id', 'nonce', 'prf_salt', 'k_pk', 'aad', 'wrap'],
+  'client-extensions': ['name', 'error', 'client_extension_results'],
 }
 
 /** The number of cases and of must-fail cases per kind (vectors/PROVENANCE.md). */
@@ -47,11 +51,13 @@ const COUNTS: Record<string, [number, number]> = {
   'key-delivery': [73, 64],
   pkce: [18, 12],
   'password-stream-safe': [19, 11],
+  passkey: [44, 35],
+  'client-extensions': [46, 37],
 }
 
 const NAMES = new Set([
   'password_invalid', 'password_too_short', 'password_too_long', 'kdf_policy', 'wrap', 'recovery_code', 'email', 'product_key', 'bundle',
-  'key_delivery', 'pkce', 'encoding',
+  'key_delivery', 'pkce', 'client_extensions', 'encoding',
 ])
 
 function str(c: PlatformCase, member: string): string {
@@ -385,6 +391,121 @@ runners['key-delivery'] = async (c) => {
   expect.fail(`case "${id}": a must-fail case needs op open or seal`)
 }
 
+/**
+ * passkey: a good case gives its salt and its K_pk (a non-extractable key,
+ * compared by what it seals), its AAD, and its wrap byte for byte from the
+ * recorded nonce, both through wrapRootWithPasskey and through sealRootWrap
+ * under K_pk; it opens back to its root through unwrapRootWithPasskey and
+ * openRootWrap, and it is section 7 with platformPasskey on the root wrap of
+ * section 11.5: the generic passkey and account modules give the same salt
+ * and open the same bytes. A must-fail case is refused at the step its op
+ * names, salt, key or open, with wrap, and the callback of an open never
+ * runs.
+ */
+runners.passkey = async (c) => {
+  const id = caseId(c)
+  const rpId = str(c, 'rp_id')
+  if (c.error !== undefined) {
+    for (const member of ['root', 'nonce', 'prf_salt', 'k_pk', 'aad']) {
+      if (c[member] !== undefined) expect.fail(`case "${id}": a must-fail case with ${member}`)
+    }
+  }
+  if (c.op === undefined) {
+    if (c.error !== undefined) expect.fail(`case "${id}": a good case with an error`)
+    const prf = b64(c, 'prf')
+    const root = b64(c, 'root')
+    const nonce = b64(c, 'nonce')
+    const sub = str(c, 'sub')
+    const epoch = int(c, 'epoch')
+    const binding: platform.PasskeyBinding = { rpId, credentialId: str(c, 'credential_id') }
+    const aad = str(c, 'aad')
+    expect(platform.isRPID(rpId), `case "${id}"`).toBe(true)
+    same(toBase64URL(await platform.prfSalt(rpId)), str(c, 'prf_salt'), `case "${id}" prf_salt`)
+    const key = await platform.passkeyWrapKey(prf, rpId)
+    expect(key.extractable, `case "${id}": K_pk is extractable`).toBe(false)
+    const raw = await rawKey(b64(c, 'k_pk'))
+    same(await probe(key), await probe(raw), `case "${id}" k_pk`)
+    same(platform.rootWrapAAD('passkey', sub, epoch, binding), aad, `case "${id}" aad`)
+    const input = { root, prf, sub, epoch, ...binding }
+    same(await withDraws({ bytes: [nonce] }, () => platform.wrapRootWithPasskey(input)), str(c, 'wrap'), `case "${id}" wrap`)
+    const under = await withDraws({ bytes: [nonce] }, () => platform.sealRootWrap('passkey', key, root, sub, epoch, binding))
+    same(toBase64URL(under), str(c, 'wrap'), `case "${id}" the wrap under K_pk`)
+    const wrap = b64(c, 'wrap')
+    let lent: Uint8Array | undefined
+    const opened = await platform.unwrapRootWithPasskey({ prf, wrap: str(c, 'wrap'), sub, epoch, ...binding }, async (r) => {
+      lent = r
+      return toBase64URL(new Uint8Array(r) as Bytes)
+    })
+    same(opened, str(c, 'root'), `case "${id}" root`)
+    if (lent === undefined || lent.some((x) => x !== 0)) expect.fail(`case "${id}": the lent root is not zeroed`)
+    same(toBase64URL(await platform.openRootWrap('passkey', key, wrap, sub, epoch, binding)), str(c, 'root'), `case "${id}" root under K_pk`)
+    // A fresh wrap draws its own nonce and opens alike.
+    const fresh = await platform.wrapRootWithPasskey(input)
+    if (fresh === str(c, 'wrap')) expect.fail(`case "${id}": a fresh wrap repeats the recorded nonce`)
+    same(toBase64URL(await platform.openRootWrap('passkey', key, fromBase64URL(fresh, platform.WRAP_LEN), sub, epoch, binding)), str(c, 'root'), `case "${id}" a fresh wrap`)
+    // Section 7 with platformPasskey, and section 6.5 with the header 0x01 0x03.
+    same(toBase64URL(await passkeyPRFSalt(platform.platformPasskey, rpId)), str(c, 'prf_salt'), `case "${id}" passkey.prfSalt`)
+    same(toBase64URL(await unwrapPasskey(platform.platformPasskey, wrap, prf, rpId, encodeUTF8(aad))), str(c, 'root'), `case "${id}" passkey.unwrapPasskey`)
+    const account = await unwrapPrivateKey(platform.platformRootWrap('passkey'), wrap, raw, encodeUTF8(aad))
+    same(toBase64URL(account.privateKey), str(c, 'root'), `case "${id}" account's root`)
+    expect(account.stale).toBe(false)
+    return
+  }
+  if (c.error !== 'wrap') expect.fail(`case "${id}": a passkey refusal is wrap`)
+  if (c.op === 'salt') {
+    for (const member of ['prf', 'wrap', 'sub', 'epoch', 'credential_id']) {
+      if (c[member] !== undefined) expect.fail(`case "${id}": a salt case with ${member}`)
+    }
+    expect(platform.isRPID(rpId), `case "${id}"`).toBe(false)
+    await outcome(c, async () => {
+      await platform.prfSalt(rpId)
+    }, 'salt')
+    // An id refused at the salt has no key either, whatever the PRF output.
+    await outcome(c, async () => {
+      await platform.passkeyWrapKey(new Uint8Array(platform.PRF_OUTPUT_LEN).fill(0x5a), rpId)
+    }, 'key')
+    return
+  }
+  if (c.op === 'key') {
+    for (const member of ['wrap', 'sub', 'epoch', 'credential_id']) {
+      if (c[member] !== undefined) expect.fail(`case "${id}": a key case with ${member}`)
+    }
+    const prf = b64(c, 'prf')
+    await outcome(c, async () => {
+      await platform.passkeyWrapKey(prf, rpId)
+    })
+    return
+  }
+  if (c.op === 'open') {
+    const prf = b64(c, 'prf')
+    const sub = str(c, 'sub')
+    const epoch = int(c, 'epoch')
+    const binding: platform.PasskeyBinding = { rpId, credentialId: str(c, 'credential_id') }
+    await outcome(c, async () => {
+      await platform.unwrapRootWithPasskey({ prf, wrap: str(c, 'wrap'), sub, epoch, ...binding }, async () => expect.fail(`case "${id}": opened`))
+    }, 'one shot')
+    await outcome(c, async () => {
+      await platform.openRootWrap('passkey', await platform.passkeyWrapKey(prf, rpId), b64(c, 'wrap'), sub, epoch, binding)
+    }, 'under K_pk')
+    return
+  }
+  expect.fail(`case "${id}": a must-fail case needs op salt, key or open`)
+}
+
+/**
+ * client-extensions: checkClientExtensionsText on the exact text; an
+ * accepted text is accepted as the value JSON.parse makes of it too.
+ */
+runners['client-extensions'] = async (c) => {
+  const text = c.client_extension_results
+  if (typeof text !== 'string') expect.fail(`case "${c.name}": no client_extension_results`)
+  if (c.op !== undefined) expect.fail(`case "${c.name}": an op`)
+  await outcome(c, async () => {
+    platform.checkClientExtensionsText(text)
+  })
+  if (c.error === undefined) platform.checkClientExtensions(JSON.parse(text))
+}
+
 describe('the platform\'s id-v1 vectors', () => {
   it('are all here, in their recorded shape', () => {
     let total = 0
@@ -400,7 +521,7 @@ describe('the platform\'s id-v1 vectors', () => {
       total += cases
       failing += mustFail
     }
-    expect([total, failing]).toEqual([367, 267])
+    expect([total, failing]).toEqual([457, 339])
   })
 })
 
@@ -446,11 +567,12 @@ describe('platform/id-v1/key-delivery.json', () => {
 })
 
 // The kit's own platform cases, in the kit's format: those Go wrote
-// (kit/platform-go.json, kit/platform-password-go.json and
-// kit/platform-delivery-go.json, and the fresh files of the same names in
-// $KIT_CROSS_IN in the cross-language job) and those this side wrote at
-// release time (kit/platform-ts.json, kit/platform-password-ts.json and
-// kit/platform-delivery-ts.json), which keep later versions to the same
+// (kit/platform-go.json, kit/platform-password-go.json,
+// kit/platform-delivery-go.json and kit/platform-passkey-go.json, and the
+// fresh files of the same names in $KIT_CROSS_IN in the cross-language job)
+// and those this side wrote at release time (kit/platform-ts.json,
+// kit/platform-password-ts.json, kit/platform-delivery-ts.json and
+// kit/platform-passkey-ts.json), which keep later versions to the same
 // bytes, or, for fresh seals, to opening them.
 async function kitCase(c: VectorCase): Promise<void> {
   const i = c.in
@@ -555,6 +677,46 @@ async function kitDeliveryCase(c: VectorCase, code: (fn: () => unknown) => Promi
       else expect(await platform.pkceChallenge(i.code_verifier)).toBe(c.out.code_challenge)
       return
   }
+  return kitPasskeyCase(c, code)
+}
+
+// The kit's own cases of part 3 (SPEC section 11.16), in the kit's format:
+// PRF salts of relying party ids, fresh passkey wraps replayed byte for
+// byte from the nonce each drew and opened (K_pk, when Go recorded it,
+// compared by what it seals), the same wraps refused with one thing
+// changed, and the allowlist's verdict on client extension results.
+async function kitPasskeyCase(c: VectorCase, code: (fn: () => unknown) => Promise<string>): Promise<void> {
+  const i = c.in
+  const binding = { rpId: i.rp_id, credentialId: i.credential_id }
+  switch (c.op) {
+    case 'platform.prf_salt':
+      expect(platform.isRPID(i.rp_id)).toBe(c.error === undefined)
+      if (c.error) expect(await code(() => platform.prfSalt(i.rp_id))).toBe(c.error)
+      else expect(toB64(await platform.prfSalt(i.rp_id))).toBe(c.out.prf_salt_b64)
+      return
+    case 'platform.passkey_wrap': {
+      const prf = std(i.prf_b64)
+      expect(platform.rootWrapAAD('passkey', i.sub, i.epoch, binding)).toBe(c.out.aad)
+      const wrap = await withDraws({ bytes: [std(i.nonce_b64)] }, () => platform.wrapRootWithPasskey({ root: std(i.root_b64), prf, sub: i.sub, epoch: i.epoch, ...binding }))
+      expect(toB64(fromBase64URL(wrap, platform.WRAP_LEN))).toBe(c.out.wrap_b64)
+      const root = await platform.unwrapRootWithPasskey({ prf, wrap: toBase64URL(std(c.out.wrap_b64)), sub: i.sub, epoch: i.epoch, ...binding }, async (r) => toB64(r))
+      expect(root).toBe(i.root_b64)
+      if (c.out.k_pk_b64 !== undefined) expect(await probe(await platform.passkeyWrapKey(prf, i.rp_id))).toBe(await probe(await rawKey(std(c.out.k_pk_b64))))
+      return
+    }
+    case 'platform.open_passkey_wrap':
+      expect(c.error).toBe('wrap')
+      expect(await code(() => platform.unwrapRootWithPasskey({ prf: std(i.prf_b64), wrap: toBase64URL(std(i.wrap_b64)), sub: i.sub, epoch: i.epoch, ...binding }, async () => expect.fail(`${c.id}: opened`)))).toBe(c.error)
+      return
+    case 'platform.check_client_extensions':
+      if (typeof i.text !== 'string') expect.fail(`${c.id}: no text`)
+      if (c.error) expect(await code(() => platform.checkClientExtensionsText(i.text))).toBe(c.error)
+      else {
+        platform.checkClientExtensionsText(i.text)
+        expect(c.out.accepted).toBe(true)
+      }
+      return
+  }
   unhandled(c)
 }
 
@@ -565,9 +727,47 @@ for (const [path, f] of files(
   'kit/platform-password-ts.json',
   'kit/platform-delivery-go.json',
   'kit/platform-delivery-ts.json',
+  'kit/platform-passkey-go.json',
+  'kit/platform-passkey-ts.json',
 )) {
   describe(path, () => {
     expect(f.profile).toBe('platform')
     for (const c of f.cases.filter(forTS)) it(c.id, () => kitCase(c))
   })
 }
+
+describe('platform/id-v1/passkey.json', () => {
+  it('counts 9 good cases and 35 wrap refusals: 16 at the salt, 6 at the key, 13 at the open', () => {
+    const cases = loadPlatform('passkey').cases
+    const count = (f: (c: PlatformCase) => boolean) => cases.filter(f).length
+    expect([count((c) => c.op === undefined), count((c) => c.op === 'salt'), count((c) => c.op === 'key'), count((c) => c.op === 'open')]).toEqual([9, 16, 6, 13])
+    expect(count((c) => c.error === 'wrap')).toBe(35)
+    expect(count((c) => c.op === undefined && c.error !== undefined) + count((c) => c.op !== undefined && c.error === undefined)).toBe(0)
+    expect(new Set(cases.map((c) => c.name)).size).toBe(cases.length)
+  })
+})
+
+describe('platform/id-v1/client-extensions.json', () => {
+  it('counts 9 accepted texts and 37 refused, all client_extensions, none with an op', () => {
+    const cases = loadPlatform('client-extensions').cases
+    expect(cases.filter((c) => c.error === undefined).length).toBe(9)
+    expect(cases.filter((c) => c.error === 'client_extensions').length).toBe(37)
+    expect(cases.filter((c) => c.op !== undefined).length).toBe(0)
+  })
+
+  // An allowlist over JSON.parse, which keeps the last of two members,
+  // passes the repeats the vectors refuse; checkClientExtensionsText reads
+  // the text and refuses them.
+  it('tests the strict reader: a check over JSON.parse passes the three repeats', () => {
+    const lenient = (text: string) => {
+      try {
+        platform.checkClientExtensions(JSON.parse(text))
+        return true
+      } catch {
+        return false
+      }
+    }
+    const passed = loadPlatform('client-extensions').cases.filter((c) => c.error !== undefined && lenient(c.client_extension_results)).map((c) => c.name)
+    expect(passed).toEqual(['a duplicate member', 'a duplicate member inside prf', 'a duplicate member spelled with an escape'])
+  })
+})

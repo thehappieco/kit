@@ -117,7 +117,7 @@ export type PlatformErrorCode =
   | 'password_too_long'
   /** KDF parameters or a salt outside the profile's bounds, refused before anything is derived. */
   | 'kdf_policy'
-  /** A root wrap that is malformed, does not open, or failed its self-test; which one is not said. */
+  /** A root wrap that is malformed, does not open, or failed its self-test, or a passkey wrap key that cannot be made (SPEC section 11.16); which one is not said. */
   | 'wrap'
   /** Not a recovery code. */
   | 'recovery_code'
@@ -131,6 +131,8 @@ export type PlatformErrorCode =
   | 'key_delivery'
   /** A PKCE code verifier outside RFC 7636: not 43 to 128 characters of [A-Za-z0-9._~-] (SPEC section 11.13). */
   | 'pkce'
+  /** WebAuthn client extension results outside the allowlist of SPEC section 11.16, above all a PRF output; what was there is not said. */
+  | 'client_extensions'
   /** A value not in its one accepted spelling where no other name fits (a verifier's inputs). */
   | 'encoding'
 

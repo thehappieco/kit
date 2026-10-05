@@ -2,6 +2,25 @@
 
 One version covers both languages. Before 1.0.0 a minor version may change APIs but never bytes; a patch changes neither.
 
+## v0.4.0
+
+The release date is the tag's.
+
+- The platform profile, part 3 (SPEC section 11.16), taken from the platform at `b5d9f69`: passkeys with PRF, in Go and TypeScript (`profiles/platform`):
+  - the public PRF salt of a relying party, the key `K_pk` a passkey's PRF output gives and the kind-3 root wrap under it, which is section 7 with the platform's passkey profile on the root wrap of section 11.5. The relying party id has one spelling, and anything else is refused before a salt or a key is made; the root-wrap AAD keeps its v0.2.0 rule. As on the platform's server, only an all-decimal last label is refused, so a hex-number host such as `0x7f000001` passes. A passkey wrap is sealed with `NewPasskeyWrap` or `wrapRootWithPasskey`, which take the relying party id once for the key and the AAD; `Wrap` and `sealRootWrap` under a key from `PasskeyWrapKey` or `passkeyWrapKey` leave it to the caller to give both the same id. Every refusal is `wrap`. In TypeScript `K_pk` is a non-extractable `CryptoKey`, and the copy of the PRF output handed to WebCrypto is zeroed;
+  - the allowlist of WebAuthn client extension results (`{}` or `credProps {rk}` and `prf {enabled}`), which refuses any PRF output, read on the exact JSON text as strictly as the key bundle: a repeated member, a member name in another case, a byte order mark and trailing data are refused, with the new name `client_extensions`. TypeScript also checks a value the page built, and refuses objects that are not plain, inherited and accessor members and symbol keys.
+- Vectors: the platform's `passkey.json` (44 cases, 35 must fail) and `client-extensions.json` (46, 37), byte for byte from platform commit `b5d9f69`, beside the eleven files of parts 1 and 2, which do not change (the platform's copies are the same bytes at that commit). Both languages reproduce every case, the wraps byte for byte from the recorded nonces, and refuse every must-fail case with its exact error, the TypeScript side in Node and in Chromium, Firefox and WebKit. A passkey case is identified by its `op` and `name`, as a key-delivery case is. `kit/platform-passkey-{go,ts}.json` round-trip PRF salts, passkey wraps and the allowlist between the languages. `make vectors-platform-check` regenerates all thirteen files from `b5d9f69` and fails unless the generator wrote exactly thirteen (`PLATFORM_COMMIT=4476bf4b446297ee2b74a6f032fede7786345327 PLATFORM_FILES=11` checks parts 1 and 2); the generator at that commit is kept in `vectors/platform/_generators-b5d9f69`.
+- Added, changing nothing that exists:
+  - Go: in `profiles/platform`, `ValidRPID`, `PRFSalt`, `PasskeyWrapKey`, `NewPasskeyWrap`, `OpenPasskeyWrap`, `PRFOutputLen`, `PRFSaltLen`, `PasskeyProfile`, `CheckClientExtensions` and `ErrClientExtensions`, which `ErrorCode` names `client_extensions`.
+  - TypeScript: in `profiles/platform`, `isRPID`, `prfSalt`, `passkeyWrapKey`, `wrapRootWithPasskey`, `unwrapRootWithPasskey`, `platformPasskey`, `PRF_OUTPUT_LEN`, `PRF_SALT_LEN`, `LABEL_PASSKEY_PRF`, `LABEL_PASSKEY_WRAP`, `checkClientExtensions`, `checkClientExtensionsText` and the types `PasskeyWrapInput`, `PasskeyUnwrapInput` and `AllowedClientExtensionResults`; the code `client_extensions` of `PlatformErrorCode`; in `oidc-rp`, the type `KeyStore`, the platform's name for `keepProductKey`'s store.
+- The platform's switch: the Go names and signatures are idcrypto's; in TypeScript `passkeyWrapKey` returns a `CryptoKey` where the platform's returns bytes, and the page's `PasskeyKeys` helpers stay in the platform, as `PasswordKeys` do.
+- The WebAuthn ceremony stays in the platform: options, `navigator.credentials`, reading the PRF output out of a credential, the credential the page sends, and everything on the server. Products run no WebAuthn for platform accounts (the platform's decision 0008).
+- Part 3 uses no X25519; it was checked on WebKit for Linux like everything else (SPEC section 13).
+- CI fuzzes the allowlist and the relying party id's spelling (`FuzzCheckClientExtensions`, `FuzzValidRPID`) on go1.26.7, and the two strict JSON readers on stable too, since Go 1.27 builds `encoding/json` on its json/v2 engine.
+- SPEC: section 11.16 replaces its reservation; section 6.8 is reserved for Wappie's wrap of its account key under its product key (the platform's decision 0023), whose bytes come with Wappie's login work, planned for v0.5.0; section 11.17, the product contract, stays reserved.
+- The npm tarball holds new files under `dist/internal/platform/`; an enclave that measures it measures a new image even if it imports nothing new.
+- Nothing changes for Wappie: its profile, its vectors and every byte they pin are as in v0.1.0; nothing in parts 1 and 2 of the platform profile changes.
+
 ## v0.3.0
 
 The release date is the tag's.

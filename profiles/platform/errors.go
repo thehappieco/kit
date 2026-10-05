@@ -21,7 +21,9 @@ var (
 	// section 11.3. It is returned before anything is derived.
 	ErrKDFPolicy = errors.New("platform: kdf parameters outside the protocol bounds")
 	// ErrWrap means a root wrap is malformed or did not open: wrong key,
-	// another account, epoch or kind, or altered bytes. Which one is
+	// another account, epoch or kind, or altered bytes; or that a passkey
+	// wrap key cannot be made (section 11.16): a relying party id outside
+	// its one spelling, or a PRF output that is not 32 bytes. Which one is
 	// deliberately not reported.
 	ErrWrap = errors.New("platform: root wrap did not open")
 	// ErrRecoveryCode means the text is not a recovery code.
@@ -44,6 +46,11 @@ var (
 	// ErrPKCE means a PKCE code verifier is outside RFC 7636: not 43 to 128
 	// characters from [A-Za-z0-9._~-] (section 11.13).
 	ErrPKCE = errors.New("platform: not a PKCE code verifier")
+	// ErrClientExtensions means a WebAuthn credential's
+	// clientExtensionResults hold something outside the allowlist of section
+	// 11.16: anything but credProps {rk: boolean} and prf {enabled: boolean},
+	// above all a PRF output. What was there is deliberately not reported.
+	ErrClientExtensions = errors.New("platform: client extension results outside the allowlist")
 	// ErrEncoding means a value is not in its one accepted spelling: strict
 	// base64url of the right length, a lowercase UUID, or a restricted JSON
 	// array element.
@@ -65,6 +72,7 @@ var errorCodes = []struct {
 	{ErrBundle, "bundle"},
 	{ErrKeyDelivery, "key_delivery"},
 	{ErrPKCE, "pkce"},
+	{ErrClientExtensions, "client_extensions"},
 	// Last, because it is the generic one: a specific error that also wraps
 	// it keeps its own name.
 	{ErrEncoding, "encoding"},

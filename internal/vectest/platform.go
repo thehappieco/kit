@@ -20,9 +20,9 @@ const PlatformDir = "platform/id-v1"
 
 // PlatformCase is one case of a platform vector file: its id, and the error
 // name it must be refused with ("" for a case with outputs). The id is the
-// case's name, or op "/" name for a case that carries an op
-// (KeyDeliveryCase): key-delivery.json gives five names to two cases each,
-// one with op "open" and one with op "seal".
+// case's name, or op "/" name for a case that carries an op (KeyDeliveryCase,
+// PasskeyCase): key-delivery.json gives five names to two cases each, one
+// with op "open" and one with op "seal".
 type PlatformCase interface {
 	CaseName() string
 	CaseError() string
@@ -226,6 +226,49 @@ type PKCECase struct {
 	Error         string `json:"error,omitempty"`
 }
 
+// PasskeyCase is a passkey case (SPEC section 11.16). A good case has no Op
+// and every member but Error. A must-fail case's Op says which step refuses
+// it, always with "wrap": "salt" (RPID alone), "key" (RPID and PRF) or
+// "open" (the binding, PRF and Wrap). RPID and PRF are pointers because an
+// empty relying party id and an empty PRF output are written as "", which
+// must not read as a missing one: a runner fails a case without rp_id, and a
+// good, key or open case without prf.
+type PasskeyCase struct {
+	Name         string  `json:"name"`
+	Op           string  `json:"op,omitempty"`
+	RPID         *string `json:"rp_id"`
+	PRF          *string `json:"prf,omitempty"`
+	Root         string  `json:"root,omitempty"`
+	Sub          string  `json:"sub,omitempty"`
+	Epoch        int     `json:"epoch,omitempty"`
+	CredentialID string  `json:"credential_id,omitempty"`
+	Nonce        string  `json:"nonce,omitempty"`
+	PRFSalt      string  `json:"prf_salt,omitempty"`
+	KPK          string  `json:"k_pk,omitempty"`
+	AAD          string  `json:"aad,omitempty"`
+	Wrap         string  `json:"wrap,omitempty"`
+	Error        string  `json:"error,omitempty"`
+}
+
+// The ops of a passkey must-fail case.
+const (
+	PasskeyOpSalt = "salt"
+	PasskeyOpKey  = "key"
+	PasskeyOpOpen = "open"
+)
+
+// ClientExtensionsCase is a client-extensions case (SPEC section 11.16): the
+// exact JSON text of a credential's clientExtensionResults, carried as a
+// JSON string so that a repeated member, a byte order mark or trailing data
+// can be expressed, and the error "client_extensions" when it is refused. The
+// text is a pointer so that a missing member fails rather than reads as the
+// empty text, which is a case of its own.
+type ClientExtensionsCase struct {
+	Name                   string  `json:"name"`
+	ClientExtensionResults *string `json:"client_extension_results"`
+	Error                  string  `json:"error,omitempty"`
+}
+
 // CaseName is op "/" name for a case with an op, its name otherwise, and ""
 // for a case without a name.
 func (c KeyDeliveryCase) CaseName() string {
@@ -244,6 +287,20 @@ func (c VerifierCase) CaseName() string        { return c.Name }
 func (c EmailCase) CaseName() string           { return c.Name }
 func (c KeyBundleCase) CaseName() string       { return c.Name }
 func (c PKCECase) CaseName() string            { return c.Name }
+
+// CaseName is op "/" name for a case with an op, its name otherwise, and ""
+// for a case without a name.
+func (c PasskeyCase) CaseName() string {
+	if c.Name == "" || c.Op == "" {
+		return c.Name
+	}
+	return c.Op + "/" + c.Name
+}
+
+func (c ClientExtensionsCase) CaseName() string { return c.Name }
+
+func (c PasskeyCase) CaseError() string          { return c.Error }
+func (c ClientExtensionsCase) CaseError() string { return c.Error }
 
 func (c PasswordProfileCase) CaseError() string { return c.Error }
 func (c KDFCase) CaseError() string             { return c.Error }

@@ -1,0 +1,414 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "passkey",
+  "cases": [
+    {
+      "name": "a passkey on the production relying party",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "root": "RZZJj938plXq58PR8Hc3mZEJL7zQyFuSDUrWRRHMflI",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "nonce": "6V_b1S5HFLy_RQ7T",
+      "prf_salt": "bfXhmXwNWTxBlIM_eJeGrFssTtbVypdC50j3PKYUeH4",
+      "k_pk": "qcvJ9isoAHW5nLXRzEZEdaEoZ7QsBrdwf5MpK2J4kec",
+      "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f755-f200-7483-b338-dd34e337afe9\",1,\"id.thehappie.co\",\"vfYdRJMB5TR46ou-HtdZPQ\"]",
+      "wrap": "AQPpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXw"
+    },
+    {
+      "name": "the same PRF output and credential on the development relying party",
+      "rp_id": "id.thehappie.localhost",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "root": "RZZJj938plXq58PR8Hc3mZEJL7zQyFuSDUrWRRHMflI",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "nonce": "prwUEPXqDRmK1g6D",
+      "prf_salt": "ScINFe9mJAsVWlBDtIHHcVnCOoo6EMHXjvVSKfxhlhY",
+      "k_pk": "qd7TiwH91V9ZzPN1EV1pG86Tagp9KWf4HVxE5nfTd98",
+      "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f755-f200-7483-b338-dd34e337afe9\",1,\"id.thehappie.localhost\",\"vfYdRJMB5TR46ou-HtdZPQ\"]",
+      "wrap": "AQOmvBQQ9eoNGYrWDoNRHzQ_fRev39Si_nTPlGiUIQdH008TxqRUeNO5x3GHRn4fG_XfwF0hZqymhKD9U-4"
+    },
+    {
+      "name": "a second passkey of the same account",
+      "rp_id": "id.thehappie.co",
+      "prf": "EqAIthicZ64J9D9TfxOX-PCCoxaZRJjAx_TWv1Euht4",
+      "root": "RZZJj938plXq58PR8Hc3mZEJL7zQyFuSDUrWRRHMflI",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "JsuXmMgfSrwrDz0p2XlL8mEkqUmN6XVcJAuuD3bwo18",
+      "nonce": "9IgB1zQJgb0ZFlKW",
+      "prf_salt": "bfXhmXwNWTxBlIM_eJeGrFssTtbVypdC50j3PKYUeH4",
+      "k_pk": "al1wvHRoqxLloCjQaBtqnCje4x1JlSE0CaXLoIvwD6c",
+      "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f755-f200-7483-b338-dd34e337afe9\",1,\"id.thehappie.co\",\"JsuXmMgfSrwrDz0p2XlL8mEkqUmN6XVcJAuuD3bwo18\"]",
+      "wrap": "AQP0iAHXNAmBvRkWUpb9bQEufRtuAxhoze4yIHREjn-P9sMdCrYhJTUNyy8BdlwuDbUqx0hZmUwrvcfMiHY"
+    },
+    {
+      "name": "a passkey at the largest epoch",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "root": "RZZJj938plXq58PR8Hc3mZEJL7zQyFuSDUrWRRHMflI",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 2147483647,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "nonce": "TxpkLmgwi2FyM5bP",
+      "prf_salt": "bfXhmXwNWTxBlIM_eJeGrFssTtbVypdC50j3PKYUeH4",
+      "k_pk": "qcvJ9isoAHW5nLXRzEZEdaEoZ7QsBrdwf5MpK2J4kec",
+      "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f755-f200-7483-b338-dd34e337afe9\",2147483647,\"id.thehappie.co\",\"vfYdRJMB5TR46ou-HtdZPQ\"]",
+      "wrap": "AQNPGmQuaDCLYXIzls_ppUeXZa_qFOE7z42V5wydcwx6mPk6N8cqCsr2P1Ok6D5SahJ7m8KtyQiTt4m6D8Y"
+    },
+    {
+      "name": "an all-zero PRF output, root and nonce",
+      "rp_id": "id.thehappie.co",
+      "prf": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "root": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "sub": "01a0f755-f200-767b-8907-42791d2b5a4c",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "nonce": "AAAAAAAAAAAAAAAA",
+      "prf_salt": "bfXhmXwNWTxBlIM_eJeGrFssTtbVypdC50j3PKYUeH4",
+      "k_pk": "ejVGn3qzi5K8kNKiNmsw7ZT_ej4rMD9YQiMXC5cYApc",
+      "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f755-f200-767b-8907-42791d2b5a4c\",1,\"id.thehappie.co\",\"vfYdRJMB5TR46ou-HtdZPQ\"]",
+      "wrap": "AQMAAAAAAAAAAAAAAABHbc6lqn_9LzhJx3e-O01GR-1DsWOQE5poGhiGF6tqJVPfX6oUC_T8uuE-OYTvbps"
+    },
+    {
+      "name": "a credential id of one byte",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "root": "RZZJj938plXq58PR8Hc3mZEJL7zQyFuSDUrWRRHMflI",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "AA",
+      "nonce": "T__JQZ1uIC9pchCU",
+      "prf_salt": "bfXhmXwNWTxBlIM_eJeGrFssTtbVypdC50j3PKYUeH4",
+      "k_pk": "qcvJ9isoAHW5nLXRzEZEdaEoZ7QsBrdwf5MpK2J4kec",
+      "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f755-f200-7483-b338-dd34e337afe9\",1,\"id.thehappie.co\",\"AA\"]",
+      "wrap": "AQNP_8lBnW4gL2lyEJSqNdv6dxr1qRFU6340B3t1v1usyDHZvf_Wtp-cWJYnOjZ0h0N_rE4qrX86xPPXMTo"
+    },
+    {
+      "name": "a credential id of 1023 bytes",
+      "rp_id": "id.thehappie.co",
+      "prf": "EqAIthicZ64J9D9TfxOX-PCCoxaZRJjAx_TWv1Euht4",
+      "root": "RZZJj938plXq58PR8Hc3mZEJL7zQyFuSDUrWRRHMflI",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "87QTO4IqYGCigix1RLRO9WlQnA14LHvzNqksXkJvjEJ1040Mex4BnFVyLjb1rc_tmMd_pcWrUwfJLlagCxFUlo2NqORinTxt2Lvf7obi7PosnEruLM1_Y3ERFN663UrbjiWbf64zG82RugDIquufJe44ApVytoh_e3u9RYeEbb4XeebJxSkKlmUL91iJhMq6o_LiIOSvA00adneMVDsB8ku4YwcbUTa-jyh8vyCRAzrTCgI39nFMKXH3sgJjOrIb1TnEUw1Fh5aMc35zSB0juqZwWMW_cGYdnl_tfmO12BRUkQPPtvNhYJHSbTYzbajfoi6HbdHrcz9LitH57fRYU7V4B1kVTUV-3HKy8veXw5ghAj3MAdcvHHRZURyWUQtoAhrQd6NalBMO_kh49H5V4o-ko_dVYfPIztB4iM8mohD3Ywd8m16ilam_Lwsly-0nxzZpKn89uOkcxaSgIcR32ZvqEy6Sk1lDwqO_FxUORLcDGtVjPlUiXwrjjQ1sWuIF8MKo0IfyT2Djwbb0XB1bnFAD6yMvmHoalvzTKWJNr0Fe8Rvix6jPkG-FWUGE-MLrFoxgDeJPabjDYz7vLVfFelPtjqQDMNVlnF6LgcmOJPtea2HtmpYV-eFJzw4wP_AHCpxdVpEh7lX0EnZ1OzeCud6IhHHT07UtEuXz9i3cY2ZSk8YiS88w23NrgCRIvgdCCje9MF1G4PqmnHC-WW9s5z1-1D4X3GCtRyShswN38k-ZRT5beICkN94JxMsQwNhWwEs8ork16ghkFXgwQHp5fl23Su9bA0P56BE0Lro9kHKAeF3P1YdXiOwnQxD74Pai8GB3vas14Pnodss-WSyeSsumlHoU7T_LY306rVHZ_ckjQiDUR-roKLQ2WUvGpzK-Ii_vWJBNpopeo9gtB1wgc9NzfywsBR8Oj0bMMhdovsSoKY2IOclruzpzq0R0NzPbtD3mQUJjAHwBu7bDTxgY_zODOtwSkzHoPzTk9tYxoZbkG0HlFGutna8DBxJOZNkV6LlwJo7oYZKWKY31iIK0VSCYdDiBYatPym6uCDAdLLCnRpdYUkzAOFXchFNm29B3YePiFj69EeygQGbEt8ZkdBcjzHEXP5ekWDYE8-t2_y1ufdqH-P0k0Leetg5fiXuZ3HeJMij_-r5z8Cgyc5wBVwutVENMPnhmql89Z8HCRvveO062UufP5LD1Oua9t9McU0DiLvrGiBWIOzH53QWoMP1qSMFgT62BHHZC_eC_eP4wNWa6uhpzsd9RjxN93IEZ74oW_tzdB_BF-bwDbOCXIcASnYxQQtGJHbZEqYZgt7ZU0lrC2jCIPGeVgWk7O_cMz4SToweE-hMOiJ4CIlKU",
+      "nonce": "APG1ysQ36EWKnth1",
+      "prf_salt": "bfXhmXwNWTxBlIM_eJeGrFssTtbVypdC50j3PKYUeH4",
+      "k_pk": "al1wvHRoqxLloCjQaBtqnCje4x1JlSE0CaXLoIvwD6c",
+      "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f755-f200-7483-b338-dd34e337afe9\",1,\"id.thehappie.co\",\"87QTO4IqYGCigix1RLRO9WlQnA14LHvzNqksXkJvjEJ1040Mex4BnFVyLjb1rc_tmMd_pcWrUwfJLlagCxFUlo2NqORinTxt2Lvf7obi7PosnEruLM1_Y3ERFN663UrbjiWbf64zG82RugDIquufJe44ApVytoh_e3u9RYeEbb4XeebJxSkKlmUL91iJhMq6o_LiIOSvA00adneMVDsB8ku4YwcbUTa-jyh8vyCRAzrTCgI39nFMKXH3sgJjOrIb1TnEUw1Fh5aMc35zSB0juqZwWMW_cGYdnl_tfmO12BRUkQPPtvNhYJHSbTYzbajfoi6HbdHrcz9LitH57fRYU7V4B1kVTUV-3HKy8veXw5ghAj3MAdcvHHRZURyWUQtoAhrQd6NalBMO_kh49H5V4o-ko_dVYfPIztB4iM8mohD3Ywd8m16ilam_Lwsly-0nxzZpKn89uOkcxaSgIcR32ZvqEy6Sk1lDwqO_FxUORLcDGtVjPlUiXwrjjQ1sWuIF8MKo0IfyT2Djwbb0XB1bnFAD6yMvmHoalvzTKWJNr0Fe8Rvix6jPkG-FWUGE-MLrFoxgDeJPabjDYz7vLVfFelPtjqQDMNVlnF6LgcmOJPtea2HtmpYV-eFJzw4wP_AHCpxdVpEh7lX0EnZ1OzeCud6IhHHT07UtEuXz9i3cY2ZSk8YiS88w23NrgCRIvgdCCje9MF1G4PqmnHC-WW9s5z1-1D4X3GCtRyShswN38k-ZRT5beICkN94JxMsQwNhWwEs8ork16ghkFXgwQHp5fl23Su9bA0P56BE0Lro9kHKAeF3P1YdXiOwnQxD74Pai8GB3vas14Pnodss-WSyeSsumlHoU7T_LY306rVHZ_ckjQiDUR-roKLQ2WUvGpzK-Ii_vWJBNpopeo9gtB1wgc9NzfywsBR8Oj0bMMhdovsSoKY2IOclruzpzq0R0NzPbtD3mQUJjAHwBu7bDTxgY_zODOtwSkzHoPzTk9tYxoZbkG0HlFGutna8DBxJOZNkV6LlwJo7oYZKWKY31iIK0VSCYdDiBYatPym6uCDAdLLCnRpdYUkzAOFXchFNm29B3YePiFj69EeygQGbEt8ZkdBcjzHEXP5ekWDYE8-t2_y1ufdqH-P0k0Leetg5fiXuZ3HeJMij_-r5z8Cgyc5wBVwutVENMPnhmql89Z8HCRvveO062UufP5LD1Oua9t9McU0DiLvrGiBWIOzH53QWoMP1qSMFgT62BHHZC_eC_eP4wNWa6uhpzsd9RjxN93IEZ74oW_tzdB_BF-bwDbOCXIcASnYxQQtGJHbZEqYZgt7ZU0lrC2jCIPGeVgWk7O_cMz4SToweE-hMOiJ4CIlKU\"]",
+      "wrap": "AQMA8bXKxDfoRYqe2HUvUFphE8nvFEW3YXhH_BHIOPVVPZ00r6sCimewjOv5suU5cuwzUp8BceGZevZHlXw"
+    },
+    {
+      "name": "a single-label relying party",
+      "rp_id": "localhost",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "root": "RZZJj938plXq58PR8Hc3mZEJL7zQyFuSDUrWRRHMflI",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "nonce": "rhoON0YCh6an1ZVh",
+      "prf_salt": "7nhINaHdXP-4Wvp-rGKeM2C5QsogO1BaywBTPH2TF1o",
+      "k_pk": "69J6xRK_5e_unrkHH7-wYEjHccT-WYVDhMk9Q08vRqo",
+      "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f755-f200-7483-b338-dd34e337afe9\",1,\"localhost\",\"vfYdRJMB5TR46ou-HtdZPQ\"]",
+      "wrap": "AQOuGg43RgKHpqfVlWEJSzsa5rfiVDN8PHjfaFgCUeFqCoLOt3pNmKpZemsy4gKTnaNczpTYh62G81fhUwc"
+    },
+    {
+      "name": "a relying party of 253 bytes",
+      "rp_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "root": "RZZJj938plXq58PR8Hc3mZEJL7zQyFuSDUrWRRHMflI",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "nonce": "AzYlDQDcW9DafJYM",
+      "prf_salt": "7uuwS-AWZdTZX2H11XAxjW6x04tL2UycN2o9uyGfVqM",
+      "k_pk": "f9U45x0cqXOwx2wWgiccAEuGpkEbdSD84JYLFN0eTCw",
+      "aad": "[\"thehappie-id/root-wrap\",1,\"passkey\",\"01a0f755-f200-7483-b338-dd34e337afe9\",1,\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"vfYdRJMB5TR46ou-HtdZPQ\"]",
+      "wrap": "AQMDNiUNANxb0Np8lgy2QgpNuTfVJUPzFpBH-7q6icQ0t30hQPP9ONQreXMUxC3brY1YCIyd7UqyfxeQI08"
+    },
+    {
+      "name": "an empty relying party id",
+      "op": "salt",
+      "rp_id": "",
+      "error": "wrap"
+    },
+    {
+      "name": "a relying party id in upper case",
+      "op": "salt",
+      "rp_id": "ID.thehappie.co",
+      "error": "wrap"
+    },
+    {
+      "name": "a relying party id with a port",
+      "op": "salt",
+      "rp_id": "id.thehappie.co:443",
+      "error": "wrap"
+    },
+    {
+      "name": "an origin instead of a relying party id",
+      "op": "salt",
+      "rp_id": "https://id.thehappie.co",
+      "error": "wrap"
+    },
+    {
+      "name": "a relying party id with a trailing dot",
+      "op": "salt",
+      "rp_id": "id.thehappie.co.",
+      "error": "wrap"
+    },
+    {
+      "name": "a relying party id with a leading dot",
+      "op": "salt",
+      "rp_id": ".id.thehappie.co",
+      "error": "wrap"
+    },
+    {
+      "name": "a relying party id with an empty label",
+      "op": "salt",
+      "rp_id": "id..thehappie.co",
+      "error": "wrap"
+    },
+    {
+      "name": "a label starting with a dash",
+      "op": "salt",
+      "rp_id": "-id.thehappie.co",
+      "error": "wrap"
+    },
+    {
+      "name": "a label ending with a dash",
+      "op": "salt",
+      "rp_id": "id-.thehappie.co",
+      "error": "wrap"
+    },
+    {
+      "name": "a label of 64 bytes",
+      "op": "salt",
+      "rp_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.thehappie.co",
+      "error": "wrap"
+    },
+    {
+      "name": "a relying party id of 254 bytes",
+      "op": "salt",
+      "rp_id": "eaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "error": "wrap"
+    },
+    {
+      "name": "an IPv4 address",
+      "op": "salt",
+      "rp_id": "127.0.0.1",
+      "error": "wrap"
+    },
+    {
+      "name": "a bracketed IPv6 address",
+      "op": "salt",
+      "rp_id": "[::1]",
+      "error": "wrap"
+    },
+    {
+      "name": "an underscore",
+      "op": "salt",
+      "rp_id": "id_1.thehappie.co",
+      "error": "wrap"
+    },
+    {
+      "name": "a space",
+      "op": "salt",
+      "rp_id": "id thehappie.co",
+      "error": "wrap"
+    },
+    {
+      "name": "a non-ASCII relying party id",
+      "op": "salt",
+      "rp_id": "id.th\u00e9happie.co",
+      "error": "wrap"
+    },
+    {
+      "name": "an empty PRF output",
+      "op": "key",
+      "rp_id": "id.thehappie.co",
+      "prf": "",
+      "error": "wrap"
+    },
+    {
+      "name": "a PRF output of 31 bytes",
+      "op": "key",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MA",
+      "error": "wrap"
+    },
+    {
+      "name": "a PRF output of 33 bytes",
+      "op": "key",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNMA",
+      "error": "wrap"
+    },
+    {
+      "name": "the first and second PRF outputs run together",
+      "op": "key",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNMSoAi2GJxnrgn0P1N_E5f48IKjFplEmMDH9Na_US6G3g",
+      "error": "wrap"
+    },
+    {
+      "name": "a good PRF output with a relying party id in upper case",
+      "op": "key",
+      "rp_id": "ID.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "error": "wrap"
+    },
+    {
+      "name": "a good PRF output with an origin instead of a relying party id",
+      "op": "key",
+      "rp_id": "https://id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "error": "wrap"
+    },
+    {
+      "name": "another relying party",
+      "op": "open",
+      "rp_id": "id.thehappie.localhost",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQPpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXw",
+      "error": "wrap"
+    },
+    {
+      "name": "the development wrap opened on the production relying party",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQOmvBQQ9eoNGYrWDoNRHzQ_fRev39Si_nTPlGiUIQdH008TxqRUeNO5x3GHRn4fG_XfwF0hZqymhKD9U-4",
+      "error": "wrap"
+    },
+    {
+      "name": "another credential id",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "JsuXmMgfSrwrDz0p2XlL8mEkqUmN6XVcJAuuD3bwo18",
+      "wrap": "AQPpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXw",
+      "error": "wrap"
+    },
+    {
+      "name": "the PRF output of another credential",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EqAIthicZ64J9D9TfxOX-PCCoxaZRJjAx_TWv1Euht4",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQPpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXw",
+      "error": "wrap"
+    },
+    {
+      "name": "another sub",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-767b-8907-42791d2b5a4c",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQPpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXw",
+      "error": "wrap"
+    },
+    {
+      "name": "another epoch",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 2,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQPpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXw",
+      "error": "wrap"
+    },
+    {
+      "name": "a flipped nonce bit",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQPoX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXw",
+      "error": "wrap"
+    },
+    {
+      "name": "a flipped ciphertext bit",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQPpX9vVLkcUvL9FDtNKYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXw",
+      "error": "wrap"
+    },
+    {
+      "name": "a flipped tag bit",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQPpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyfw",
+      "error": "wrap"
+    },
+    {
+      "name": "the password kind byte",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQHpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXw",
+      "error": "wrap"
+    },
+    {
+      "name": "version byte 0x02",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AgPpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXw",
+      "error": "wrap"
+    },
+    {
+      "name": "truncated to 61 bytes",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQPpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyQ",
+      "error": "wrap"
+    },
+    {
+      "name": "a trailing byte",
+      "op": "open",
+      "rp_id": "id.thehappie.co",
+      "prf": "EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM",
+      "sub": "01a0f755-f200-7483-b338-dd34e337afe9",
+      "epoch": 1,
+      "credential_id": "vfYdRJMB5TR46ou-HtdZPQ",
+      "wrap": "AQPpX9vVLkcUvL9FDtNLYKxAi_RT8aaAZsP4z2FGSeWLK-Hj2bmdZIs2VPP8CtPo-VNdBuQuMhqYqebqyXwA",
+      "error": "wrap"
+    }
+  ]
+}

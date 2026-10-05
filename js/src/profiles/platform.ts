@@ -5,8 +5,11 @@
 // normalisation and the strict key-bundle reader. Part 2: the sealed
 // delivery of a product key to the product's page (section 11.12), PKCE
 // S256 (section 11.13), and the X25519 helpers the relying party's page
-// uses. The same in Go (profiles/platform), and pinned by the platform's
-// vectors (vectors/platform/id-v1). The relying party itself is
+// uses. Part 3: passkeys with PRF (section 11.16), the public PRF salt of a
+// relying party, K_pk from a passkey's PRF output and the kind-3 root wrap
+// under it, and the allowlist of WebAuthn client extension results. The
+// same in Go (profiles/platform), and pinned by the platform's vectors
+// (vectors/platform/id-v1). The relying party itself is
 // @thehappieco/kit/oidc-rp.
 //
 // Unlike the kit's generic modules, these functions take no profile: they
@@ -22,11 +25,11 @@
 // names, and whose message never holds the refused value. What stays in the
 // platform: the product registry, the account ceremonies built from these
 // pieces, page rules such as refusing a password equal to the address, the
-// decoy salts and every server secret. The implementation is in
-// ../internal/platform, taken from the platform's web/shared/crypto at
-// commit 5e66d84 (part 1) and 4476bf4 (part 2). Key delivery's HPKE wipes
-// its key schedule and is internal: no page code can choose an ephemeral
-// key.
+// WebAuthn ceremony, the decoy salts and every server secret. The
+// implementation is in ../internal/platform, taken from the platform's
+// web/shared/crypto at commits 5e66d84 (part 1), 4476bf4 (part 2) and
+// b5d9f69 (part 3). Key delivery's HPKE wipes its key schedule and is
+// internal: no page code can choose an ephemeral key.
 
 export { isPlatformError, PlatformError, type PlatformErrorCode } from '../errors.js'
 export type { DeriveOptions, Derived } from '../account.js'
@@ -101,3 +104,18 @@ export {
   x25519PublicFromKey,
   type X25519KeyPair,
 } from '../internal/platform/x25519.js'
+export {
+  isRPID,
+  LABEL_PASSKEY_PRF,
+  LABEL_PASSKEY_WRAP,
+  passkeyWrapKey,
+  platformPasskey,
+  PRF_OUTPUT_LEN,
+  PRF_SALT_LEN,
+  prfSalt,
+  unwrapRootWithPasskey,
+  wrapRootWithPasskey,
+  type PasskeyUnwrapInput,
+  type PasskeyWrapInput,
+} from '../internal/platform/passkey.js'
+export { checkClientExtensions, checkClientExtensionsText, type AllowedClientExtensionResults } from '../internal/platform/extensions.js'

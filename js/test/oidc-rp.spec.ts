@@ -13,7 +13,7 @@
 // the test page's. Ported from the platform's web/test/oidc-rp/rp.spec.ts at
 // 4476bf4.
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes.js'
 import { HPKEError, isRPError, RPError, type RPErrorCode } from '../src/errors.js'
@@ -33,6 +33,8 @@ import {
   sameOriginPath,
   type BeginOptions,
   type CallbackResult,
+  type FinishOptions,
+  type KeyStore,
   type PinnedKey,
 } from '../src/oidc-rp.js'
 import { deriveProductKey, generateX25519KeyPair, keyDeliveryAAD, pkceChallenge, productPublicKey, sealProductKey } from '../src/profiles/platform.js'
@@ -1016,5 +1018,14 @@ describe('the module', () => {
     expect(isRPError(new RPError('state_unknown'), 'state_unknown')).toBe(true)
     expect(isRPError(new Error('x'))).toBe(false)
     expect(new HPKEError('x', 'invalid_key')).not.toBeInstanceOf(RPError)
+  })
+
+  it('names keepProductKey\'s store KeyStore, as the platform does', () => {
+    expectTypeOf<KeyStore>().toEqualTypeOf<FinishOptions['store']>()
+    expectTypeOf(keepProductKey).parameter(2).toEqualTypeOf<KeyStore>()
+    const store: KeyStore = (productKey: Uint8Array, pinned: PinnedKey) => {
+      expect(productKey.length + pinned.sub.length).toBeGreaterThan(0)
+    }
+    expect(typeof store).toBe('function')
   })
 })

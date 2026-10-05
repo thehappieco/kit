@@ -149,6 +149,12 @@ export interface FinishOptions extends CallbackOptions {
   store: (productKey: Uint8Array, pinned: PinnedKey) => Promise<void> | void
 }
 
+/**
+ * KeyStore is how a product keeps its key: FinishOptions' store, and the
+ * last argument of keepProductKey. The name is the platform's.
+ */
+export type KeyStore = FinishOptions['store']
+
 /** FinishResult is what a finished sign-in gives the page. */
 export interface FinishResult {
   idClaims: IdClaims

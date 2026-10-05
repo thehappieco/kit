@@ -18,9 +18,9 @@ type WrapKind byte
 const (
 	WrapPassword WrapKind = 0x01
 	WrapRecovery WrapKind = 0x02
-	// WrapPasskey is a wrap under a key from a passkey's PRF output (SPEC
-	// section 11.16, reserved). Its envelope and AAD are defined now; its key
-	// is not.
+	// WrapPasskey is a wrap under K_pk, the key a passkey's PRF output gives
+	// (SPEC section 11.16, PasskeyWrapKey); NewPasskeyWrap and
+	// OpenPasskeyWrap seal and open it from the PRF output.
 	WrapPasskey WrapKind = 0x03
 )
 

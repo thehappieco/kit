@@ -89,6 +89,9 @@ func TestErrorCodeNamesEverySentinelAndNothingElse(t *testing.T) {
 		platform.ErrEmailInvalid:     "email",
 		platform.ErrProductKey:       "product_key",
 		platform.ErrBundle:           "bundle",
+		platform.ErrKeyDelivery:      "key_delivery",
+		platform.ErrPKCE:             "pkce",
+		platform.ErrClientExtensions: "client_extensions",
 		platform.ErrEncoding:         "encoding",
 	}
 	for err, code := range want {
@@ -113,6 +116,10 @@ func TestRefusalsNeverRepeatTheRefusedValue(t *testing.T) {
 	_, _, checks["product id"] = platform.ProductKey(testBytes(32, 1), marker+"|", 1)
 	_, checks["bundle"] = platform.ParseKeyBundle([]byte(`{"` + marker + `":1}`))
 	_, _, checks["bundle password"] = platform.OpenKeyBundle([]byte(`[]`), marker)
+	_, checks["relying party id"] = platform.PRFSalt(marker + ".Example")
+	_, checks["passkey wrap key"] = platform.PasskeyWrapKey(testBytes(32, 1), marker+":443")
+	checks["client extensions"] = platform.CheckClientExtensions([]byte(`{"prf":{"results":{"first":"` + marker + `"}}}`))
+	checks["client extension name"] = platform.CheckClientExtensions([]byte(`{"` + marker + `":true}`))
 	for name, err := range checks {
 		if err == nil {
 			t.Errorf("%s: not refused", name)

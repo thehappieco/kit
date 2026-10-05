@@ -53,6 +53,8 @@ jobs:
           go test -run '^$' -fuzz '^FuzzPreparePassword$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzOpenProductKey$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzPKCEChallenge$' -fuzztime 30s ./profiles/platform
+          go test -run '^$' -fuzz '^FuzzCheckClientExtensions$' -fuzztime 30s ./profiles/platform
+          go test -run '^$' -fuzz '^FuzzValidRPID$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzReadUserinfo$' -fuzztime 30s ./oidcrp
 
   go-current:
@@ -68,6 +70,14 @@ jobs:
           cache: false
       - run: go vet ./...
       - run: go test -race -count=1 ./...
+      # Go 1.27 builds encoding/json on its json/v2 engine, and Go 1.26.7 on
+      # the classic one; the strict readers of the key bundle and of the
+      # client-extension allowlist walk its token stream, so they are fuzzed
+      # on this toolchain too.
+      - name: fuzz the strict JSON readers
+        run: |
+          go test -run '^$' -fuzz '^FuzzCheckClientExtensions$' -fuzztime 30s ./profiles/platform
+          go test -run '^$' -fuzz '^FuzzParseKeyBundle$' -fuzztime 30s ./profiles/platform
 
   govulncheck:
     runs-on: ubuntu-24.04

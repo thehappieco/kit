@@ -4,13 +4,16 @@ import (
 	"bytes"
 	"crypto/ecdh"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"regexp"
 	"strings"
 	"testing"
 	"unicode/utf8"
 
 	"golang.org/x/text/unicode/norm"
 
+	"github.com/thehappieco/kit/internal/vectest"
 	"github.com/thehappieco/kit/profiles/platform"
 )
 
@@ -276,6 +279,143 @@ func FuzzPKCEChallenge(f *testing.F) {
 		}
 		if _, err := platform.DecodeB64(got, 32); err != nil || len(got) != platform.CodeChallengeLen {
 			t.Fatal("a challenge that is not 43 characters of strict base64url")
+		}
+	})
+}
+
+// FuzzCheckClientExtensions: no input panics and every refusal is
+// client_extensions. Whatever is accepted, encoding/json (what WebAuthn
+// libraries decode with, matching names case-insensitively) reads as the
+// allowlist and nothing else, with no PRF results anywhere; and whatever
+// encoding/json reads as the allowlist is accepted once written in one
+// spelling, so the allowlist refuses spellings, never values it allows.
+// Ported from the platform's idcrypto fuzz_test.go at b5d9f69, seeded from
+// client-extensions.json through vectest.
+func FuzzCheckClientExtensions(f *testing.F) {
+	for _, c := range vectest.Platform[vectest.ClientExtensionsCase](f, "client-extensions") {
+		f.Add([]byte(*c.ClientExtensionResults))
+	}
+	f.Add([]byte(`{"credProps":{"RK":true}}`))
+	f.Add([]byte(`{"prf":{"enabled":true,"RESULTS":{}}}`))
+	f.Add([]byte("{\"prf\":{\"enabled\":true}}\xff"))
+	f.Fuzz(func(t *testing.T, raw []byte) {
+		err := platform.CheckClientExtensions(raw)
+		if err != nil && (!errors.Is(err, platform.ErrClientExtensions) || platform.ErrorCode(err) != "client_extensions") {
+			t.Fatalf("unclassified error: %v", err)
+		}
+		var parsed any
+		allowed := json.Unmarshal(raw, &parsed) == nil && allowlisted(parsed)
+		if err != nil {
+			if allowed {
+				canon, mErr := json.Marshal(parsed)
+				if mErr != nil {
+					t.Fatal(mErr)
+				}
+				if err := platform.CheckClientExtensions(canon); err != nil {
+					t.Fatal("the one spelling of an allowed value is refused")
+				}
+			}
+			return
+		}
+		if !allowed {
+			t.Fatal("accepted a text encoding/json reads as something outside the allowlist")
+		}
+		var asLibrary struct {
+			CredProps *struct {
+				RK *bool `json:"rk"`
+			} `json:"credProps"`
+			PRF *struct {
+				Enabled *bool           `json:"enabled"`
+				Results json.RawMessage `json:"results"`
+			} `json:"prf"`
+		}
+		if json.Unmarshal(raw, &asLibrary) != nil {
+			t.Fatal("encoding/json cannot read an accepted text")
+		}
+		if asLibrary.PRF != nil && (asLibrary.PRF.Results != nil || asLibrary.PRF.Enabled == nil) {
+			t.Fatal("encoding/json reads PRF results, or no flag, in an accepted text")
+		}
+		if asLibrary.CredProps != nil && asLibrary.CredProps.RK == nil {
+			t.Fatal("encoding/json reads credProps without rk in an accepted text")
+		}
+	})
+}
+
+// allowlisted reports whether a value encoding/json decoded is an object
+// holding only credProps {rk: bool} and prf {enabled: bool}.
+func allowlisted(v any) bool {
+	top, ok := v.(map[string]any)
+	if !ok {
+		return false
+	}
+	for name, inner := range top {
+		var flag string
+		switch name {
+		case "credProps":
+			flag = "rk"
+		case "prf":
+			flag = "enabled"
+		default:
+			return false
+		}
+		m, ok := inner.(map[string]any)
+		if !ok || len(m) != 1 {
+			return false
+		}
+		if _, ok := m[flag].(bool); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// rpIDLabel is one label of a relying party id as the TypeScript side's
+// isRPID matches it; rpIDDigits is a label of digits only.
+var (
+	rpIDLabel  = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
+	rpIDDigits = regexp.MustCompile(`^[0-9]+$`)
+)
+
+// FuzzValidRPID: no input panics; ValidRPID's byte loop agrees with the
+// regular expressions TypeScript's isRPID uses (labels split on '.', 1 to
+// 253 bytes in all, the last label not all digits); every id it accepts
+// passes WrapAAD's alphabet and gives a salt and a key, and every id it
+// refuses gives neither.
+func FuzzValidRPID(f *testing.F) {
+	for _, c := range vectest.Platform[vectest.PasskeyCase](f, "passkey") {
+		f.Add(c.RPID)
+	}
+	for _, s := range []string{
+		"a", "1", "a.1", "1.a", "a-", "-a", "a..b", ".", "", "xn--bcher-kva.example", "A.b", "a_b", "a\x00",
+		strings.Repeat("a", 63), strings.Repeat("a", 64), strings.Repeat("a.", 126) + "a", strings.Repeat("a.", 126) + "ab",
+		"\xff", "\u0430.com", "id.thehappie.co\n",
+	} {
+		f.Add(s)
+	}
+	prf := testBytes(platform.PRFOutputLen, 0x5a)
+	f.Fuzz(func(t *testing.T, rpID string) {
+		got := platform.ValidRPID(rpID)
+		labels := strings.Split(rpID, ".")
+		want := len(rpID) >= 1 && len(rpID) <= 253 && !rpIDDigits.MatchString(labels[len(labels)-1])
+		for _, l := range labels {
+			want = want && rpIDLabel.MatchString(l)
+		}
+		if got != want {
+			t.Fatalf("ValidRPID says %v, the regular expressions %v", got, want)
+		}
+		salt, sErr := platform.PRFSalt(rpID)
+		key, kErr := platform.PasskeyWrapKey(prf, rpID)
+		if !got {
+			if platform.ErrorCode(sErr) != "wrap" || platform.ErrorCode(kErr) != "wrap" || salt != nil || key != nil {
+				t.Fatal("a refused relying party id gave a salt or a key")
+			}
+			return
+		}
+		if sErr != nil || kErr != nil || len(salt) != platform.PRFSaltLen || len(key) != platform.KeyLen {
+			t.Fatal("an accepted relying party id gives no salt or no key")
+		}
+		if _, err := platform.WrapAAD(platform.WrapPasskey, platform.Binding{Sub: testSub, Epoch: 1, RPID: rpID, CredentialID: "AA"}); err != nil {
+			t.Fatalf("an accepted relying party id has no AAD: %v", err)
 		}
 	})
 }

@@ -16,7 +16,7 @@ import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes
 import { HPKEError, PlatformError } from '../src/errors.js'
 import * as platform from '../src/profiles/platform.js'
 import { open as hpkeOpen, importPrivateKey } from '../src/hpke.js'
-import { b64 as std, caseId, files, forTS, loadPlatform, toB64, unhandled, withDraws, type PlatformCase, type VectorCase } from './vectors.js'
+import { b64 as std, caseId, files, forTS, freshOnly, loadPlatform, toB64, unhandled, withDraws, type PlatformCase, type VectorCase } from './vectors.js'
 
 /** The members each kind's cases may have, which are the members the runners below read. */
 const MEMBERS: Record<string, readonly string[]> = {
@@ -676,17 +676,60 @@ async function kitDeliveryCase(c: VectorCase, code: (fn: () => unknown) => Promi
       else expect(await platform.pkceChallenge(i.code_verifier)).toBe(c.out.code_challenge)
       return
   }
+  return kitPasskeyCase(c, code)
+}
+
+// The kit's own cases of part 3 (SPEC section 11.16), in the kit's format:
+// PRF salts of relying party ids, fresh passkey wraps replayed byte for
+// byte from the nonce each drew and opened (K_pk, when Go recorded it,
+// compared by what it seals), the same wraps refused with one thing
+// changed, and the allowlist's verdict on client extension results.
+async function kitPasskeyCase(c: VectorCase, code: (fn: () => unknown) => Promise<string>): Promise<void> {
+  const i = c.in
+  const binding = { rpId: i.rp_id, credentialId: i.credential_id }
+  switch (c.op) {
+    case 'platform.prf_salt':
+      expect(platform.isRPID(i.rp_id)).toBe(c.error === undefined)
+      if (c.error) expect(await code(() => platform.prfSalt(i.rp_id))).toBe(c.error)
+      else expect(toB64(await platform.prfSalt(i.rp_id))).toBe(c.out.prf_salt_b64)
+      return
+    case 'platform.passkey_wrap': {
+      const prf = std(i.prf_b64)
+      expect(platform.rootWrapAAD('passkey', i.sub, i.epoch, binding)).toBe(c.out.aad)
+      const wrap = await withDraws({ bytes: [std(i.nonce_b64)] }, () => platform.wrapRootWithPasskey({ root: std(i.root_b64), prf, sub: i.sub, epoch: i.epoch, ...binding }))
+      expect(toB64(fromBase64URL(wrap, platform.WRAP_LEN))).toBe(c.out.wrap_b64)
+      const root = await platform.unwrapRootWithPasskey({ prf, wrap: toBase64URL(std(c.out.wrap_b64)), sub: i.sub, epoch: i.epoch, ...binding }, async (r) => toB64(r))
+      expect(root).toBe(i.root_b64)
+      if (c.out.k_pk_b64 !== undefined) expect(await probe(await platform.passkeyWrapKey(prf, i.rp_id))).toBe(await probe(await rawKey(std(c.out.k_pk_b64))))
+      return
+    }
+    case 'platform.open_passkey_wrap':
+      expect(c.error).toBe('wrap')
+      expect(await code(() => platform.unwrapRootWithPasskey({ prf: std(i.prf_b64), wrap: toBase64URL(std(i.wrap_b64)), sub: i.sub, epoch: i.epoch, ...binding }, async () => expect.fail(`${c.id}: opened`)))).toBe(c.error)
+      return
+    case 'platform.check_client_extensions':
+      if (typeof i.text !== 'string') expect.fail(`${c.id}: no text`)
+      if (c.error) expect(await code(() => platform.checkClientExtensionsText(i.text))).toBe(c.error)
+      else {
+        platform.checkClientExtensionsText(i.text)
+        expect(c.out.accepted).toBe(true)
+      }
+      return
+  }
   unhandled(c)
 }
 
-for (const [path, f] of files(
-  'kit/platform-go.json',
-  'kit/platform-ts.json',
-  'kit/platform-password-go.json',
-  'kit/platform-password-ts.json',
-  'kit/platform-delivery-go.json',
-  'kit/platform-delivery-ts.json',
-)) {
+for (const [path, f] of [
+  ...files(
+    'kit/platform-go.json',
+    'kit/platform-ts.json',
+    'kit/platform-password-go.json',
+    'kit/platform-password-ts.json',
+    'kit/platform-delivery-go.json',
+    'kit/platform-delivery-ts.json',
+  ),
+  ...freshOnly('platform-passkey-go.json'),
+]) {
   describe(path, () => {
     expect(f.profile).toBe('platform')
     for (const c of f.cases.filter(forTS)) it(c.id, () => kitCase(c))

@@ -566,6 +566,171 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
       'crypto.getRandomValues and WebCrypto X25519; nothing drawn is recorded, so seals are checked by opening')
   })
 
+  it('writes platform-passkey-ts.json', async () => {
+    const cases: VectorCase[] = []
+    const below = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n
+    const bytes = (n: number) => crypto.getRandomValues(new Uint8Array(n)) as Bytes
+    const pickOf = <T>(from: T[]) => from[below(from.length)]
+    const from = (alphabet: string, n: number) => Array.from({ length: n }, () => alphabet[below(alphabet.length)]).join('')
+    const epoch = () => (below(2) === 0 ? 1 + below(3) : 1 + below(2 ** 31 - 1))
+    const expectCode = async (id: string, fn: () => unknown, want: string) => expect(await codeOf(fn), id).toBe(want)
+
+    // Relying party ids in their one spelling (SPEC section 11.16), and
+    // broken ones: the same generator as internal/cross/platform_passkey_test.go.
+    const EDGE = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    const label = (n: number) => (n === 1 ? from(EDGE, 1) : from(EDGE, 1) + from(`${EDGE}-`, n - 2) + from(EDGE, 1))
+    const rpId = (): string => {
+      switch (below(4)) {
+        case 0: return pickOf(['id.thehappie.co', 'id.thehappie.localhost', 'localhost'])
+        case 1: return `${label(63)}.${label(63)}.${label(63)}.${label(61)}`
+      }
+      for (;;) {
+        const labels = Array.from({ length: 1 + below(4) }, () => label(below(8) === 0 ? 1 + below(63) : 1 + below(12)))
+        const last = labels[labels.length - 1]
+        if (/^[0-9]+$/.test(last)) labels[labels.length - 1] = `x${last.slice(1)}`
+        const s = labels.join('.')
+        if (s.length <= 253) return s
+      }
+    }
+    const breakRPID = (rp: string): [string, string] => {
+      const insert = (s: string, what: string) => {
+        const at = below(s.length + 1)
+        return s.slice(0, at) + what + s.slice(at)
+      }
+      for (;;) {
+        let broken: string
+        let how: string
+        switch (below(16)) {
+          case 0: [broken, how] = [insert(rp, pickOf(['A', 'Z', 'Q'])), 'upper-case']; break
+          case 1: [broken, how] = [rp + pickOf([':443', ':8290', ':']), 'port']; break
+          case 2: [broken, how] = [pickOf(['https://', 'http://', '//']) + rp, 'scheme']; break
+          case 3: [broken, how] = [`${rp}.`, 'trailing-dot']; break
+          case 4: [broken, how] = [`.${rp}`, 'leading-dot']; break
+          case 5: [broken, how] = [insert(rp, '..'), 'empty-label']; break
+          case 6: [broken, how] = [`-${rp}`, 'leading-dash']; break
+          case 7: [broken, how] = [`${rp}-`, 'trailing-dash']; break
+          case 8: [broken, how] = [`${label(64)}.${rp}`, 'label-64']; break
+          case 9: [broken, how] = [`${label(63)}.${label(63)}.${label(63)}.${label(62)}`, 'length-254']; break
+          case 10: [broken, how] = [`${below(256)}.${below(256)}.${below(256)}.${below(256)}`, 'ipv4']; break
+          case 11: [broken, how] = [`${rp}.${from('0123456789', 1 + below(4))}`, 'digits']; break
+          case 12: [broken, how] = [pickOf(['[::1]', '::1', '[2001:db8::1]']), 'ipv6']; break
+          case 13: [broken, how] = [insert(rp, pickOf(['_', ' ', '/', '@', '|', '*', '\t', '\u0000'])), 'character']; break
+          case 14: [broken, how] = [insert(rp, pickOf(['\u00e9', '\u0131', '\u0430', '\u00fc', '\u2028'])), 'non-ascii']; break
+          default: [broken, how] = ['', 'empty']
+        }
+        if (!platform.isRPID(broken)) return [broken, how]
+      }
+    }
+    const credentialId = () => {
+      const sizes = [1, 16, 32, 64, 1023]
+      const i = below(sizes.length + 1)
+      return toBase64URL(bytes(i < sizes.length ? sizes[i] : 1 + below(1023)))
+    }
+
+    // The PRF salt of relying party ids, half of them broken.
+    for (let n = 0; n < 200; n++) {
+      let rp = rpId()
+      let id = `platform/prf-salt/${n}`
+      if (n % 2 === 1) {
+        let how: string
+        ;[rp, how] = breakRPID(rp)
+        id += `/refuses/${how}`
+        await expectCode(id, () => platform.prfSalt(rp), 'wrap')
+        cases.push({ id, op: 'platform.prf_salt', in: { rp_id: rp }, error: 'wrap' })
+      } else {
+        cases.push({ id, op: 'platform.prf_salt', in: { rp_id: rp }, out: { prf_salt_b64: toB64(await platform.prfSalt(rp)) } })
+      }
+    }
+
+    // Fresh passkey wraps, each with the nonce it drew, then opened with one
+    // thing changed at a time. K_pk is non-extractable here, so it is not
+    // recorded: Go checks it by the wrap.
+    for (let n = 0; n < 32; n++) {
+      const prf = bytes(32)
+      const root = bytes(32)
+      const b = { sub: crypto.randomUUID(), epoch: epoch(), rpId: rpId(), credentialId: credentialId() }
+      const id = `platform/passkey-wrap/${n}`
+      const { value: wrap, bytes: drawn } = await recording(() => platform.wrapRootWithPasskey({ root, prf, ...b }))
+      expect(drawn.map((d) => d.length), id).toEqual([12])
+      const opened = await platform.unwrapRootWithPasskey({ prf, wrap, ...b }, async (r) => toB64(r))
+      expect(opened, id).toBe(toB64(root))
+      const w = fromB64URL(wrap)
+      const aad = platform.rootWrapAAD('passkey', b.sub, b.epoch, { rpId: b.rpId, credentialId: b.credentialId })
+      cases.push({ id, op: 'platform.passkey_wrap', in: {
+        rp_id: b.rpId, prf_b64: toB64(prf), root_b64: toB64(root), sub: b.sub, epoch: b.epoch, credential_id: b.credentialId, nonce_b64: toB64(drawn[0]),
+      }, out: { aad, wrap_b64: toB64(w) } })
+
+      const refuse = async (what: string, prf: Bytes, wrap: Bytes, o: typeof b) => {
+        await expectCode(`${id}/${what}`, () => platform.unwrapRootWithPasskey({ prf, wrap: toBase64URL(wrap), ...o }, async () => expect.fail(`${id}/${what}: opened`)), 'wrap')
+        cases.push({ id: `${id}/refuses/${what}`, op: 'platform.open_passkey_wrap', in: {
+          rp_id: o.rpId, prf_b64: toB64(prf), sub: o.sub, epoch: o.epoch, credential_id: o.credentialId, wrap_b64: toB64(wrap),
+        }, error: 'wrap' })
+      }
+      const flipped = w.slice()
+      const bit = below(flipped.length * 8)
+      flipped[bit >> 3] ^= 1 << (bit & 7)
+      await refuse(`flipped-bit-${bit}`, prf, flipped, b)
+      const header = w.slice()
+      if (below(2) === 0) header[0] = 2 + below(254)
+      else header[1] = pickOf([0x00, 0x01, 0x02, 0x04, 0xff])
+      await refuse('header', prf, header, b)
+      await refuse('length', prf, below(2) === 0 ? w.slice(0, 61 - below(3)) : new Uint8Array([...w, ...bytes(1 + below(3))]) as Bytes, b)
+      await refuse('other-prf', bytes(32), w, b)
+      let rp = b.rpId
+      while (rp === b.rpId) rp = rpId()
+      await refuse('other-rp-id', prf, w, { ...b, rpId: rp })
+      let cred = b.credentialId
+      while (cred === b.credentialId) cred = credentialId()
+      await refuse('other-credential', prf, w, { ...b, credentialId: cred })
+      await refuse('other-sub', prf, w, { ...b, sub: crypto.randomUUID() })
+      await refuse('other-epoch', prf, w, { ...b, epoch: b.epoch === 2 ** 31 - 1 ? b.epoch - 1 : b.epoch + 1 })
+    }
+
+    // Client extension results edited at random from the allowed ones. Only
+    // well-formed text is written: a JSON file carries a lone surrogate to
+    // Go as U+FFFD (the unit tests have those).
+    const seeds = [
+      '{}', '{"credProps":{"rk":true}}', '{"credProps":{"rk":false}}', '{"prf":{"enabled":true}}', '{"prf":{"enabled":false}}',
+      '{"credProps":{"rk":true},"prf":{"enabled":true}}', '{"prf":{"enabled":false},"credProps":{"rk":true}}',
+      ' {"pr\u0066" : {"en\u0061bled" : true}} ',
+    ]
+    const pieces = [
+      '{', '}', '[', ']', ':', ',', '"', '\\', 'u', '0', '6', 'f', 't', 'r', 'e', 'n', 'l', 'a', 's', ' ', '\t', '\n', '\r',
+      '\ufeff', 'P', 'R', 'F', 'k', 'd', 'b', '1', '-', '.', '\u00e9', '\u0000', '\u0066', '\u0000', '\ud800', '\\/',
+      '"prf"', '"credProps"', '"rk"', '"enabled"', '"results"', '"first"', 'true', 'false', 'null', '1.0', '1e0',
+      '{"enabled":true}', '{"rk":false}', '"results":{}', '"results":{"first":"EhJD599fFQOFAB7ZW0Br9KT5OkI77uQwiPBVpt38MNM"}',
+      '\u2028', '\u00a0', '\ud83d\ude00',
+    ]
+    const mutate = (s: string) => {
+      for (let k = 1 + below(3); k > 0; k--) {
+        const at = below(s.length + 1)
+        const piece = pickOf(pieces)
+        const op = below(4)
+        if (op <= 1) s = s.slice(0, at) + piece + s.slice(at)
+        else if (op === 2 && at < s.length) s = s.slice(0, at) + s.slice(at + 1)
+        else if (op === 3 && at < s.length) s = s.slice(0, at) + piece + s.slice(at + 1)
+      }
+      return s
+    }
+    const loneSurrogate = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/
+    let accepted = 0
+    for (let n = 0; n < 1000;) {
+      const text = mutate(pickOf(seeds))
+      if (loneSurrogate.test(text)) continue
+      const id = `platform/check-client-extensions/${n++}`
+      const code = await codeOf(() => platform.checkClientExtensionsText(text))
+      if (code === 'none') {
+        accepted++
+        cases.push({ id, op: 'platform.check_client_extensions', in: { text }, out: { accepted: true } })
+      } else {
+        expect(code, id).toBe('client_extensions')
+        cases.push({ id, op: 'platform.check_client_extensions', in: { text }, error: 'client_extensions' })
+      }
+    }
+    expect(accepted).toBeGreaterThan(0)
+    write('platform-passkey-ts.json', 'platform', 'Fresh cases of the platform profile\'s part 3 (SPEC section 11.16) by the kit\'s TypeScript, for Go: the PRF salt of 200 relying party ids, half of them in a spelling the protocol refuses; 32 fresh passkey wraps (random PRF output, root, account, epoch, relying party and a credential id of 1 to 1023 bytes) with the nonce each drew and its AAD (K_pk is a non-extractable key here, so it is not recorded), each also opened with one thing changed (a bit, a header byte, the length, the PRF output, the relying party, the credential, the sub, the epoch); and 1000 client extension results edited at random from the allowed ones, with the allowlist\'s verdict.', cases, undefined, 'platform')
+  })
+
   // Fixed passwords at the limit of the run rule (SPEC section 11.2, step 2)
   // and one past it, where Go's normaliser inserts U+034F and ICU's does not:
   // the same list as internal/cross/platform_test.go (streamSafeCases), each

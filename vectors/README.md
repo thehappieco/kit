@@ -93,6 +93,9 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | `platform.key_delivery_aad`, `platform.pkce_challenge` | compute | compute |
 | `platform.open_product_key` (a fresh seal, which cannot be replayed in the other language) | open | open |
 | `platform.seal_product_key` (refusals of `akd_pub`) | refuse | refuse |
+| `platform.prf_salt`, `platform.check_client_extensions` | compute | compute |
+| `platform.passkey_wrap` (`k_pk_b64` from Go only: TypeScript's K_pk is not extractable) | compute; replay (nonce); open | compute; replay (nonce); open |
+| `platform.open_passkey_wrap` | refuse | refuse |
 
 Every dispatcher fails on a case for its language whose op it does not handle.
 

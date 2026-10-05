@@ -126,6 +126,24 @@ func Files(t testing.TB, paths ...string) []*File {
 	return out
 }
 
+// Fresh is every case of the file name in $KIT_CROSS_IN, the fresh vectors
+// the other language has just written in the cross-language job, or none
+// when KIT_CROSS_IN is not set. It is for kit files no release holds yet;
+// once vectors/kit holds name, Cases reads both.
+func Fresh(t testing.TB, name string) []Case {
+	t.Helper()
+	dir := os.Getenv("KIT_CROSS_IN")
+	if dir == "" {
+		return nil
+	}
+	path := filepath.Join(dir, name)
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("%s: %v", path, err)
+	}
+	return parse(t, path, raw).Cases
+}
+
 // Cases is every case of Files(paths...), in order.
 func Cases(t testing.TB, paths ...string) []Case {
 	t.Helper()

@@ -1,7 +1,7 @@
 # The Happie Co kit: specification
 
-- Spec version: 3 (kit v0.3.0)
-- Status: normative for the Wappie profile, which is frozen, and for parts 1 and 2 of the platform profile (section 11). Sections 11.16 and 11.17 are reserved.
+- Spec version: 4 (kit v0.4.0)
+- Status: normative for the Wappie profile, which is frozen, and for parts 1 to 3 of the platform profile (section 11). Sections 6.8 and 11.17 are reserved.
 - Vectors: every byte below is pinned by a case in `vectors/`. A case is cited as `file#case-id`, or for the platform's files as `platform/id-v1/<kind>.json#<case name>`, and `#<op>/<case name>` for a case that carries an op.
 
 ## 1. Status and scope
@@ -16,11 +16,12 @@ The kit standardises the client-side cryptography The Happie Co's products share
 - the request HMAC between two services (section 9);
 - RFC 8785 for JSON additional data (section 10);
 - the platform's account core: its password profile, KDF policy, root wraps, recovery code, per-product keys, server verifiers, email normalisation and key bundle (section 11);
-- the platform's sealed key delivery, PKCE and the relying party of its OpenID Connect provider, page and server (sections 11.12 to 11.15).
+- the platform's sealed key delivery, PKCE and the relying party of its OpenID Connect provider, page and server (sections 11.12 to 11.15);
+- the platform's passkeys with PRF: the key a passkey's PRF output gives for the root wrap, and the allowlist of the client extension results the id. server accepts (section 11.16).
 
 What a product chooses is a **profile** (section 3): labels, prefixes, magic bytes, kind names, AAD builders and bounds. Everything else is fixed, and changing it is a new format version, never a profile.
 
-**Conformance.** An implementation conforms to a profile when it reproduces every case of that profile's vector files that is marked for its language (section 12). The Go module and the TypeScript package in this repository conform to the Wappie profile and to parts 1 and 2 of the platform profile.
+**Conformance.** An implementation conforms to a profile when it reproduces every case of that profile's vector files that is marked for its language (section 12). The Go module and the TypeScript package in this repository conform to the Wappie profile and to parts 1 to 3 of the platform profile.
 
 **Versioning.** The spec changes only additively within a major kit version: new sections, new profiles, new ops and new cases. A byte that changes is a new format version byte or a new profile, with new vectors, and the old vectors keep passing.
 
@@ -222,6 +223,12 @@ with ECMAScript's `String.prototype.trim` (WhiteSpace and LineTerminator: TAB, V
 
 The platform profile uses its own canonical form of a recovery code (section 11.6).
 
+### 6.8 Reserved: Wappie's platform wrap
+
+When Wappie's accounts move to the platform's id., Wappie keeps its account key (section 6.4) and wraps it under a key derived from its product key `sk_p` (section 11.4, product `wappie`), so that what a person unlocks on id. opens what Wappie sealed before: grants, the AI keychain and the sealed archives keep opening, and Wappie's export carries the wrap so that a command-line tool opens Wappie data starting from the key bundle (the platform's decision 0023).
+
+What is fixed so far: AES-256-GCM, 61 bytes, and an AAD that binds Wappie's `user_id`, the platform's `sub`, the `product_key_id` and the account's public key. What the kit will hold the format to: the wrap envelope of section 6.5 with a one-byte header other than the password wrap's `0x02`, and no legacy form; a key from an HKDF branch of `sk_p` under a label of Wappie's, distinct from every label of Appendices A and C; a JSON AAD (section 2) whose fields each have one spelling, never the email, so that an address change needs no re-wrap and a new product-key epoch is a new wrap. Its bytes, labels and vectors come from Wappie's login work and enter the kit as an addition to the Wappie profile, planned for kit v0.5.0: nothing Wappie or the platform has sealed changes.
+
 ## 7. Passkey PRF wrap
 
 ```
@@ -231,6 +238,8 @@ envelope         = header || nonce (12) || AES-256-GCM(K, nonce, key (32), AAD)
 ```
 
 Wrapping refuses a key that is not 32 bytes [`bad_key`], then an empty AAD [`bad_aad`], then a PRF output that is not 32 bytes [`bad_prf`]. Opening refuses an empty AAD [`bad_aad`], then an envelope of the wrong length or header [`bad_envelope`]; every other failure, a PRF output of the wrong length included, is [`open_failed`] (`passkey-ts.json#passkey/unwrap/refuses/prf-31`). A wrap bound to nothing could be presented for any passkey, so an AAD is never empty (`kit/passkey-go.json#passkey/wrap/refuses/empty-aad`); Wappie's builder refuses a binding with no JSON text (section 2). The PRF output never leaves the client, and a server must refuse to receive it. Passkeys are bound to their RP ID; a passkey of one RP never opens another's envelope.
+
+The platform profile's passkeys are this scheme with the platform's passkey profile, its root-wrap header and AAD (section 11.16).
 
 ## 8. A key at rest in the browser
 
@@ -276,7 +285,7 @@ Both implementations write RFC 8785 text: object keys sorted by UTF-16 code unit
 
 ## 11. The platform profile
 
-- Status: **parts 1 and 2 are normative**: the account core of the platform's protocol `id-v1` (`thehappie-id/v1`, sections 11.1 to 11.11), from the platform's `docs/protocol/id-v1.md` sections 1, 2 and 6 at platform commit `5e66d84`, with one change: the run rule of the password profile (section 11.2, step 2) counts more, so that Go and ICU never prepare one password two ways; and key delivery, PKCE and the relying party (sections 11.12 to 11.15), from its sections 7.5, 7.6, 7.8, 7.10 and 7.14 at platform commit `4476bf4`. Sections 11.16 and 11.17 are reserved.
+- Status: **parts 1 to 3 are normative**: the account core of the platform's protocol `id-v1` (`thehappie-id/v1`, sections 11.1 to 11.11), from the platform's `docs/protocol/id-v1.md` sections 1, 2 and 6 at platform commit `5e66d84`, with one change: the run rule of the password profile (section 11.2, step 2) counts more, so that Go and ICU never prepare one password two ways; key delivery, PKCE and the relying party (sections 11.12 to 11.15), from its sections 7.5, 7.6, 7.8, 7.10 and 7.14 at platform commit `4476bf4`; and passkeys with PRF (section 11.16), from its sections 8.2 and 8.5 at platform commit `b5d9f69`. Section 11.17 is reserved.
 - Implementations: Go `profiles/platform`, TypeScript `@thehappieco/kit/profiles/platform`; for the relying party, Go `oidcrp` (its server) and TypeScript `@thehappieco/kit/oidc-rp` (its page). Unlike the other modules, their functions take no profile argument: they are the platform's protocol. Where a generic module does the work, they hand it the platform's values (Appendix C): sections 6.3, 6.5 and 6.7 with the platform's labels, header and canonical form, section 10 for the AAD, and section 4.4's suite for product keys and their delivery.
 - Vectors: `vectors/platform/id-v1/*.json`, written by the platform's Go code and carried byte for byte (section 12.2). An implementation conforms when it reproduces every case and refuses every must-fail case with the error name the case records.
 
@@ -294,6 +303,8 @@ Both implementations write RFC 8785 text: object keys sorted by UTF-16 code unit
 | Key delivery (HPKE info) | `thehappie-id/v1/key-delivery` (11.12) |
 | Key-delivery AAD tag | `thehappie-id/key-delivery` (11.12) |
 | Relying-party flow AAD tag | `thehappie-rp/flow` (11.14) |
+| Passkey PRF salt (SHA-256 input prefix) | `thehappie-id/v1/passkey-prf|` (11.16) |
+| Passkey wrap key (HKDF info) | `thehappie-id/v1/passkey/wrap` (11.16) |
 | Text encoding of keys and proofs | base64url without padding |
 
 The platform's server-side labels (`thehappie-platform/v1/...`: decoy salts, email codes, mail references) and its secrets are the platform's and are not in the kit.
@@ -372,9 +383,9 @@ This is the wrap envelope of section 6.5 with the two-byte header `0x01 || kind`
 |---|---|---|---|
 | password | `0x01` | `K_wrap` (11.3) | `["thehappie-id/root-wrap",1,"password",sub,epoch]` |
 | recovery | `0x02` | `K_rwrap` (11.6) | `["thehappie-id/root-wrap",1,"recovery",sub,epoch]` |
-| passkey | `0x03` | `K_pk` (reserved, 11.16) | `["thehappie-id/root-wrap",1,"passkey",sub,epoch,rp_id,credential_id]` |
+| passkey | `0x03` | `K_pk` (11.16) | `["thehappie-id/root-wrap",1,"passkey",sub,epoch,rp_id,credential_id]` |
 
-The AAD is a restricted JSON AAD (11.1). It repeats the version and the kind, so both header bytes are authenticated. It binds the immutable `sub` and the epoch, never the email: an email change needs no re-wrap, and a wrap moved to another account, epoch or kind does not open (`platform/id-v1/root-wrap.json#another sub`, `platform/id-v1/root-wrap.json#the kind byte relabelled and opened as that kind`). `rp_id` and the base64url `credential_id` are present for the passkey kind only, and non-empty; the credential id is strict base64url (`platform/id-v1/root-wrap.json#a padded credential id`, `platform/id-v1/root-wrap.json#a password wrap opened with passkey fields`).
+The AAD is a restricted JSON AAD (11.1). It repeats the version and the kind, so both header bytes are authenticated. It binds the immutable `sub` and the epoch, never the email: an email change needs no re-wrap, and a wrap moved to another account, epoch or kind does not open (`platform/id-v1/root-wrap.json#another sub`, `platform/id-v1/root-wrap.json#the kind byte relabelled and opened as that kind`). `rp_id` and the base64url `credential_id` are present for the passkey kind only, and non-empty; the credential id is strict base64url (`platform/id-v1/root-wrap.json#a padded credential id`, `platform/id-v1/root-wrap.json#a password wrap opened with passkey fields`). The relying party's one spelling is enforced where `K_pk` is made (11.16).
 
 **Opening** checks the binding, the length (62), the version byte, that the kind byte is the expected kind, the key's length, and the tag. The plaintext is 32 bytes. Every failure is `wrap`, and which one is not reported, so the order of these checks is not observable (`platform/id-v1/root-wrap.json#truncated to 61 bytes`, `platform/id-v1/root-wrap.json#a flipped tag bit`).
 
@@ -463,20 +474,21 @@ A reader uses the root and the product keys only after step 4. A writer (the pla
 | `password_too_short` | a new password under 12 code points |
 | `password_too_long` | a password over 256 code points |
 | `kdf_policy` | KDF parameters or a salt outside the bounds of 11.3 |
-| `wrap` | a root wrap that is malformed, does not open, or failed its self-test |
+| `wrap` | a root wrap that is malformed, does not open, or failed its self-test, or a passkey wrap key that cannot be made: a relying party id outside its spelling or a PRF output that is not 32 bytes (11.16) |
 | `recovery_code` | not a recovery code |
 | `email` | an address 11.8 does not accept |
 | `product_key` | a product id, epoch or root that names no product key, a public key the server refuses, a listed key the root does not derive, or a delivered key whose public half is not the binding's `pk_p` (11.12) |
 | `bundle` | not a key bundle this version reads |
 | `key_delivery` | a key delivery that cannot be sealed or did not open (11.12): an `akd_pub` 11.4 refuses, a binding with no AAD, a sealed key that is not 80 bytes, an `enc` that is not canonical, another recipient or flow, altered bytes; which one is not said |
 | `pkce` | a code verifier outside RFC 7636 (11.13) |
+| `client_extensions` | WebAuthn client extension results outside the allowlist of 11.16; what was there is not said |
 | `encoding` | a value not in its one accepted spelling where no other name fits (a verifier's inputs) |
 
 Where an input has several defects, the order of checks in sections 11.2 to 11.9 decides the name. Errors of the kit's generic modules never escape the platform profile: they are reported as one of these names. The one exception is an engine that lacks a primitive, which is not a verdict on any input: in TypeScript, on an engine without X25519, deriving a product key (and so opening a key bundle), sealing or opening a key delivery, and the X25519 helpers of 11.12 throw the `hpke` module's `HPKEError` `invalid_key`, with the engine's `NotSupportedError` as its `cause`, rather than `product_key` or `key_delivery`, which would say that a bundle's listed keys are not its root's or that a blob is bad. An engine that fails to generate an X25519 key four times in a row (section 13) is the same `HPKEError`, with its last error as the `cause`, wherever key delivery and those helpers generate one: the probe of the check of 11.4, the sealer's ephemeral key and a relying party's pair (11.14). A product's own rules (for example a page refusing a password equal to the address) use the product's own codes.
 
 ### 11.11 Vectors
 
-The format and the files are described in section 12.2. Cited as `platform/id-v1/<kind>.json#<case name>`; a case of a file whose cases carry an `op` (`key-delivery.json`) is cited as `platform/id-v1/<kind>.json#<op>/<case name>`. Part 2's files are `key-delivery.json`, `pkce.json` and `password-stream-safe.json`. The kit's own round trips of this profile are `kit/platform-go.json` and `kit/platform-ts.json`, of part 2 `kit/platform-delivery-go.json` and `kit/platform-delivery-ts.json`, and its fixed cases at and one past the limit of the run rule of 11.2 are `kit/platform-password-go.json` and `kit/platform-password-ts.json`, all in the format of section 12.1.
+The format and the files are described in section 12.2. Cited as `platform/id-v1/<kind>.json#<case name>`; a case of a file whose cases carry an `op` (`key-delivery.json`, `passkey.json`) is cited as `platform/id-v1/<kind>.json#<op>/<case name>`. Part 2's files are `key-delivery.json`, `pkce.json` and `password-stream-safe.json`; part 3's are `passkey.json` and `client-extensions.json`. The kit's own round trips of this profile are `kit/platform-go.json` and `kit/platform-ts.json`, of part 2 `kit/platform-delivery-go.json` and `kit/platform-delivery-ts.json`, of part 3 `kit/platform-passkey-go.json` and `kit/platform-passkey-ts.json`, and its fixed cases at and one past the limit of the run rule of 11.2 are `kit/platform-password-go.json` and `kit/platform-password-ts.json`, all in the format of section 12.1.
 
 ### 11.12 Sealed key delivery
 
@@ -568,9 +580,40 @@ The pin store is the product's database: a table of (`sub`, `product_key_id`) to
 
 Nothing the server logs names the token, the key, the account or the address. **Errors** (the server's): `access_token`, `token_refused`, `userinfo`, `wrong_client`, `product_key`, `account_key_changed`.
 
-### 11.16 Reserved: the passkey root-wrap key
+### 11.16 Passkeys with PRF: the passkey root-wrap key and the client-extension allowlist
 
-`K_pk` from a passkey's PRF output (section 7 with the platform's passkey profile), for the passkey kind of 11.5 (the platform's Phase 1d).
+A passkey on id. signs a person in, and, when its authenticator supports the WebAuthn PRF extension, also opens the account root, so it can stand in for the password wherever the id. page unlocks, key delivery included (the platform's decision 0008). Products run no WebAuthn for platform accounts. What this section fixes is what the page derives from a PRF output and what the id. server accepts in a credential; the ceremony itself is the platform's.
+
+```
+PRF_SALT = SHA-256(UTF-8("thehappie-id/v1/passkey-prf|" + rp_id))                     32 bytes
+prf      = the PRF output for eval.first = PRF_SALT                                      32 bytes, per credential
+K_pk     = HKDF(IKM = prf, salt = UTF-8(rp_id), info = "thehappie-id/v1/passkey/wrap", L = 32)
+wrap     = 0x01 || 0x03 || nonce (12) || AES-256-GCM(K_pk, nonce, root, AAD)             62 bytes (11.5)
+AAD      = ["thehappie-id/root-wrap",1,"passkey",sub,epoch,rp_id,credential_id]
+```
+
+This is section 7 with the platform's passkey profile (evaluation prefix `thehappie-id/v1/passkey-prf|`, HKDF info `thehappie-id/v1/passkey/wrap`, header `0x01 0x03`) and the AAD of 11.5: section 7's envelope with that header is the kind-3 root wrap of 11.5, byte for byte (`platform/id-v1/passkey.json#a passkey on the production relying party`).
+
+- **The relying party id** has one spelling, because it is hashed into the PRF salt and the HKDF salt and written into the AAD, and a second spelling would be a second key and a wrap that does not open: a domain name of 1 to 253 bytes whose dot-separated labels are each 1 to 63 bytes of `[a-z0-9-]`, none starting or ending with `-`, and whose last label is not all digits. That is the host of an origin as a browser serialises it: lower case, no port, scheme or trailing dot, never an IP address (`platform/id-v1/passkey.json#salt/a relying party id in upper case`, `platform/id-v1/passkey.json#salt/a relying party id with a port`, `platform/id-v1/passkey.json#salt/an origin instead of a relying party id`, `platform/id-v1/passkey.json#salt/a relying party id with a trailing dot`, `platform/id-v1/passkey.json#salt/an IPv4 address`, `platform/id-v1/passkey.json#salt/a non-ASCII relying party id`; at the limits, `platform/id-v1/passkey.json#a relying party of 253 bytes` and `platform/id-v1/passkey.json#a single-label relying party`). The platform's are `id.thehappie.co` and, in development, `id.thehappie.localhost`; an implementation checks the spelling, never a list. The root-wrap AAD of 11.5 still checks only its alphabet; the spelling is enforced where `PRF_SALT` and `K_pk` are made, so no passkey wrap is made or opened under another.
+- **One public salt per relying party**, so that a discoverable sign-in can ask for the PRF before anyone knows which account will answer. The salt is public; the PRF output is secret, and different for every credential.
+- **K_pk** is refused, before anything is derived, for a PRF output that is not exactly 32 bytes (`platform/id-v1/passkey.json#key/an empty PRF output`, `platform/id-v1/passkey.json#key/the first and second PRF outputs run together`) and for a relying party id outside its spelling (`platform/id-v1/passkey.json#key/a good PRF output with a relying party id in upper case`). Any 32 bytes are a PRF output, 32 zeros included (`platform/id-v1/passkey.json#an all-zero PRF output, root and nonce`). A page that reads the output out of a credential may refuse an all-zero one, which no authenticator gives (the platform's page does); that is the ceremony's rule, not this section's.
+- **The wrap** is 11.5's: sealed under a fresh nonce and self-tested, it opens only with the PRF output of the credential it names, on the relying party it names, for the account and epoch it was made for (`platform/id-v1/passkey.json#open/another relying party`, `platform/id-v1/passkey.json#open/the development wrap opened on the production relying party`, `platform/id-v1/passkey.json#open/another credential id`, `platform/id-v1/passkey.json#open/the PRF output of another credential`, `platform/id-v1/passkey.json#open/another sub`, `platform/id-v1/passkey.json#open/another epoch`, `platform/id-v1/passkey.json#open/the password kind byte`, `platform/id-v1/passkey.json#open/truncated to 61 bytes`). The credential id is the strict base64url of the credential's raw id, of 1 to 1023 bytes as WebAuthn allows (`platform/id-v1/passkey.json#a credential id of one byte`, `platform/id-v1/passkey.json#a credential id of 1023 bytes`).
+- **Every refusal is `wrap`**, whichever step refuses: the salt, the key or the open (a vector's `op`). Which check failed is not said.
+
+**The client-extension allowlist.** A credential reports its extension outputs in `clientExtensionResults`, and the PRF's output there is the secret `K_pk` comes from. The page never sends it: it builds the credential it sends member by member, never with `toJSON()`. The id. server refuses, with `client_extensions` and before any WebAuthn library reads the credential, a `clientExtensionResults` that is anything but `{}` or a subset, each member at most once, of
+
+```
+"credProps": {"rk": true | false}
+"prf":       {"enabled": true | false}
+```
+
+(`platform/id-v1/client-extensions.json#both, as a create sends them`, `platform/id-v1/client-extensions.json#both, prf first`). Refused: `prf.results` in any form (`platform/id-v1/client-extensions.json#a create result with the PRF output, as the browser reports it`, `platform/id-v1/client-extensions.json#prf.results present but empty`); a flag of another JSON type, `null` included (`platform/id-v1/client-extensions.json#prf.enabled null`); an empty `prf` or `credProps`; any other member at either level (`platform/id-v1/client-extensions.json#credProps with another member`, `platform/id-v1/client-extensions.json#the hmac-secret extension`); a member name in another case (`platform/id-v1/client-extensions.json#prf in another case`); and a repeated member (`platform/id-v1/client-extensions.json#a duplicate member that would replace the first`).
+
+The check reads the exact JSON text of that one member: UTF-8; one JSON value, whitespace being space, tab, line feed and carriage return only, with nothing before it (a byte order mark is refused: `platform/id-v1/client-extensions.json#a byte order mark`) and nothing after it (`platform/id-v1/client-extensions.json#two objects`); member names compared exactly as written after JSON unescaping, so `"pr\u0066"` is `prf` here as it is to every JSON reader (`platform/id-v1/client-extensions.json#member names spelled with escapes`), and a repeat spelled that way is still a repeat (`platform/id-v1/client-extensions.json#a duplicate member spelled with an escape`). It reads text because a parsed value cannot show what JSON readers resolve silently: Go's `encoding/json`, which WebAuthn libraries use, keeps the last of two members and matches names case-insensitively, so a check that read the text another way could pass a value the library reads as a PRF output. Finding the member in the credential is the server's, and it must read the credential as strictly. A page checks its own value before it sends it, against the same allowlist.
+
+**What stays in the platform:** the WebAuthn ceremony. The options (the relying party, user verification and a resident key required, the PRF asked with `eval.first = PRF_SALT` on every create and get, `credProps` on create), `navigator.credentials`, reading the PRF output out of a credential and zeroing it there, the credential the page sends, go-webauthn on the server (attestation, signatures, counters, challenges), sign-in-only passkeys and the fallback to the password, and the limits and tables of the platform's `id-v1.md` section 8.
+
+Vectors: `passkey.json` (44 cases, 35 must fail, all `wrap`: 16 at the salt, 6 at the key and 13 at the open) and `client-extensions.json` (46 cases, 37 must fail, all `client_extensions`).
 
 ### 11.17 Reserved: the product contract
 
@@ -586,7 +629,7 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 
 ### 12.2 The platform's format
 
-`vectors/platform/id-v1/*.json` are the platform's own files, carried byte for byte (provenance in `vectors/PROVENANCE.md`). Each is `{"format": "thehappie-id/vectors", "version": 1, "kind": "<kind>", "cases": [...]}`; a case has a unique `name`, or, in a file whose cases carry `op`, a unique `op` and `name`, and either its outputs or `"error": "<name>"` (section 11.10). Binary values are base64url without padding; texts are JSON strings; the files are ASCII. Kinds and members: `password-profile` (`password`, or `password_utf16` with `password_utf8_b64url` for a string that is not Unicode, each language taking its own form; `new`; `prepared_b64url`), `kdf` (`prepared_b64url`, `salt`, `kdf`; `k_auth`, `k_wrap`, `auth_key`), `root-wrap` (`kind`, `key`, `nonce`, `root`, `sub`, `epoch`, `rp_id`, `credential_id`; `aad`, `wrap`), `recovery-code` (`bytes` or `input`; `display`, `canonical`, `k_rwrap`, `recovery_auth`), `product-key` (`root`, `product`, `epoch`; `sk`, `pub`, `product_key_id`), `verifier` (`sub`, `k_auth` or `r_proof`; `auth_verifier` or `recovery_verifier`), `email` (`input`; `email_norm`), `key-bundle` (`password` or `recovery_code`, `bundle` as a JSON value or `bundle_text` as the exact file text; `root`), `password-stream-safe` (the members of `password-profile`), `key-delivery` (`op` on must-fail cases, `open` or `seal`; `root`, `product`, `epoch`, `iss`, `client_id`, `redirect_uri`, `sub`, `product_key_id`, `pk_p`, `code_challenge`, `nonce`, `akd_priv`, `akd_pub`, `eph_priv`; `aad`, `akd_sealed`), `pkce` (`code_verifier`; `code_challenge`). A binary member the generator left empty is omitted. Argon2id cases use the floor parameters, and one uses p = 4. A runner decodes strictly: a member it does not read fails it.
+`vectors/platform/id-v1/*.json` are the platform's own files, carried byte for byte (provenance in `vectors/PROVENANCE.md`). Each is `{"format": "thehappie-id/vectors", "version": 1, "kind": "<kind>", "cases": [...]}`; a case has a unique `name`, or, in a file whose cases carry `op`, a unique `op` and `name`, and either its outputs or `"error": "<name>"` (section 11.10). Binary values are base64url without padding; texts are JSON strings; the files are ASCII. Kinds and members: `password-profile` (`password`, or `password_utf16` with `password_utf8_b64url` for a string that is not Unicode, each language taking its own form; `new`; `prepared_b64url`), `kdf` (`prepared_b64url`, `salt`, `kdf`; `k_auth`, `k_wrap`, `auth_key`), `root-wrap` (`kind`, `key`, `nonce`, `root`, `sub`, `epoch`, `rp_id`, `credential_id`; `aad`, `wrap`), `recovery-code` (`bytes` or `input`; `display`, `canonical`, `k_rwrap`, `recovery_auth`), `product-key` (`root`, `product`, `epoch`; `sk`, `pub`, `product_key_id`), `verifier` (`sub`, `k_auth` or `r_proof`; `auth_verifier` or `recovery_verifier`), `email` (`input`; `email_norm`), `key-bundle` (`password` or `recovery_code`, `bundle` as a JSON value or `bundle_text` as the exact file text; `root`), `password-stream-safe` (the members of `password-profile`), `key-delivery` (`op` on must-fail cases, `open` or `seal`; `root`, `product`, `epoch`, `iss`, `client_id`, `redirect_uri`, `sub`, `product_key_id`, `pk_p`, `code_challenge`, `nonce`, `akd_priv`, `akd_pub`, `eph_priv`; `aad`, `akd_sealed`), `pkce` (`code_verifier`; `code_challenge`), `passkey` (`op` on must-fail cases, `salt`, `key` or `open`; `rp_id`, `prf`, `root`, `sub`, `epoch`, `credential_id`, `nonce`; `prf_salt`, `k_pk`, `aad`, `wrap`), `client-extensions` (`client_extension_results`, the exact JSON text as a string). A binary member the generator left empty is omitted; `prf`, `rp_id` and `client_extension_results` are written even when empty. Argon2id cases use the floor parameters, and one uses p = 4. A runner decodes strictly: a member it does not read fails it.
 
 ## 13. Security considerations
 
@@ -617,6 +660,12 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 - **The page does not verify the ID token's signature** and never compares its times with the device clock (section 11.14 step 6): the nonce ties it to a flow used once within 10 minutes, and the server trusts only userinfo, on its own clock, through a single-use token.
 - **The flow store** holds the ephemeral key only under a non-extractable AES key, bound to the client and the state; a flow is used once and lives 10 minutes.
 - **The callback's code** never leaves in `Referer` or in logs (section 11.14).
+- **No PRF output leaves the page** (11.16). The page builds what it sends from an allowlist, and the server refuses rather than drops anything outside it, so a page bug is a refused request, not a secret in a request body, a log line or a database row. Refusals never repeat what they refused.
+- **One spelling of the relying party id** (11.16): a second spelling would be a second salt and a second key, and a wrap that never opens.
+- **The allowlist reads text** (11.16), as the key bundle's reader does (11.9): a repeated member, a name in another case, a byte order mark and trailing data are refused rather than resolved, because the WebAuthn library resolves them its own way. A TypeScript caller that decodes bytes keeps a leading byte order mark only with `ignoreBOM: true`.
+- **K_pk** is a non-extractable `CryptoKey` in TypeScript, and the copy of the PRF output handed to WebCrypto is zeroed; Go's `PasskeyWrapKey` returns bytes the caller clears, and `NewPasskeyWrap` and `OpenPasskeyWrap` clear theirs. The PRF output is the caller's to zero in both languages, and the root `unwrapRootWithPasskey` lends is zeroed when its callback settles.
+- **A passkey wrap is as strong as the passkey.** Whoever holds the authenticator (or, for a synced passkey, any device it syncs to) and a copy of the wrap opens the root. Recovery revokes every passkey on the platform's server, but the root does not change, so a wrap copied before keeps opening with that passkey's PRF: the honest limit of the key bundle (11.9), for passkeys.
+- **An all-zero PRF output** is a valid input here; refusing one read out of a credential is the ceremony's rule (11.16).
 - **Error codes, not messages.** Direct-mode failures are one code, so a reader is not an oracle for which binding failed.
 
 ## Appendix A. The Wappie profile
@@ -634,12 +683,14 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 | Passkey AAD | `["wappie/passkey-vault",1,rpID,userID,credentialID]` |
 | Browser key AAD | `["wappie/browser-account-key",1,userID,base64(public key)]` |
 | Request HMAC | `wappie-mcp-hmac/v1`; `X-Wappie-Reader`, `-Timestamp`, `-Nonce`, `-Signature`; `to-reader`, `to-go`; skew 60 s; replay lifetime 61 s; capacity 100,000 |
+| Platform wrap | reserved (section 6.8) |
 
 ## Appendix B. Changes
 
 - Spec 1 (kit v0.1.0): first version, from Wappie at `8c0c1f74103bc6bb65a93b13613ad1964d4399c4`. Beyond Wappie, and only for inputs that never produced openable data: the low-order checks of section 4.4 in TypeScript, the salt bound of section 6.2, the refusal of empty passkey AADs (section 7) and of JSON AADs with no JCS text (section 2).
 - Spec 2 (kit v0.2.0): section 11 part 1, the platform profile, with the platform's id-v1 vectors at `5e66d84`; sections 1, 3, 6.7, 12 and 13 extended; Appendix C. Nothing in the Wappie profile changed.
 - Spec 3 (kit v0.3.0): section 11 part 2 (sections 11.12 to 11.15), with the platform's vectors at `4476bf4`; the reservations for the passkey root-wrap key and the product contract move to sections 11.16 and 11.17; sections 1, 11.1, 11.2, 11.4, 11.5, 11.10, 11.11, 12.2 and 13 extended. Nothing in the Wappie profile or in part 1 changed.
+- Spec 4 (kit v0.4.0): section 11 part 3 (section 11.16), with the platform's vectors at `b5d9f69`; section 6.8 reserved for Wappie's platform wrap; sections 1, 7, 11.1, 11.5, 11.10, 11.11, 12.2, 13 and Appendix A extended. Nothing in the Wappie profile or in parts 1 and 2 changed.
 
 ## Appendix C. The platform profile
 
@@ -659,3 +710,5 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 | PKCE | S256; verifier 43 to 128 characters of `[A-Za-z0-9._~-]` (section 11.13) |
 | Relying party | flow AAD `["thehappie-rp/flow",1,client_id,state]`; IndexedDB `thehappie-rp`, store `flows`; 10 minutes (section 11.14) |
 | Pin verdicts | `new`, `same`, `account_key_changed` (section 11.15) |
+| Passkeys | PRF salt SHA-256(`thehappie-id/v1/passkey-prf|` + rp_id); `K_pk` HKDF info `thehappie-id/v1/passkey/wrap`, salt rp_id; the kind-3 root wrap (section 11.16) |
+| Client extensions | `{}` or a subset of `credProps {rk: boolean}` and `prf {enabled: boolean}`, read on the exact text (section 11.16) |

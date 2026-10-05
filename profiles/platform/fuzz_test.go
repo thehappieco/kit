@@ -383,7 +383,10 @@ var (
 // refuses gives neither.
 func FuzzValidRPID(f *testing.F) {
 	for _, c := range vectest.Platform[vectest.PasskeyCase](f, "passkey") {
-		f.Add(c.RPID)
+		if c.RPID == nil {
+			f.Fatalf("%s: a case without rp_id", c.CaseName())
+		}
+		f.Add(*c.RPID)
 	}
 	for _, s := range []string{
 		"a", "1", "a.1", "1.a", "a-", "-a", "a..b", ".", "", "xn--bcher-kva.example", "A.b", "a_b", "a\x00",

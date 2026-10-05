@@ -128,6 +128,48 @@ func TestSpecCitations(t *testing.T) {
 	}
 }
 
+// Every row of a table in SPEC.md has as many cells as its header. GFM
+// splits a table row on every '|' not escaped as '\|', inside code spans
+// too, so a label such as `thehappie-id/v1/passkey-prf|` written unescaped
+// in a table loses its '|' and the rest of its row on GitHub: the label a
+// reader copies from the rendered spec would hash to another salt.
+func TestSpecTables(t *testing.T) {
+	spec, err := os.ReadFile("../SPEC.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	separators := func(row string) int {
+		n := 0
+		for i := 0; i < len(row); i++ {
+			if row[i] == '|' && (i == 0 || row[i-1] != '\\') {
+				n++
+			}
+		}
+		return n
+	}
+	header, fenced, tables := 0, false, 0
+	for i, line := range strings.Split(string(spec), "\n") {
+		if strings.HasPrefix(line, "```") || strings.HasPrefix(line, "~~~") {
+			fenced = !fenced
+		}
+		if fenced || !strings.HasPrefix(line, "|") {
+			header = 0
+			continue
+		}
+		if header == 0 {
+			header = separators(line)
+			tables++
+			continue
+		}
+		if n := separators(line); n != header {
+			t.Errorf("SPEC.md line %d: %d cell separators, the header has %d (escape a '|' in a cell as '\\|')", i+1, n, header)
+		}
+	}
+	if tables < 5 {
+		t.Fatalf("only %d tables found", tables)
+	}
+}
+
 // platformCaseID is how the kit identifies and cites a case of the
 // platform's format: its name, or op "/" name when it carries an op. The
 // platform's key-delivery.json gives five names to two cases each, one with

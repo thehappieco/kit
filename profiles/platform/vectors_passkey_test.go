@@ -30,10 +30,16 @@ func TestPlatformVectorsPasskey(t *testing.T) {
 	for _, c := range vectest.Platform[vectest.PasskeyCase](t, "passkey") {
 		counts[c.Op+"/"+c.Error]++
 		t.Run(c.CaseName(), func(t *testing.T) {
+			// A missing rp_id is not the empty one, which is a case of its
+			// own (#salt/an empty relying party id).
+			if c.RPID == nil {
+				t.Fatal("a case without rp_id")
+			}
+			rpID := *c.RPID
 			if c.Error != "" && (c.Root != "" || c.Nonce != "" || c.PRFSalt != "" || c.KPK != "" || c.AAD != "") {
 				t.Fatal("a must-fail case with an output")
 			}
-			b := platform.Binding{Sub: c.Sub, Epoch: c.Epoch, RPID: c.RPID, CredentialID: c.CredentialID}
+			b := platform.Binding{Sub: c.Sub, Epoch: c.Epoch, RPID: rpID, CredentialID: c.CredentialID}
 			switch {
 			case c.Op == "" && c.Error == "":
 				if c.PRF == nil {
@@ -44,14 +50,14 @@ func TestPlatformVectorsPasskey(t *testing.T) {
 				if c.PRF != nil || c.Wrap != "" || c.Sub != "" || c.Epoch != 0 || c.CredentialID != "" {
 					t.Fatal("a salt case with more than a relying party id")
 				}
-				salt, err := platform.PRFSalt(c.RPID)
+				salt, err := platform.PRFSalt(rpID)
 				outcome(t, err, c.Error)
-				if salt != nil || platform.ValidRPID(c.RPID) {
+				if salt != nil || platform.ValidRPID(rpID) {
 					t.Fatal("a refused relying party id has a salt")
 				}
 				// An id refused at the salt has no key either, whatever the
 				// PRF output.
-				key, err := platform.PasskeyWrapKey(testBytes(platform.PRFOutputLen, 0x5a), c.RPID)
+				key, err := platform.PasskeyWrapKey(testBytes(platform.PRFOutputLen, 0x5a), rpID)
 				outcome(t, err, c.Error)
 				if key != nil {
 					t.Fatal("a refused relying party id gave a key")
@@ -60,7 +66,7 @@ func TestPlatformVectorsPasskey(t *testing.T) {
 				if c.PRF == nil || c.Wrap != "" || c.Sub != "" || c.Epoch != 0 || c.CredentialID != "" {
 					t.Fatal("a key case needs a PRF output and nothing of an account")
 				}
-				key, err := platform.PasskeyWrapKey(b64(t, *c.PRF), c.RPID)
+				key, err := platform.PasskeyWrapKey(b64(t, *c.PRF), rpID)
 				outcome(t, err, c.Error)
 				if key != nil {
 					t.Fatal("a refusal gave a key")
@@ -88,15 +94,15 @@ func TestPlatformVectorsPasskey(t *testing.T) {
 func goodPasskeyVector(t *testing.T, c vectest.PasskeyCase, b platform.Binding) {
 	t.Helper()
 	prf, root, nonce := b64(t, *c.PRF), b64(t, c.Root), b64(t, c.Nonce)
-	if !platform.ValidRPID(c.RPID) {
+	if !platform.ValidRPID(b.RPID) {
 		t.Fatal("the relying party id is refused")
 	}
-	salt, err := platform.PRFSalt(c.RPID)
+	salt, err := platform.PRFSalt(b.RPID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	same(t, "prf_salt", platform.EncodeB64(salt), c.PRFSalt)
-	key, err := platform.PasskeyWrapKey(prf, c.RPID)
+	key, err := platform.PasskeyWrapKey(prf, b.RPID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,14 +148,14 @@ func goodPasskeyVector(t *testing.T, c vectest.PasskeyCase, b platform.Binding) 
 	// 11.5: the generic packages give the same salt and key, and open the
 	// same bytes to the same root.
 	p := platform.PasskeyProfile()
-	gsalt := passkey.PRFSalt(p, c.RPID)
+	gsalt := passkey.PRFSalt(p, b.RPID)
 	same(t, "passkey.PRFSalt", platform.EncodeB64(gsalt[:]), c.PRFSalt)
-	gkey, err := passkey.Key(p, prf, c.RPID)
+	gkey, err := passkey.Key(p, prf, b.RPID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	same(t, "passkey.Key", platform.EncodeB64(gkey), c.KPK)
-	gopened, err := passkey.Unwrap(p, w, prf, c.RPID, aad)
+	gopened, err := passkey.Unwrap(p, w, prf, b.RPID, aad)
 	if err != nil {
 		t.Fatal("passkey.Unwrap does not open the wrap")
 	}

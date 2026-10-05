@@ -172,6 +172,14 @@ describe('the PRF salt and K_pk', () => {
     }
     for (const v of [undefined, null, 7, ['localhost'], { toString: () => RP }]) expect(platform.isRPID(v)).toBe(false)
   })
+
+  // Only an all-decimal last label is refused (SPEC section 11.16): a last
+  // label of "0x" and hex digits, which a browser's URL parser reads as an
+  // IPv4 address, passes, as in Go and on the platform's server.
+  it('refuses only an all-decimal last label, not a hex number', () => {
+    for (const rp of ['0x7f000001', '0x', 'id.0xff', 'id.0x1', '1.0x']) expect(platform.isRPID(rp), rp).toBe(true)
+    for (const rp of ['127.0.0.1', '1', 'id.123', '0']) expect(platform.isRPID(rp), rp).toBe(false)
+  })
 })
 
 describe('the passkey wrap', () => {
@@ -265,6 +273,22 @@ describe('the passkey wrap', () => {
     )
     const wrap = await wrapped()
     await expectRefusal(() => opened(wrap, { rpId: 'ID.thehappie.co' }), 'wrap', 'opened under an upper-case relying party')
+  })
+
+  // sealRootWrap does not tie K_pk's relying party to the binding's (SPEC
+  // section 11.16): under a binding on another relying party, in another
+  // spelling or another valid one, the wrap passes its self-test and then
+  // never opens with unwrapRootWithPasskey, under either relying party.
+  // wrapRootWithPasskey takes the id once for both.
+  it('leaves the relying party to the caller on the lower-level path', async () => {
+    const key = await platform.passkeyWrapKey(PRF, RP)
+    for (const rp of ['ID.thehappie.co', DEV_RP]) {
+      const wrap = await platform.sealRootWrap('passkey', key, ROOT, SUB, 1, { rpId: rp, credentialId: CRED })
+      expect(wrap.length, rp).toBe(62)
+      for (const open of [rp, RP]) {
+        await expectRefusal(() => opened(toBase64URL(wrap), { rpId: open }), 'wrap', `${rp} opened on ${open}`)
+      }
+    }
   })
 
   it('lends the root to its callback and zeroes it when the callback returns or throws', async () => {

@@ -68,6 +68,12 @@ const (
 // seal and open the 62-byte envelope of section 11.5; the functions of this
 // file use it for the salt and the key, and seal with Wrap, which self-tests.
 // Every call returns a fresh value.
+//
+// passkey.Wrap with this profile checks neither the relying party id's
+// spelling nor that the id it derives the key from is the one in the AAD,
+// and it skips the self-test: a passkey wrap is sealed with NewPasskeyWrap,
+// which takes the id once for both. The profile is for opening and for
+// showing that the two schemes are one.
 func PasskeyProfile() passkey.Profile {
 	return passkey.Profile{
 		EvalPrefix: labelPasskeyPRF,
@@ -82,10 +88,15 @@ func PasskeyProfile() passkey.Profile {
 // label is not all digits. Every such name is the host of an origin as a
 // browser serializes it, and the rule leaves out what cannot be the id.
 // relying party: upper case, which a browser never serializes, a port or a
-// scheme, which are not part of a host, a trailing dot, and IP addresses. So
-// "id.thehappie.co" and "id.thehappie.localhost" pass, and
-// "ID.thehappie.co", "id.thehappie.co:443" and "https://id.thehappie.co" do
-// not.
+// scheme, which are not part of a host, a trailing dot, and a dotted-decimal
+// IPv4 address, whose last label is all digits. So "id.thehappie.co" and
+// "id.thehappie.localhost" pass, and "ID.thehappie.co", "id.thehappie.co:443",
+// "https://id.thehappie.co" and "127.0.0.1" do not.
+//
+// Only an all-decimal last label is refused: a last label of "0x" and hex
+// digits, such as "0x7f000001", which a browser's host parser also reads as
+// an IPv4 address, passes, as it does in the platform's idcrypto.ValidRPID
+// and in TypeScript's isRPID. An id. origin spelt so fails at WebAuthn.
 //
 // The protocol needs one spelling because the relying party id is hashed into
 // the PRF salt and the HKDF salt and written into the AAD: a second spelling
@@ -151,6 +162,12 @@ func PRFSalt(rpID string) ([]byte, error) {
 // and results.second run together) and a relying party id ValidRPID does not
 // accept. Any 32 bytes are a PRF output, 32 zeros included. The caller
 // clears the key; the PRF output is the caller's too.
+//
+// The key is for opening. Wrap with WrapPasskey and this key does not check
+// that the Binding's RPID is rpID: under another id, even another valid one,
+// it makes a wrap that passes its self-test and CheckWrapShape and that
+// OpenPasskeyWrap never opens. A passkey wrap is sealed with NewPasskeyWrap,
+// which takes the relying party id once, from the Binding, for both.
 func PasskeyWrapKey(prf []byte, rpID string) ([]byte, error) {
 	if len(prf) != PRFOutputLen {
 		return nil, fmt.Errorf("%w: a PRF output of %d bytes, not %d", ErrWrap, len(prf), PRFOutputLen)

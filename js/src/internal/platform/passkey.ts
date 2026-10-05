@@ -13,7 +13,9 @@
 // derives, and section 7's envelope with the header 0x01 0x03 and this AAD
 // is the 62-byte root wrap. Sealing and opening are sealRootWrap and
 // openRootWrap, which add the self-test of section 11.5 and the one error
-// name, wrap.
+// name, wrap. A passkey wrap is sealed with wrapRootWithPasskey, which takes
+// the relying party id once for K_pk and the AAD; sealRootWrap does not
+// check that they agree.
 //
 // The rule it enforces: a passkey wrap opens only with the PRF output of the
 // credential it names, only on the relying party it names, and only for the
@@ -60,7 +62,10 @@ export const LABEL_PASSKEY_WRAP = 'thehappie-id/v1/passkey/wrap'
  * the header of a kind-3 root wrap, 0x01 0x03. With it and rootWrapAAD's
  * AAD, passkey.wrapPasskey and passkey.unwrapPasskey seal and open the
  * 62-byte root wrap of section 11.5; the functions of this module use it for
- * the salt, and seal with sealRootWrap, which self-tests.
+ * the salt, and seal with sealRootWrap, which self-tests. wrapPasskey with
+ * this profile checks neither the relying party id's spelling nor that the
+ * id of the key is the AAD's, and does not self-test: a passkey wrap is
+ * sealed with wrapRootWithPasskey, and the profile is for opening.
  */
 export const platformPasskey: PasskeyProfile = Object.freeze({
   evalPrefix: LABEL_PASSKEY_PRF,
@@ -78,9 +83,12 @@ const ALL_DIGITS = /^[0-9]+$/
  * dot-separated labels are each 1 to 63 characters of [a-z0-9-], none
  * starting or ending with '-', and whose last label is not all digits. That
  * is the host of an origin as a browser serializes it: lower case, no port,
- * no scheme, no trailing dot, never an IP address. Go counts bytes and this
- * counts UTF-16 units, but only ASCII is accepted, so both refuse the same
- * inputs.
+ * no scheme, no trailing dot, no dotted-decimal IPv4 address. Only an
+ * all-decimal last label is refused: a last label of "0x" and hex digits,
+ * such as "0x7f000001", which a browser's URL parser reads as an IPv4
+ * address, passes, as it does in Go and on the platform's server. Go counts
+ * bytes and this counts UTF-16 units, but only ASCII is accepted, so both
+ * refuse the same inputs.
  *
  * One spelling, because the relying party id is hashed into the PRF salt
  * and the HKDF salt and written into the AAD: a second spelling would be a
@@ -111,12 +119,18 @@ export async function prfSalt(rpId: string): Promise<Bytes> {
 
 /**
  * passkeyWrapKey derives K_pk from a PRF output as a non-extractable
- * AES-256-GCM key, for sealRootWrap and openRootWrap. It refuses, with wrap
- * and before anything is derived, a PRF output that is not exactly 32 bytes
- * (an absent result, or first and second run together) and a relying party
- * id isRPID does not accept. Any 32 bytes are a PRF output, 32 zeros
- * included. The copy handed to WebCrypto is zeroed once imported; prf is the
- * caller's to zero.
+ * AES-256-GCM key, for openRootWrap. It refuses, with wrap and before
+ * anything is derived, a PRF output that is not exactly 32 bytes (an absent
+ * result, or first and second run together) and a relying party id isRPID
+ * does not accept. Any 32 bytes are a PRF output, 32 zeros included. The
+ * copy handed to WebCrypto is zeroed once imported; prf is the caller's to
+ * zero.
+ *
+ * The key is for opening. sealRootWrap with it does not check that the
+ * binding's rpId is this rpId: under another id, even another valid one, it
+ * makes a wrap that passes its self-test and the server's shape check and
+ * that unwrapRootWithPasskey never opens. A passkey wrap is sealed with
+ * wrapRootWithPasskey, which takes the relying party id once for both.
  */
 export async function passkeyWrapKey(prf: Uint8Array, rpId: string): Promise<CryptoKey> {
   if (!(prf instanceof Uint8Array) || prf.length !== PRF_OUTPUT_LEN) {

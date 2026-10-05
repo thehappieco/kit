@@ -229,12 +229,14 @@ type PKCECase struct {
 // PasskeyCase is a passkey case (SPEC section 11.16). A good case has no Op
 // and every member but Error. A must-fail case's Op says which step refuses
 // it, always with "wrap": "salt" (RPID alone), "key" (RPID and PRF) or
-// "open" (the binding, PRF and Wrap). PRF is a pointer because an empty PRF
-// output is written as "", which must not read as a missing one.
+// "open" (the binding, PRF and Wrap). RPID and PRF are pointers because an
+// empty relying party id and an empty PRF output are written as "", which
+// must not read as a missing one: a runner fails a case without rp_id, and a
+// good, key or open case without prf.
 type PasskeyCase struct {
 	Name         string  `json:"name"`
 	Op           string  `json:"op,omitempty"`
-	RPID         string  `json:"rp_id"`
+	RPID         *string `json:"rp_id"`
 	PRF          *string `json:"prf,omitempty"`
 	Root         string  `json:"root,omitempty"`
 	Sub          string  `json:"sub,omitempty"`

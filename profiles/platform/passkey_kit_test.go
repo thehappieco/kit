@@ -89,6 +89,63 @@ func TestTheRelyingPartysSpellingIsEnforcedWhereTheKeyIsMade(t *testing.T) {
 	}
 }
 
+// The lower-level path does not tie K_pk's relying party to the binding's
+// (SPEC section 11.16): Wrap under a key from PasskeyWrapKey, and
+// passkey.Wrap with PasskeyProfile, seal under a binding on another relying
+// party, in another spelling or another valid one, and the wrap passes its
+// self-test and CheckWrapShape and then never opens with OpenPasskeyWrap,
+// under either relying party. NewPasskeyWrap takes the id once for both.
+func TestTheLowerLevelSealLeavesTheRelyingPartyToTheCaller(t *testing.T) {
+	prf, root := testBytes(32, 0x11), testBytes(32, 0x22)
+	key, err := platform.PasskeyWrapKey(prf, "id.thehappie.co")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rp := range []string{"ID.thehappie.co", "id.thehappie.localhost"} {
+		b := platform.Binding{Sub: testSub, Epoch: 1, RPID: rp, CredentialID: "AA"}
+		w, err := platform.Wrap(nil, platform.WrapPasskey, key, root, b)
+		if err != nil {
+			t.Fatalf("%q: Wrap: %v", rp, err)
+		}
+		aad, err := platform.WrapAAD(platform.WrapPasskey, b)
+		if err != nil {
+			t.Fatal(err)
+		}
+		g, err := passkey.Wrap(platform.PasskeyProfile(), root, prf, "id.thehappie.co", aad)
+		if err != nil {
+			t.Fatalf("%q: passkey.Wrap: %v", rp, err)
+		}
+		for _, blob := range [][]byte{w, g} {
+			if err := platform.CheckWrapShape(platform.WrapPasskey, blob); err != nil {
+				t.Fatalf("%q: the server refuses the wrap: %v", rp, err)
+			}
+			for _, open := range []string{rp, "id.thehappie.co"} {
+				ob := b
+				ob.RPID = open
+				if got, err := platform.OpenPasskeyWrap(prf, blob, ob); platform.ErrorCode(err) != "wrap" || got != nil {
+					t.Errorf("%q: opened on %q: %v", rp, open, err)
+				}
+			}
+		}
+	}
+}
+
+// ValidRPID refuses only an all-decimal last label (SPEC section 11.16): a
+// last label of "0x" and hex digits, which a browser's host parser reads as
+// an IPv4 address, passes, as in the platform's idcrypto.ValidRPID.
+func TestValidRPIDRefusesOnlyAnAllDecimalLastLabel(t *testing.T) {
+	for _, rp := range []string{"127.0.0.1", "1", "id.123", "0"} {
+		if platform.ValidRPID(rp) {
+			t.Errorf("%q passes", rp)
+		}
+	}
+	for _, rp := range []string{"0x7f000001", "0x", "id.0xff", "id.0x1", "1.0x"} {
+		if !platform.ValidRPID(rp) {
+			t.Errorf("%q is refused", rp)
+		}
+	}
+}
+
 // The PRF output and the root are the caller's: no function of part 3
 // changes them, and every refusal returns nothing.
 func TestThePRFOutputAndTheRootAreTheCallers(t *testing.T) {

@@ -4,7 +4,7 @@ import { generateAccountKeys } from '../src/account.js'
 import { browserAccountAAD, openBrowserAccountKey, sealBrowserAccountKey, validBrowserKeyEnvelope } from '../src/browserAccount.js'
 import { CanonicalJSONError } from '../src/jcs.js'
 import { wappieBrowserAccount } from '../src/profiles/wappie.js'
-import { b64, forTS, load, toB64, unhandled, utf8 } from './vectors.js'
+import { b64, forTS, fromHex, LEADING_ZERO_KEYS, load, toB64, toHex, unhandled, utf8 } from './vectors.js'
 
 const p = wappieBrowserAccount
 const f = load('wappie/golden/browser-account-ts.json')
@@ -45,6 +45,16 @@ describe('the key at rest', () => {
     } finally {
       pair.privateKey.fill(0)
       exported.mockRestore()
+    }
+  })
+
+  // Safari and OpenSSL generate 1 account key in 32 with a first byte of
+  // zero, which WebKit on Linux refused to import as PKCS#8.
+  it('reopens an account key whose first byte is zero', async () => {
+    for (const [privHex, pubHex] of LEADING_ZERO_KEYS) {
+      const envelope = await sealBrowserAccountKey(p, fromHex(privHex), fromHex(pubHex), 'user-one')
+      const restored = await openBrowserAccountKey(p, envelope, 'user-one')
+      expect(toHex(restored.publicRaw)).toBe(pubHex)
     }
   })
 

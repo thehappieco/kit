@@ -123,10 +123,14 @@ export type PlatformErrorCode =
   | 'recovery_code'
   /** An address the profile's email normalisation does not accept. */
   | 'email'
-  /** A product id, epoch or root that names no product key, or a listed key the root does not derive. */
+  /** A product id, epoch or root that names no product key, a listed key the root does not derive, or a delivered key whose public half is not the binding's (SPEC section 11.12). */
   | 'product_key'
   /** Not a key bundle this version reads. */
   | 'bundle'
+  /** A key delivery that cannot be sealed or did not open (SPEC section 11.12); which check failed is not said. */
+  | 'key_delivery'
+  /** A PKCE code verifier outside RFC 7636: not 43 to 128 characters of [A-Za-z0-9._~-] (SPEC section 11.13). */
+  | 'pkce'
   /** A value not in its one accepted spelling where no other name fits (a verifier's inputs). */
   | 'encoding'
 
@@ -148,4 +152,72 @@ export class PlatformError extends Error {
 /** isPlatformError narrows a caught value, optionally to one code. */
 export function isPlatformError(err: unknown, code?: PlatformErrorCode): err is PlatformError {
   return err instanceof PlatformError && (code === undefined || err.code === code)
+}
+
+/**
+ * The refusals of the relying party's page (@thehappieco/kit/oidc-rp, SPEC
+ * section 11.14). A page maps state_unknown, and authorization_error after
+ * a denial, to "start again", and the rest to a security error, in its own
+ * language.
+ */
+export type RPErrorCode =
+  /** No live flow for this state: unknown, used already, another client's, or older than 10 minutes. */
+  | 'state_unknown'
+  /** The callback's iss is not the issuer, exactly, or the flow's request went to another issuer (RFC 9207). */
+  | 'iss_mismatch'
+  /** The authorization server answered with an error; oauthError says which. */
+  | 'authorization_error'
+  /** No code, or the token request failed or answered outside the protocol. */
+  | 'token_error'
+  /** The ID token is malformed or fails a check of section 11.14, step 6. */
+  | 'id_token_invalid'
+  /** The ephemeral key or the sealed product key does not open. */
+  | 'key_open_failed'
+  /** The opened key is not the private half of the ID token's product_key. */
+  | 'key_mismatch'
+  /**
+   * The product's server did not name the same sub, product_key_id and
+   * product_key as the ID token and the opened key (section 11.14, step 9):
+   * the key is not kept.
+   */
+  | 'pin_mismatch'
+
+/** OAuthError is an OAuth error value the relying party passes on; any other is "unknown". */
+export type OAuthError =
+  | 'access_denied'
+  | 'login_required'
+  | 'interaction_required'
+  | 'consent_required'
+  | 'invalid_request'
+  | 'invalid_scope'
+  | 'unsupported_response_type'
+  | 'unauthorized_client'
+  | 'server_error'
+  | 'temporarily_unavailable'
+  | 'invalid_client'
+  | 'invalid_grant'
+  | 'unsupported_grant_type'
+  | 'unknown'
+
+/**
+ * RPError is the one error the relying party's page throws on purpose. Its
+ * message names the step that failed, never a value from the response, the
+ * flow or the key.
+ */
+export class RPError extends Error {
+  readonly code: RPErrorCode
+  /** For authorization_error and token_error: the OAuth error value, when there was one. */
+  readonly oauthError: OAuthError | undefined
+
+  constructor(code: RPErrorCode, message?: string, oauthError?: OAuthError) {
+    super(message === undefined ? `oidc-rp: ${code}` : `oidc-rp: ${code}: ${message}`)
+    this.name = 'RPError'
+    this.code = code
+    this.oauthError = oauthError
+  }
+}
+
+/** isRPError narrows a caught value, optionally to one code. */
+export function isRPError(err: unknown, code?: RPErrorCode): err is RPError {
+  return err instanceof RPError && (code === undefined || err.code === code)
 }

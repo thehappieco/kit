@@ -1,0 +1,97 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "pkce",
+  "cases": [
+    {
+      "name": "the example of RFC 7636 appendix B",
+      "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+      "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+    },
+    {
+      "name": "43 characters, from 32 random bytes as the relying party makes them",
+      "code_verifier": "r2krIZwarx7a5OLAKd63BU1pTeOffYR_zHtjoD5epUE",
+      "code_challenge": "6YlXn-EGS47Uc73Vc3cHc5AHSJ16WCGwV9pjKeox3so"
+    },
+    {
+      "name": "128 characters",
+      "code_verifier": "R-wVQmeWwviw706tY2Wso_P17uOC2o5KFlYphAtDr1Ib-2PsyEMmWb35WWyB6pVgmDeb2EeVk4DZUZcgbL5EkD_6JUxPB2gSc54rFOSM8Mc0TDNMZ7CMjP_qU_OlAPbN",
+      "code_challenge": "ZHPo4ODlClpNbH0-llLH5qQz8MXej7eWDdwEeai3sE8"
+    },
+    {
+      "name": "every character of the alphabet",
+      "code_verifier": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~",
+      "code_challenge": "RZ77XZltYSfl0BLxuGd8pHGJ4EoMoVDVuSWHgNq3RY8"
+    },
+    {
+      "name": "only the unreserved punctuation",
+      "code_verifier": "-._~-._~-._~-._~-._~-._~-._~-._~-._~-._~-._~",
+      "code_challenge": "lK2NFO4fUsSGSxx7eD9ozetZRvfDEp9wtnPrjHKcyXE"
+    },
+    {
+      "name": "43 tildes",
+      "code_verifier": "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "code_challenge": "dOHT1ivLVSPsewADt8TAZF2T2lLYTZ4BymCwTRKpihg"
+    },
+    {
+      "name": "42 characters",
+      "code_verifier": "r2krIZwarx7a5OLAKd63BU1pTeOffYR_zHtjoD5epU",
+      "error": "pkce"
+    },
+    {
+      "name": "129 characters",
+      "code_verifier": "R-wVQmeWwviw706tY2Wso_P17uOC2o5KFlYphAtDr1Ib-2PsyEMmWb35WWyB6pVgmDeb2EeVk4DZUZcgbL5EkD_6JUxPB2gSc54rFOSM8Mc0TDNMZ7CMjP_qU_OlAPbNA",
+      "error": "pkce"
+    },
+    {
+      "name": "empty",
+      "code_verifier": "",
+      "error": "pkce"
+    },
+    {
+      "name": "a plus sign",
+      "code_verifier": "r2krIZwarx+a5OLAKd63BU1pTeOffYR_zHtjoD5epUE",
+      "error": "pkce"
+    },
+    {
+      "name": "a slash",
+      "code_verifier": "r2krIZwarx/a5OLAKd63BU1pTeOffYR_zHtjoD5epUE",
+      "error": "pkce"
+    },
+    {
+      "name": "a padding equals sign",
+      "code_verifier": "r2krIZwarx7a5OLAKd63BU1pTeOffYR_zHtjoD5epUE=",
+      "error": "pkce"
+    },
+    {
+      "name": "a space",
+      "code_verifier": "r2krIZwarx a5OLAKd63BU1pTeOffYR_zHtjoD5epUE",
+      "error": "pkce"
+    },
+    {
+      "name": "a percent-encoded tilde",
+      "code_verifier": "r2krIZwarx7a5OLAKd63BU1pTeOffYR_zHtjoD5e%7E",
+      "error": "pkce"
+    },
+    {
+      "name": "a non-ASCII letter",
+      "code_verifier": "r2krIZwarx\u00e9a5OLAKd63BU1pTeOffYR_zHtjoD5epUE",
+      "error": "pkce"
+    },
+    {
+      "name": "a fullwidth letter",
+      "code_verifier": "r2krIZwarx\uff21a5OLAKd63BU1pTeOffYR_zHtjoD5epUE",
+      "error": "pkce"
+    },
+    {
+      "name": "a trailing line break",
+      "code_verifier": "r2krIZwarx7a5OLAKd63BU1pTeOffYR_zHtjoD5epUE\n",
+      "error": "pkce"
+    },
+    {
+      "name": "a NUL",
+      "code_verifier": "r2krIZwarx\u0000a5OLAKd63BU1pTeOffYR_zHtjoD5epUE",
+      "error": "pkce"
+    }
+  ]
+}

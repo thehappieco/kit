@@ -13,7 +13,8 @@
 
 import { expect, vi } from 'vitest'
 
-import type { Bytes } from '../src/bytes.js'
+import { toBase64URL, type Bytes } from '../src/bytes.js'
+import { importX25519 } from '../src/internal/x25519engine.js'
 
 export const FORMAT = 'thehappieco-kit-vectors/1'
 
@@ -118,6 +119,8 @@ export const PLATFORM_FORMAT = 'thehappie-id/vectors'
 
 export interface PlatformCase {
   name: string
+  /** Which side refuses a must-fail key-delivery case: "open" or "seal". */
+  op?: string
   error?: string
   // The members are the kind's; each runner reads them by name.
   [member: string]: any
@@ -130,15 +133,27 @@ export interface PlatformFile {
   cases: PlatformCase[]
 }
 
-/** loadPlatform reads platform/id-v1/<kind>.json and checks its header and names. */
+/**
+ * caseId is how the kit identifies and cites a case of the platform's
+ * format: its name, or op "/" name when it carries an op. key-delivery.json
+ * gives five names to two cases each, one with op "open" and one with op
+ * "seal".
+ */
+export function caseId(c: PlatformCase): string {
+  return c.op === undefined ? c.name : `${c.op}/${c.name}`
+}
+
+/** loadPlatform reads platform/id-v1/<kind>.json and checks its header and case ids. */
 export function loadPlatform(kind: string): PlatformFile {
   const path = `platform/id-v1/${kind}.json`
   const f = JSON.parse(text(path)) as PlatformFile
   if (f.format !== PLATFORM_FORMAT || f.version !== 1 || f.kind !== kind) throw new Error(`${path}: header ${f.format} ${f.version} ${f.kind}`)
-  const names = new Set<string>()
+  const ids = new Set<string>()
   for (const c of f.cases) {
-    if (typeof c.name !== 'string' || c.name === '' || names.has(c.name)) throw new Error(`${path}: an empty or repeated case name`)
-    names.add(c.name)
+    if (typeof c.name !== 'string' || c.name === '' || (c.op !== undefined && typeof c.op !== 'string') || ids.has(caseId(c))) {
+      throw new Error(`${path}: an empty or repeated case id`)
+    }
+    ids.add(caseId(c))
   }
   return f
 }
@@ -242,7 +257,105 @@ export async function withEngineRefusingX25519<T>(name: string, fn: () => Promis
   }
 }
 
-const PKCS8_X25519_PREFIX = new Uint8Array([0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x04, 0x22, 0x04, 0x20])
+/**
+ * LEADING_ZERO_KEYS are X25519 private keys whose first byte is 0x00, with
+ * the public key Go's crypto/ecdh computes for each, in hex: the class
+ * WebKit on Linux refuses to import as PKCS#8 (src/internal/x25519engine.ts):
+ * the all-zero key; the sk_p of
+ * kit/platform-delivery-go.json#platform/open-product-key/13; two zero
+ * bytes; a first zero byte and every other bit set; and a key whose last
+ * byte is zero too. The third public key ends with a zero byte.
+ */
+export const LEADING_ZERO_KEYS: readonly (readonly [string, string])[] = [
+  ['0000000000000000000000000000000000000000000000000000000000000000', '2fe57da347cd62431528daac5fbb290730fff684afc4cfc2ed90995f58cb3b74'],
+  ['00277d685c5256c1b0c110819dd6028f827f41c4ad8013e0cc26b5db69907173', '0adb1d2bfd62435c70a0ef7c9c3633db62360dc59504b481dc73edd39113e302'],
+  ['0000a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e', 'e524eee8008c95d857c5a486166904a1f2aadde00bc03199e7a2abe0a1a86f00'],
+  ['00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', '39b14aa19789cddd964648d85fefb87bd4cb5342e4535fcdd4f6d6c1888f481d'],
+  ['005a5d544f4679706b62651c170e0138332a2d24dfd6c9c0fbf2f5ece79e9100', '5456c35bb3f8044e375af4a4b3c0f0de75a071c66b9f5487c1a62db93ddc7334'],
+]
+
+export const fromHex = (s: string) => Uint8Array.from(s.match(/../g) ?? [], (h) => parseInt(h, 16)) as Bytes
+export const toHex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
+
+/**
+ * withX25519Generation runs fn on a WebCrypto whose X25519 generateKey
+ * throws, on each call for which refuse names an error (counting from 0),
+ * a DOMException of that name, and generates on the others: OperationError
+ * is what WebKit on Linux throws on 1 call in 256, and NotSupportedError an
+ * engine without X25519. It returns what fn returned or threw, and how many
+ * X25519 pairs fn asked for.
+ *
+ * Only refuse fails a call. A call it lets through goes to the real engine,
+ * which on WebKit for Linux fails 1 time in 256 as well; fn would then ask
+ * again, spend the script's next refusals, and the spec's counts would break
+ * on that engine alone. So that call asks the real engine again after an
+ * OperationError, up to REAL_GENERATE_ATTEMPTS times, and still counts once.
+ */
+export async function withX25519Generation<T>(
+  refuse: (call: number) => string | null,
+  fn: () => Promise<T>,
+): Promise<{ value?: T; error?: unknown; calls: number }> {
+  const realGenerate = crypto.subtle.generateKey.bind(crypto.subtle) as (...a: unknown[]) => Promise<CryptoKeyPair | CryptoKey>
+  let calls = 0
+  const spy = vi.spyOn(crypto.subtle, 'generateKey').mockImplementation(((algorithm: unknown, ...rest: unknown[]) => {
+    const name = typeof algorithm === 'string' ? algorithm : (algorithm as { name?: string }).name
+    if (name !== 'X25519') return realGenerate(algorithm, ...rest)
+    const error = refuse(calls++)
+    if (error !== null) return Promise.reject(new DOMException('the engine refuses to generate this key', error))
+    return generateDespiteEngine(() => realGenerate(algorithm, ...rest))
+  }) as never)
+  try {
+    const value = await fn()
+    return { value, calls }
+  } catch (error) {
+    return { error, calls }
+  } finally {
+    spy.mockRestore()
+  }
+}
+
+// REAL_GENERATE_ATTEMPTS is how many times withX25519Generation asks the
+// real engine for one call the script lets through: all of them fail on
+// WebKit for Linux 1 time in 2^128.
+const REAL_GENERATE_ATTEMPTS = 16
+
+// generateDespiteEngine calls generate again after an OperationError, the
+// engine's own random failure, REAL_GENERATE_ATTEMPTS times in all, and
+// throws any other error at once.
+async function generateDespiteEngine<K>(generate: () => Promise<K>): Promise<K> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await generate()
+    } catch (err) {
+      if (attempt >= REAL_GENERATE_ATTEMPTS || (err as { name?: unknown } | null)?.name !== 'OperationError') throw err
+    }
+  }
+}
+
+/**
+ * pairFrom is the pair X25519 generateKey would have made with priv as its
+ * private key, on every engine, a first byte of zero included: WebKit on
+ * Linux refuses such a key as PKCS#8 (src/internal/x25519engine.ts). The
+ * public half comes from the kit's own import. A non-extractable private
+ * key is that import; an extractable one is imported from a JWK with that
+ * public half, since its export must give back priv itself, which the
+ * kit's PKCS#8 copy does not hold.
+ */
+async function pairFrom(priv: Uint8Array, extractable: boolean, usages: KeyUsage[]): Promise<CryptoKeyPair> {
+  const derived = await importX25519(priv)
+  const publicRaw = new Uint8Array(await crypto.subtle.deriveBits({ name: 'X25519', public: await basePoint() }, derived, 256))
+  const sameUsages = usages.length === 1 && usages[0] === 'deriveBits'
+  const privateKey = !extractable && sameUsages
+    ? derived
+    : await crypto.subtle.importKey(
+      'jwk',
+      { kty: 'OKP', crv: 'X25519', d: toBase64URL(new Uint8Array(priv)), x: toBase64URL(publicRaw), ext: extractable },
+      { name: 'X25519' },
+      extractable,
+      usages,
+    )
+  return { privateKey, publicKey: await crypto.subtle.importKey('raw', publicRaw, { name: 'X25519' }, true, []) }
+}
 
 /**
  * withDraws runs fn with crypto.getRandomValues serving the recorded byte
@@ -265,10 +378,7 @@ export async function withDraws<T>(draws: { bytes?: Uint8Array[]; x25519?: Uint8
     if (name !== 'X25519') return realGenerateKey(algorithm as never, extractable, usages)
     const priv = x25519.shift()
     if (!priv) throw new Error('unexpected X25519 key generation')
-    const privateKey = await crypto.subtle.importKey('pkcs8', new Uint8Array([...PKCS8_X25519_PREFIX, ...priv]), { name: 'X25519' }, extractable, usages)
-    const scalarPublic = await crypto.subtle.deriveBits({ name: 'X25519', public: await basePoint() }, privateKey, 256)
-    const publicKey = await crypto.subtle.importKey('raw', scalarPublic, { name: 'X25519' }, true, [])
-    return { privateKey, publicKey }
+    return pairFrom(priv, extractable, usages)
   }) as never)
   try {
     const value = await fn()
@@ -320,9 +430,7 @@ export async function recording<T>(fn: () => Promise<T> | T): Promise<{ value: T
     if (name !== 'X25519') return realGenerateKey(algorithm as never, extractable, usages)
     const priv = real(new Uint8Array(32))
     x25519.push(priv.slice())
-    const privateKey = await crypto.subtle.importKey('pkcs8', new Uint8Array([...PKCS8_X25519_PREFIX, ...priv]), { name: 'X25519' }, extractable, usages)
-    const publicRaw = await crypto.subtle.deriveBits({ name: 'X25519', public: await basePoint() }, privateKey, 256)
-    return { privateKey, publicKey: await crypto.subtle.importKey('raw', publicRaw, { name: 'X25519' }, true, []) }
+    return pairFrom(priv, extractable, usages)
   }) as never)
   try {
     return { value: await fn(), bytes, x25519 }

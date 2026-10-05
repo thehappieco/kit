@@ -2,6 +2,7 @@ package platform_test
 
 import (
 	"bytes"
+	"crypto/ecdh"
 	"encoding/json"
 	"reflect"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/thehappieco/kit/account"
 	"github.com/thehappieco/kit/hpke"
+	"github.com/thehappieco/kit/internal/forge"
 	"github.com/thehappieco/kit/internal/vectest"
 	"github.com/thehappieco/kit/profiles/platform"
 )
@@ -83,8 +85,16 @@ func wtf8(units []uint16) []byte {
 	return out
 }
 
-func TestPlatformVectorsPasswordProfile(t *testing.T) {
-	for _, c := range vectest.Platform[vectest.PasswordProfileCase](t, "password-profile") {
+func TestPlatformVectorsPasswordProfile(t *testing.T) { runPasswordProfile(t, "password-profile") }
+
+// password-stream-safe.json holds the platform's cases of the run rule of
+// section 11.2, step 2, in the members of password-profile.json.
+func TestPlatformVectorsPasswordStreamSafe(t *testing.T) {
+	runPasswordProfile(t, "password-stream-safe")
+}
+
+func runPasswordProfile(t *testing.T, kind string) {
+	for _, c := range vectest.Platform[vectest.PasswordProfileCase](t, kind) {
 		t.Run(c.Name, func(t *testing.T) {
 			var password string
 			switch {
@@ -350,4 +360,171 @@ func jsonValue(t *testing.T, data []byte) map[string]any {
 		t.Fatal("not a JSON object")
 	}
 	return v
+}
+
+func TestPlatformVectorsPKCE(t *testing.T) {
+	for _, c := range vectest.Platform[vectest.PKCECase](t, "pkce") {
+		t.Run(c.Name, func(t *testing.T) {
+			got, err := platform.PKCEChallenge(c.CodeVerifier)
+			if outcome(t, err, c.Error) {
+				same(t, "code_challenge", got, c.CodeChallenge)
+			} else if c.CodeChallenge != "" {
+				t.Fatal("a must-fail case with an output")
+			}
+		})
+	}
+}
+
+// keyDeliveryBinding is the binding a key-delivery case names, its pk_p
+// decoded at whatever length it has.
+func keyDeliveryBinding(t *testing.T, c vectest.KeyDeliveryCase) platform.KeyDeliveryBinding {
+	return platform.KeyDeliveryBinding{
+		Issuer: c.Iss, ClientID: c.ClientID, RedirectURI: c.RedirectURI, Sub: c.Sub,
+		ProductKeyID: c.ProductKeyID, ProductKey: b64(t, c.PKP),
+		CodeChallenge: c.CodeChallenge, Nonce: c.Nonce,
+	}
+}
+
+// x25519Public is X25519(priv, 9).
+func x25519Public(t *testing.T, priv []byte) []byte {
+	t.Helper()
+	k, err := ecdh.X25519().NewPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return k.PublicKey().Bytes()
+}
+
+// The key-delivery vectors. A good case is opened, its AAD and akd_pub
+// recomputed, and its blob sealed again byte for byte under its recorded
+// ephemeral key through internal/forge (tests only: no function of the kit
+// takes an ephemeral key); a fresh SealProductKey of the same inputs opens
+// alike. An "open" case is refused by OpenProductKey and a "seal" case by
+// SealProductKey, each with exactly its error and nothing returned.
+func TestPlatformVectorsKeyDelivery(t *testing.T) {
+	counts := map[string]int{}
+	for _, c := range vectest.Platform[vectest.KeyDeliveryCase](t, "key-delivery") {
+		counts["op "+c.Op]++
+		if c.Error != "" {
+			counts[c.Error]++
+		}
+		t.Run(c.CaseName(), func(t *testing.T) {
+			b := keyDeliveryBinding(t, c)
+			switch {
+			case c.Error == "" && c.Op == "":
+				sk, pub, err := platform.ProductKey(b64(t, c.Root), c.Product, c.Epoch)
+				if err != nil {
+					t.Fatal(err)
+				}
+				same(t, "pk_p", platform.EncodeB64(pub), c.PKP)
+				same(t, "product_key_id", platform.ProductKeyID(c.Product, c.Epoch), c.ProductKeyID)
+				aad, err := platform.KeyDeliveryAAD(b)
+				if err != nil {
+					t.Fatal(err)
+				}
+				same(t, "aad", string(aad), c.AAD)
+				akdPriv, akdPub := b64(t, c.AKDPriv), b64(t, c.AKDPub)
+				same(t, "akd_pub", platform.EncodeB64(x25519Public(t, akdPriv)), c.AKDPub)
+				if err := platform.CheckPublicKey(akdPub); err != nil {
+					t.Fatalf("the server refuses akd_pub: %v", err)
+				}
+				sealed := b64(t, c.AKDSealed)
+				same(t, "enc", platform.EncodeB64(sealed[:hpke.EncLen]), platform.EncodeB64(x25519Public(t, b64(t, c.EphPriv))))
+				got, err := platform.OpenProductKey(akdPriv, sealed, b)
+				if err != nil {
+					t.Fatalf("open: %v", err)
+				}
+				same(t, "the opened sk_p", platform.EncodeB64(got), platform.EncodeB64(sk))
+				replay, err := forge.SealBase(akdPub, b64(t, c.EphPriv), []byte(platform.KeyDeliveryInfo), aad, sk)
+				if err != nil {
+					t.Fatal(err)
+				}
+				same(t, "akd_sealed (replayed)", platform.EncodeB64(replay), c.AKDSealed)
+				fresh, err := platform.SealProductKey(nil, akdPub, sk, b)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if bytes.Equal(fresh, sealed) {
+					t.Fatal("a fresh seal repeats the vector's ephemeral key")
+				}
+				if got, err := platform.OpenProductKey(akdPriv, fresh, b); err != nil || !bytes.Equal(got, sk) {
+					t.Fatalf("a fresh seal does not open: %v", err)
+				}
+			case c.Error != "" && c.Op == vectest.KeyDeliveryOpOpen:
+				if c.Root != "" || c.EphPriv != "" || c.AAD != "" || c.AKDPub != "" {
+					t.Fatal("an open case with the seal's inputs")
+				}
+				got, err := platform.OpenProductKey(b64(t, c.AKDPriv), b64(t, c.AKDSealed), b)
+				outcome(t, err, c.Error)
+				if got != nil {
+					t.Fatal("a refusal returned key material")
+				}
+			case c.Error != "" && c.Op == vectest.KeyDeliveryOpSeal:
+				if c.AKDPriv != "" || c.AKDSealed != "" || c.EphPriv != "" || c.AAD != "" {
+					t.Fatal("a seal case with the open's inputs or outputs")
+				}
+				sk, pub, err := platform.ProductKey(b64(t, c.Root), c.Product, c.Epoch)
+				if err != nil {
+					t.Fatal(err)
+				}
+				same(t, "pk_p", platform.EncodeB64(pub), c.PKP)
+				same(t, "product_key_id", platform.ProductKeyID(c.Product, c.Epoch), c.ProductKeyID)
+				got, err := platform.SealProductKey(nil, b64(t, c.AKDPub), sk, b)
+				outcome(t, err, c.Error)
+				if got != nil {
+					t.Fatal("a refusal returned a blob")
+				}
+			default:
+				t.Fatal("a case is good without an op, or must fail with op open or seal")
+			}
+		})
+	}
+	want := map[string]int{"op ": 9, "op open": 39, "op seal": 25, "key_delivery": 61, "product_key": 3}
+	if !reflect.DeepEqual(counts, want) {
+		t.Errorf("counts %v, want %v", counts, want)
+	}
+}
+
+// The vector whose sealer spelled enc with bit 255 set, in the blob and in
+// the KEM context alike, opens under RFC 9180 (crypto/hpke through package
+// hpke) to the good case's key; only rule (a) of section 11.12 refuses it.
+func TestTheAliasedEncVectorTestsTheCanonicalCheck(t *testing.T) {
+	var good, aliased vectest.KeyDeliveryCase
+	for _, c := range vectest.Platform[vectest.KeyDeliveryCase](t, "key-delivery") {
+		switch c.CaseName() {
+		case "wappie-app in production":
+			good = c
+		case "open/enc spelled with bit 255 set by the sealer, in the blob and in the KEM context alike":
+			aliased = c
+		}
+	}
+	if good.Name == "" || aliased.Name == "" {
+		t.Fatal("the cases are missing")
+	}
+	b := keyDeliveryBinding(t, aliased)
+	aad, err := platform.KeyDeliveryAAD(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	same(t, "aad", string(aad), good.AAD)
+	sealed := b64(t, aliased.AKDSealed)
+	if sealed[31]&0x80 == 0 {
+		t.Fatal("enc has bit 255 clear")
+	}
+	priv, err := hpke.ParsePrivateKey(b64(t, aliased.AKDPriv))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pt, err := hpke.Open(priv, sealed[:hpke.EncLen], []byte(platform.KeyDeliveryInfo), aad, sealed[hpke.EncLen:])
+	if err != nil {
+		t.Fatalf("RFC 9180 does not open the aliased blob, so the case tests nothing: %v", err)
+	}
+	sk, _, err := platform.ProductKey(b64(t, good.Root), good.Product, good.Epoch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	same(t, "the aliased blob's plaintext", platform.EncodeB64(pt), platform.EncodeB64(sk))
+	if got, err := platform.OpenProductKey(b64(t, aliased.AKDPriv), sealed, b); platform.ErrorCode(err) != "key_delivery" || got != nil {
+		t.Fatalf("OpenProductKey: %v, want key_delivery", err)
+	}
 }

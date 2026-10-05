@@ -29,10 +29,21 @@ var (
 	// ErrEmailInvalid means the address is not accepted by section 11.8.
 	ErrEmailInvalid = errors.New("platform: email address not accepted")
 	// ErrProductKey means a product id, epoch or product public key is not
-	// acceptable, or a listed public key does not match the root.
+	// acceptable, a listed public key does not match the root, or a
+	// delivered key's public half is not the binding's (section 11.12).
 	ErrProductKey = errors.New("platform: product key not acceptable")
 	// ErrBundle means the bytes are not a key bundle this version reads.
 	ErrBundle = errors.New("platform: not a key bundle")
+	// ErrKeyDelivery means a key delivery cannot be sealed or did not open
+	// (section 11.12): an akd_pub that fails the check of section 11.4, a
+	// binding the AAD cannot carry, a sealed key that is not 80 bytes, an
+	// encapsulated key that is not the canonical encoding of an X25519
+	// point, another recipient, another flow, or altered bytes. Which one is
+	// deliberately not reported.
+	ErrKeyDelivery = errors.New("platform: key delivery refused")
+	// ErrPKCE means a PKCE code verifier is outside RFC 7636: not 43 to 128
+	// characters from [A-Za-z0-9._~-] (section 11.13).
+	ErrPKCE = errors.New("platform: not a PKCE code verifier")
 	// ErrEncoding means a value is not in its one accepted spelling: strict
 	// base64url of the right length, a lowercase UUID, or a restricted JSON
 	// array element.
@@ -52,6 +63,10 @@ var errorCodes = []struct {
 	{ErrEmailInvalid, "email"},
 	{ErrProductKey, "product_key"},
 	{ErrBundle, "bundle"},
+	{ErrKeyDelivery, "key_delivery"},
+	{ErrPKCE, "pkce"},
+	// Last, because it is the generic one: a specific error that also wraps
+	// it keeps its own name.
 	{ErrEncoding, "encoding"},
 }
 

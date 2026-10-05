@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/thehappieco/kit/hpke"
 )
@@ -39,6 +40,19 @@ func ValidProduct(product string) bool {
 // "wappie:1".
 func ProductKeyID(product string, epoch int) string {
 	return product + ":" + strconv.Itoa(epoch)
+}
+
+// ValidProductKeyID reports whether id is ProductKeyID(product, epoch) for a
+// valid product and epoch: a product id, ":", and an epoch from 1 to
+// 2^31 - 1 in decimal without sign or leading zero, so that each key has
+// exactly one id (section 11.12).
+func ValidProductKeyID(id string) bool {
+	product, epoch, ok := strings.Cut(id, ":")
+	if !ok || !ValidProduct(product) {
+		return false
+	}
+	n, err := strconv.Atoi(epoch)
+	return err == nil && checkEpoch(n) && strconv.Itoa(n) == epoch
 }
 
 // ProductKey derives a product's X25519 key pair from the root (section

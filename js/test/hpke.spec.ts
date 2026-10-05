@@ -2,10 +2,22 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { type Bytes } from '../src/bytes.js'
 import { ENC_LEN, generateKeyPair, HPKEError, importPrivateKey, open, publicFromPrivate, seal } from '../src/hpke.js'
-import { b64, codeOf, files, forTS, toB64, unhandled, utf8, withDraws, withEngineRefusingX25519, withLenientX25519 } from './vectors.js'
-
-/** Cases whose answer depends on the WebCrypto engine (see the case below). */
-const ENGINE_DEPENDENT = new Set(['hpke/public-from-private/zeros'])
+import {
+  b64,
+  codeOf,
+  files,
+  forTS,
+  fromHex,
+  LEADING_ZERO_KEYS,
+  toB64,
+  toHex,
+  unhandled,
+  utf8,
+  withDraws,
+  withEngineRefusingX25519,
+  withLenientX25519,
+  withX25519Generation,
+} from './vectors.js'
 
 for (const [path, f] of files('wappie/golden/hpke-ts.json', 'kit/hpke-go.json')) {
   const keys = new Map<string, { priv: Bytes; pub: Bytes }>()
@@ -43,17 +55,11 @@ for (const [path, f] of files('wappie/golden/hpke-ts.json', 'kit/hpke-go.json'))
             if (i.forged_plaintext_b64) expect(await codeOf(() => withLenientX25519(attempt))).toBe(c.error)
             return
           }
-          case 'hpke.public_from_private': {
-            // The all-zero scalar is the one input engines disagree on: Node,
-            // Chromium, Firefox and WebKit on macOS clamp it, WebKit on Linux
-            // refuses it. Either answer is fine; a different key is not.
-            if (ENGINE_DEPENDENT.has(c.id)) {
-              const code = await codeOf(() => publicFromPrivate(b64(i.private_key_b64)))
-              if (code === 'invalid_key') return
-            }
+          case 'hpke.public_from_private':
+            // The all-zero key included (hpke/public-from-private/zeros),
+            // which every engine now takes, WebKit on Linux too.
             expect(toB64(await publicFromPrivate(b64(i.private_key_b64)))).toBe(c.out.public_key_b64)
             return
-          }
           case 'hpke.generate_key_pair': {
             const pair = await withDraws({ x25519: [b64(i.x25519_private_key_b64)] }, generateKeyPair)
             expect([toB64(pair.privateKey), toB64(pair.publicKey)]).toEqual([c.out.private_key_b64, c.out.public_key_b64])
@@ -140,6 +146,70 @@ describe('hpke', () => {
         expect((caught as HPKEError).code).toBe('invalid_key')
         expect(((caught as HPKEError).cause as DOMException).name).toBe(name)
       }
+    }
+  })
+
+  // Any 32 bytes are an X25519 private key (SPEC section 6.4) on every
+  // engine. WebKit on Linux refuses a PKCS#8 key whose first byte is zero;
+  // the kit's copy has bit 0 of that byte set, which X25519 clears anyway.
+  it('takes a private key whose first byte is zero, on every engine', async () => {
+    for (const [privHex, pubHex] of LEADING_ZERO_KEYS) {
+      const priv = fromHex(privHex)
+      expect(toHex(await publicFromPrivate(priv)), privHex).toBe(pubHex)
+      const key = await importPrivateKey(priv)
+      expect(toHex(key.publicRaw), privHex).toBe(pubHex)
+      const { enc, ciphertext } = await seal(fromHex(pubHex), utf8('info'), utf8('aad'), utf8('pt'))
+      expect(new TextDecoder().decode(await open(key, enc, utf8('info'), utf8('aad'), ciphertext)), privHex).toBe('pt')
+      expect(toHex(priv), 'the caller\'s bytes').toBe(privHex)
+      // X25519 clears the three low bits of the first byte: 1 to 7 are the
+      // same key, and 8 is another.
+      for (let low = 1; low < 8; low++) {
+        const alias = priv.slice()
+        alias[0] = low
+        expect(toHex(await publicFromPrivate(alias)), `${privHex} with ${low} first`).toBe(pubHex)
+      }
+      const other = priv.slice()
+      other[0] = 8
+      expect(toHex(await publicFromPrivate(other)), `${privHex} with 8 first`).not.toBe(pubHex)
+    }
+  })
+
+  // Node, Firefox and Safari generate such keys (1 in 256, or 1 in 32 where
+  // the engine stores them clamped); WebKit on Linux never does, so the draw
+  // is replayed.
+  it('hands out a generated key whose first byte is zero as it is', async () => {
+    for (const [privHex, pubHex] of LEADING_ZERO_KEYS) {
+      const pair = await withDraws({ x25519: [fromHex(privHex)] }, generateKeyPair)
+      expect([toHex(pair.privateKey), toHex(pair.publicKey)]).toEqual([privHex, pubHex])
+    }
+  })
+
+  // WebKit on Linux fails 1 generateKey in 256 with an OperationError. The
+  // kit asks again, four times in all; any other error is not asked again.
+  it('asks again when the engine fails to generate a key', async () => {
+    const flaky = (call: number) => (call < 3 ? 'OperationError' : null)
+    const generated = await withX25519Generation(flaky, generateKeyPair)
+    expect(generated.calls).toBe(4)
+    const pair = generated.value!
+    expect(toHex(await publicFromPrivate(pair.privateKey))).toBe(toHex(pair.publicKey))
+    const sealed = await withX25519Generation(flaky, () => seal(pair.publicKey, utf8('i'), utf8('a'), utf8('p')))
+    expect(sealed.calls).toBe(4)
+    const { enc, ciphertext } = sealed.value!
+    expect(new TextDecoder().decode(await open(await importPrivateKey(pair.privateKey), enc, utf8('i'), utf8('a'), ciphertext))).toBe('p')
+
+    // Four in a row: generateKeyPair throws what the engine threw, as in
+    // v0.1.0; seal throws invalid_key with it as the cause, which says
+    // nothing about the public key.
+    const never = await withX25519Generation(() => 'OperationError', generateKeyPair)
+    expect([never.calls, (never.error as DOMException).name]).toEqual([4, 'OperationError'])
+    const unsealed = await withX25519Generation(() => 'OperationError', () => seal(pair.publicKey, utf8('i'), utf8('a'), utf8('p')))
+    expect(unsealed.calls).toBe(4)
+    expect(unsealed.error).toBeInstanceOf(HPKEError)
+    expect((unsealed.error as HPKEError).code).toBe('invalid_key')
+    expect(((unsealed.error as HPKEError).cause as DOMException).name).toBe('OperationError')
+    for (const name of ['NotSupportedError', 'DataError']) {
+      const once = await withX25519Generation(() => name, generateKeyPair)
+      expect([once.calls, (once.error as DOMException).name]).toEqual([1, name])
     }
   })
 

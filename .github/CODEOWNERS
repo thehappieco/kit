@@ -5,4 +5,6 @@
 /profiles/        @frrestum
 /js/src/profiles/ @frrestum
 /js/src/internal/ @frrestum
+/js/src/oidc-rp.ts @frrestum
+/oidcrp/          @frrestum
 /.github/         @frrestum

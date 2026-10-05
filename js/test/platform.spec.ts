@@ -4,15 +4,17 @@
 // case must be refused with a PlatformError of exactly the error name it
 // records. Anything else thrown (an AccountError, an HPKEError, a
 // DOMException) is a failure of this implementation, not a refusal. Failure
-// messages name the case and the codes, never the values.
+// messages name the case and the codes, never the values. A case is named
+// by its id: its name, or op/name for a key-delivery case with an op.
 
 import { describe, expect, it } from 'vitest'
 
 import { unwrapPrivateKey } from '../src/account.js'
 import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes.js'
-import { PlatformError } from '../src/errors.js'
+import { HPKEError, PlatformError } from '../src/errors.js'
 import * as platform from '../src/profiles/platform.js'
-import { b64 as std, files, forTS, loadPlatform, toB64, unhandled, withDraws, type PlatformCase, type VectorCase } from './vectors.js'
+import { open as hpkeOpen, importPrivateKey } from '../src/hpke.js'
+import { b64 as std, caseId, files, forTS, loadPlatform, toB64, unhandled, withDraws, type PlatformCase, type VectorCase } from './vectors.js'
 
 /** The members each kind's cases may have, which are the members the runners below read. */
 const MEMBERS: Record<string, readonly string[]> = {
@@ -24,6 +26,12 @@ const MEMBERS: Record<string, readonly string[]> = {
   verifier: ['name', 'error', 'sub', 'k_auth', 'r_proof', 'auth_verifier', 'recovery_verifier'],
   email: ['name', 'error', 'input', 'email_norm'],
   'key-bundle': ['name', 'error', 'password', 'recovery_code', 'bundle', 'bundle_text', 'root'],
+  'password-stream-safe': ['name', 'error', 'password', 'password_utf16', 'password_utf8_b64url', 'new', 'prepared_b64url'],
+  'key-delivery': [
+    'name', 'op', 'error', 'root', 'product', 'epoch', 'iss', 'client_id', 'redirect_uri', 'sub', 'product_key_id', 'pk_p',
+    'code_challenge', 'nonce', 'akd_priv', 'akd_pub', 'eph_priv', 'aad', 'akd_sealed',
+  ],
+  pkce: ['name', 'error', 'code_verifier', 'code_challenge'],
 }
 
 /** The number of cases and of must-fail cases per kind (vectors/PROVENANCE.md). */
@@ -36,9 +44,15 @@ const COUNTS: Record<string, [number, number]> = {
   verifier: [10, 5],
   email: [46, 33],
   'key-bundle': [59, 50],
+  'key-delivery': [73, 64],
+  pkce: [18, 12],
+  'password-stream-safe': [19, 11],
 }
 
-const NAMES = new Set(['password_invalid', 'password_too_short', 'password_too_long', 'kdf_policy', 'wrap', 'recovery_code', 'email', 'product_key', 'bundle', 'encoding'])
+const NAMES = new Set([
+  'password_invalid', 'password_too_short', 'password_too_long', 'kdf_policy', 'wrap', 'recovery_code', 'email', 'product_key', 'bundle',
+  'key_delivery', 'pkce', 'encoding',
+])
 
 function str(c: PlatformCase, member: string): string {
   const v = c[member]
@@ -59,6 +73,16 @@ function b64(c: PlatformCase, member: string): Bytes {
   return fromBase64URL(s, Math.floor((s.length * 3) / 4))
 }
 
+/** b64Empty is b64 for a member the generator omits when it is empty (Go's omitempty). */
+function b64Empty(c: PlatformCase, member: string): Bytes {
+  return c[member] === undefined ? (new Uint8Array(0) as Bytes) : b64(c, member)
+}
+
+/** strEmpty is str for a member the generator omits when it is empty. */
+function strEmpty(c: PlatformCase, member: string): string {
+  return c[member] === undefined ? '' : str(c, member)
+}
+
 function same(got: string, want: string, label: string): void {
   if (got !== want) expect.fail(`${label}: the values differ (not shown)`)
 }
@@ -68,7 +92,7 @@ function same(got: string, want: string, label: string): void {
  * does, a PlatformError of exactly that code and nothing else.
  */
 async function outcome(c: PlatformCase, run: () => Promise<void>, form = ''): Promise<void> {
-  const label = form === '' ? `case "${c.name}"` : `case "${c.name}" (${form})`
+  const label = form === '' ? `case "${caseId(c)}"` : `case "${caseId(c)}" (${form})`
   if (c.error === undefined) {
     await run()
     return
@@ -266,6 +290,101 @@ const runners: Record<string, (c: PlatformCase) => Promise<void>> = {
   },
 }
 
+// password-stream-safe.json holds the platform's cases of the run rule of
+// section 11.2, step 2, in the members of password-profile.json.
+runners['password-stream-safe'] = runners['password-profile']
+
+runners.pkce = async (c) => {
+  await outcome(c, async () => {
+    same(await platform.pkceChallenge(str(c, 'code_verifier')), str(c, 'code_challenge'), `case "${c.name}"`)
+  })
+}
+
+// The probe of the akd_pub check, which deliverProductKey generates before
+// the ephemeral key: any valid scalar, since it never reaches the output.
+const PROBE = new Uint8Array(32).fill(0x42)
+
+/**
+ * key-delivery: a good case is derived, its AAD and akd_pub recomputed, its
+ * blob opened with the raw key and with a non-extractable imported one, and
+ * sealed again byte for byte under its recorded ephemeral key (withDraws:
+ * the akd_pub check's probe, then the ephemeral key; no shipped function
+ * takes one). An "open" case is refused by openProductKey and a "seal" case
+ * by sealProductKey, each with exactly its code.
+ */
+runners['key-delivery'] = async (c) => {
+  const request: platform.KeyDeliveryRequest = {
+    issuer: str(c, 'iss'),
+    clientId: str(c, 'client_id'),
+    redirectUri: str(c, 'redirect_uri'),
+    sub: str(c, 'sub'),
+    codeChallenge: str(c, 'code_challenge'),
+    nonce: str(c, 'nonce'),
+  }
+  const binding: platform.KeyDeliveryBinding = { ...request, productKeyId: str(c, 'product_key_id'), productKey: b64(c, 'pk_p') }
+  const id = caseId(c)
+  if (c.error === undefined) {
+    if (c.op !== undefined) expect.fail(`case "${id}": a good case with an op`)
+    const root = b64(c, 'root')
+    const product = str(c, 'product')
+    const epoch = int(c, 'epoch')
+    const { sk, pub, id: productKeyId } = await platform.deriveProductKey(root, product, epoch)
+    same(toBase64URL(pub), str(c, 'pk_p'), `case "${id}" pk_p`)
+    same(productKeyId, str(c, 'product_key_id'), `case "${id}" product_key_id`)
+    same(platform.keyDeliveryAAD(binding), str(c, 'aad'), `case "${id}" aad`)
+    const akdPriv = b64(c, 'akd_priv')
+    const recipient = await platform.importX25519PrivateKey(akdPriv)
+    same(toBase64URL(await platform.x25519PublicFromKey(recipient)), str(c, 'akd_pub'), `case "${id}" akd_pub`)
+    await platform.checkX25519PublicKey(b64(c, 'akd_pub'), 'key_delivery')
+    same(toBase64URL(await platform.openProductKey(akdPriv, str(c, 'akd_sealed'), binding)), toBase64URL(sk), `case "${id}" opened by the raw key`)
+    same(toBase64URL(await platform.openProductKey(recipient, b64(c, 'akd_sealed'), binding)), toBase64URL(sk), `case "${id}" opened by the imported key`)
+    const input = { root, product, epoch, akdPub: str(c, 'akd_pub'), binding: request }
+    const replay = await withDraws({ x25519: [PROBE, b64(c, 'eph_priv')] }, () => platform.deliverProductKey(input))
+    same(replay.akd_sealed, str(c, 'akd_sealed'), `case "${id}" akd_sealed (replayed)`)
+    same(replay.product_key, str(c, 'pk_p'), `case "${id}" delivered product_key`)
+    same(replay.product_key_id, str(c, 'product_key_id'), `case "${id}" delivered product_key_id`)
+    const fresh = await platform.sealProductKey(input)
+    if (fresh === str(c, 'akd_sealed')) expect.fail(`case "${id}": a fresh seal repeats the recorded one`)
+    same(toBase64URL(await platform.openProductKey(recipient, fresh, binding)), toBase64URL(sk), `case "${id}" a fresh seal`)
+    return
+  }
+  if (c.op === 'open') {
+    for (const member of ['root', 'product', 'epoch', 'akd_pub', 'eph_priv', 'aad']) {
+      if (c[member] !== undefined) expect.fail(`case "${id}": an open case with ${member}`)
+    }
+    const akdPriv = b64(c, 'akd_priv')
+    const sealed = strEmpty(c, 'akd_sealed')
+    await outcome(c, async () => {
+      await platform.openProductKey(akdPriv, sealed, binding)
+    }, 'raw key, text')
+    await outcome(c, async () => {
+      await platform.openProductKey(akdPriv, b64Empty(c, 'akd_sealed'), binding)
+    }, 'raw key, bytes')
+    if (akdPriv.length === platform.X25519_KEY_LEN) {
+      const recipient = await platform.importX25519PrivateKey(akdPriv)
+      await outcome(c, async () => {
+        await platform.openProductKey(recipient, sealed, binding)
+      }, 'imported key')
+    }
+    return
+  }
+  if (c.op === 'seal') {
+    for (const member of ['akd_priv', 'akd_sealed', 'eph_priv', 'aad']) {
+      if (c[member] !== undefined) expect.fail(`case "${id}": a seal case with ${member}`)
+    }
+    const root = b64(c, 'root')
+    const { sk, pub, id: productKeyId } = await platform.deriveProductKey(root, str(c, 'product'), int(c, 'epoch'))
+    sk.fill(0)
+    same(toBase64URL(pub), str(c, 'pk_p'), `case "${id}" pk_p`)
+    same(productKeyId, str(c, 'product_key_id'), `case "${id}" product_key_id`)
+    await outcome(c, async () => {
+      await platform.sealProductKey({ root, product: str(c, 'product'), epoch: int(c, 'epoch'), akdPub: strEmpty(c, 'akd_pub'), binding: request })
+    })
+    return
+  }
+  expect.fail(`case "${id}": a must-fail case needs op open or seal`)
+}
+
 describe('the platform\'s id-v1 vectors', () => {
   it('are all here, in their recorded shape', () => {
     let total = 0
@@ -275,29 +394,64 @@ describe('the platform\'s id-v1 vectors', () => {
       const bad = f.cases.filter((c) => c.error !== undefined)
       expect([f.cases.length, bad.length], kind).toEqual([cases, mustFail])
       for (const c of f.cases) {
-        for (const member of Object.keys(c)) expect(MEMBERS[kind].includes(member), `case "${c.name}": a member no runner reads: ${member}`).toBe(true)
-        if (c.error !== undefined) expect(NAMES.has(c.error), `case "${c.name}": ${c.error}`).toBe(true)
+        for (const member of Object.keys(c)) expect(MEMBERS[kind].includes(member), `case "${caseId(c)}": a member no runner reads: ${member}`).toBe(true)
+        if (c.error !== undefined) expect(NAMES.has(c.error), `case "${caseId(c)}": ${c.error}`).toBe(true)
       }
       total += cases
       failing += mustFail
     }
-    expect([total, failing]).toEqual([257, 180])
+    expect([total, failing]).toEqual([367, 267])
   })
 })
 
 for (const kind of Object.keys(COUNTS)) {
   const f = loadPlatform(kind)
   describe(`platform/id-v1/${kind}.json`, () => {
-    for (const c of f.cases) it(c.name, () => runners[kind](c))
+    for (const c of f.cases) it(caseId(c), () => runners[kind](c))
   })
 }
 
+describe('platform/id-v1/key-delivery.json', () => {
+  it('counts 9 good cases, 39 refused by the open and 25 by the seal', () => {
+    const cases = loadPlatform('key-delivery').cases
+    const count = (f: (c: PlatformCase) => boolean) => cases.filter(f).length
+    expect([count((c) => c.op === undefined), count((c) => c.op === 'open'), count((c) => c.op === 'seal')]).toEqual([9, 39, 25])
+    expect([count((c) => c.error === 'key_delivery'), count((c) => c.error === 'product_key')]).toEqual([61, 3])
+    expect(count((c) => c.op === undefined && c.error !== undefined) + count((c) => c.op !== undefined && c.error === undefined)).toBe(0)
+  })
+
+  // The blob whose sealer spelled enc with bit 255 set, in the blob and in
+  // the KEM context alike: plain RFC 9180 (the hpke module) may open it, as
+  // every engine checked so far does, or refuse it with an HPKEError; only
+  // the canonical check of openProductKey must refuse it, everywhere.
+  it('refuses the aliased enc that plain HPKE may open', async () => {
+    const cases = loadPlatform('key-delivery').cases
+    const c = cases.find((x) => caseId(x) === 'open/enc spelled with bit 255 set by the sealer, in the blob and in the KEM context alike')!
+    const good = cases.find((x) => x.name === 'wappie-app in production')!
+    const sealed = b64(c, 'akd_sealed')
+    expect(sealed[31] & 0x80).toBe(0x80)
+    const binding = { issuer: c.iss, clientId: c.client_id, redirectUri: c.redirect_uri, sub: c.sub, codeChallenge: c.code_challenge, nonce: c.nonce, productKeyId: c.product_key_id, productKey: b64(c, 'pk_p') }
+    same(platform.keyDeliveryAAD(binding), str(good, 'aad'), 'the aliased case\'s binding')
+    try {
+      const pt = await hpkeOpen(await importPrivateKey(b64(c, 'akd_priv')), sealed.slice(0, 32), encodeUTF8(platform.KEY_DELIVERY_INFO), encodeUTF8(str(good, 'aad')), sealed.slice(32))
+      const { sk } = await platform.deriveProductKey(b64(good, 'root'), good.product, good.epoch)
+      same(toBase64URL(pt), toBase64URL(sk), 'what plain HPKE opens')
+    } catch (err) {
+      expect(err).toBeInstanceOf(HPKEError)
+    }
+    await outcome(c, async () => {
+      await platform.openProductKey(b64(c, 'akd_priv'), sealed, binding)
+    })
+  })
+})
+
 // The kit's own platform cases, in the kit's format: those Go wrote
-// (kit/platform-go.json and kit/platform-password-go.json, and the fresh
-// files of the same names in $KIT_CROSS_IN in the cross-language job) and
-// those this side wrote at release time (kit/platform-ts.json and
-// kit/platform-password-ts.json), which keep later versions to the same
-// bytes.
+// (kit/platform-go.json, kit/platform-password-go.json and
+// kit/platform-delivery-go.json, and the fresh files of the same names in
+// $KIT_CROSS_IN in the cross-language job) and those this side wrote at
+// release time (kit/platform-ts.json, kit/platform-password-ts.json and
+// kit/platform-delivery-ts.json), which keep later versions to the same
+// bytes, or, for fresh seals, to opening them.
 async function kitCase(c: VectorCase): Promise<void> {
   const i = c.in
   const code = async (fn: () => unknown) => {
@@ -371,10 +525,47 @@ async function kitCase(c: VectorCase): Promise<void> {
       return
     }
   }
+  return kitDeliveryCase(c, code)
+}
+
+// The kit's own cases of part 2 (SPEC sections 11.12 and 11.13), in the
+// kit's format: key-delivery AADs, fresh deliveries opened (a fresh seal
+// cannot be replayed in the other language), the seal's refusals of akd_pub,
+// and PKCE challenges.
+async function kitDeliveryCase(c: VectorCase, code: (fn: () => unknown) => Promise<string>): Promise<void> {
+  const i = c.in
+  const request: platform.KeyDeliveryRequest = { issuer: i.iss, clientId: i.client_id, redirectUri: i.redirect_uri, sub: i.sub, codeChallenge: i.code_challenge, nonce: i.nonce }
+  const binding = (): platform.KeyDeliveryBinding => ({ ...request, productKeyId: i.product_key_id, productKey: std(i.pk_p_b64) })
+  switch (c.op) {
+    case 'platform.key_delivery_aad':
+      if (c.error) expect(await code(() => platform.keyDeliveryAAD(binding()))).toBe(c.error)
+      else expect(platform.keyDeliveryAAD(binding())).toBe(c.out.aad)
+      return
+    case 'platform.open_product_key': {
+      const open = () => platform.openProductKey(std(i.akd_priv_b64), std(i.akd_sealed_b64), binding())
+      if (c.error) expect(await code(open)).toBe(c.error)
+      else expect(toB64(await open())).toBe(c.out.sk_b64)
+      return
+    }
+    case 'platform.seal_product_key':
+      expect(await code(() => platform.sealProductKey({ root: std(i.root_b64), product: i.product, epoch: i.epoch, akdPub: toBase64URL(std(i.akd_pub_b64)), binding: request }))).toBe(c.error)
+      return
+    case 'platform.pkce_challenge':
+      if (c.error) expect(await code(() => platform.pkceChallenge(i.code_verifier))).toBe(c.error)
+      else expect(await platform.pkceChallenge(i.code_verifier)).toBe(c.out.code_challenge)
+      return
+  }
   unhandled(c)
 }
 
-for (const [path, f] of files('kit/platform-go.json', 'kit/platform-ts.json', 'kit/platform-password-go.json', 'kit/platform-password-ts.json')) {
+for (const [path, f] of files(
+  'kit/platform-go.json',
+  'kit/platform-ts.json',
+  'kit/platform-password-go.json',
+  'kit/platform-password-ts.json',
+  'kit/platform-delivery-go.json',
+  'kit/platform-delivery-ts.json',
+)) {
   describe(path, () => {
     expect(f.profile).toBe('platform')
     for (const c of f.cases.filter(forTS)) it(c.id, () => kitCase(c))

@@ -1,10 +1,14 @@
-// Package platform is the platform profile, part 1 (SPEC section 11): the
-// account core of The Happie Co platform's protocol id-v1
-// (thehappie-id/v1). It covers the password profile thehappie-password/v1
-// and its KDF bounds, the root-wrap envelope, the recovery code, the
-// per-product keys and the server's check of their public keys, the server
-// verifiers, email normalisation, strict base64url, the restricted JSON
-// arrays used as additional data, and the key bundle.
+// Package platform is the platform profile (SPEC section 11) of The Happie
+// Co platform's protocol id-v1 (thehappie-id/v1). Part 1, the account core,
+// covers the password profile thehappie-password/v1 and its KDF bounds, the
+// root-wrap envelope, the recovery code, the per-product keys and the
+// server's check of their public keys, the server verifiers, email
+// normalisation, strict base64url, the restricted JSON arrays used as
+// additional data, and the key bundle. Part 2 covers the sealed delivery of
+// a product key to the product's page (SealProductKey, OpenProductKey,
+// section 11.12) and PKCE S256 (PKCEChallenge, section 11.13); the relying
+// party built on them is package oidcrp (its server side) and
+// @thehappieco/kit/oidc-rp (its page).
 //
 // The rule it enforces: the account root opens only for the account, epoch
 // and kind it was wrapped for, and only with a key derived from the
@@ -34,7 +38,9 @@
 //   - AuthVerifier, RecoveryVerifier and VerifierMatches, with DummySub for
 //     equal work;
 //   - NormalizeEmail and DecodeB64;
-//   - MarshalKeyBundle, since a bundle holds only what the server stores.
+//   - MarshalKeyBundle, since a bundle holds only what the server stores;
+//   - CheckPublicKey again for akd_pub, and PKCEChallenge, in the
+//     authorization and token endpoints.
 //
 // What stays in the platform: the product registry, the account ceremonies
 // built from these pieces, page rules such as refusing a password equal to
@@ -46,10 +52,10 @@
 // strings cannot be cleared, and a slice returned to the caller is the
 // caller's to clear (PasswordKeys.Zero, RecoveryKeys.Zero, clear(root)).
 //
-// Taken from the platform's internal/crypto/idcrypto at commit 5e66d84,
-// which was written to move here; the names and signatures are idcrypto's,
-// except that the product registry and the sign-up and recovery helpers stay
-// in the platform.
+// Taken from the platform's internal/crypto/idcrypto at commit 5e66d84
+// (part 1) and 4476bf4 (part 2), which was written to move here; the names
+// and signatures are idcrypto's, except that the product registry and the
+// sign-up and recovery helpers stay in the platform.
 package platform
 
 import (

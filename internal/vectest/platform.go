@@ -18,8 +18,11 @@ const PlatformFormat = "thehappie-id/vectors"
 // PlatformDir is where the platform's id-v1 files are in vectors.FS.
 const PlatformDir = "platform/id-v1"
 
-// PlatformCase is one case of a platform vector file: a name, and the error
-// name it must be refused with ("" for a case with outputs).
+// PlatformCase is one case of a platform vector file: its id, and the error
+// name it must be refused with ("" for a case with outputs). The id is the
+// case's name, or op "/" name for a case that carries an op
+// (KeyDeliveryCase): key-delivery.json gives five names to two cases each,
+// one with op "open" and one with op "seal".
 type PlatformCase interface {
 	CaseName() string
 	CaseError() string
@@ -27,8 +30,8 @@ type PlatformCase interface {
 
 // Platform reads vectors/platform/id-v1/<kind>.json strictly: a member the
 // case type does not declare fails the test (a member a runner ignores would
-// test nothing), and so do a wrong header, a repeated or empty name, and a
-// file without both good and must-fail cases.
+// test nothing), and so do a wrong header, a repeated or empty case id, and
+// a file without both good and must-fail cases.
 func Platform[C PlatformCase](t testing.TB, kind string) []C {
 	t.Helper()
 	path := PlatformDir + "/" + kind + ".json"
@@ -54,7 +57,7 @@ func Platform[C PlatformCase](t testing.TB, kind string) []C {
 	good, bad := 0, 0
 	for _, c := range f.Cases {
 		if c.CaseName() == "" || names[c.CaseName()] {
-			t.Fatalf("%s: an empty or repeated case name", path)
+			t.Fatalf("%s: an empty or repeated case id", path)
 		}
 		names[c.CaseName()] = true
 		if c.CaseError() == "" {
@@ -180,6 +183,58 @@ type KeyBundleCase struct {
 	Error        string          `json:"error,omitempty"`
 }
 
+// KeyDeliveryCase is a key-delivery case. A good case has no Op and every
+// member; a must-fail case's Op says which side refuses it: "open" (the
+// relying party's inputs: AKDPriv, AKDSealed and the binding) or "seal" (the
+// id. page's: Root, Product, Epoch, AKDPub and the binding). EphPriv, the
+// sender's ephemeral key of a good case, is what lets a test replay its
+// AKDSealed byte for byte. A binary member the generator left empty is
+// absent and reads as "".
+type KeyDeliveryCase struct {
+	Name          string `json:"name"`
+	Op            string `json:"op,omitempty"`
+	Root          string `json:"root,omitempty"`
+	Product       string `json:"product,omitempty"`
+	Epoch         int    `json:"epoch,omitempty"`
+	Iss           string `json:"iss"`
+	ClientID      string `json:"client_id"`
+	RedirectURI   string `json:"redirect_uri"`
+	Sub           string `json:"sub"`
+	ProductKeyID  string `json:"product_key_id"`
+	PKP           string `json:"pk_p"`
+	CodeChallenge string `json:"code_challenge"`
+	Nonce         string `json:"nonce"`
+	AKDPriv       string `json:"akd_priv,omitempty"`
+	AKDPub        string `json:"akd_pub,omitempty"`
+	EphPriv       string `json:"eph_priv,omitempty"`
+	AAD           string `json:"aad,omitempty"`
+	AKDSealed     string `json:"akd_sealed,omitempty"`
+	Error         string `json:"error,omitempty"`
+}
+
+// The ops of a key-delivery must-fail case.
+const (
+	KeyDeliveryOpOpen = "open"
+	KeyDeliveryOpSeal = "seal"
+)
+
+// PKCECase is a pkce case.
+type PKCECase struct {
+	Name          string `json:"name"`
+	CodeVerifier  string `json:"code_verifier"`
+	CodeChallenge string `json:"code_challenge,omitempty"`
+	Error         string `json:"error,omitempty"`
+}
+
+// CaseName is op "/" name for a case with an op, its name otherwise, and ""
+// for a case without a name.
+func (c KeyDeliveryCase) CaseName() string {
+	if c.Name == "" || c.Op == "" {
+		return c.Name
+	}
+	return c.Op + "/" + c.Name
+}
+
 func (c PasswordProfileCase) CaseName() string { return c.Name }
 func (c KDFCase) CaseName() string             { return c.Name }
 func (c RootWrapCase) CaseName() string        { return c.Name }
@@ -188,6 +243,7 @@ func (c ProductKeyCase) CaseName() string      { return c.Name }
 func (c VerifierCase) CaseName() string        { return c.Name }
 func (c EmailCase) CaseName() string           { return c.Name }
 func (c KeyBundleCase) CaseName() string       { return c.Name }
+func (c PKCECase) CaseName() string            { return c.Name }
 
 func (c PasswordProfileCase) CaseError() string { return c.Error }
 func (c KDFCase) CaseError() string             { return c.Error }
@@ -197,3 +253,5 @@ func (c ProductKeyCase) CaseError() string      { return c.Error }
 func (c VerifierCase) CaseError() string        { return c.Error }
 func (c EmailCase) CaseError() string           { return c.Error }
 func (c KeyBundleCase) CaseError() string       { return c.Error }
+func (c KeyDeliveryCase) CaseError() string     { return c.Error }
+func (c PKCECase) CaseError() string            { return c.Error }

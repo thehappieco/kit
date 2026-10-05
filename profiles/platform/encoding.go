@@ -112,6 +112,14 @@ func jcsText(s string) bool {
 // 11.7). It is the nil UUID, whose 16 bytes are zero.
 func DummySub() string { return "00000000-0000-0000-0000-000000000000" }
 
+// ValidSub reports whether sub is an account id in its one spelling: a UUID
+// as lowercase hyphenated text, 36 characters (section 11.1). The version
+// nibble is not checked.
+func ValidSub(sub string) bool {
+	_, err := parseSub(sub)
+	return err == nil
+}
+
 // parseSub returns the 16 bytes of a sub. Only the lowercase hyphenated
 // spelling is accepted, so a sub has one AAD and one verifier input. The
 // version nibble is not checked: the server issues UUIDv7, and DummySub is

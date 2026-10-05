@@ -12,8 +12,9 @@ There are two file formats: the kit's own (below), used by everything under `wap
 | `wappie/golden/` | Vectors written by Wappie's code at the commit in `PROVENANCE.md`, by the generators in `wappie/_generators/`. |
 | `wappie/_generators/` | The generators, kept for provenance and for `make vectors-regen-check`. Not built by the go tool, not embedded. |
 | `kit/` | Vectors written by the kit itself: `*-go.json` by the Go code for TypeScript to open, `*-ts.json` the reverse. |
-| `platform/id-v1/` | The platform's golden vectors of its protocol `id-v1`, byte for byte as the platform's Go code wrote them at the commit in `PROVENANCE.md`, in the platform's format. SPEC section 11, part 1. |
-| `platform/_generators/` | The platform's generator at that commit, kept for provenance. Not built, not embedded. |
+| `platform/id-v1/` | The platform's golden vectors of its protocol `id-v1`, byte for byte as the platform's Go code wrote them at the commits in `PROVENANCE.md`, in the platform's format: part 1 (SPEC sections 11.1 to 11.11) at `5e66d84`, part 2 (sections 11.12 to 11.15) at `4476bf4`. |
+| `platform/_generators/` | The platform's generator at `5e66d84`, kept for provenance. Not built, not embedded. |
+| `platform/_generators-4476bf4/` | The platform's generator at `4476bf4`, which wrote part 2 and writes the part-1 files unchanged. Not built, not embedded. |
 | `MANIFEST.sha256` | The sha256 of every file above. `make vectors-check`. |
 
 Files are append-only once a release is tagged: a changed case is a new id, and no file present at a tag changes or disappears.
@@ -38,7 +39,7 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 - Bytes are in fields ending `_b64` (standard base64 with padding), hashes in `_hex`, UUIDs as text, integers as JSON numbers up to 2^53, wire text as JSON strings.
 - Each case has exactly one of `out` and `error`. Account errors also carry a `reason`.
 - `langs`, when present, narrows which languages run a case; absent means every language that implements the op.
-- Seals record the randomness they consumed: `seed` (Go, `testing/cryptotest.SetGlobalRandom`, replayed only on the recorded toolchain), `ephemeral_private_key_b64` or `nonce_b64` (replayed by injecting exactly those bytes).
+- Seals record the randomness they consumed: `seed` (Go, `testing/cryptotest.SetGlobalRandom`, replayed only on the recorded toolchain), `ephemeral_private_key_b64` or `nonce_b64` (replayed by injecting exactly those bytes). The fresh key deliveries of `kit/platform-delivery-{go,ts}.json` record nothing they drew, as their `generated_by.randomness` says: they are checked by opening.
 - Ids are stable and unique within a file.
 - Refusals that need an input no profile function produces carry it directly: `public_key_b64` (a key of low order, on `hpke.seal` and `seal.seal_direct`), `aad_b64` (an AAD given as is, empty included, on `passkey.wrap` and `passkey.unwrap`), and `<field>_wtf8_b64` in place of a string field: a string that is not Unicode, as WTF-8 bytes, which Go takes as the (invalid UTF-8) string itself and TypeScript decodes to a string with a lone surrogate.
 - An `account.derive` case may give `bounds` (`min`, `max`, `max_cost`, `min_salt_len`, `max_salt_len`), which the test adds to the file's profile.
@@ -54,7 +55,7 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | hpke | `open_failed`, `invalid_key` |
 | reqhmac | `hmac_missing`, `hmac_stale`, `hmac_bad`, `hmac_replay`, `replay_cache_full` |
 | jcs | `jcs` |
-| platform (its own format) | `password_invalid`, `password_too_short`, `password_too_long`, `kdf_policy`, `wrap`, `recovery_code`, `email`, `product_key`, `bundle`, `encoding` |
+| platform (its own format) | `password_invalid`, `password_too_short`, `password_too_long`, `kdf_policy`, `wrap`, `recovery_code`, `email`, `product_key`, `bundle`, `key_delivery`, `pkce`, `encoding` |
 
 ### Op catalogue
 
@@ -88,6 +89,9 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | `platform.root_wrap` | compute; replay (nonce) | compute; replay (nonce) |
 | `platform.recovery_code` | compute from the recorded bytes | compute; replay |
 | `platform.check_public_key` (the server's) | compute | |
+| `platform.key_delivery_aad`, `platform.pkce_challenge` | compute | compute |
+| `platform.open_product_key` (a fresh seal, which cannot be replayed in the other language) | open | open |
+| `platform.seal_product_key` (refusals of `akd_pub`) | refuse | refuse |
 
 Every dispatcher fails on a case for its language whose op it does not handle.
 
@@ -107,7 +111,8 @@ Every dispatcher fails on a case for its language whose op it does not handle.
 }
 ```
 
-- A case has a `name`, unique in its file, and either its outputs or `"error": "<name>"`, one of the platform profile's error names (SPEC section 11.10). Every implementation runs every case.
+- A case has a `name`, unique in its file, or, in a file whose cases carry an `op`, a unique `op` and `name` (next bullet), and either its outputs or `"error": "<name>"`, one of the platform profile's error names (SPEC section 11.10). Every implementation runs every case.
+- In a file whose cases carry an `op` (`key-delivery`, where a must-fail case says which side refuses it: `open` or `seal`), a case is identified by its `op` and `name` together, which are unique; such a case is cited as `<file>#<op>/<name>` (`platform/id-v1/key-delivery.json#open/a sub in upper case`), and a case without an `op` by its name alone.
 - Binary values are base64url without padding (no `_b64` suffix); texts are JSON strings; every file is ASCII, with non-ASCII characters as `\u` escapes, and ends with one newline.
 - Kinds and their members:
 
@@ -121,7 +126,11 @@ Every dispatcher fails on a case for its language whose op it does not handle.
 | `verifier` | `sub`, and `k_auth` or `r_proof` | `auth_verifier` or `recovery_verifier` |
 | `email` | `input` | `email_norm` |
 | `key-bundle` | `password` or `recovery_code`; `bundle` as a JSON value, or `bundle_text` as the exact text of the file | `root` |
+| `password-stream-safe` | as `password-profile`: the cases at and one past the limit of the run rule (SPEC section 11.2, step 2) | as `password-profile` |
+| `key-delivery` | `op` on a must-fail case (`open` or `seal`); `root`, `product`, `epoch` (the product key, on good and `seal` cases); `iss`, `client_id`, `redirect_uri`, `sub`, `product_key_id`, `pk_p`, `code_challenge`, `nonce` (the binding); `akd_priv` (good and `open`), `akd_pub` (good and `seal`), `eph_priv` (good: the sender's ephemeral key, which only a test can inject) | `aad`, `akd_sealed` (on an `open` refusal, the blob to open) |
+| `pkce` | `code_verifier` | `code_challenge` |
 
+- A binary member the generator left empty is omitted (`omitempty`): a runner reads a missing `akd_sealed` or `akd_pub` as empty.
 - Argon2id cases use the floor parameters (m 65536, t 3, p 1), and one uses p = 4.
 - The runners decode strictly: a member a runner does not read fails the run, and so does a refusal with any error other than the recorded one.
 

@@ -387,6 +387,17 @@ describe('product keys', () => {
     expect((await platform.productPublicKey(ROOT, 'a'.repeat(32), 1)).length).toBe(32)
   })
 
+  // 1 sk_p in 256 starts with a zero byte, here ROOT's wappie:30. WebKit on
+  // Linux refused such a key as PKCS#8, so the kit's id.-page functions
+  // could not derive its pk_p, nor open a key bundle that lists it. The
+  // values are Go's.
+  it('derive a key whose sk_p starts with a zero byte', async () => {
+    const k = await platform.deriveProductKey(ROOT, 'wappie', 30)
+    expect(hex(k.sk)).toBe('003d232885a46a5b05e28fce7de96ebef2dc1bd986f6d84f3fc57bb795732748')
+    expect(hex(k.pub)).toBe('9fb38aabd78d4f101d86f42e518b47fe1103545e7feff94bac96d3aea1f8a20e')
+    expect(hex(await platform.productPublicKey(ROOT, 'wappie', 30))).toBe(hex(k.pub))
+  })
+
   it('refuse a product id, an epoch or a root that names no key', async () => {
     for (const product of ['', 'Wappie', '1wappie', '-wappie', 'wap|pie', 'wap pie', 'a'.repeat(33), 'w' + ch(0xe1) + 'ppie']) {
       await expectRefusal(() => platform.productPublicKey(ROOT, product, 1), 'product_key')

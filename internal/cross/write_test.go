@@ -74,13 +74,24 @@ func write(t *testing.T, dir, name, module, note string, keys map[string]any, ca
 	writeProfile(t, dir, name, module, "wappie", note, keys, cases)
 }
 
+// defaultRandomness is what a file's generated_by says of the randomness its
+// cases drew, unless writeFile is given its own account.
+const defaultRandomness = "crypto/rand; seals record what they drew where the format has room for it"
+
 func writeProfile(t *testing.T, dir, name, module, profile, note string, keys map[string]any, cases []vcase) {
+	t.Helper()
+	writeFile(t, dir, name, module, profile, defaultRandomness, note, keys, cases)
+}
+
+// writeFile is writeProfile for a file whose generated_by.randomness is not
+// the default: one that records nothing it drew says so.
+func writeFile(t *testing.T, dir, name, module, profile, randomness, note string, keys map[string]any, cases []vcase) {
 	t.Helper()
 	f := file{
 		Format: "thehappieco-kit-vectors/1", Module: module, Profile: profile,
 		GeneratedBy: map[string]any{
 			"lang": "go", "source": source() + " " + module, "toolchain": runtime.Version(),
-			"randomness": "crypto/rand; seals record what they drew where the format has room for it",
+			"randomness": randomness,
 			"generator":  "internal/cross/write_test.go",
 		},
 		Note: note, Keys: keys, Cases: cases,
@@ -149,6 +160,7 @@ func TestWriteCrossVectors(t *testing.T) {
 	writeJCS(t, dir)
 	writePlatform(t, dir)
 	writePlatformPassword(t, dir)
+	writePlatformDelivery(t, dir)
 }
 
 func writeSeal(t *testing.T, dir string) {

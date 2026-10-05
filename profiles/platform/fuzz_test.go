@@ -1,6 +1,8 @@
 package platform_test
 
 import (
+	"bytes"
+	"crypto/ecdh"
 	"encoding/base64"
 	"errors"
 	"strings"
@@ -211,4 +213,69 @@ func keyBundleSeed(f *testing.F) []byte {
 		f.Fatal(err)
 	}
 	return data
+}
+
+// FuzzOpenProductKey: no input panics; a refusal is key_delivery or
+// product_key and returns nothing; whatever opens is 32 bytes whose public
+// half is the binding's product key.
+func FuzzOpenProductKey(f *testing.F) {
+	d := newDelivery(f, "wappie")
+	sealed := d.seal(f)
+	b := d.b
+	f.Add(d.akdPriv, sealed, b.Issuer, b.ClientID, b.RedirectURI, b.Sub, b.ProductKeyID, b.ProductKey, b.CodeChallenge, b.Nonce)
+	f.Add(d.akdPriv, sealed[:79], b.Issuer, b.ClientID, b.RedirectURI, b.Sub, b.ProductKeyID, b.ProductKey, b.CodeChallenge, b.Nonce)
+	f.Add(d.akdPriv, make([]byte, 80), b.Issuer, b.ClientID, b.RedirectURI, b.Sub, "wappie:01", b.ProductKey, b.CodeChallenge, b.Nonce)
+	f.Add([]byte{}, []byte{}, "", "", "", "", "", []byte{}, "", "")
+	f.Fuzz(func(t *testing.T, akdPriv, sealed []byte, iss, clientID, redirectURI, sub, productKeyID string, productKey []byte, codeChallenge, nonce string) {
+		b := platform.KeyDeliveryBinding{
+			Issuer: iss, ClientID: clientID, RedirectURI: redirectURI, Sub: sub,
+			ProductKeyID: productKeyID, ProductKey: productKey, CodeChallenge: codeChallenge, Nonce: nonce,
+		}
+		got, err := platform.OpenProductKey(akdPriv, sealed, b)
+		if err != nil {
+			if code := platform.ErrorCode(err); code != "key_delivery" && code != "product_key" {
+				t.Fatalf("unclassified error: %v", err)
+			}
+			if got != nil {
+				t.Fatal("a refusal returned key material")
+			}
+			return
+		}
+		if len(got) != platform.KeyLen {
+			t.Fatalf("opened %d bytes", len(got))
+		}
+		priv, err := ecdh.X25519().NewPrivateKey(got)
+		if err != nil || !bytes.Equal(priv.PublicKey().Bytes(), productKey) {
+			t.Fatal("opened a key whose public half is not the binding's")
+		}
+	})
+}
+
+// FuzzPKCEChallenge: no input panics; a verifier is accepted exactly when
+// it is 43 to 128 characters of [A-Za-z0-9._~-], and its challenge is 43
+// characters of strict base64url.
+func FuzzPKCEChallenge(f *testing.F) {
+	for _, s := range []string{
+		"dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", strings.Repeat("~", 42), strings.Repeat("a", 129),
+		strings.Repeat("a", 42) + "+", strings.Repeat("a", 42) + "é", "",
+	} {
+		f.Add(s)
+	}
+	f.Fuzz(func(t *testing.T, v string) {
+		got, err := platform.PKCEChallenge(v)
+		valid := len(v) >= platform.MinCodeVerifierLen && len(v) <= platform.MaxCodeVerifierLen &&
+			strings.Trim(v, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~") == ""
+		if (err == nil) != valid {
+			t.Fatalf("accepted %v, valid %v", err == nil, valid)
+		}
+		if err != nil {
+			if !errors.Is(err, platform.ErrPKCE) {
+				t.Fatalf("unclassified error: %v", err)
+			}
+			return
+		}
+		if _, err := platform.DecodeB64(got, 32); err != nil || len(got) != platform.CodeChallengeLen {
+			t.Fatal("a challenge that is not 43 characters of strict base64url")
+		}
+	})
 }

@@ -74,7 +74,7 @@ sha256 (first 16 hex digits) at `8c0c1f74`: `internal/crypto/seal/envelope.go` `
 - **Source:** `github.com/thehappieco/platform` (private), commit `5e66d841145b33dcd73cd575f2816a866793d774` (2026-10-01), `testdata/vectors/id-v1/`. They are the golden vectors of the platform's protocol `id-v1` (its `docs/protocol/id-v1.md`, sections 1, 2 and 6), handed to the kit for SPEC section 11, part 1 (the platform's decision 0017).
 - **Generator:** `go run ./tools/vectors` over `internal/crypto/idcrypto/idvectors`, a pure function of the platform's `internal/crypto/idcrypto` at that commit: every input, nonce and root comes from `HKDF(IKM = "thehappie-id/vectors/v1", info = label)`, cases are in a fixed order, and the output is 2-space indented ASCII JSON with one final newline. Each case declares its outcome, and the generator refuses to write a file whose cases do not come out that way. A copy of the generator at that commit is in `platform/_generators/` (not built, not embedded), so that a reader of this public repository can see how each case was made; it imports the platform's private code and does not build here.
 - **Captured:** 2026-10-01, byte for byte with `git show <commit>:<path>`; the platform's repository was only read. The platform's working tree held the same bytes.
-- **Toolchains:** the platform builds with go1.27.1, and its generator wrote these exact bytes there. On 2026-10-01 the generator was also run from that commit with go1.26.7, `golang.org/x/crypto` v0.55.0 and `golang.org/x/text` v0.42.0 (whose normalisation tables are Unicode 15.0 below Go 1.27, and Unicode 17.0 from it): the same bytes. `make vectors-platform-check PLATFORM=../platform` repeats the check from a `git archive` of the commit, with the go the platform's `go.mod` asks for.
+- **Toolchains:** the platform builds with go1.27.1, and its generator wrote these exact bytes there. On 2026-10-01 the generator was also run from that commit with go1.26.7, `golang.org/x/crypto` v0.55.0 and `golang.org/x/text` v0.42.0 (whose normalisation tables are Unicode 15.0 below Go 1.27, and Unicode 17.0 from it): the same bytes. `make vectors-platform-check PLATFORM=../platform PLATFORM_COMMIT=5e66d841145b33dcd73cd575f2816a866793d774 PLATFORM_FILES=8` repeats the check from a `git archive` of the commit, with the go the platform's `go.mod` asks for, and fails unless the generator writes exactly these eight files.
 - **Format:** the platform's own (`"format": "thehappie-id/vectors", "version": 1`), described in `README.md` and SPEC section 12.2. The kit reads it with dedicated runners and never rewrites it.
 
 | File | Kind | Cases | Must fail | sha256 |
@@ -104,6 +104,44 @@ Of the 257 cases, 180 must fail. Both of the kit's implementations reproduce eve
 
 **Frozen once tagged.** After the tag that first carries them, these eight files never change in the kit, like every other vector file. The platform's own copies are rewritten whenever its generator changes, so the platform keeps the eight part-1 files as they are at `5e66d84` and sends any later case as a new file (or as `id-v2`), which the kit adds beside these.
 
+### Part 2, at 4476bf4
+
+- **Source:** commit `4476bf4b446297ee2b74a6f032fede7786345327` (2026-10-01T21:40:06-03:00), the platform's Phase 1c, `testdata/vectors/id-v1/{key-delivery,pkce,password-stream-safe}.json`: the golden vectors of `docs/protocol/id-v1.md` sections 7.5, 7.6 and 7.14, and the cases of the run rule of its section 2.1 step 2, which the platform adopted from the kit's SPEC section 11.2 and wrote as a new file because the part-1 files are frozen. Handed to the kit for SPEC sections 11.12 to 11.15 (the platform's decision 0017).
+- **Generator:** the same tool and rules as part 1. The good key-delivery cases are sealed by idvectors' own deterministic RFC 9180 SealBase (`hpke.go`) under the case's `eph_priv`; that seal reproduces the CFRG test vector for mode 0, KEM 0x0020, KDF 0x0001, AEAD 0x0002 (`hpke_test.go`), and every blob it writes is first opened by `idcrypto.OpenProductKey` (crypto/hpke), and the same inputs sealed by `idcrypto.SealProductKey`, before the file is written.
+- **Captured:** 2026-10-01, byte for byte with `git show <commit>:<path>`; the platform's repository was only read, and its working tree (at that commit, clean) held the same bytes.
+- **The part-1 files at this commit** are byte for byte those of `5e66d84` (the sha256 above), so `make vectors-platform-check`, whose default commit is `4476bf4`, checks all eleven files: it fails when a file the generator writes differs from the kit's or is not in the kit, and when the generator writes other than `PLATFORM_FILES` files (11 by default).
+- **Toolchains:** the platform's go1.27.1 wrote these bytes. On 2026-10-01 the generator at this commit also ran with go1.26.7 as a separate module with `golang.org/x/crypto` v0.55.0 and `golang.org/x/text` v0.42.0: the same bytes for all eleven files.
+- **Case identity:** `key-delivery.json` gives five names to two cases each, one with `"op": "open"` and one with `"op": "seal"` ("a sub in upper case", "a nonce of 21 characters", "a nonce with a dot", "a code_challenge of 42 characters", "an issuer outside the AAD alphabet"). The kit identifies a case of a file whose cases carry `op` by its op and name, and cites it as `#<op>/<name>`; the platform was asked to keep `(op, name)` unique and to give later files unique names.
+
+| File | Kind | Cases | Must fail | sha256 |
+|---|---|---|---|---|
+| `platform/id-v1/key-delivery.json` | key-delivery | 73 | 64 | `2d7e322b1afc9e021f0fc4707e5fc666d9626608d082b22f2782ee2d4e4d40b2` |
+| `platform/id-v1/pkce.json` | pkce | 18 | 12 | `b58002e68fff370e5a9dcc49847b3d4a2b27cd2836a140eb5e1a169c9a9bd010` |
+| `platform/id-v1/password-stream-safe.json` | password-stream-safe | 19 | 11 | `6c0be5a1e236fab99e97cacbff527674b76f65a9a1c5b2630bdf8558465021cc` |
+
+With part 1, 367 cases, 267 of which must fail. Both implementations reproduce every output, the 9 sealed blobs included (by injecting the recorded ephemeral key, which only tests can), and refuse every must-fail case with the error name it records (`profiles/platform/vectors_test.go`, `js/test/platform.spec.ts`); `vectors/vectors_test.go` checks each file's sha256 and counts.
+
+### platform/_generators-4476bf4
+
+The generator at `4476bf4`, kept as `platform/_generators/` keeps the one at `5e66d84`. Not built, not embedded; it imports the platform's private code.
+
+| File | sha256 | Since 5e66d84 |
+|---|---|---|
+| `internal/crypto/idcrypto/idvectors/idvectors.go` | `bfe7fce72b4c0257747af04e64aef3eaea31538974cb98f6c5bfccce4ddb6f19` | changed |
+| `internal/crypto/idcrypto/idvectors/password.go` | `4c1f0077189e0c245419e9451289f65635ad92205010b5bf3d9eae806d9b2031` | changed |
+| `internal/crypto/idcrypto/idvectors/keydelivery.go` | `3ff1ddc0b196c8fddc70be320b52b34800ac500757711676415648ceed69545f` | new |
+| `internal/crypto/idcrypto/idvectors/hpke.go` | `c211f7181dda55bb43a359fbc4093cd4b5d644c7c12613b8c97a50f078497ba1` | new |
+| `internal/crypto/idcrypto/idvectors/hpke_test.go` | `c3f7329fa05753dcdb25089200065dbe31c9c33cbd2d59c2324597c7641149ea` | new (the CFRG check) |
+| `internal/crypto/idcrypto/idvectors/bundle.go` | `46b1f88b4a4d5e44ebf91db6273858198203103cdab3bd42a25d1c4c3a92322b` | same |
+| `internal/crypto/idcrypto/idvectors/product.go` | `b969b3640b6a9cd1516f60164e5d8a48b13a5b6220c378363ad7bd9c7ba5b4c9` | same |
+| `internal/crypto/idcrypto/idvectors/recovery.go` | `b95270beee303b98dd995f6b1b3321f7917e1173300e9d7b97c067eae1d80487` | same |
+| `internal/crypto/idcrypto/idvectors/wrap.go` | `9ccf5a45a0781397cca36e7583633ea4bef7386a3d8ee50d4e7c5d040fa44cfc` | same |
+| `tools/vectors/main.go` | `9ccd79ae63503fefe60c1adbe2d2cef325a701ce746e55f3d4ca8fa14f9b8010` | changed (doc comment) |
+
+### The sources of part 2
+
+sha256 (first 16 hex digits) at `4476bf4` of what the kit's part 2 was taken from: `internal/crypto/idcrypto/keydelivery.go` `79c4060a46b444f8`, `pkce.go` `99ed1d3e1cd9ad37`; `web/shared/crypto/keydelivery.ts` `9f9e0f277e753e8d`, `pkce.ts` `4867d005fc3485db`, `x25519.ts` `9d563e2a4369275f`, `hpkebase.ts` `d093f11b961686e0`; `web/shared/oidc-rp/index.ts` `7dd0e001af6e68d4`, `flows.ts` `7876e4528a6d9dae`, `idtoken.ts` `ca893e2270e502e9`, `errors.ts` `f843dfaf4d4fba85`; `tools/fakeproduct/server.go` `76b07874f5bf925f`, `userinfo.go` `9ef3416743042c39`.
+
 ## The kit's own vectors
 
 `kit/*-go.json` were written by `internal/cross/write_test.go` and `kit/*-ts.json` by `js/test/cross.spec.ts`, each at the kit commit recorded in its `generated_by.source`, with fresh randomness (`make vectors-kit`). They are the golden vectors of the kit's own implementations from v0.1.0 on.
@@ -113,3 +151,5 @@ The files of v0.1.0 were written at `9cc95a3d672c3bff0a1fe610a6ec82ba64103fbe` (
 `kit/platform-go.json` and `kit/platform-ts.json`, the platform profile's cases in the kit's format (`"profile": "platform"`), were added at `34940a2e4aa09babb60d554d0257def7ac793009` (go1.26.7 and Node v25.6.1 with `@noble/hashes` 2.4.0, on darwin/arm64) by `make vectors-kit`, which adds only the files `kit/` does not hold yet. Their passwords are random strings from blocks whose normalisation is the same in Unicode 15.0 and 17.0; their roots, keys, salts, nonces and codes are fresh randomness, recorded where the format has room for it.
 
 `kit/platform-password-go.json` and `kit/platform-password-ts.json` were added at `3b3fc301c05f68c9a5499ca1222dc397d145e248` (go1.26.7 and Node v25.6.1 with `@noble/hashes` 2.4.0, on darwin/arm64) by `make vectors-kit`, which kept every other file. They hold no randomness: the same 18 fixed passwords, at the limit of the platform profile's run rule (SPEC section 11.2, step 2) and one past it, 9 of which must fail with `password_invalid`; each writer refuses to write a case whose outcome is not the one it declares, and the two files' cases are identical.
+
+`kit/platform-delivery-go.json` and `kit/platform-delivery-ts.json` were added at `cb0ccf22a351762c3404898dd03dfa2772f0dc13` (go1.26.7 and Node v25.6.1 with `@noble/hashes` 2.4.0, on darwin/arm64) by `make vectors-kit`, which kept every other file. They replace those written at `a111cc7` before any tag carried them, whose `generated_by.randomness` said that their seals record what they drew; these say that nothing drawn is recorded. They hold the round trips of the platform profile's part 2 (SPEC sections 11.12 and 11.13), 410 cases each: 200 key-delivery AADs of random bindings, half with one field broken; 24 fresh deliveries, each also opened in another flow, by another recipient and with a flipped bit, and for four of them a blob whose sealer spelled `enc` with bit 255 set and one carrying another key under the binding; the seal's refusals of every low-order `akd_pub` and of a valid one with bit 255 set; and 96 PKCE verifiers, 32 of them malformed. Their keys, roots and bindings are fresh randomness. A delivery's ephemeral key came from crypto/rand or WebCrypto and is not recorded, so the other language checks a blob by opening it, never by its bytes. Each writer refused to write a case whose outcome was not the one it declares. sha256: `6cac311ab601a3d721f8fa4122d93c9f460a7b780df9ad8d3bec922f8b71a30d` (go), `105ef5b7f7fb490fe4439db826839e0c26c34f25044fa55744b0b04411e904c0` (ts).

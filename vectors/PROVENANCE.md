@@ -142,6 +142,44 @@ The generator at `4476bf4`, kept as `platform/_generators/` keeps the one at `5e
 
 sha256 (first 16 hex digits) at `4476bf4` of what the kit's part 2 was taken from: `internal/crypto/idcrypto/keydelivery.go` `79c4060a46b444f8`, `pkce.go` `99ed1d3e1cd9ad37`; `web/shared/crypto/keydelivery.ts` `9f9e0f277e753e8d`, `pkce.ts` `4867d005fc3485db`, `x25519.ts` `9d563e2a4369275f`, `hpkebase.ts` `d093f11b961686e0`; `web/shared/oidc-rp/index.ts` `7dd0e001af6e68d4`, `flows.ts` `7876e4528a6d9dae`, `idtoken.ts` `ca893e2270e502e9`, `errors.ts` `f843dfaf4d4fba85`; `tools/fakeproduct/server.go` `76b07874f5bf925f`, `userinfo.go` `9ef3416743042c39`.
 
+### Part 3, at b5d9f69
+
+- **Source:** commit `b5d9f69a4836736e792914b20d7c2c4ce573fedf` (2026-10-04T20:59:57-03:00), the platform's Phase 1d, `testdata/vectors/id-v1/{passkey,client-extensions}.json`: the golden vectors of `docs/protocol/id-v1.md` sections 8.2 and 8.5. Handed to the kit for SPEC section 11.16 (the platform's decision 0017).
+- **Generator:** the same tool and rules as parts 1 and 2. A good passkey case is checked step by step as the page takes it (the salt, the key, the AAD, a wrap under `k_pk` with the case's nonce, `NewPasskeyWrap`, the open) before it is written; a must-fail case records in `op` the step that must refuse it (`salt`, `key` or `open`), always with `wrap`. A client-extensions case carries the exact JSON text as a JSON string, so that texts a parsed value cannot carry (a repeated member, a byte order mark, data after the object) can be expressed; the generator refuses to write a case whose verdict differs from the one it declares.
+- **Captured:** 2026-10-05, byte for byte with `git show <commit>:<path>`; the platform's repository was only read. Its later commits `c910a45` and `f6a94af`, which touch neither a vector nor a crypto file, and its working tree held the same bytes.
+- **The files of parts 1 and 2 at this commit** are byte for byte those recorded above, so `make vectors-platform-check`, whose default commit is now `b5d9f69`, checks all thirteen (`PLATFORM_COMMIT=4476bf4b446297ee2b74a6f032fede7786345327 PLATFORM_FILES=11` checks parts 1 and 2 at `4476bf4`).
+- **Toolchains:** the platform's go1.27.1 (with `golang.org/x/crypto` v0.57.0 and `golang.org/x/text` v0.42.0) wrote these bytes. On 2026-10-05 the generator at this commit also ran with go1.26.7 as a separate module with `golang.org/x/crypto` v0.55.0 and `golang.org/x/text` v0.42.0: the same bytes for all thirteen files, and idvectors' own tests pass there with `-race`.
+- **Case identity:** names are unique in both files, and so are `(op, name)` pairs. As for `key-delivery.json`, the kit identifies a case that carries an `op` by its op and name and cites it as `#<op>/<name>`.
+
+| File | Kind | Cases | Must fail | sha256 |
+|---|---|---|---|---|
+| `platform/id-v1/passkey.json` | passkey | 44 | 35 | `dca9707d800996f219b62a5fc09b56b693be98a0487494bebb4bd6ad2606e286` |
+| `platform/id-v1/client-extensions.json` | client-extensions | 46 | 37 | `e5c6e6a4ac7dad59fbbd131f095721842d53432699fad72a7db82be6884afb3b` |
+
+`passkey.json`'s 35 must-fail cases are all `wrap`: 16 at the salt, 6 at the key and 13 at the open; its 9 good cases carry no `op`. `client-extensions.json` accepts 9 texts and refuses 37, all `client_extensions`; no case carries an `op`. Both files are ASCII and end with one newline. With parts 1 and 2, 457 cases, 339 of which must fail. Both implementations reproduce every output, the 9 wraps byte for byte from the recorded nonce, and refuse every must-fail case with the error name it records (`profiles/platform/vectors_passkey_test.go`, `js/test/platform.spec.ts`); `vectors/vectors_test.go` checks each file's sha256 and counts.
+
+### platform/_generators-b5d9f69
+
+The generator at `b5d9f69`. Not built, not embedded; it imports the platform's private code.
+
+| File | sha256 | Since 4476bf4 |
+|---|---|---|
+| `internal/crypto/idcrypto/idvectors/idvectors.go` | `9e1b3536e92b917f58c7127d5c1dd26a02d2ef51ded41ebc0d368842a569b163` | changed (the two kinds) |
+| `internal/crypto/idcrypto/idvectors/passkey.go` | `ddc159c6fc7dbb5772dad62a0fc78dc828786dec5e449e159a0053cb39e04349` | new |
+| `internal/crypto/idcrypto/idvectors/bundle.go` | `46b1f88b4a4d5e44ebf91db6273858198203103cdab3bd42a25d1c4c3a92322b` | same |
+| `internal/crypto/idcrypto/idvectors/hpke.go` | `c211f7181dda55bb43a359fbc4093cd4b5d644c7c12613b8c97a50f078497ba1` | same |
+| `internal/crypto/idcrypto/idvectors/hpke_test.go` | `c3f7329fa05753dcdb25089200065dbe31c9c33cbd2d59c2324597c7641149ea` | same |
+| `internal/crypto/idcrypto/idvectors/keydelivery.go` | `3ff1ddc0b196c8fddc70be320b52b34800ac500757711676415648ceed69545f` | same |
+| `internal/crypto/idcrypto/idvectors/password.go` | `4c1f0077189e0c245419e9451289f65635ad92205010b5bf3d9eae806d9b2031` | same |
+| `internal/crypto/idcrypto/idvectors/product.go` | `b969b3640b6a9cd1516f60164e5d8a48b13a5b6220c378363ad7bd9c7ba5b4c9` | same |
+| `internal/crypto/idcrypto/idvectors/recovery.go` | `b95270beee303b98dd995f6b1b3321f7917e1173300e9d7b97c067eae1d80487` | same |
+| `internal/crypto/idcrypto/idvectors/wrap.go` | `9ccf5a45a0781397cca36e7583633ea4bef7386a3d8ee50d4e7c5d040fa44cfc` | same |
+| `tools/vectors/main.go` | `31079716549de0ffaeb09e36f4265ede38e4eeadb504215fc165053f93fe4934` | changed (doc comment) |
+
+### The sources of part 3
+
+sha256 (first 16 hex digits) at `b5d9f69` of what the kit's part 3 was taken from: `internal/crypto/idcrypto/passkey.go` `62c315b5f129bfc1`, `extensions.go` `9b7885854bd59fa8`, `json.go` `ce3546a0c5c15900`, `errors.go` `2674826999266ea6`; `web/shared/crypto/passkey.ts` `b7a569ae7f958f00`, `webauthn.ts` `2cd1905d9c1ffebc` (the allowlist only), `strictjson.ts` `e161b3831f095a9a` (as carried in v0.2.0), `errors.ts` `68e3133898332bda`, `rootwrap.ts` `6e454f8930be7e1e`.
+
 ## The kit's own vectors
 
 `kit/*-go.json` were written by `internal/cross/write_test.go` and `kit/*-ts.json` by `js/test/cross.spec.ts`, each at the kit commit recorded in its `generated_by.source`, with fresh randomness (`make vectors-kit`). They are the golden vectors of the kit's own implementations from v0.1.0 on.

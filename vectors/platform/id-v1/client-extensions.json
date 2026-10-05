@@ -1,0 +1,228 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "client-extensions",
+  "cases": [
+    {
+      "name": "no extension results",
+      "client_extension_results": "{}"
+    },
+    {
+      "name": "credProps only",
+      "client_extension_results": "{\"credProps\":{\"rk\":true}}"
+    },
+    {
+      "name": "credProps for a credential that is not discoverable",
+      "client_extension_results": "{\"credProps\":{\"rk\":false}}"
+    },
+    {
+      "name": "prf enabled",
+      "client_extension_results": "{\"prf\":{\"enabled\":true}}"
+    },
+    {
+      "name": "prf not enabled",
+      "client_extension_results": "{\"prf\":{\"enabled\":false}}"
+    },
+    {
+      "name": "both, as a create sends them",
+      "client_extension_results": "{\"credProps\":{\"rk\":true},\"prf\":{\"enabled\":true}}"
+    },
+    {
+      "name": "both, prf first",
+      "client_extension_results": "{\"prf\":{\"enabled\":false},\"credProps\":{\"rk\":true}}"
+    },
+    {
+      "name": "insignificant whitespace",
+      "client_extension_results": " \t\r\n{ \"credProps\" : { \"rk\" : true } ,\n  \"prf\" : { \"enabled\" : false } }\n"
+    },
+    {
+      "name": "member names spelled with escapes",
+      "client_extension_results": "{\"pr\\u0066\":{\"en\\u0061bled\":true}}"
+    },
+    {
+      "name": "a create result with the PRF output, as the browser reports it",
+      "client_extension_results": "{\"credProps\":{\"rk\":true},\"prf\":{\"enabled\":true,\"results\":{\"first\":\"658s0hsDw88QiHQ2bEfkXsqeGrtqanLqJDEvXplu8HU\"}}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "a get result with the PRF output, as the browser reports it",
+      "client_extension_results": "{\"prf\":{\"results\":{\"first\":\"658s0hsDw88QiHQ2bEfkXsqeGrtqanLqJDEvXplu8HU\"}}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "both PRF outputs",
+      "client_extension_results": "{\"prf\":{\"results\":{\"first\":\"658s0hsDw88QiHQ2bEfkXsqeGrtqanLqJDEvXplu8HU\",\"second\":\"ug4GyzUqFgdJCi_ZwBxUTdfRzqkHdiYTvTrOmEpxin4\"}}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "prf.results present but empty",
+      "client_extension_results": "{\"prf\":{\"results\":{}}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "prf.results null next to enabled",
+      "client_extension_results": "{\"prf\":{\"enabled\":true,\"results\":null}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "prf.enabled as a string",
+      "client_extension_results": "{\"prf\":{\"enabled\":\"true\"}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "prf.enabled as a number",
+      "client_extension_results": "{\"prf\":{\"enabled\":1}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "prf.enabled null",
+      "client_extension_results": "{\"prf\":{\"enabled\":null}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "an empty prf",
+      "client_extension_results": "{\"prf\":{}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "prf null",
+      "client_extension_results": "{\"prf\":null}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "prf as a boolean",
+      "client_extension_results": "{\"prf\":true}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "prf.enabled in another case",
+      "client_extension_results": "{\"prf\":{\"Enabled\":true}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "credProps.rk as a number",
+      "client_extension_results": "{\"credProps\":{\"rk\":1}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "credProps.rk as a string",
+      "client_extension_results": "{\"credProps\":{\"rk\":\"true\"}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "credProps.rk null",
+      "client_extension_results": "{\"credProps\":{\"rk\":null}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "an empty credProps",
+      "client_extension_results": "{\"credProps\":{}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "credProps as a boolean",
+      "client_extension_results": "{\"credProps\":true}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "credProps with another member",
+      "client_extension_results": "{\"credProps\":{\"rk\":true,\"authenticatorDisplayName\":\"Passkey\"}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "an unknown extension",
+      "client_extension_results": "{\"largeBlob\":{\"supported\":true}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "the hmac-secret extension",
+      "client_extension_results": "{\"hmacCreateSecret\":true}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "an unknown member next to the allowed ones",
+      "client_extension_results": "{\"credProps\":{\"rk\":true},\"prf\":{\"enabled\":true},\"appid\":false}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "prf in another case",
+      "client_extension_results": "{\"PRF\":{\"enabled\":true}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "credProps in another case",
+      "client_extension_results": "{\"credprops\":{\"rk\":true}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "a duplicate member",
+      "client_extension_results": "{\"prf\":{\"enabled\":true},\"prf\":{\"enabled\":true}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "a duplicate member that would replace the first",
+      "client_extension_results": "{\"prf\":{\"enabled\":false},\"prf\":{\"results\":{\"first\":\"658s0hsDw88QiHQ2bEfkXsqeGrtqanLqJDEvXplu8HU\"}}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "a duplicate member inside prf",
+      "client_extension_results": "{\"prf\":{\"enabled\":false,\"enabled\":true}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "a duplicate member spelled with an escape",
+      "client_extension_results": "{\"prf\":{\"enabled\":true},\"pr\\u0066\":{\"enabled\":true}}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "an array",
+      "client_extension_results": "[]",
+      "error": "client_extensions"
+    },
+    {
+      "name": "an array holding the object",
+      "client_extension_results": "[{\"prf\":{\"enabled\":true}}]",
+      "error": "client_extensions"
+    },
+    {
+      "name": "null",
+      "client_extension_results": "null",
+      "error": "client_extensions"
+    },
+    {
+      "name": "a string holding the object",
+      "client_extension_results": "\"{}\"",
+      "error": "client_extensions"
+    },
+    {
+      "name": "a boolean",
+      "client_extension_results": "true",
+      "error": "client_extensions"
+    },
+    {
+      "name": "a number",
+      "client_extension_results": "0",
+      "error": "client_extensions"
+    },
+    {
+      "name": "an empty text",
+      "client_extension_results": "",
+      "error": "client_extensions"
+    },
+    {
+      "name": "two objects",
+      "client_extension_results": "{}{}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "a trailing comma",
+      "client_extension_results": "{\"prf\":{\"enabled\":true},}",
+      "error": "client_extensions"
+    },
+    {
+      "name": "a byte order mark",
+      "client_extension_results": "\ufeff{}",
+      "error": "client_extensions"
+    }
+  ]
+}

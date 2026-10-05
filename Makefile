@@ -7,8 +7,8 @@ GO_FILES = $$(find . -name '*.go' -not -path './js/*' -not -path './.git/*')
 WAPPIE ?= ../whatserver2
 WAPPIE_COMMIT ?= 8c0c1f74103bc6bb65a93b13613ad1964d4399c4
 PLATFORM ?= ../platform
-PLATFORM_COMMIT ?= 4476bf4b446297ee2b74a6f032fede7786345327
-PLATFORM_FILES ?= 11
+PLATFORM_COMMIT ?= b5d9f69a4836736e792914b20d7c2c4ce573fedf
+PLATFORM_FILES ?= 13
 
 .PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check pack reproduce clean
 
@@ -88,7 +88,9 @@ vectors-regen-check:
 # PLATFORM_COMMIT (git archive into a temporary directory; the platform's
 # repository is only read), compares each file it writes with the committed
 # one, and fails unless it wrote exactly PLATFORM_FILES files. At the default,
-# 4476bf4, that is all eleven; the part-1 check is
+# b5d9f69, that is all thirteen; the part-2 check is
+# make vectors-platform-check PLATFORM_COMMIT=4476bf4b446297ee2b74a6f032fede7786345327 PLATFORM_FILES=11
+# and the part-1 check
 # make vectors-platform-check PLATFORM_COMMIT=5e66d841145b33dcd73cd575f2816a866793d774 PLATFORM_FILES=8
 # Not in CI: the platform's repository is private.
 vectors-platform-check:

@@ -10,15 +10,16 @@ import (
 )
 
 // TestKitPlatformPasskeyVectors reproduces the kit's own cases of the
-// platform profile's part 3 (SPEC section 11.16) that the TypeScript side
-// wrote: the fresh file platform-passkey-ts.json in $KIT_CROSS_IN, in the
-// cross-language job. PRF salts of relying party ids, fresh passkey wraps
-// replayed byte for byte from the nonce each drew and opened, the same
-// wraps refused with one thing changed, and the allowlist's verdict on
-// client extension results.
+// platform profile's part 3 (SPEC section 11.16): those the TypeScript side
+// wrote (kit/platform-passkey-ts.json, and the fresh file of the same name in
+// $KIT_CROSS_IN in the cross-language job) and those this side wrote at
+// release time (kit/platform-passkey-go.json). PRF salts of relying party
+// ids, fresh passkey wraps replayed byte for byte from the nonce each drew
+// and opened (and, for Go's, their K_pk), the same wraps refused with one
+// thing changed, and the allowlist's verdict on client extension results.
 func TestKitPlatformPasskeyVectors(t *testing.T) {
 	std := func(s string) []byte { return vectest.B64(t, s) }
-	for _, c := range vectest.Fresh(t, "platform-passkey-ts.json") {
+	for _, c := range vectest.Cases(t, "kit/platform-passkey-ts.json", "kit/platform-passkey-go.json") {
 		if !c.ForGo() {
 			continue
 		}

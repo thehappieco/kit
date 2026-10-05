@@ -690,7 +690,7 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 - Spec 1 (kit v0.1.0): first version, from Wappie at `8c0c1f74103bc6bb65a93b13613ad1964d4399c4`. Beyond Wappie, and only for inputs that never produced openable data: the low-order checks of section 4.4 in TypeScript, the salt bound of section 6.2, the refusal of empty passkey AADs (section 7) and of JSON AADs with no JCS text (section 2).
 - Spec 2 (kit v0.2.0): section 11 part 1, the platform profile, with the platform's id-v1 vectors at `5e66d84`; sections 1, 3, 6.7, 12 and 13 extended; Appendix C. Nothing in the Wappie profile changed.
 - Spec 3 (kit v0.3.0): section 11 part 2 (sections 11.12 to 11.15), with the platform's vectors at `4476bf4`; the reservations for the passkey root-wrap key and the product contract move to sections 11.16 and 11.17; sections 1, 11.1, 11.2, 11.4, 11.5, 11.10, 11.11, 12.2 and 13 extended. Nothing in the Wappie profile or in part 1 changed.
-- Spec 4 (kit v0.4.0): section 11 part 3 (section 11.16), with the platform's vectors at `b5d9f69`; section 6.8 reserved for Wappie's platform wrap; sections 1, 7, 11.1, 11.5, 11.10, 11.11, 12.2, 13 and Appendix A extended. Nothing in the Wappie profile or in parts 1 and 2 changed.
+- Spec 4 (kit v0.4.0): section 11 part 3 (section 11.16), with the platform's vectors at `b5d9f69`; section 6.8 reserved for Wappie's platform wrap; sections 1, 7, 11, 11.1, 11.5, 11.10, 11.11, 12.2 and 13 and Appendices A and C extended. Nothing in the Wappie profile or in parts 1 and 2 changed.
 
 ## Appendix C. The platform profile
 

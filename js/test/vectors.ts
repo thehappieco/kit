@@ -102,19 +102,6 @@ export function files(...paths: string[]): [string, VectorFile][] {
   return out
 }
 
-/**
- * freshOnly loads the file of this base name in $KIT_CROSS_IN, the fresh
- * vectors the Go side has just written in the cross-language job, or
- * nothing when that is not set. It is for kit files no release holds yet;
- * once vectors/kit holds the name, files reads both.
- */
-export function freshOnly(name: string): [string, VectorFile][] {
-  if (!env.KIT_CROSS_IN) return []
-  const where = `${env.KIT_CROSS_IN}/${name}`
-  if (fresh[name] === undefined) throw new Error(`${where} is missing`)
-  return [[where, check(where, JSON.parse(fresh[name]) as VectorFile)]]
-}
-
 /** raw reads a legacy file, which keeps the shape Wappie gave it. */
 export function raw(path: string): any {
   return JSON.parse(text(path))

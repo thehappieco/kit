@@ -80,7 +80,8 @@ type Profile struct {
 	LegacyV1 bool
 
 	// Prepare turns a password into the bytes Argon2id reads. Nil means its
-	// UTF-8 bytes, unchanged. Derive clears the slice it returns.
+	// UTF-8 bytes, unchanged. Derive and DeriveBytes clear the slice it
+	// returns, on its error path too, and make no other copy of the password.
 	Prepare func(password string) ([]byte, error)
 	// Bounds, when set, are enforced before any derivation.
 	Bounds *Bounds
@@ -242,12 +243,18 @@ func (p Profile) derivePassword(password string, salt []byte, params KDFParams, 
 	if err := p.checkDerivation(salt, params); err != nil {
 		return Derived{}, err
 	}
-	prepared := []byte(password)
+	// One copy of the password as bytes: the profile's preparation, or, with
+	// none, its UTF-8 bytes; never both. What Prepare returns is cleared on
+	// its error path too.
+	var prepared []byte
 	if p.Prepare != nil {
 		var err error
 		if prepared, err = p.Prepare(password); err != nil {
+			clear(prepared)
 			return Derived{}, &Error{Code: "password", Reason: "rejected", Err: err}
 		}
+	} else {
+		prepared = []byte(password)
 	}
 	// Clearing is best effort in Go: the runtime may have copied the buffer,
 	// and the password string itself cannot be cleared.

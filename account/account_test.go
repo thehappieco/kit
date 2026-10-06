@@ -378,6 +378,75 @@ func TestDeriveBytes(t *testing.T) {
 	nothing.Clear()
 }
 
+// With a profile that prepares, Derive and DeriveBytes hold the password as
+// bytes only in what Prepare returns: they clear it, on Prepare's error path
+// too, and make no copy of their own, so they allocate exactly what
+// DerivePreparedBytes does on the same prepared bytes.
+func TestDerivePasswordCopiesOnce(t *testing.T) {
+	salt := bytes.Repeat([]byte{4}, 16)
+	// Long enough that a copy cannot live on the stack.
+	password := strings.Repeat("senha correta ", 64)
+	buf := make([]byte, len(password))
+	var seen []string
+	var returned []byte
+	q := wappie.Account()
+	q.Prepare = func(pw string) ([]byte, error) {
+		seen = append(seen, pw)
+		returned = buf[:copy(buf, pw)]
+		return returned, nil
+	}
+	for name, derive := range map[string]func(account.Profile, string, []byte, account.KDFParams) (account.Derived, error){
+		"Derive":      account.Derive,
+		"DeriveBytes": account.DeriveBytes,
+	} {
+		seen = seen[:0]
+		d, err := derive(q, password, salt, cheap)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d.Clear()
+		if len(seen) != 1 || seen[0] != password {
+			t.Fatalf("%s: Prepare saw %d passwords", name, len(seen))
+		}
+		if !allZero(returned) {
+			t.Errorf("%s left what Prepare returned", name)
+		}
+	}
+
+	// Prepare refuses, after writing part of the password: that is cleared.
+	r := q
+	r.Prepare = func(pw string) ([]byte, error) {
+		returned = buf[:copy(buf, pw)]
+		return returned, errors.New("no")
+	}
+	if _, err := account.DeriveBytes(r, password, salt, cheap); err == nil {
+		t.Fatal("a refused password derived")
+	}
+	if !allZero(returned) {
+		t.Error("DeriveBytes left what a refusing Prepare returned")
+	}
+
+	q.Prepare = func(pw string) ([]byte, error) { return buf[:copy(buf, pw)], nil }
+	viaPassword := testing.AllocsPerRun(20, func() {
+		d, err := account.DeriveBytes(q, password, salt, cheap)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d.Clear()
+	})
+	prepared := []byte(password)
+	viaPrepared := testing.AllocsPerRun(20, func() {
+		d, err := account.DerivePreparedBytes(q, prepared, salt, cheap)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d.Clear()
+	})
+	if viaPassword > viaPrepared {
+		t.Errorf("DeriveBytes allocates %v times, DerivePreparedBytes %v: it copies the password besides Prepare", viaPassword, viaPrepared)
+	}
+}
+
 // RecoveryProofBytes is RecoveryProof before its text encoding: the bytes
 // are the decoded proof, the proof is not the key, and a code of the wrong
 // length is refused alike.

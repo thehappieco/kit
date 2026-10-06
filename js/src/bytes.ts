@@ -42,8 +42,13 @@ const utf8 = new TextEncoder()
 
 export function encodeUTF8(s: string): Bytes {
   // Copied rather than returned directly: TextEncoder is typed as producing a
-  // possibly-shared buffer, and WebCrypto will not accept one.
-  return new Uint8Array(utf8.encode(s))
+  // possibly-shared buffer, and WebCrypto will not accept one. The encoder's
+  // own buffer is zeroed once copied, since callers zero the copy they get
+  // (a password, a recovery code), and no second copy should outlive it.
+  const raw = utf8.encode(s)
+  const out = new Uint8Array(raw)
+  raw.fill(0)
+  return out
 }
 
 /** i2osp2 is RFC 8017's two-byte big-endian integer, which HPKE uses throughout. */

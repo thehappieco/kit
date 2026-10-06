@@ -81,11 +81,16 @@ vectors-kit:
 	$(MAKE) manifest
 
 # Regenerates Wappie's vectors from Wappie's code at WAPPIE_COMMIT into a
-# temporary directory and compares them with the committed ones.
+# temporary directory and compares them with the committed ones. The three
+# files of Wappie's platform wrap (golden/platform-wrap-go.json,
+# golden/platform-wrap-ts.json, legacy/platform-wrap-vectors.json) come from
+# Wappie's console, not from WAPPIE_COMMIT, so this diff leaves them out;
+# vectors-cloud-regen-check checks them byte for byte.
 vectors-regen-check:
 	tmp=$$(mktemp -d) && \
 	vectors/wappie/_generators/run.sh $(WAPPIE) $(WAPPIE_COMMIT) $$tmp && \
-	diff -r $$tmp/golden vectors/wappie/golden && diff -r $$tmp/legacy vectors/wappie/legacy && \
+	diff -r -x platform-wrap-go.json -x platform-wrap-ts.json $$tmp/golden vectors/wappie/golden && \
+	diff -r -x platform-wrap-vectors.json $$tmp/legacy vectors/wappie/legacy && \
 	rm -rf "$${tmp:?}" && echo "vectors reproduce from $(WAPPIE_COMMIT)"
 
 # Regenerates the vectors of Wappie's platform wrap (SPEC section 6.8) from

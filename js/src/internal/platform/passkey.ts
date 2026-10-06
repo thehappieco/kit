@@ -82,14 +82,18 @@ const RP_ID_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/
  * dot-separated labels are each 1 to 63 characters of [a-z0-9-], none
  * starting or ending with '-', that does not end in a number as the WHATWG
  * URL Standard's host parser decides it (endsInANumber of the passkey
- * module). That is the host of an origin as a browser serializes it: lower
- * case, no port, no scheme, no trailing dot, and nothing a browser reads as
- * an IPv4 address or refuses, whose last label is all digits or "0x" and
- * zero or more hex digits ("127.0.0.1", "0x7f000001", "1.2.3.0x4",
- * "id.0xff"); "id.0x1g" and "id.00x1", which a browser keeps as domains,
- * pass. Kit v0.4.0 refused only an all-decimal last label. Go counts bytes
- * and this counts UTF-16 units, but only ASCII is accepted, so both refuse
- * the same inputs.
+ * module). That leaves out upper case, a port, a scheme, a trailing dot,
+ * and every host a browser reads as an IPv4 address or refuses for ending in
+ * a number, whose last label is all digits or "0x" and zero or more hex digits
+ * ("127.0.0.1", "0x7f000001", "1.2.3.0x4", "id.0xff"); "id.0x1g" and
+ * "id.00x1", which a browser keeps as domains, pass. Kit v0.4.0 refused only
+ * an all-decimal last label. Go counts bytes and this counts UTF-16 units,
+ * but only ASCII is accepted, so both refuse the same inputs.
+ *
+ * It does not check that an "xn--" label is valid Punycode, on which engines
+ * disagree: Firefox's URL parser and Node's refuse "xn--a", Chromium's and
+ * WebKit's keep it. Apart from such labels, every id it accepts is the host
+ * of an origin as a browser serializes it.
  *
  * One spelling, because the relying party id is hashed into the PRF salt
  * and the HKDF salt and written into the AAD: a second spelling would be a

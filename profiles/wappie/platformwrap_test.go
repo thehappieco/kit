@@ -169,10 +169,13 @@ func platformWrapCase(t *testing.T, c vectest.Case) {
 }
 
 // TestKitWappiePlatformWrapVectors reproduces the kit's own round trips of
-// the platform wrap that the TypeScript side wrote: the fresh file of that
-// name in $KIT_CROSS_IN in the cross-language job.
+// the platform wrap: those the TypeScript side wrote
+// (kit/wappie-platform-wrap-ts.json, and the fresh file of the same name in
+// $KIT_CROSS_IN in the cross-language job) and those this side wrote at
+// release time (kit/wappie-platform-wrap-go.json), every seal replayed from
+// the nonce it drew.
 func TestKitWappiePlatformWrapVectors(t *testing.T) {
-	for _, c := range vectest.Fresh(t, "wappie-platform-wrap-ts.json") {
+	for _, c := range vectest.Cases(t, "kit/wappie-platform-wrap-ts.json", "kit/wappie-platform-wrap-go.json") {
 		if !c.ForGo() {
 			continue
 		}

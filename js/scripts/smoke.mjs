@@ -29,6 +29,8 @@ import * as browserAccount from '@thehappieco/kit/browserAccount'
 import * as reqhmac from '@thehappieco/kit/reqhmac'
 import * as wappie from '@thehappieco/kit/profiles/wappie'
 import * as platform from '@thehappieco/kit/profiles/platform'
+import * as platformCore from '@thehappieco/kit/profiles/platform/core'
+import * as errors from '@thehappieco/kit/errors'
 import * as rp from '@thehappieco/kit/oidc-rp'
 
 const pair = await hpke.generateKeyPair()
@@ -75,6 +77,23 @@ const passkeyWrap = await platform.wrapRootWithPasskey({ ...passkeyIn, root: new
 assert.deepEqual([...bytes.fromBase64URL(passkeyWrap, 62).subarray(0, 2)], [1, 3])
 assert.deepEqual(await platform.unwrapRootWithPasskey({ ...passkeyIn, wrap: passkeyWrap }, async (root) => [...root]), Array(32).fill(5))
 assert.equal((await platform.passkeyWrapKey(passkeyIn.prf, passkeyIn.rpId)).extractable, false)
+await assert.rejects(platform.prfSalt('0x7f000001'), (err) => platform.isPlatformError(err, 'wrap'))
+assert.deepEqual([passkey.endsInANumber('id.0xff'), passkey.endsInANumber('id.0x1g'), platform.isRPID('id.0x1g')], [true, false, true])
+assert.deepEqual(Object.keys(platformCore).sort(), Object.keys(platform).sort())
+for (const name of Object.keys(platformCore)) {
+  if (['derivePassword', 'derivePasswordKeys', 'openKeyBundle'].includes(name)) assert.notEqual(platformCore[name], platform[name], name)
+  else assert.equal(platformCore[name], platform[name], name)
+}
+const coreKeys = await platformCore.derivePasswordKeys('correct horse battery staple', new Uint8Array(16).fill(7), platformCore.DEFAULT_KDF)
+assert.equal(coreKeys.authKey, (await platform.derivePasswordKeys('correct horse battery staple', new Uint8Array(16).fill(7), platform.DEFAULT_KDF)).authKey)
+const accountKey = new Uint8Array(32).fill(9)
+const wrapBinding = { userId: sub, sub, productKeyId: 'wappie:1', accountPublicKey: await hpke.publicFromPrivate(accountKey) }
+const platformWrap = await wappie.sealPlatformWrap(productKey.sk, accountKey, wrapBinding)
+wappie.checkPlatformWrapShape(platformWrap)
+assert.deepEqual([platformWrap.length, platformWrap[0]], [61, 3])
+assert.deepEqual(await wappie.openPlatformWrap(productKey.sk, platformWrap, wrapBinding), accountKey)
+await assert.rejects(wappie.openPlatformWrap(productKey.sk, platformWrap, { ...wrapBinding, productKeyId: 'wappie:2' }), (err) => wappie.isPlatformWrapError(err) && err instanceof errors.PlatformWrapError && err.code === 'platform_wrap')
+assert.throws(() => wappie.checkPlatformWrapShape(Uint8Array.of(1, ...platformWrap.subarray(1))), wappie.PlatformWrapError)
 assert.equal(rp.sameOriginPath('//x', 'https://app.wappie.thehappie.co'), null)
 const logout = new URL(rp.logoutURL({ issuer: 'https://id.thehappie.co', clientId: 'wappie-app', postLogoutRedirectUri: 'https://app.wappie.thehappie.co/' }))
 assert.deepEqual([logout.origin + logout.pathname, logout.searchParams.get('client_id'), logout.searchParams.get('post_logout_redirect_uri'), logout.searchParams.get('state').length], ['https://id.thehappie.co/oauth2/logout', 'wappie-app', 'https://app.wappie.thehappie.co/', 43])

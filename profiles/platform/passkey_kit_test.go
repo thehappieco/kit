@@ -130,17 +130,27 @@ func TestTheLowerLevelSealLeavesTheRelyingPartyToTheCaller(t *testing.T) {
 	}
 }
 
-// ValidRPID refuses only an all-decimal last label (SPEC section 11.16): a
-// last label of "0x" and hex digits, which a browser's host parser reads as
-// an IPv4 address, passes, as in the platform's idcrypto.ValidRPID.
-func TestValidRPIDRefusesOnlyAnAllDecimalLastLabel(t *testing.T) {
-	for _, rp := range []string{"127.0.0.1", "1", "id.123", "0"} {
-		if platform.ValidRPID(rp) {
+// ValidRPID refuses a relying party id that ends in a number (SPEC section
+// 11.16), as the WHATWG URL Standard's host parser reads it: a last label of
+// digits, or of "0x" and zero or more hex digits, which a browser reads as
+// an IPv4 address or refuses; PRFSalt refuses it with wrap. A hex number in
+// another label, and a last label that only looks like a number, pass.
+// v0.4.0 refused only the all-decimal form.
+func TestValidRPIDRefusesARelyingPartyIDThatEndsInANumber(t *testing.T) {
+	for _, rp := range []string{
+		"127.0.0.1", "1", "id.123", "0", "0x7f000001", "0x", "id.0xff", "id.0x1", "1.0x", "1.2.3.0x4", "id.thehappie.0x100000000",
+	} {
+		if platform.ValidRPID(rp) || !passkey.EndsInANumber(rp) {
 			t.Errorf("%q passes", rp)
 		}
+		if salt, err := platform.PRFSalt(rp); platform.ErrorCode(err) != "wrap" || salt != nil {
+			t.Errorf("%q: PRFSalt: %v", rp, err)
+		}
 	}
-	for _, rp := range []string{"0x7f000001", "0x", "id.0xff", "id.0x1", "1.0x"} {
-		if !platform.ValidRPID(rp) {
+	for _, rp := range []string{
+		"0x7f000001.thehappie.co", "id.0x1g", "0x1g", "id.0x0x", "id.0xabc-def", "id.00x1", "id.1e3", "id.0b1", "id.x7f", "1.2.3.4a", "x0", "0xg",
+	} {
+		if !platform.ValidRPID(rp) || passkey.EndsInANumber(rp) {
 			t.Errorf("%q is refused", rp)
 		}
 	}

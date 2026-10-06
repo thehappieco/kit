@@ -6,6 +6,8 @@ import {
 } from '../src/account.js'
 import { type Bytes } from '../src/bytes.js'
 import { accountWrapAAD, wappieAccount } from '../src/profiles/wappie.js'
+import { runKDFMessage } from '../src/internal/kdfrun.js'
+import { fakeKDFWorker } from './kdfworkerfake.js'
 import { b64, files, forTS, toB64, unhandled, utf8, withDraws } from './vectors.js'
 
 /** The bounds a case gives Wappie's profile, which has none of its own. */
@@ -145,61 +147,196 @@ describe('zeroisation', () => {
     }
   })
 
-  it('zeroes what the worker was sent, on the caller\'s side', async () => {
-    const { argon2id } = await import('@noble/hashes/argon2.js')
-    let sent: Uint8Array | undefined
-    const fake = {
-      onmessage: null as ((e: MessageEvent) => void) | null,
-      onerror: null as (() => void) | null,
-      postMessage(msg: { password: Uint8Array; salt: Uint8Array; m: number; t: number; p: number }) {
-        sent = msg.password
-        const master = argon2id(msg.password.slice(), msg.salt, { m: msg.m, t: msg.t, p: msg.p, dkLen: 32 })
-        queueMicrotask(() => this.onmessage?.({ data: { ok: true, master } } as MessageEvent))
-      },
-      terminate() {},
-    }
-    await derive(p, 'senha correta', new Uint8Array(16).fill(6) as Bytes, cheap, { worker: () => fake as unknown as Worker })
-    expect(sent && sent.length > 0 && sent.every((x) => x === 0)).toBe(true)
+  it('zeroes what the worker was sent: the transferred copy in the worker, the caller\'s copy here', async () => {
+    const { state, factory } = fakeKDFWorker()
+    const seen: Bytes[] = []
+    const keeping: AccountProfile = { ...p, prepare: (pw) => { const b = utf8(pw); seen.push(b); return b } }
+    await derive(keeping, 'senha correta', new Uint8Array(16).fill(6) as Bytes, cheap, { worker: factory })
+    expect(state.passwords.length).toBe(1)
+    expect(state.passwords[0]!.length).toBeGreaterThan(0)
+    expect(state.passwords[0]!.every((x) => x === 0)).toBe(true)
+    expect(seen[0]!.every((x) => x === 0)).toBe(true)
   })
 })
 
 describe('the Argon2id worker', () => {
-  it('is used when a factory is given, and its output is what direct derivation gives', async () => {
+  const direct = async (password: string, salt: Bytes) => (await derive(p, password, salt, cheap)).authKey
+
+  it('is used when a factory is given: a hello, then the password, and its output is what direct derivation gives', async () => {
     const salt = new Uint8Array(16).fill(1) as Bytes
-    const posted: unknown[] = []
-    const { argon2id } = await import('@noble/hashes/argon2.js')
-    // A stand-in Worker: answers like kdf.worker.ts does.
-    const fake = {
-      onmessage: null as ((e: MessageEvent) => void) | null,
-      onerror: null as (() => void) | null,
-      postMessage(msg: { password: Uint8Array; salt: Uint8Array; m: number; t: number; p: number }) {
-        posted.push(msg)
-        const master = argon2id(msg.password, msg.salt, { m: msg.m, t: msg.t, p: msg.p, dkLen: 32 })
-        queueMicrotask(() => this.onmessage?.({ data: { ok: true, master } } as MessageEvent))
-      },
-      terminate() {},
-    }
-    const viaWorker = await derive(p, 'senha correta', salt, cheap, { worker: () => fake as unknown as Worker })
-    const direct = await derive(p, 'senha correta', salt, cheap)
-    expect(posted.length).toBe(1)
-    expect(viaWorker.authKey).toBe(direct.authKey)
+    const { state, factory } = fakeKDFWorker()
+    const viaWorker = await derive(p, 'senha correta', salt, cheap, { worker: factory })
+    expect(state.started).toBe(1)
+    expect(state.terminated).toBe(1)
+    expect(state.received.length).toBe(2)
+    expect(state.received[0]).toEqual({ v: 2 })
+    expect(state.answers[0]).toEqual({ ready: true, v: 2 })
+    expect(state.received[1]).toMatchObject({ v: 2, params: { alg: 'argon2id', m: 8, t: 1, p: 1 } })
+    expect((state.received[1] as Record<string, unknown>).bounds).toBeUndefined()
+    expect(viaWorker.authKey).toBe(await direct('senha correta', salt))
   })
 
-  it('falls back to direct derivation when the worker fails', async () => {
-    const broken = { postMessage() { queueMicrotask(() => this.onerror?.()) }, terminate() {}, onmessage: null, onerror: null as (() => void) | null }
+  it('tells the worker the profile\'s bounds, which it checks again', async () => {
+    const bounded: AccountProfile = { ...p, bounds: { min: { m: 8, t: 1, p: 1 }, max: { m: 64, t: 2, p: 1 }, maxCost: 64, minSaltLen: 16, maxSaltLen: 16 } }
+    const { state, factory } = fakeKDFWorker()
+    const salt = new Uint8Array(16).fill(1) as Bytes
+    expect((await derive(bounded, 'senha correta', salt, cheap, { worker: factory })).authKey).toBe(await direct('senha correta', salt))
+    expect(state.received[1]).toMatchObject({ bounds: { min: { m: 8, t: 1, p: 1 }, max: { m: 64, t: 2, p: 1 }, maxCost: 64, minSaltLen: 16, maxSaltLen: 16 } })
+  })
+
+  it('derives on the calling thread when the worker fails before it was sent the password', async () => {
     const salt = new Uint8Array(16).fill(2) as Bytes
-    const d = await derive(p, 'x', salt, cheap, { worker: () => broken as unknown as Worker })
-    expect(d.authKey).toBe((await derive(p, 'x', salt, cheap)).authKey)
+    const want = await direct('x', salt)
+    for (const o of [{ failToLoad: true }, { hello: { ok: false, error: 'not a password' } }, { hello: { ready: true } }, { hello: { ready: true, v: 3 } }, { hello: 'ready' }]) {
+      const w = fakeKDFWorker(o)
+      expect((await derive(p, 'x', salt, cheap, { worker: w.factory })).authKey, JSON.stringify(o)).toBe(want)
+      // Set aside before it saw the password, and terminated.
+      expect(w.state.received, JSON.stringify(o)).toEqual([{ v: 2 }])
+      expect(w.state.terminated).toBe(1)
+    }
+    // A factory that throws, as where module workers are not supported.
+    expect((await derive(p, 'x', salt, cheap, { worker: () => { throw new Error('no workers') } })).authKey).toBe(want)
+    // A worker whose postMessage throws.
+    const refusing = { postMessage() { throw new Error('no') }, terminate() {}, onmessage: null, onerror: null } as unknown as Worker
+    expect((await derive(p, 'x', salt, cheap, { worker: () => refusing })).authKey).toBe(want)
+  })
+
+  it('derives on the calling thread when the worker never answers the hello', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const salt = new Uint8Array(16).fill(3) as Bytes
+      const silent = fakeKDFWorker({ silent: true })
+      const pending = derive(p, 'x', salt, cheap, { worker: silent.factory })
+      await vi.advanceTimersByTimeAsync(9_999)
+      expect(silent.state.terminated).toBe(0)
+      await vi.advanceTimersByTimeAsync(2)
+      const d = await pending
+      expect(silent.state.received).toEqual([{ v: 2 }])
+      expect(silent.state.terminated).toBe(1)
+      vi.useRealTimers()
+      expect(d.authKey).toBe(await direct('x', salt))
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('waits for a derivation that takes longer than the hello may: only the hello is timed', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const salt = new Uint8Array(16).fill(5) as Bytes
+      const { argon2id } = await import('@noble/hashes/argon2.js')
+      const master = argon2id(utf8('x'), salt, { ...cheap, dkLen: 32 })
+      let answer: ((e: MessageEvent) => void) | undefined
+      const slow = {
+        onmessage: null as ((e: MessageEvent) => void) | null, onerror: null, onmessageerror: null, posted: [] as unknown[],
+        postMessage(msg: Record<string, unknown>) {
+          this.posted.push(msg)
+          if (!('prepared' in msg)) setTimeout(() => this.onmessage?.({ data: { ready: true, v: 2 } } as MessageEvent), 0)
+          else answer = (e) => this.onmessage?.(e)
+        },
+        terminate() {},
+      }
+      const pending = derive(p, 'x', salt, cheap, { worker: () => slow as unknown as Worker })
+      await vi.advanceTimersByTimeAsync(60_000)
+      expect(slow.posted.length).toBe(2)
+      answer!({ data: { ok: true, master } } as MessageEvent)
+      const d = await pending
+      vi.useRealTimers()
+      expect(d.authKey).toBe(await direct('x', salt))
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // The parameters are good, so a derivation on the calling thread would
+  // succeed: kdf_failed shows the page did not derive again.
+  it('fails with kdf_failed, and does not derive again, when the worker fails after it was sent the password', async () => {
+    const salt = new Uint8Array(16).fill(4) as Bytes
+    for (const o of [{ dieAfterSend: true }, { unreadableAnswer: true }, { answer: { ok: false, reason: 'kdf_failed' } }, { answer: { ok: true, master: new Uint8Array(31) } }, { answer: 'done' }]) {
+      const w = fakeKDFWorker(o)
+      expect(await failure(() => derive(p, 'x', salt, cheap, { worker: w.factory })), JSON.stringify(o)).toEqual({ error: 'kdf', reason: 'kdf_failed' })
+      expect(w.state.passwords[0]!.every((x) => x === 0)).toBe(true)
+      expect(w.state.terminated).toBe(1)
+    }
+  })
+
+  it('reports the worker\'s refusal of the parameters as the account module\'s reason', async () => {
+    const salt = new Uint8Array(16).fill(4) as Bytes
+    for (const reason of ['out_of_bounds', 'unsupported_alg'] as const) {
+      const w = fakeKDFWorker({ answer: { ok: false, reason } })
+      expect(await failure(() => derive(p, 'x', salt, cheap, { worker: w.factory }))).toEqual({ error: 'kdf', reason })
+    }
+  })
+})
+
+describe('the KDF worker\'s handler', () => {
+  it('answers the hello with ready, and nothing else unasked', () => {
+    expect(runKDFMessage({ v: 2 })).toEqual({ response: { ready: true, v: 2 }, transfer: [] })
+  })
+
+  it('derives what direct derivation gives, into a buffer of its own, and zeroes the password it received', async () => {
+    const { argon2id } = await import('@noble/hashes/argon2.js')
+    const salt = new Uint8Array(16).fill(9) as Bytes
+    const prepared = utf8('senha correta')
+    const r = runKDFMessage({ v: 2, prepared, salt, params: cheap })
+    expect(prepared.every((x) => x === 0)).toBe(true)
+    const master = (r.response as { master: Uint8Array }).master
+    expect(toB64(master)).toBe(toB64(argon2id(utf8('senha correta'), salt, { ...cheap, dkLen: 32 })))
+    expect(master.buffer.byteLength).toBe(32)
+    expect(r.transfer).toEqual([master.buffer])
+  })
+
+  it('checks the parameters and the bounds again, and tells a refusal from a failure', () => {
+    const salt = new Uint8Array(16) as Bytes
+    const bounds = { min: { m: 16, t: 1, p: 1 }, max: { m: 64, t: 2, p: 1 }, maxCost: 64, minSaltLen: 16, maxSaltLen: 16 }
+    const cases: [unknown, unknown, Bytes, string][] = [
+      [{ ...cheap, alg: 'argon2i' }, undefined, salt, 'unsupported_alg'],
+      [{ ...cheap, alg: 'ARGON2ID' }, undefined, salt, 'unsupported_alg'],
+      ['argon2id', undefined, salt, 'unsupported_alg'],
+      [cheap, bounds, salt, 'out_of_bounds'],
+      [{ ...cheap, m: 65 }, bounds, salt, 'out_of_bounds'],
+      [{ ...cheap, m: 64, t: 2 }, bounds, salt, 'out_of_bounds'],
+      [{ ...cheap, m: 16, p: 2 }, bounds, salt, 'out_of_bounds'],
+      [{ ...cheap, m: 16 }, bounds, new Uint8Array(15) as Bytes, 'out_of_bounds'],
+      [{ ...cheap, m: 16 }, { min: { m: 16 }, max: {} }, salt, 'out_of_bounds'],
+      [{ ...cheap, m: 16 }, 'none', salt, 'out_of_bounds'],
+      [{ ...cheap, m: 16 }, null, salt, 'out_of_bounds'],
+      [{ ...cheap, m: 8.5 }, undefined, salt, 'kdf_failed'],
+      [{ ...cheap, t: '1' }, undefined, salt, 'kdf_failed'],
+      [{ ...cheap, p: -1 }, undefined, salt, 'kdf_failed'],
+      [{ ...cheap, t: 0 }, undefined, salt, 'kdf_failed'],
+      [cheap, undefined, new Uint8Array(4) as Bytes, 'kdf_failed'],
+    ]
+    for (const [params, b, s, reason] of cases) {
+      const prepared = utf8('x')
+      expect(runKDFMessage({ v: 2, prepared, salt: s, params, bounds: b }).response, JSON.stringify([params, b])).toEqual({ ok: false, reason })
+      expect(prepared.every((x) => x === 0)).toBe(true)
+    }
+    expect(runKDFMessage({ v: 2, prepared: 'x', salt, params: cheap }).response).toEqual({ ok: false, reason: 'kdf_failed' })
+    expect(runKDFMessage({ v: 2, prepared: utf8('x'), salt: [1, 2], params: cheap }).response).toEqual({ ok: false, reason: 'kdf_failed' })
+    expect(runKDFMessage({ v: 2, prepared: utf8('x'), salt, params: { ...cheap, m: 16 }, bounds }).response).toMatchObject({ ok: true })
+  })
+
+  it('still answers version 1 as in v0.1.0', async () => {
+    const { argon2id } = await import('@noble/hashes/argon2.js')
+    const salt = new Uint8Array(16).fill(9) as Bytes
+    const password = utf8('senha correta')
+    const r = runKDFMessage({ password, salt, m: 8, t: 1, p: 1 })
+    expect(toB64((r.response as { master: Uint8Array }).master)).toBe(toB64(argon2id(utf8('senha correta'), salt, { ...cheap, dkLen: 32 })))
+    expect(password.every((x) => x === 0)).toBe(true)
+    expect(toB64((runKDFMessage({ password: 'senha correta', salt, m: 8, t: 1, p: 1 }).response as { master: Uint8Array }).master)).toBe(toB64((r.response as { master: Uint8Array }).master))
+    expect(runKDFMessage({ password: 'x', salt: new Uint8Array(4), m: 8, t: 1, p: 1 }).response).toMatchObject({ ok: false, error: expect.any(String) })
+    expect(runKDFMessage(undefined).response).toMatchObject({ ok: false, error: expect.any(String) })
   })
 })
 
 // In a browser (the js-browser job): kdf.worker.ts itself, as a module worker.
 describe.skipIf(typeof Worker === 'undefined')('the Argon2id worker module', () => {
-  it('derives off the main thread what direct derivation gives', async () => {
-    const replies: { ok: boolean }[] = []
+  it('derives off the main thread what direct derivation gives, after a ready', async () => {
+    const replies: Record<string, unknown>[] = []
     const worker = () => {
       const w = new Worker(new URL('../src/kdf.worker.ts', import.meta.url), { type: 'module' })
-      w.addEventListener('message', (e: MessageEvent<{ ok: boolean }>) => replies.push(e.data))
+      w.addEventListener('message', (e: MessageEvent<Record<string, unknown>>) => replies.push(e.data))
       return w
     }
     const salt = new Uint8Array(16).fill(7) as Bytes
@@ -208,8 +345,26 @@ describe.skipIf(typeof Worker === 'undefined')('the Argon2id worker module', () 
     const auth = await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: utf8(p.authLabel) },
       await crypto.subtle.importKey('raw', master, 'HKDF', false, ['deriveBits']), 256)
     const d = await derive(p, 'senha correta', salt, cheap, { worker })
-    expect(replies.map((r) => r.ok)).toEqual([true])
+    expect(replies.map((r) => (r.ready === true && r.v === 2 ? 'ready' : r.ok))).toEqual(['ready', true])
     expect(d.authKey).toBe(toB64(new Uint8Array(auth)))
+  })
+
+  it('answers version 1 as in v0.1.0, and posts nothing unasked', async () => {
+    const w = new Worker(new URL('../src/kdf.worker.ts', import.meta.url), { type: 'module' })
+    try {
+      const replies: Record<string, unknown>[] = []
+      const salt = new Uint8Array(16).fill(7) as Bytes
+      const got = new Promise<void>((resolve) => w.addEventListener('message', (e: MessageEvent<Record<string, unknown>>) => { replies.push(e.data); resolve() }))
+      w.postMessage({ password: utf8('senha correta'), salt, m: 8, t: 1, p: 1 })
+      await got
+      await new Promise((r) => setTimeout(r, 50))
+      const { argon2id } = await import('@noble/hashes/argon2.js')
+      expect(replies.length).toBe(1)
+      expect(replies[0]!.ok).toBe(true)
+      expect(toB64(replies[0]!.master as Uint8Array)).toBe(toB64(argon2id(utf8('senha correta'), salt, { ...cheap, dkLen: 32 })))
+    } finally {
+      w.terminate()
+    }
   })
 })
 

@@ -5,13 +5,13 @@
 // Ported from the platform's web/test/crypto, without Node APIs: these run
 // in the browsers too.
 
-import { argon2id } from '@noble/hashes/argon2.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { derive } from '../src/account.js'
 import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes.js'
 import { HPKEError, isPlatformError, PlatformError, type PlatformErrorCode } from '../src/errors.js'
 import * as platform from '../src/profiles/platform.js'
+import { fakeKDFWorker, type FakeOptions } from './kdfworkerfake.js'
 import { loadPlatform, withDraws, withEngineRefusingX25519 } from './vectors.js'
 
 const ch = (...cps: number[]) => String.fromCodePoint(...cps)
@@ -32,24 +32,10 @@ async function expectRefusal(fn: () => unknown, code: PlatformErrorCode): Promis
 
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
 
-/** A stand-in KDF worker that derives as kdf.worker.ts does and keeps what it was sent. */
-function fakeWorker() {
-  const state = { started: 0, sent: [] as Uint8Array[] }
-  const factory = () => {
-    state.started++
-    const w = {
-      onmessage: null as ((e: MessageEvent) => void) | null,
-      onerror: null as (() => void) | null,
-      postMessage(msg: { password: Uint8Array; salt: Uint8Array; m: number; t: number; p: number }) {
-        state.sent.push(msg.password)
-        const master = argon2id(msg.password.slice(), msg.salt, { m: msg.m, t: msg.t, p: msg.p, dkLen: 32 })
-        queueMicrotask(() => w.onmessage?.({ data: { ok: true, master } } as MessageEvent))
-      },
-      terminate() {},
-    }
-    return w as unknown as Worker
-  }
-  return { state, factory }
+/** A stand-in KDF worker: the worker's own handler, and what it was sent. */
+function fakeWorker(o: FakeOptions = {}) {
+  const { state, factory } = fakeKDFWorker(o)
+  return { state: { get started() { return state.started }, sent: state.passwords, received: state.received }, factory }
 }
 
 afterEach(() => {
@@ -224,6 +210,10 @@ describe('the KDF policy', () => {
     expect(state.started).toBe(1)
     expect(state.sent[0].length).toBeGreaterThan(0)
     expect(state.sent[0].every((x) => x === 0)).toBe(true)
+    // The worker was told the platform's bounds, and checked them again.
+    expect(state.received[1]).toMatchObject({
+      v: 2, bounds: { min: { m: 65536, t: 3, p: 1 }, max: { m: 262144, t: 10, p: 4 }, maxCost: 1048576, minSaltLen: 16, maxSaltLen: 16 },
+    })
     // derivePassword leaves the caller's bytes alone.
     const prepared = fromBase64URL(c.prepared_b64url, 28)
     expect((await platform.derivePassword(prepared, fromBase64URL(c.salt, 16), c.kdf, { worker: factory })).authKey).toBe(c.k_auth)
@@ -566,6 +556,58 @@ describe('refusals', () => {
       }
       expect(caught, `attempt ${i}`).toBeInstanceOf(PlatformError)
       expect((caught as Error).message, `attempt ${i}`).not.toContain(marker)
+    }
+  })
+})
+
+describe('the KDF worker, for the platform', () => {
+  const c = () => loadPlatform('kdf').cases.find((x) => x.name === 'the floor parameters')!
+
+  it('reports a derivation that failed after the password was sent as the account module\'s kdf_failed, never kdf_policy', async () => {
+    const { factory } = fakeWorker({ dieAfterSend: true })
+    const err = await platform.derivePasswordKeys('correct horse battery staple', fromBase64URL(c().salt, 16), c().kdf, { worker: factory }).then(() => null, (e: unknown) => e)
+    expect(isPlatformError(err)).toBe(false)
+    expect(err).toMatchObject({ name: 'AccountError', code: 'kdf', reason: 'kdf_failed' })
+  })
+
+  it('reports the worker\'s refusal of the parameters as kdf_policy', async () => {
+    for (const reason of ['out_of_bounds', 'unsupported_alg']) {
+      const { factory } = fakeWorker({ answer: { ok: false, reason } })
+      expect(await refusal(() => platform.derivePasswordKeys('correct horse battery staple', fromBase64URL(c().salt, 16), c().kdf, { worker: factory }))).toBe('kdf_policy')
+    }
+  })
+
+  it('has a core entry with the same exports, which derives only in the caller\'s worker', async () => {
+    const core = await import('../src/profiles/platform/core.js')
+    const own = ['derivePassword', 'derivePasswordKeys', 'openKeyBundle']
+    expect(Object.keys(core).sort()).toEqual(Object.keys(platform).sort())
+    for (const name of Object.keys(core)) {
+      const [a, b] = [(core as Record<string, unknown>)[name], (platform as Record<string, unknown>)[name]]
+      if (own.includes(name)) expect(a, name).not.toBe(b)
+      else expect(a, name).toBe(b)
+    }
+    const { state, factory } = fakeWorker()
+    expect((await core.derivePasswordKeys('correct horse battery staple', fromBase64URL(c().salt, 16), c().kdf, { worker: factory })).authKey).toBe(c().k_auth)
+    expect(state.started).toBe(1)
+    // With Workers about and no factory, the core entry derives on the
+    // calling thread; the default entry starts the kit's worker.
+    const started: string[] = []
+    vi.stubGlobal('Worker', class {
+      constructor(url: URL | string) {
+        started.push(String(url))
+        throw new Error('no worker here')
+      }
+    })
+    try {
+      expect((await core.derivePasswordKeys('correct horse battery staple', fromBase64URL(c().salt, 16), c().kdf)).authKey).toBe(c().k_auth)
+      const bundle = loadPlatform('key-bundle').cases.find((x) => x.name === 'opens with the password')!
+      expect(toBase64URL(await core.openKeyBundle(bundle.bundle, bundle.password))).toBe(bundle.root)
+      expect(started).toEqual([])
+      expect((await platform.derivePasswordKeys('correct horse battery staple', fromBase64URL(c().salt, 16), c().kdf)).authKey).toBe(c().k_auth)
+      expect(started.length).toBe(1)
+      expect(started[0]).toMatch(/\/kdf\.worker\.(js|ts)\b/)
+    } finally {
+      vi.unstubAllGlobals()
     }
   })
 })

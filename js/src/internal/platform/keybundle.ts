@@ -28,12 +28,13 @@
 // code. The root does not change, so this is inherent. From the platform's
 // web/shared/crypto/keybundle.ts.
 
-import type { DeriveOptions } from '../../account.js'
+import type { DeriveOptions } from '../accountcore.js'
+import type { WorkerFactory } from '../kdf.js'
 import { Base64Error, equal, fromBase64URL, type Bytes } from '../../bytes.js'
 import { PlatformError, type PlatformErrorCode } from '../../errors.js'
 import { parseStrictJSON, StrictJSONError, utf8Length } from '../strictjson.js'
 import { normalizeEmail } from './email.js'
-import { derivePassword } from './kdf.js'
+import { derivePasswordWith } from './kdf.js'
 import { checkKDF, type KDF, SALT_LEN } from './kdfpolicy.js'
 import { preparePassword } from './password.js'
 import { isProduct, productPublicKey } from './productkey.js'
@@ -296,18 +297,20 @@ async function openWith(bundle: ParsedKeyBundle, kind: 'password' | 'recovery', 
 }
 
 /**
- * openKeyBundle opens a bundle with the password (the presented-password
- * profile: no minimum length) and returns the root, for the caller to zero,
+ * openKeyBundleWith is openKeyBundle with its default worker factory as the
+ * first argument. openKeyBundle opens a bundle with the password (the
+ * presented-password profile: no minimum length) and returns the root, for
+ * the caller to zero,
  * once every product key has been checked against it. A password that does
  * not open the wrap is refused with wrap; a bundle whose product keys do not
  * come from its root, with product_key.
  */
-export async function openKeyBundle(input: unknown, password: string, options?: DeriveOptions): Promise<Bytes> {
+export async function openKeyBundleWith(defaultWorker: WorkerFactory | undefined, input: unknown, password: string, options?: DeriveOptions): Promise<Bytes> {
   const bundle = parseKeyBundle(input)
   const prepared = preparePassword(password, { isNew: false })
   let wrapKey: CryptoKey
   try {
-    wrapKey = (await derivePassword(prepared, bundle.salt, bundle.json.kdf, options)).wrapKey
+    wrapKey = (await derivePasswordWith(defaultWorker, prepared, bundle.salt, bundle.json.kdf, options)).wrapKey
   } finally {
     prepared.fill(0)
   }

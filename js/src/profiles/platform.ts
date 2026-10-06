@@ -30,92 +30,45 @@
 // web/shared/crypto at commits 5e66d84 (part 1), 4476bf4 (part 2) and
 // b5d9f69 (part 3). Key delivery's HPKE wipes its key schedule and is
 // internal: no page code can choose an ephemeral key.
+//
+// This entry is @thehappieco/kit/profiles/platform/core with the kit's own
+// KDF worker (kdf.worker.js) as the default of derivePassword,
+// derivePasswordKeys and openKeyBundle, so a bundle that imports it emits
+// that worker.
 
-export { isPlatformError, PlatformError, type PlatformErrorCode } from '../errors.js'
-export type { DeriveOptions, Derived } from '../account.js'
-export {
-  isWrapKind,
-  LABEL_AUTH_VERIFIER,
-  LABEL_PASSWORD_AUTH,
-  LABEL_PASSWORD_WRAP,
-  LABEL_PRODUCT_KEY,
-  LABEL_RECOVERY_AUTH,
-  LABEL_RECOVERY_VERIFIER,
-  LABEL_RECOVERY_WRAP,
-  platformAccount,
-  platformRootWrap,
-  ROOT_LEN,
-  WRAP_AAD_LABEL,
-  WRAP_KIND_BYTE,
-  WRAP_LEN,
-  WRAP_VERSION,
-  type WrapKind,
-} from '../internal/platform/profile.js'
-export { PASSWORD_MAX, PASSWORD_MIN_NEW, PASSWORD_PROFILE, preparePassword, preparePasswordText } from '../internal/platform/password.js'
-export { checkKDF, checkSalt, DEFAULT_KDF, KDF_BOUNDS, SALT_LEN, type KDF } from '../internal/platform/kdfpolicy.js'
-export { derivePassword, derivePasswordKeys, newRoot } from '../internal/platform/kdf.js'
-export { isEpoch, isSub, openRootWrap, rootWrapAAD, sealRootWrap, type PasskeyBinding } from '../internal/platform/rootwrap.js'
-export {
-  canonicalRecoveryCode,
-  formatRecoveryCode,
-  newRecoveryCode,
-  RECOVERY_ALPHABET,
-  RECOVERY_CODE_LEN,
-  recoveryCodeFromBytes,
-  type RecoveryCode,
-} from '../internal/platform/recoverycode.js'
-export { deriveRecovery, type RecoveryKeys } from '../internal/platform/recovery.js'
-export { deriveProductKey, isProduct, productKeyId, productPublicKey, type ProductKey } from '../internal/platform/productkey.js'
-export { authVerifier, recoveryVerifier } from '../internal/platform/verifier.js'
-export { normalizeEmail } from '../internal/platform/email.js'
-export {
-  checkBundleProductKeys,
-  KEY_BUNDLE_FORMAT,
-  KEY_BUNDLE_VERSION,
-  openKeyBundle,
-  openKeyBundleWithRecoveryCode,
-  parseKeyBundle,
-  type KeyBundle,
-  type KeyBundleProductKey,
-  type ParsedKeyBundle,
-} from '../internal/platform/keybundle.js'
-export {
-  deliverProductKey,
-  isProductKeyId,
-  KEY_DELIVERY_AAD_LABEL,
-  KEY_DELIVERY_INFO,
-  KEY_DELIVERY_VERSION,
-  keyDeliveryAAD,
-  openProductKey,
-  SEALED_PRODUCT_KEY_LEN,
-  sealProductKey,
-  type DeliveredProductKey,
-  type KeyDeliveryBinding,
-  type KeyDeliveryRequest,
-  type SealProductKeyInput,
-} from '../internal/platform/keydelivery.js'
-export { CODE_CHALLENGE_LEN, CODE_VERIFIER_PATTERN, isCodeVerifier, newCodeVerifier, pkceChallenge } from '../internal/platform/pkce.js'
-export {
-  checkX25519PublicKey,
-  generateX25519KeyPair,
-  importX25519PrivateKey,
-  isCanonicalX25519,
-  X25519_KEY_LEN,
-  x25519PublicFromKey,
-  type X25519KeyPair,
-} from '../internal/platform/x25519.js'
-export {
-  isRPID,
-  LABEL_PASSKEY_PRF,
-  LABEL_PASSKEY_WRAP,
-  passkeyWrapKey,
-  platformPasskey,
-  PRF_OUTPUT_LEN,
-  PRF_SALT_LEN,
-  prfSalt,
-  unwrapRootWithPasskey,
-  wrapRootWithPasskey,
-  type PasskeyUnwrapInput,
-  type PasskeyWrapInput,
-} from '../internal/platform/passkey.js'
-export { checkClientExtensions, checkClientExtensionsText, type AllowedClientExtensionResults } from '../internal/platform/extensions.js'
+import type { Bytes } from '../bytes.js'
+import type { DeriveOptions, Derived } from '../internal/accountcore.js'
+import { kitWorker } from '../internal/kdfworker.js'
+import { derivePasswordKeysWith, derivePasswordWith } from '../internal/platform/kdf.js'
+import { openKeyBundleWith } from '../internal/platform/keybundle.js'
+
+export * from './platform/core.js'
+
+/**
+ * derivePassword derives K_auth and K_wrap from P' under kdf and the salt
+ * the server handed out (SPEC section 11.3). It throws kdf_policy before
+ * deriving anything when they are outside the bounds. Argon2id runs in the
+ * kit's worker, or options.worker's, where there are Workers, and on the
+ * calling thread otherwise. The caller owns prepared and zeroes it.
+ */
+export function derivePassword(prepared: Bytes, salt: Bytes, kdf: unknown, options?: DeriveOptions): Promise<Derived> {
+  return derivePasswordWith(kitWorker, prepared, salt, kdf, options)
+}
+
+/**
+ * derivePasswordKeys prepares a presented password (no minimum length) and
+ * derives its keys, as derivePassword does; the bounds come first. The
+ * prepared bytes are zeroed.
+ */
+export function derivePasswordKeys(password: string, salt: Bytes, kdf: unknown, options?: DeriveOptions): Promise<Derived> {
+  return derivePasswordKeysWith(kitWorker, password, salt, kdf, options)
+}
+
+/**
+ * openKeyBundle opens a key bundle with the password (SPEC section 11.9),
+ * deriving as derivePassword does, and returns the root, for the caller to
+ * zero, once every product key has been checked against it.
+ */
+export function openKeyBundle(input: unknown, password: string, options?: DeriveOptions): Promise<Bytes> {
+  return openKeyBundleWith(kitWorker, input, password, options)
+}

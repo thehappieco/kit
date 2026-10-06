@@ -1,7 +1,7 @@
 # The Happie Co kit: specification
 
-- Spec version: 4 (kit v0.4.0)
-- Status: normative for the Wappie profile, which is frozen, and for parts 1 to 3 of the platform profile (section 11). Sections 6.8 and 11.17 are reserved.
+- Spec version: 5 (kit v0.5.0)
+- Status: normative for the Wappie profile, which is frozen but for the addition of its platform wrap (section 6.8), and for parts 1 to 3 of the platform profile (section 11). Section 11.17 is reserved.
 - Vectors: every byte below is pinned by a case in `vectors/`. A case is cited as `file#case-id`, or for the platform's files as `platform/id-v1/<kind>.json#<case name>`, and `#<op>/<case name>` for a case that carries an op.
 
 ## 1. Status and scope
@@ -716,6 +716,7 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 - Spec 2 (kit v0.2.0): section 11 part 1, the platform profile, with the platform's id-v1 vectors at `5e66d84`; sections 1, 3, 6.7, 12 and 13 extended; Appendix C. Nothing in the Wappie profile changed.
 - Spec 3 (kit v0.3.0): section 11 part 2 (sections 11.12 to 11.15), with the platform's vectors at `4476bf4`; the reservations for the passkey root-wrap key and the product contract move to sections 11.16 and 11.17; sections 1, 11.1, 11.2, 11.4, 11.5, 11.10, 11.11, 12.2 and 13 extended. Nothing in the Wappie profile or in part 1 changed.
 - Spec 4 (kit v0.4.0): section 11 part 3 (section 11.16), with the platform's vectors at `b5d9f69`; section 6.8 reserved for Wappie's platform wrap; sections 1, 7, 11, 11.1, 11.5, 11.10, 11.11, 12.2 and 13 and Appendices A and C extended. Nothing in the Wappie profile or in parts 1 and 2 changed.
+- Spec 5 (kit v0.5.0): section 6.8, Wappie's platform wrap, replaces its reservation, an addition to the Wappie profile, with vectors written by Wappie's console; section 11.16 refuses a relying party id that ends in a number, with the platform's vectors at `75b6b94`, a refusal of ids no browser serves; sections 1, 7, 11, 11.4, 11.10, 11.11, 12.2 and 13 and Appendix A extended. No byte of the Wappie profile or of parts 1 to 3 changed.
 
 ## Appendix C. The platform profile
 

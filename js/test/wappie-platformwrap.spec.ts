@@ -30,7 +30,7 @@ import {
   wappiePasskey,
   type PlatformWrapBinding,
 } from '../src/profiles/wappie.js'
-import { b64, files, forTS, raw, text, toB64, unhandled, withDraws, withEngineRefusingX25519, type VectorCase } from './vectors.js'
+import { b64, files, forTS, freshOnly, raw, text, toB64, unhandled, withDraws, withEngineRefusingX25519, type VectorCase } from './vectors.js'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -108,6 +108,14 @@ async function run(c: VectorCase): Promise<void> {
     }
   }
   unhandled(c)
+}
+
+// The kit's own round trips that the Go side wrote: the fresh file of that
+// name in $KIT_CROSS_IN in the cross-language job.
+for (const [path, f] of freshOnly('wappie-platform-wrap-go.json')) {
+  describe(path, () => {
+    for (const c of f.cases.filter(forTS)) it(c.id, async () => run(c))
+  })
 }
 
 describe('the golden files', () => {

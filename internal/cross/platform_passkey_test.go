@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/thehappieco/kit/passkey"
 	"github.com/thehappieco/kit/profiles/platform"
 )
 
@@ -33,14 +34,19 @@ func randomLabel(t *testing.T, n int) string {
 }
 
 // randomRPID is a relying party id in its one spelling: one the platform
-// has, one of exactly 253 bytes, or 1 to 4 random labels.
+// has, one of exactly 253 bytes, or 1 to 4 random labels. None ends in a
+// number (passkey.EndsInANumber), which the spelling refuses since v0.5.0.
 func randomRPID(t *testing.T) string {
 	t.Helper()
 	switch randomInt(t, 4) {
 	case 0:
 		return pick(t, passkeyRPIDs)
 	case 1:
-		return randomLabel(t, 63) + "." + randomLabel(t, 63) + "." + randomLabel(t, 63) + "." + randomLabel(t, 61)
+		for {
+			if s := randomLabel(t, 63) + "." + randomLabel(t, 63) + "." + randomLabel(t, 63) + "." + randomLabel(t, 61); !passkey.EndsInANumber(s) {
+				return s
+			}
+		}
 	}
 	for {
 		labels := make([]string, 1+randomInt(t, 4))
@@ -55,7 +61,7 @@ func randomRPID(t *testing.T) string {
 		if strings.Trim(last, "0123456789") == "" {
 			labels[len(labels)-1] = "x" + last[1:]
 		}
-		if s := strings.Join(labels, "."); len(s) <= 253 {
+		if s := strings.Join(labels, "."); len(s) <= 253 && !passkey.EndsInANumber(s) {
 			return s
 		}
 	}
@@ -71,7 +77,7 @@ func breakRPID(t *testing.T, rp string) (string, string) {
 	}
 	for {
 		var broken, how string
-		switch randomInt(t, 16) {
+		switch randomInt(t, 17) {
 		case 0:
 			broken, how = insert(rp, pick(t, []string{"A", "Z", "Q"})), "upper-case"
 		case 1:
@@ -102,6 +108,8 @@ func breakRPID(t *testing.T, rp string) (string, string) {
 			broken, how = insert(rp, pick(t, []string{"_", " ", "/", "@", "|", "*", "\t", "\x00"})), "character"
 		case 14:
 			broken, how = insert(rp, pick(t, []string{"\u00e9", "\u0131", "\u0430", "\u00fc", "\u2028"})), "non-ascii"
+		case 15:
+			broken, how = rp+".0x"+randomFrom(t, "0123456789abcdef", int(randomInt(t, 9))), "hex-number"
 		default:
 			broken, how = "", "empty"
 		}

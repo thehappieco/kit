@@ -72,91 +72,111 @@ func TestWappiePlatformWrapVectors(t *testing.T) {
 		if c.Error != "" {
 			counts["refused"]++
 		}
-		t.Run(c.ID, func(t *testing.T) {
-			var in wrapIn
-			var out wrapOut
-			strict(t, c.In, &in)
-			if c.Error == "" {
-				strict(t, c.Out, &out)
-			} else if c.Error != "platform_wrap" {
-				t.Fatalf("error %q, want platform_wrap", c.Error)
-			}
-			b := wappie.PlatformWrapBinding{UserID: in.UserID, Sub: in.Sub, ProductKeyID: in.ProductKeyID, AccountPublicKey: vectest.B64(t, in.AccountPublicKey)}
-			refused := func(got []byte, err error) {
-				t.Helper()
-				if !errors.Is(err, wappie.ErrPlatformWrap) || got != nil {
-					t.Fatalf("want ErrPlatformWrap and nothing, got %v", err)
-				}
-			}
-			switch c.Op {
-			case "wappie.platform_wrap_info":
-				got, err := wappie.PlatformWrapInfo(b)
-				if err != nil || !bytes.Equal(got, vectest.B64(t, out.Info)) {
-					t.Fatalf("info: %v", err)
-				}
-			case "wappie.platform_wrap_aad":
-				got, err := wappie.PlatformWrapAAD(b)
-				if err != nil || !bytes.Equal(got, vectest.B64(t, out.AAD)) {
-					t.Fatalf("aad: %v", err)
-				}
-			case "wappie.platform_wrap_seal":
-				var r *bytes.Reader
-				if in.Nonce != "" {
-					r = bytes.NewReader(vectest.B64(t, in.Nonce))
-				} else {
-					r = bytes.NewReader(make([]byte, 12))
-				}
-				got, err := wappie.SealPlatformWrap(r, vectest.B64(t, in.ProductKey), vectest.B64(t, in.AccountKey), b)
-				if c.Error != "" {
-					refused(got, err)
-					return
-				}
-				want := vectest.B64(t, out.Wrap)
-				if err != nil || !bytes.Equal(got, want) || wappie.CheckPlatformWrapShape(got) != nil {
-					t.Fatalf("seal: %v", err)
-				}
-				if back, err := wappie.OpenPlatformWrap(vectest.B64(t, in.ProductKey), got, b); err != nil || !bytes.Equal(back, vectest.B64(t, in.AccountKey)) {
-					t.Fatalf("the seal does not open: %v", err)
-				}
-				if out.KPW != "" {
-					// Section 6.5's envelope, header 0x03, no legacy form.
-					aad, _ := wappie.PlatformWrapAAD(b)
-					p := account.Profile{WrapHeader: []byte{wappie.PlatformWrapHeader}}
-					key, stale, err := account.Unwrap(p, vectest.B64(t, out.KPW), want, aad)
-					if err != nil || stale || !bytes.Equal(key, vectest.B64(t, in.AccountKey)) {
-						t.Fatalf("account.Unwrap under k_pw: %v", err)
-					}
-					block, _ := aes.NewCipher(vectest.B64(t, out.KPW))
-					gcm, _ := cipher.NewGCM(block)
-					if !bytes.Equal(gcm.Seal(append([]byte{wappie.PlatformWrapHeader}, want[1:13]...), want[1:13], key, aad), want) {
-						t.Fatal("k_pw does not seal the wrap")
-					}
-				}
-			case "wappie.platform_wrap_open":
-				if in.Wrap == nil {
-					t.Fatal("an open without wrap_b64")
-				}
-				got, err := wappie.OpenPlatformWrap(vectest.B64(t, in.ProductKey), vectest.B64(t, *in.Wrap), b)
-				if c.Error != "" {
-					refused(got, err)
-					return
-				}
-				if err != nil || !bytes.Equal(got, vectest.B64(t, out.AccountKey)) {
-					t.Fatalf("open: %v", err)
-				}
-				if !bytes.Equal(x25519Public(t, got), b.AccountPublicKey) {
-					t.Fatal("opened to a key that is not the binding's")
-				}
-			default:
-				vectest.Unhandled(t, c)
-			}
-		})
+		t.Run(c.ID, func(t *testing.T) { platformWrapCase(t, c) })
 	}
 	want := map[string]int{"wappie.platform_wrap_info": 9, "wappie.platform_wrap_aad": 9, "wappie.platform_wrap_seal": 23, "wappie.platform_wrap_open": 36, "refused": 41}
 	for op, n := range want {
 		if counts[op] != n {
 			t.Errorf("%s: %d cases, want %d", op, counts[op], n)
 		}
+	}
+}
+
+// platformWrapCase runs one case of the platform wrap's ops, from a golden
+// file or from the kit's own round trips.
+func platformWrapCase(t *testing.T, c vectest.Case) {
+	var in wrapIn
+	var out wrapOut
+	strict(t, c.In, &in)
+	if c.Error == "" {
+		strict(t, c.Out, &out)
+	} else if c.Error != "platform_wrap" {
+		t.Fatalf("error %q, want platform_wrap", c.Error)
+	}
+	b := wappie.PlatformWrapBinding{UserID: in.UserID, Sub: in.Sub, ProductKeyID: in.ProductKeyID, AccountPublicKey: vectest.B64(t, in.AccountPublicKey)}
+	refused := func(got []byte, err error) {
+		t.Helper()
+		if !errors.Is(err, wappie.ErrPlatformWrap) || got != nil {
+			t.Fatalf("want ErrPlatformWrap and nothing, got %v", err)
+		}
+	}
+	switch c.Op {
+	case "wappie.platform_wrap_info":
+		got, err := wappie.PlatformWrapInfo(b)
+		if err != nil || !bytes.Equal(got, vectest.B64(t, out.Info)) {
+			t.Fatalf("info: %v", err)
+		}
+	case "wappie.platform_wrap_aad":
+		got, err := wappie.PlatformWrapAAD(b)
+		if err != nil || !bytes.Equal(got, vectest.B64(t, out.AAD)) {
+			t.Fatalf("aad: %v", err)
+		}
+	case "wappie.platform_wrap_seal":
+		var r *bytes.Reader
+		if in.Nonce != "" {
+			r = bytes.NewReader(vectest.B64(t, in.Nonce))
+		} else {
+			r = bytes.NewReader(make([]byte, 12))
+		}
+		got, err := wappie.SealPlatformWrap(r, vectest.B64(t, in.ProductKey), vectest.B64(t, in.AccountKey), b)
+		if c.Error != "" {
+			refused(got, err)
+			return
+		}
+		want := vectest.B64(t, out.Wrap)
+		if err != nil || !bytes.Equal(got, want) || wappie.CheckPlatformWrapShape(got) != nil {
+			t.Fatalf("seal: %v", err)
+		}
+		if back, err := wappie.OpenPlatformWrap(vectest.B64(t, in.ProductKey), got, b); err != nil || !bytes.Equal(back, vectest.B64(t, in.AccountKey)) {
+			t.Fatalf("the seal does not open: %v", err)
+		}
+		if out.KPW != "" {
+			// Section 6.5's envelope, header 0x03, no legacy form.
+			aad, _ := wappie.PlatformWrapAAD(b)
+			p := account.Profile{WrapHeader: []byte{wappie.PlatformWrapHeader}}
+			key, stale, err := account.Unwrap(p, vectest.B64(t, out.KPW), want, aad)
+			if err != nil || stale || !bytes.Equal(key, vectest.B64(t, in.AccountKey)) {
+				t.Fatalf("account.Unwrap under k_pw: %v", err)
+			}
+			block, _ := aes.NewCipher(vectest.B64(t, out.KPW))
+			gcm, _ := cipher.NewGCM(block)
+			if !bytes.Equal(gcm.Seal(append([]byte{wappie.PlatformWrapHeader}, want[1:13]...), want[1:13], key, aad), want) {
+				t.Fatal("k_pw does not seal the wrap")
+			}
+			info, _ := wappie.PlatformWrapInfo(b)
+			if !bytes.Equal(hkdfKey(t, vectest.B64(t, in.ProductKey), info), vectest.B64(t, out.KPW)) {
+				t.Fatal("k_pw is not section 6.8's HKDF")
+			}
+		}
+	case "wappie.platform_wrap_open":
+		if in.Wrap == nil {
+			t.Fatal("an open without wrap_b64")
+		}
+		got, err := wappie.OpenPlatformWrap(vectest.B64(t, in.ProductKey), vectest.B64(t, *in.Wrap), b)
+		if c.Error != "" {
+			refused(got, err)
+			return
+		}
+		if err != nil || !bytes.Equal(got, vectest.B64(t, out.AccountKey)) {
+			t.Fatalf("open: %v", err)
+		}
+		if !bytes.Equal(x25519Public(t, got), b.AccountPublicKey) {
+			t.Fatal("opened to a key that is not the binding's")
+		}
+	default:
+		vectest.Unhandled(t, c)
+	}
+}
+
+// TestKitWappiePlatformWrapVectors reproduces the kit's own round trips of
+// the platform wrap that the TypeScript side wrote: the fresh file of that
+// name in $KIT_CROSS_IN in the cross-language job.
+func TestKitWappiePlatformWrapVectors(t *testing.T) {
+	for _, c := range vectest.Fresh(t, "wappie-platform-wrap-ts.json") {
+		if !c.ForGo() {
+			continue
+		}
+		t.Run(c.ID, func(t *testing.T) { platformWrapCase(t, c) })
 	}
 }
 

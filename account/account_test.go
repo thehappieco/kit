@@ -97,6 +97,19 @@ func TestWappieAccountVectors(t *testing.T) {
 				if err != nil || d.AuthKey != out.AuthKey || !bytes.Equal(d.Auth, b(out.Auth)) || !bytes.Equal(d.Wrap, b(out.Wrap)) {
 					t.Errorf("derive: %v", err)
 				}
+				// The bytes form: the same text as bytes, and DeriveBytes
+				// makes no string at all; Clear zeroes every byte.
+				if string(d.AuthText) != out.AuthKey {
+					t.Error("AuthText is not the auth key")
+				}
+				e, err := account.DeriveBytes(p, in.Password, b(in.Salt), in.Params)
+				if err != nil || e.AuthKey != "" || string(e.AuthText) != out.AuthKey || !bytes.Equal(e.Auth, d.Auth) || !bytes.Equal(e.Wrap, d.Wrap) {
+					t.Errorf("DeriveBytes: %v", err)
+				}
+				e.Clear()
+				if !allZero(e.AuthText) || !allZero(e.Auth) || !allZero(e.Wrap) {
+					t.Error("Clear left bytes")
+				}
 			case "account.wrap_aad":
 				if got := wappie.AccountWrapAAD(in.Email); !bytes.Equal(got, b(out.AAD)) {
 					t.Errorf("aad %q, want %q", got, b(out.AAD))
@@ -317,3 +330,75 @@ func TestDerivePrepared(t *testing.T) {
 		t.Errorf("a 7-byte salt: %v", err)
 	}
 }
+
+// DeriveBytes and DerivePreparedBytes are Derive and DerivePrepared without
+// the deprecated string: the same keys and the same text, as bytes, the same
+// refusals, and the caller's prepared bytes left as they were.
+func TestDeriveBytes(t *testing.T) {
+	p := wappie.Account()
+	salt := bytes.Repeat([]byte{4}, 16)
+	want, err := account.Derive(p, "senha correta", salt, cheap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prepared := []byte("senha correta")
+	for name, derive := range map[string]func() (account.Derived, error){
+		"DeriveBytes":         func() (account.Derived, error) { return account.DeriveBytes(p, "senha correta", salt, cheap) },
+		"DerivePreparedBytes": func() (account.Derived, error) { return account.DerivePreparedBytes(p, prepared, salt, cheap) },
+	} {
+		got, err := derive()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.AuthKey != "" || string(got.AuthText) != want.AuthKey || string(want.AuthText) != want.AuthKey || !bytes.Equal(got.Auth, want.Auth) || !bytes.Equal(got.Wrap, want.Wrap) {
+			t.Errorf("%s differs from Derive, or made a string", name)
+		}
+		got.Clear()
+		if !allZero(got.AuthText) || !allZero(got.Auth) || !allZero(got.Wrap) {
+			t.Errorf("%s: Clear left bytes", name)
+		}
+	}
+	if string(prepared) != "senha correta" {
+		t.Fatal("DerivePreparedBytes cleared the caller's bytes")
+	}
+	q := p
+	q.Bounds = &account.Bounds{Min: account.KDFParams{M: 8, T: 1, P: 1}, Max: account.KDFParams{M: 1024, T: 3, P: 1}, MinSaltLen: 16, MaxSaltLen: 16}
+	if _, err := account.DeriveBytes(q, "x", salt[:15], cheap); !errors.Is(err, account.ErrOutOfBounds) {
+		t.Errorf("DeriveBytes, a 15-byte salt: %v", err)
+	}
+	if _, err := account.DerivePreparedBytes(q, []byte("x"), salt, account.KDFParams{Alg: "argon2i", M: 8, T: 1, P: 1}); !errors.Is(err, account.ErrUnsupportedAlg) {
+		t.Errorf("DerivePreparedBytes, argon2i: %v", err)
+	}
+	q.Prepare = func(string) ([]byte, error) { return nil, errors.New("no") }
+	_, err = account.DeriveBytes(q, "x", salt, cheap)
+	if code, _ := errorCode(err); code != "password" {
+		t.Errorf("DeriveBytes, a refused password: %v", err)
+	}
+	var nothing *account.Derived
+	nothing.Clear()
+}
+
+// RecoveryProofBytes is RecoveryProof before its text encoding: the bytes
+// are the decoded proof, the proof is not the key, and a code of the wrong
+// length is refused alike.
+func TestRecoveryProofBytes(t *testing.T) {
+	p := wappie.Account()
+	code := "01234-56789-ABCDE-FGHJK-MNPQR-STVWX"
+	raw, err := account.RecoveryProofBytes(p, code)
+	if err != nil || len(raw) != account.KeyLen {
+		t.Fatal(err)
+	}
+	text, err := account.RecoveryProof(p, code)
+	if err != nil || text != base64.StdEncoding.EncodeToString(raw) {
+		t.Fatalf("RecoveryProof is not RecoveryProofBytes encoded: %v", err)
+	}
+	key, err := account.RecoveryKey(p, code)
+	if err != nil || bytes.Equal(key, raw) {
+		t.Fatal("the key is the proof")
+	}
+	if _, err := account.RecoveryProofBytes(p, "01234"); !errors.Is(err, account.ErrRecoveryLength) {
+		t.Fatalf("a short code: %v", err)
+	}
+}
+
+func allZero(b []byte) bool { return len(b) > 0 && bytes.Equal(b, make([]byte, len(b))) }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   AccountError, bind, checkKDFParams, checkSalt, defaultKDFParams, derive, derivePrepared, freshSalt, generateAccountKeys, newRecoveryCode,
@@ -118,6 +118,31 @@ describe('zeroisation', () => {
     expect(await failure(() => derive(keeping, 'senha correta', new Uint8Array(4) as Bytes, cheap))).toEqual({ error: 'kdf', reason: 'kdf_failed' })
     expect(seen.length).toBe(2)
     for (const b of seen) expect(b.every((x) => x === 0)).toBe(true)
+  })
+
+  it('zeroes the raw auth key once it is text, and the recovery proof once it is text', async () => {
+    const outputs: ArrayBuffer[] = []
+    const real = crypto.subtle.deriveBits.bind(crypto.subtle)
+    const spy = vi.spyOn(crypto.subtle, 'deriveBits').mockImplementation(async (...args: Parameters<SubtleCrypto['deriveBits']>) => {
+      const out = await real(...args)
+      outputs.push(out)
+      return out
+    })
+    try {
+      const salt = new Uint8Array(16).fill(8) as Bytes
+      for (const run of [() => derive(p, 'senha correta', salt, cheap), () => derivePrepared(p, utf8('senha correta'), salt, cheap)]) {
+        outputs.length = 0
+        expect((await run()).authKey.length).toBe(44)
+        expect(outputs.length).toBe(2)
+        for (const o of outputs) expect(new Uint8Array(o).every((x) => x === 0)).toBe(true)
+      }
+      outputs.length = 0
+      expect((await recoveryProof(p, '01234-56789-ABCDE-FGHJK-MNPQR-STVWX')).length).toBe(44)
+      expect(outputs.length).toBe(1)
+      expect(new Uint8Array(outputs[0]!).every((x) => x === 0)).toBe(true)
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('zeroes what the worker was sent, on the caller\'s side', async () => {

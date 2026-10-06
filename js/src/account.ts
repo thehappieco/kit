@@ -133,7 +133,8 @@ export interface DeriveOptions {
  *
  * The parameters and the salt are checked against the profile's bounds before
  * anything is derived. The prepared password bytes, the master key and the raw
- * wrap key are zeroed before it returns; the password string itself cannot be.
+ * auth and wrap keys are zeroed before it returns; the password string itself
+ * cannot be, nor can authKey, a string, which is sent as text anyway.
  */
 export async function derive(p: AccountProfile, password: string, salt: Bytes, params: KDFParams, options: DeriveOptions = {}): Promise<Derived> {
   checkKDFParams(p, params)
@@ -158,8 +159,8 @@ export async function derive(p: AccountProfile, password: string, salt: Bytes, p
  * the bytes Argon2id reads, such as a profile's own preparation produced
  * them. The profile's prepare is not called. The parameters and the salt are
  * checked exactly as derive checks them, before anything is derived, and the
- * master key and the raw wrap key are zeroed before it returns; prepared stays
- * the caller's to zero.
+ * master key and the raw auth and wrap keys are zeroed before it returns;
+ * prepared stays the caller's to zero.
  */
 export async function derivePrepared(p: AccountProfile, prepared: Bytes, salt: Bytes, params: KDFParams, options: DeriveOptions = {}): Promise<Derived> {
   checkKDFParams(p, params)
@@ -167,23 +168,27 @@ export async function derivePrepared(p: AccountProfile, prepared: Bytes, salt: B
   return split(p, await stretch(prepared, salt, params, options))
 }
 
-/** split derives the two branches from the master key, and zeroes it. */
+/**
+ * split derives the two branches from the master key, and zeroes it, the raw
+ * auth key once it is text, and the raw wrap key once it is imported.
+ */
 async function split(p: AccountProfile, master: Bytes): Promise<Derived> {
+  const raw: Bytes[] = []
   try {
     const base = await crypto.subtle.importKey('raw', master, 'HKDF', false, ['deriveBits'])
     const branch = (label: string) =>
       crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: encodeUTF8(label) }, base, 256)
-    const [auth, wrap] = (await Promise.all([branch(p.authLabel), branch(p.wrapLabel)])).map((bits) => new Uint8Array(bits))
-    try {
-      return {
-        authKey: encode(p, auth),
-        wrapKey: await crypto.subtle.importKey('raw', wrap, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']),
-      }
-    } finally {
-      wrap.fill(0)
+    const results = await Promise.allSettled([branch(p.authLabel), branch(p.wrapLabel)])
+    for (const r of results) if (r.status === 'fulfilled') raw.push(new Uint8Array(r.value) as Bytes)
+    for (const r of results) if (r.status === 'rejected') throw r.reason
+    const [auth, wrap] = raw as [Bytes, Bytes]
+    return {
+      authKey: encode(p, auth),
+      wrapKey: await crypto.subtle.importKey('raw', wrap, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']),
     }
   } finally {
     master.fill(0)
+    for (const b of raw) b.fill(0)
   }
 }
 
@@ -342,9 +347,17 @@ export async function recoveryKey(p: AccountProfile, code: string): Promise<Cryp
   }
 }
 
-/** recoveryProof is the branch of the code that is sent, independent of the key. */
+/**
+ * recoveryProof is the branch of the code that is sent, independent of the
+ * key. The proof's bytes are zeroed once they are text; the string cannot be.
+ */
 export async function recoveryProof(p: AccountProfile, code: string): Promise<string> {
-  return encode(p, await recoveryBranch(p, code, p.recoveryProofLabel))
+  const bits = await recoveryBranch(p, code, p.recoveryProofLabel)
+  try {
+    return encode(p, bits)
+  } finally {
+    bits.fill(0)
+  }
 }
 
 /** bind fixes a profile, for a product's own wrappers. */

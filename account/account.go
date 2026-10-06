@@ -165,11 +165,30 @@ func (p Profile) Check(params KDFParams) error {
 // Derived is what a password becomes. Neither half is the password.
 type Derived struct {
 	// AuthKey is Auth in the profile's text encoding: what is sent.
+	//
+	// Deprecated: a string cannot be cleared. Use AuthText, the same text as
+	// bytes the caller clears. Derive and DerivePrepared still fill AuthKey;
+	// DeriveBytes and DerivePreparedBytes leave it empty and make no string.
 	AuthKey string
 	// Auth is the branch that proves who you are.
 	Auth []byte
 	// Wrap is the branch that opens the account's key. It never leaves.
 	Wrap []byte
+	// AuthText is Auth in the profile's text encoding, as bytes: what is
+	// sent. Every derivation fills it; the caller clears it with Auth and
+	// Wrap (Clear).
+	AuthText []byte
+}
+
+// Clear zeroes the bytes d holds: AuthText, Auth and Wrap. AuthKey, a
+// string, cannot be cleared; DeriveBytes and DerivePreparedBytes leave it
+// empty.
+func (d *Derived) Clear() {
+	if d != nil {
+		clear(d.AuthText)
+		clear(d.Auth)
+		clear(d.Wrap)
+	}
 }
 
 // Derive runs Argon2id over the prepared password and splits the result:
@@ -180,8 +199,46 @@ type Derived struct {
 //
 // The parameters and the salt are checked against the profile's bounds
 // before anything is derived. The prepared password and the master key are
-// cleared before it returns.
+// cleared before it returns. It fills AuthText and the deprecated AuthKey,
+// a string nothing can clear; DeriveBytes makes none.
 func Derive(p Profile, password string, salt []byte, params KDFParams) (Derived, error) {
+	return p.derivePassword(password, salt, params, true)
+}
+
+// DeriveBytes is Derive without the deprecated string: it fills Auth, Wrap
+// and AuthText, which the caller clears (Derived.Clear), and leaves AuthKey
+// empty, so nothing the derivation makes is beyond the caller's reach.
+func DeriveBytes(p Profile, password string, salt []byte, params KDFParams) (Derived, error) {
+	return p.derivePassword(password, salt, params, false)
+}
+
+// DerivePrepared is Derive for a password the caller has already prepared:
+// the bytes Argon2id reads, such as a profile's own preparation produced
+// them. The profile's Prepare is not called. The parameters and the salt are
+// checked exactly as Derive checks them, before anything is derived, and the
+// master key is cleared before it returns; prepared stays the caller's to
+// clear. It fills AuthText and the deprecated AuthKey; DerivePreparedBytes
+// makes no string.
+func DerivePrepared(p Profile, prepared, salt []byte, params KDFParams) (Derived, error) {
+	if err := p.checkDerivation(salt, params); err != nil {
+		return Derived{}, err
+	}
+	return p.derive(prepared, salt, params, true)
+}
+
+// DerivePreparedBytes is DerivePrepared without the deprecated string: it
+// fills Auth, Wrap and AuthText, which the caller clears (Derived.Clear),
+// and leaves AuthKey empty. prepared stays the caller's to clear.
+func DerivePreparedBytes(p Profile, prepared, salt []byte, params KDFParams) (Derived, error) {
+	if err := p.checkDerivation(salt, params); err != nil {
+		return Derived{}, err
+	}
+	return p.derive(prepared, salt, params, false)
+}
+
+// derivePassword is Derive and DeriveBytes: the bounds, the profile's
+// preparation, and the derivation, with the prepared bytes cleared after.
+func (p Profile) derivePassword(password string, salt []byte, params KDFParams, withString bool) (Derived, error) {
 	if err := p.checkDerivation(salt, params); err != nil {
 		return Derived{}, err
 	}
@@ -195,20 +252,7 @@ func Derive(p Profile, password string, salt []byte, params KDFParams) (Derived,
 	// Clearing is best effort in Go: the runtime may have copied the buffer,
 	// and the password string itself cannot be cleared.
 	defer clear(prepared)
-	return p.derive(prepared, salt, params)
-}
-
-// DerivePrepared is Derive for a password the caller has already prepared:
-// the bytes Argon2id reads, such as a profile's own preparation produced
-// them. The profile's Prepare is not called. The parameters and the salt are
-// checked exactly as Derive checks them, before anything is derived, and the
-// master key is cleared before it returns; prepared stays the caller's to
-// clear.
-func DerivePrepared(p Profile, prepared, salt []byte, params KDFParams) (Derived, error) {
-	if err := p.checkDerivation(salt, params); err != nil {
-		return Derived{}, err
-	}
-	return p.derive(prepared, salt, params)
+	return p.derive(prepared, salt, params, withString)
 }
 
 // checkDerivation is what Derive and DerivePrepared refuse before deriving:
@@ -228,8 +272,9 @@ func (p Profile) checkDerivation(salt []byte, params KDFParams) error {
 	return nil
 }
 
-// derive runs Argon2id over prepared bytes and splits the master key.
-func (p Profile) derive(prepared, salt []byte, params KDFParams) (Derived, error) {
+// derive runs Argon2id over prepared bytes and splits the master key. It
+// fills AuthText, and with withString the deprecated AuthKey too.
+func (p Profile) derive(prepared, salt []byte, params KDFParams, withString bool) (Derived, error) {
 	master := argon2.IDKey(prepared, salt, params.T, params.M, params.P, KeyLen)
 	defer clear(master)
 	auth, err := hkdf.Key(sha256.New, master, nil, p.AuthLabel, KeyLen)
@@ -238,9 +283,16 @@ func (p Profile) derive(prepared, salt []byte, params KDFParams) (Derived, error
 	}
 	wrap, err := hkdf.Key(sha256.New, master, nil, p.WrapLabel, KeyLen)
 	if err != nil {
+		clear(auth)
 		return Derived{}, &Error{Code: "kdf", Reason: "kdf_failed", Err: err}
 	}
-	return Derived{AuthKey: p.encoding().EncodeToString(auth), Auth: auth, Wrap: wrap}, nil
+	enc := p.encoding()
+	d := Derived{Auth: auth, Wrap: wrap, AuthText: make([]byte, enc.EncodedLen(len(auth)))}
+	enc.Encode(d.AuthText, auth)
+	if withString {
+		d.AuthKey = string(d.AuthText)
+	}
+	return d, nil
 }
 
 // Wrap seals plaintext (an account key, or a platform root) under a wrap key:

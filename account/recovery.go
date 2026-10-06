@@ -84,25 +84,44 @@ func (p Profile) normaliseRecovery(code string) (string, error) {
 // RecoveryKey is the wrap key of a recovery code:
 // HKDF-SHA256(IKM = UTF-8(normalised code), salt = ∅, info = RecoveryKeyLabel).
 // Not stretched: the code is 150 random bits. It never leaves the client.
+// The []byte copy of the normalised code it derives from is cleared; the key
+// is the caller's to clear.
 func RecoveryKey(p Profile, code string) ([]byte, error) {
-	normalised, err := p.normaliseRecovery(code)
-	if err != nil {
-		return nil, err
-	}
-	return hkdf.Key(sha256.New, []byte(normalised), nil, p.RecoveryKeyLabel, KeyLen)
+	return p.recoveryBranch(code, p.RecoveryKeyLabel)
 }
 
 // RecoveryProof is the branch of a recovery code that is sent, so the server
 // releases the recovery wrap only to somebody holding the code. It is an
-// independent HKDF output, so it says nothing about RecoveryKey.
+// independent HKDF output, so it says nothing about RecoveryKey. The copy of
+// the normalised code and the proof's bytes are cleared once the proof is
+// encoded; the string it returns cannot be cleared (RecoveryProofBytes
+// gives the bytes instead).
 func RecoveryProof(p Profile, code string) (string, error) {
+	proof, err := RecoveryProofBytes(p, code)
+	if err != nil {
+		return "", err
+	}
+	defer clear(proof)
+	return p.encoding().EncodeToString(proof), nil
+}
+
+// RecoveryProofBytes is RecoveryProof before its text encoding: the 32
+// bytes of HKDF-SHA256(IKM = UTF-8(normalised code), salt = ∅, info =
+// RecoveryProofLabel), which the caller clears. The copy of the normalised
+// code is cleared.
+func RecoveryProofBytes(p Profile, code string) ([]byte, error) {
+	return p.recoveryBranch(code, p.RecoveryProofLabel)
+}
+
+// recoveryBranch is one HKDF branch of a normalised recovery code. The
+// []byte copy of the code is cleared; the normalised string, like the code
+// the caller passed, cannot be.
+func (p Profile) recoveryBranch(code, label string) ([]byte, error) {
 	normalised, err := p.normaliseRecovery(code)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	proof, err := hkdf.Key(sha256.New, []byte(normalised), nil, p.RecoveryProofLabel, KeyLen)
-	if err != nil {
-		return "", err
-	}
-	return p.encoding().EncodeToString(proof), nil
+	ikm := []byte(normalised)
+	defer clear(ikm)
+	return hkdf.Key(sha256.New, ikm, nil, label, KeyLen)
 }

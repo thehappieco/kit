@@ -126,8 +126,10 @@ func (k *RecoveryKeys) Zero() {
 
 // DeriveRecovery canonicalises a typed or canonical recovery code and derives
 // K_rwrap and R_proof from the ASCII bytes of its canonical form:
-// account.RecoveryKey and account.RecoveryProof with Account(). No slow KDF
-// is needed: 150 bits cannot be guessed offline.
+// account.RecoveryKey and account.RecoveryProofBytes with Account(). No slow
+// KDF is needed: 150 bits cannot be guessed offline. It makes no string of
+// R_proof, and clears what account returned once it is copied; the keys are
+// the caller's (RecoveryKeys.Zero).
 func DeriveRecovery(code string) (*RecoveryKeys, error) {
 	c, err := CanonicalRecoveryCode(code)
 	if err != nil {
@@ -139,11 +141,7 @@ func DeriveRecovery(code string) (*RecoveryKeys, error) {
 		return nil, fmt.Errorf("%w: %w", ErrRecoveryCode, err)
 	}
 	defer clear(w)
-	proofText, err := account.RecoveryProof(p, c)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrRecoveryCode, err)
-	}
-	proof, err := DecodeB64(proofText, KeyLen)
+	proof, err := account.RecoveryProofBytes(p, c)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrRecoveryCode, err)
 	}

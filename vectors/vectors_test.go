@@ -71,6 +71,8 @@ func TestManifest(t *testing.T) {
 		"platform/_generators-4476bf4/tools/vectors/main.go",
 		"platform/_generators-b5d9f69/tools/vectors/main.go",
 		"platform/_generators-75b6b94/tools/vectors/main.go",
+		"wappie/_generators/run-cloud.sh",
+		"wappie/_generators/cloud/header-0x03.patch",
 	} {
 		if _, err := fs.Stat(vectors.FS, generator); err == nil {
 			t.Errorf("the generators are embedded: %s", generator)
@@ -276,5 +278,70 @@ func TestPlatformVectorFiles(t *testing.T) {
 	}
 	if total != 486 || failing != 356 {
 		t.Errorf("%d cases, %d must fail; want 486 and 356", total, failing)
+	}
+}
+
+// Wappie's platform-wrap files (SPEC section 6.8) are the ones captured from
+// Wappie's console at the commit PROVENANCE.md records, with the header
+// patch recorded there: each has the sha256 recorded there, so an edit or
+// a capture from another commit fails here even after `make manifest` has
+// recorded it. The golden files have their counts of cases and of
+// must-fail cases; the console's own file its 3 vectors, 15 open refusals
+// and 5 seal refusals.
+func TestWappiePlatformWrapFiles(t *testing.T) {
+	for _, w := range []struct {
+		path            string
+		cases, mustFail int
+		sha256          string
+	}{
+		{"wappie/golden/platform-wrap-go.json", 55, 31, "e3d5e918fbb239d59e01e22dcffa94ad5e3da111425fe1f386b215f8a1b9e933"},
+		{"wappie/golden/platform-wrap-ts.json", 22, 10, "cfb7390af38d26e63acf03004628c9af29595bc47069ce4808bd654e0cd5eb37"},
+	} {
+		raw, err := fs.ReadFile(vectors.FS, w.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != w.sha256 {
+			t.Errorf("%s is not the file captured from the console (PROVENANCE.md)", w.path)
+		}
+		var f struct {
+			Format string `json:"format"`
+			Module string `json:"module"`
+			Cases  []struct {
+				ID    string `json:"id"`
+				Error string `json:"error"`
+			} `json:"cases"`
+		}
+		if err := json.Unmarshal(raw, &f); err != nil {
+			t.Fatal(err)
+		}
+		bad := 0
+		for _, c := range f.Cases {
+			if c.Error != "" {
+				bad++
+			}
+		}
+		if f.Format != "thehappieco-kit-vectors/1" || f.Module != "wappie.platform_wrap" || len(f.Cases) != w.cases || bad != w.mustFail {
+			t.Errorf("%s: %q %q, %d cases, %d must fail; want %d and %d", w.path, f.Format, f.Module, len(f.Cases), bad, w.cases, w.mustFail)
+		}
+	}
+	const legacy = "wappie/legacy/platform-wrap-vectors.json"
+	raw, err := fs.ReadFile(vectors.FS, legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != "fb96f29339e3e9855d3835ef21d3742837f9f760d7748fbce35430ce8b084ec7" {
+		t.Errorf("%s is not the file captured from the console (PROVENANCE.md)", legacy)
+	}
+	var f struct {
+		Vectors      []json.RawMessage `json:"vectors"`
+		OpenRefusals []json.RawMessage `json:"open_refusals"`
+		SealRefusals []json.RawMessage `json:"seal_refusals"`
+	}
+	if err := json.Unmarshal(raw, &f); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Vectors) != 3 || len(f.OpenRefusals) != 15 || len(f.SealRefusals) != 5 {
+		t.Errorf("%s: %d vectors, %d and %d refusals; want 3, 15 and 5", legacy, len(f.Vectors), len(f.OpenRefusals), len(f.SealRefusals))
 	}
 }

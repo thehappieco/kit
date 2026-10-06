@@ -8,9 +8,9 @@ There are two file formats: the kit's own (below), used by everything under `wap
 
 | Path | What |
 |---|---|
-| `wappie/legacy/` | Byte-for-byte copies of Wappie's own fixtures, in the shapes Wappie gave them. Never rewritten. |
-| `wappie/golden/` | Vectors written by Wappie's code at the commit in `PROVENANCE.md`, by the generators in `wappie/_generators/`. |
-| `wappie/_generators/` | The generators, kept for provenance and for `make vectors-regen-check`. Not built by the go tool, not embedded. |
+| `wappie/legacy/` | Byte-for-byte copies of Wappie's own fixtures, in the shapes Wappie gave them; `platform-wrap-vectors.json` is its console's own file as the console's test writes it with the header patch `PROVENANCE.md` records. Never rewritten. |
+| `wappie/golden/` | Vectors written by Wappie's code at the commits in `PROVENANCE.md`, by the generators in `wappie/_generators/`: Wappie's at `8c0c1f7`, and its console's platform wrap (`platform-wrap-{go,ts}.json`) at `3bfee27` with the header patch recorded there. |
+| `wappie/_generators/` | The generators, kept for provenance and for `make vectors-regen-check`; `run-cloud.sh` and `cloud/` are those of the console's platform wrap, for `make vectors-cloud-regen-check`. Not built by the go tool, not embedded. |
 | `kit/` | Vectors written by the kit itself: `*-go.json` by the Go code for TypeScript to open, `*-ts.json` the reverse. |
 | `platform/id-v1/` | The platform's golden vectors of its protocol `id-v1`, byte for byte as the platform's Go code wrote them at the commits in `PROVENANCE.md`, in the platform's format: part 1 (SPEC sections 11.1 to 11.11) at `5e66d84`, part 2 (sections 11.12 to 11.15) at `4476bf4`, part 3 (section 11.16) at `b5d9f69`, and the relying party rule of section 11.16 at `75b6b94`. |
 | `platform/_generators/` | The platform's generator at `5e66d84`, kept for provenance. Not built, not embedded. |
@@ -57,6 +57,7 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | hpke | `open_failed`, `invalid_key` |
 | reqhmac | `hmac_missing`, `hmac_stale`, `hmac_bad`, `hmac_replay`, `replay_cache_full` |
 | jcs | `jcs` |
+| wappie.platform_wrap | `platform_wrap` |
 | platform (its own format) | `password_invalid`, `password_too_short`, `password_too_long`, `kdf_policy`, `wrap`, `recovery_code`, `email`, `product_key`, `bundle`, `key_delivery`, `pkce`, `client_extensions`, `encoding` |
 
 ### Op catalogue
@@ -95,6 +96,9 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | `platform.open_product_key` (a fresh seal, which cannot be replayed in the other language) | open | open |
 | `platform.seal_product_key` (refusals of `akd_pub`) | refuse | refuse |
 | `platform.prf_salt`, `platform.check_client_extensions` | compute | compute |
+| `wappie.platform_wrap_info`, `wappie.platform_wrap_aad` | compute | compute |
+| `wappie.platform_wrap_seal` (`k_pw_b64` from Go only: TypeScript's K_pw is not extractable) | replay (nonce); refuse | replay (nonce); refuse |
+| `wappie.platform_wrap_open` | compute; refuse | compute; refuse |
 | `platform.passkey_wrap` (`k_pk_b64` from Go only: TypeScript's K_pk is not extractable) | compute; replay (nonce); open | compute; replay (nonce); open |
 | `platform.open_passkey_wrap` | refuse | refuse |
 
@@ -151,6 +155,7 @@ make test-browser      # the TypeScript specs in Chromium, Firefox and WebKit
 make cross             # fresh round trips: each language writes, the other opens
 make vectors-check     # the manifest
 make vectors-regen-check WAPPIE=../whatserver2   # regenerate from Wappie and compare
+make vectors-cloud-regen-check WAPPIE_CLOUD=../whatserver2/commercial   # regenerate the platform wrap's from Wappie's console and compare
 make vectors-platform-check PLATFORM=../platform # regenerate from the platform and compare
 make vectors-platform-regen      # regenerate the platform's files from the kit's copy of its generator and compare
 ```

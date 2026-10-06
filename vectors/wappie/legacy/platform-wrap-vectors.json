@@ -1,0 +1,154 @@
+{
+  "description": "Wappie's platform wrap: the Wappie account key under a key derived from id.'s product key sk_p (platform decision 0023). Keys, nonces and wraps are hex; info and aad are their UTF-8 text.",
+  "construction": [
+    "K_pw = HKDF-SHA256(IKM = product_key, salt = UTF-8(\"wappie/platform-wrap/v1\"), info = JCS([\"wappie/platform-wrap\", 1, user_id, sub, product_key_id]), L = 32)",
+    "aad = JCS([\"wappie/platform-wrap\", 1, user_id, sub, product_key_id, base64url-unpadded(account_public_key)])",
+    "wrap = 0x03 || nonce (12) || AES-256-GCM(K_pw, nonce, account_key (32), aad), 61 bytes",
+    "Open also requires X25519(account_key, 9) == account_public_key; Seal refuses an account key whose public half is not account_public_key."
+  ],
+  "vectors": [
+    {
+      "name": "an account created through id. (users.id = sub)",
+      "product_key": "af6a5d33fe35c987309e14eaed83275d7194721587500a7f1547a57998fa302a",
+      "account_key": "aec2b2ec738753cc9ea19745cef28a230070781d822dc2315e3315d4bbd4cd49",
+      "account_public_key": "f572f0662ab113ff4bea3eaa33e5d06cb31f2b6973921c11fe79301ef9b35b6a",
+      "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+      "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+      "product_key_id": "wappie:1",
+      "nonce": "e497ef6c29d8d4cd081ded4b",
+      "info": "[\"wappie/platform-wrap\",1,\"0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b\",\"0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b\",\"wappie:1\"]",
+      "aad": "[\"wappie/platform-wrap\",1,\"0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b\",\"0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b\",\"wappie:1\",\"9XLwZiqxE_9L6j6qM-XQbLMfK2lzkhwR_nkwHvmzW2o\"]",
+      "wrap": "03e497ef6c29d8d4cd081ded4bb5ea47facab65025f04f94a6881a9480481a1fd7daa5920c8b406d79b7ab8e9231053e8da56f01d0f328a6be965da022"
+    },
+    {
+      "name": "a linked pilot account (users.id kept)",
+      "product_key": "06c226ce1f467c56be9f63db4e69f4aecfaad68092db545c97c79b9e65c8a358",
+      "account_key": "18f9c3b24a5ac3ee2a09e3dc290f00573d1e1b54b33fb025ea716bb5ba621b7b",
+      "account_public_key": "3a7b64399b83d1194e92398e1d8b2f4c4f9154762fd9e566c0a146b85c054170",
+      "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+      "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+      "product_key_id": "wappie:1",
+      "nonce": "67b2c3d5d3401edd2691cb7d",
+      "info": "[\"wappie/platform-wrap\",1,\"01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f\",\"019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8\",\"wappie:1\"]",
+      "aad": "[\"wappie/platform-wrap\",1,\"01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f\",\"019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8\",\"wappie:1\",\"OntkOZuD0RlOkjmOHYsvTE-RVHYv2eVmwKFGuFwFQXA\"]",
+      "wrap": "0367b2c3d5d3401edd2691cb7de1095fb78a1cfbf499784cd59d7332d32255c937341b6fbc26d5f2aa33c3afce836ed5641f66ff2725c2e8cd303c4cd4"
+    },
+    {
+      "name": "the linked account at epoch 2",
+      "product_key": "afaef2e52a36781b930760ba54b3a715ec8b2d4dc912f3d244fb8ffa31103713",
+      "account_key": "6c5c8f26577daa75351b1526eea6da6675cc481789f7b9385e89f45f98d5a84b",
+      "account_public_key": "e8a4c176de0a345a81785eec2d744f5996e5d5d73ea64c2df8a37cc2d343f13e",
+      "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+      "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+      "product_key_id": "wappie:2",
+      "nonce": "2daa0b7cfc27c1d762ef5124",
+      "info": "[\"wappie/platform-wrap\",1,\"01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f\",\"019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8\",\"wappie:2\"]",
+      "aad": "[\"wappie/platform-wrap\",1,\"01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f\",\"019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8\",\"wappie:2\",\"6KTBdt4KNFqBeF7sLXRPWZbl1dc-pkwt-KN8wtND8T4\"]",
+      "wrap": "032daa0b7cfc27c1d762ef5124fe47e3edbfaa072360f85d1d92a3de0e967bcffc3faec274e8008a031afc792bcbd1ded18e331525efa1d87435de1a0c"
+    }
+  ],
+  "open_refusals": [
+    {
+      "name": "another user_id",
+      "vector": 1,
+      "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e90"
+    },
+    {
+      "name": "another sub",
+      "vector": 1,
+      "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e9"
+    },
+    {
+      "name": "another epoch",
+      "vector": 1,
+      "product_key_id": "wappie:2"
+    },
+    {
+      "name": "another account public key",
+      "vector": 1,
+      "account_public_key": "2688806b0c6263064b4d481732a7c6413c10911d13f57888ea6fe942f3a1f961"
+    },
+    {
+      "name": "another product key",
+      "vector": 1,
+      "product_key": "afaef2e52a36781b930760ba54b3a715ec8b2d4dc912f3d244fb8ffa31103713"
+    },
+    {
+      "name": "the epoch 2 wrap under epoch 1",
+      "vector": 1,
+      "wrap": "032daa0b7cfc27c1d762ef5124fe47e3edbfaa072360f85d1d92a3de0e967bcffc3faec274e8008a031afc792bcbd1ded18e331525efa1d87435de1a0c"
+    },
+    {
+      "name": "a flipped nonce byte",
+      "vector": 1,
+      "wrap": "0366b2c3d5d3401edd2691cb7de1095fb78a1cfbf499784cd59d7332d32255c937341b6fbc26d5f2aa33c3afce836ed5641f66ff2725c2e8cd303c4cd4"
+    },
+    {
+      "name": "a flipped ciphertext byte",
+      "vector": 1,
+      "wrap": "0367b2c3d5d3401edd2691cb7de1095fb78a1cfbf599784cd59d7332d32255c937341b6fbc26d5f2aa33c3afce836ed5641f66ff2725c2e8cd303c4cd4"
+    },
+    {
+      "name": "a flipped tag byte",
+      "vector": 1,
+      "wrap": "0367b2c3d5d3401edd2691cb7de1095fb78a1cfbf499784cd59d7332d32255c937341b6fbc26d5f2aa33c3afce836ed5641f66ff2725c2e8cd303c4cd5"
+    },
+    {
+      "name": "version 2",
+      "vector": 1,
+      "wrap": "0267b2c3d5d3401edd2691cb7de1095fb78a1cfbf499784cd59d7332d32255c937341b6fbc26d5f2aa33c3afce836ed5641f66ff2725c2e8cd303c4cd4"
+    },
+    {
+      "name": "60 bytes",
+      "vector": 1,
+      "wrap": "0367b2c3d5d3401edd2691cb7de1095fb78a1cfbf499784cd59d7332d32255c937341b6fbc26d5f2aa33c3afce836ed5641f66ff2725c2e8cd303c4c"
+    },
+    {
+      "name": "62 bytes",
+      "vector": 1,
+      "wrap": "0367b2c3d5d3401edd2691cb7de1095fb78a1cfbf499784cd59d7332d32255c937341b6fbc26d5f2aa33c3afce836ed5641f66ff2725c2e8cd303c4cd400"
+    },
+    {
+      "name": "an uppercase sub",
+      "vector": 1,
+      "sub": "019A2B3C-4D5E-7F60-8172-93A4B5C6D7E8"
+    },
+    {
+      "name": "another product's key id",
+      "vector": 1,
+      "product_key_id": "mailie:1"
+    },
+    {
+      "name": "a wrap that opens under its AAD to another account's key",
+      "vector": 1,
+      "wrap": "03731b8a359d16a566a0ec4f6dedec80ba274b3ed74bddca74dad64651e9f2fd13596c52d05ae1bf2e9a47c2de2f96430f62a53cca92f702f13bfb44c4"
+    }
+  ],
+  "seal_refusals": [
+    {
+      "name": "an account key that is not the public key's",
+      "vector": 0,
+      "account_key": "0129198eff1590b8ef8a97262fa872aab3d5ad74095b2e047ed7f48e1c27156f"
+    },
+    {
+      "name": "a 31-byte product key",
+      "vector": 0,
+      "product_key": "af6a5d33fe35c987309e14eaed83275d7194721587500a7f1547a57998fa30"
+    },
+    {
+      "name": "a user_id that is not a lowercase UUID",
+      "vector": 0,
+      "user_id": "not-a-uuid"
+    },
+    {
+      "name": "an epoch with a leading zero",
+      "vector": 0,
+      "product_key_id": "wappie:01"
+    },
+    {
+      "name": "another product's key id",
+      "vector": 0,
+      "product_key_id": "mailie:1"
+    }
+  ]
+}

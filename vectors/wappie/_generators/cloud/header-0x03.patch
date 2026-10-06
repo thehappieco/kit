@@ -1,0 +1,62 @@
+diff --git a/platformwrap/platformwrap.go b/platformwrap/platformwrap.go
+index 98b6372..ee475ce 100644
+--- a/platformwrap/platformwrap.go
++++ b/platformwrap/platformwrap.go
+@@ -9,7 +9,7 @@
+ //	K_pw = HKDF-SHA256(IKM = sk_p (32 bytes), salt = UTF-8("wappie/platform-wrap/v1"),
+ //	                   info = JCS(["wappie/platform-wrap", 1, user_id, sub, product_key_id]), L = 32)
+ //	aad  = JCS(["wappie/platform-wrap", 1, user_id, sub, product_key_id, b64url(account_public_key)])
+-//	wrap = 0x01 || nonce (12) || AES-256-GCM(K_pw, nonce, account_key (32), aad)       61 bytes
++//	wrap = 0x03 || nonce (12) || AES-256-GCM(K_pw, nonce, account_key (32), aad)       61 bytes
+ //
+ // user_id is Wappie's users.id (the sub itself for an account created
+ // through id., the old id for a linked one), sub is id.'s account id, both
+@@ -48,8 +48,10 @@ import (
+ )
+ 
+ const (
+-	// Version is the first byte of a wrap.
+-	Version = 0x01
++	// Version is the first byte of a wrap: the header 0x03 of the kit's SPEC
++	// section 6.8, after the password and recovery wraps' 0x02 and the
++	// passkey envelope's 0x01.
++	Version = 0x03
+ 	// Len is a wrap's length: version, nonce, the 32-byte key and the tag.
+ 	Len = 1 + nonceLen + keyLen + 16
+ 	// Label opens the info and the AAD; SaltLabel is the HKDF salt.
+diff --git a/platformwrap/platformwrap_test.go b/platformwrap/platformwrap_test.go
+index 56e77bd..8d76a40 100644
+--- a/platformwrap/platformwrap_test.go
++++ b/platformwrap/platformwrap_test.go
+@@ -144,7 +144,7 @@ func generate(t *testing.T) vectorFile {
+ 		Construction: []string{
+ 			"K_pw = HKDF-SHA256(IKM = product_key, salt = UTF-8(\"wappie/platform-wrap/v1\"), info = JCS([\"wappie/platform-wrap\", 1, user_id, sub, product_key_id]), L = 32)",
+ 			"aad = JCS([\"wappie/platform-wrap\", 1, user_id, sub, product_key_id, base64url-unpadded(account_public_key)])",
+-			"wrap = 0x01 || nonce (12) || AES-256-GCM(K_pw, nonce, account_key (32), aad), 61 bytes",
++			"wrap = 0x03 || nonce (12) || AES-256-GCM(K_pw, nonce, account_key (32), aad), 61 bytes",
+ 			"Open also requires X25519(account_key, 9) == account_public_key; Seal refuses an account key whose public half is not account_public_key.",
+ 		},
+ 		Vectors: vs,
+diff --git a/web/platform/platformWrap.ts b/web/platform/platformWrap.ts
+index b62df9b..062f183 100644
+--- a/web/platform/platformWrap.ts
++++ b/web/platform/platformWrap.ts
+@@ -6,7 +6,7 @@
+ //   K_pw = HKDF-SHA256(IKM = sk_p (32 bytes), salt = UTF-8("wappie/platform-wrap/v1"),
+ //                      info = JCS(["wappie/platform-wrap", 1, user_id, sub, product_key_id]), L = 32)
+ //   aad  = JCS(["wappie/platform-wrap", 1, user_id, sub, product_key_id, b64url(account_public_key)])
+-//   wrap = 0x01 || nonce (12) || AES-256-GCM(K_pw, nonce, account_key (32), aad)       61 bytes
++//   wrap = 0x03 || nonce (12) || AES-256-GCM(K_pw, nonce, account_key (32), aad)       61 bytes
+ //
+ // user_id is Wappie's users.id (the sub itself for an account created
+ // through id., the old id for a linked one), sub is id.'s account id, both
+@@ -32,7 +32,8 @@ import { publicFromPrivate } from '@thehappieco/kit/hpke'
+ import { canonicalJSON } from '@thehappieco/kit/jcs'
+ import { isProductKeyId, isSub } from '@thehappieco/kit/profiles/platform'
+ 
+-export const PLATFORM_WRAP_VERSION = 0x01
++/** The header 0x03 of the kit's SPEC section 6.8, after the password and recovery wraps' 0x02 and the passkey envelope's 0x01. */
++export const PLATFORM_WRAP_VERSION = 0x03
+ export const PLATFORM_WRAP_LEN = 61
+ export const PLATFORM_WRAP_LABEL = 'wappie/platform-wrap'
+ export const PLATFORM_WRAP_SALT = 'wappie/platform-wrap/v1'

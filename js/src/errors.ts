@@ -223,3 +223,23 @@ export class RPError extends Error {
 export function isRPError(err: unknown, code?: RPErrorCode): err is RPError {
   return err instanceof RPError && (code === undefined || err.code === code)
 }
+
+/**
+ * PlatformWrapError is every refusal of Wappie's platform wrap (SPEC section
+ * 6.8, @thehappieco/kit/profiles/wappie), an engine without X25519 included.
+ * Which check failed is not said beyond the message, which never repeats a
+ * key. The name and the message prefix are those of Wappie's console, whose
+ * module this is.
+ */
+export class PlatformWrapError extends Error {
+  readonly code = 'platform_wrap'
+  constructor(message: string) {
+    super(`platform wrap: ${message}`)
+    this.name = 'PlatformWrapError'
+  }
+}
+
+/** isPlatformWrapError narrows a caught value. */
+export function isPlatformWrapError(err: unknown): err is PlatformWrapError {
+  return err instanceof PlatformWrapError
+}

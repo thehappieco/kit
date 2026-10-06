@@ -10,8 +10,11 @@ PLATFORM ?= ../platform
 PLATFORM_COMMIT ?= 75b6b940df5c6903023f9030f5f3875540f6a36f
 PLATFORM_FILES ?= 14
 PLATFORM_GENERATOR ?= vectors/platform/_generators-75b6b94
+WAPPIE_CLOUD ?= ../whatserver2/commercial
+WAPPIE_CLOUD_COMMIT ?= 3bfee279581ad15f6d2d2db3d3a9794c8eac50ca
+WAPPIE_CLOUD_PATCH ?= vectors/wappie/_generators/cloud/header-0x03.patch
 
-.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check pack reproduce clean
 
 all: lint-go test-go test-js vectors-check cross
 
@@ -84,6 +87,28 @@ vectors-regen-check:
 	vectors/wappie/_generators/run.sh $(WAPPIE) $(WAPPIE_COMMIT) $$tmp && \
 	diff -r $$tmp/golden vectors/wappie/golden && diff -r $$tmp/legacy vectors/wappie/legacy && \
 	rm -rf "$${tmp:?}" && echo "vectors reproduce from $(WAPPIE_COMMIT)"
+
+# Regenerates the vectors of Wappie's platform wrap (SPEC section 6.8) from
+# the code of Wappie's console (github.com/thehappieco/wappie-cloud, checked
+# out at WAPPIE_CLOUD) at WAPPIE_CLOUD_COMMIT, with WAPPIE_CLOUD_PATCH
+# applied, into a temporary directory, and compares them with the committed
+# ones byte for byte (vectors/wappie/_generators/run-cloud.sh; the console's
+# repository is only read). Once the console commits the header 0x03 itself,
+# make vectors-cloud-regen-check WAPPIE_CLOUD_COMMIT=<that commit> WAPPIE_CLOUD_PATCH=
+# checks that commit: its own testdata/vectors.json must be the kit's legacy
+# copy byte for byte, and its modules must write the golden files' cases
+# unchanged (their generated_by.source names the other commit). Not in CI:
+# the console's repository is private.
+vectors-cloud-regen-check:
+	tmp=$$(mktemp -d) && \
+	vectors/wappie/_generators/run-cloud.sh $(WAPPIE_CLOUD) $(WAPPIE_CLOUD_COMMIT) $$tmp $(WAPPIE_CLOUD_PATCH) && \
+	cmp -s $$tmp/legacy/platform-wrap-vectors.json vectors/wappie/legacy/platform-wrap-vectors.json || { echo "the console's testdata/vectors.json at $(WAPPIE_CLOUD_COMMIT) is not vectors/wappie/legacy/platform-wrap-vectors.json"; exit 1; } && \
+	for f in platform-wrap-go.json platform-wrap-ts.json; do \
+		if [ -n "$(WAPPIE_CLOUD_PATCH)" ]; then cmp -s $$tmp/golden/$$f vectors/wappie/golden/$$f; \
+		else node -e 'const [a, b] = process.argv.slice(1).map((p) => JSON.parse(require("fs").readFileSync(p, "utf8")).cases); process.exit(JSON.stringify(a) === JSON.stringify(b) ? 0 : 1)' $$tmp/golden/$$f vectors/wappie/golden/$$f; fi || \
+		{ echo "$$f differs from what $(WAPPIE_CLOUD_COMMIT) writes"; exit 1; }; \
+	done && \
+	rm -rf "$${tmp:?}" && echo "the platform-wrap vectors reproduce from $(WAPPIE_CLOUD_COMMIT)"
 
 # Regenerates the platform's id-v1 vectors from the platform's code at
 # PLATFORM_COMMIT (git archive into a temporary directory; the platform's

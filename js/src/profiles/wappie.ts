@@ -1,7 +1,8 @@
 // The Wappie profile: the wire constants and AAD builders with which Wappie
 // sealed, wrapped and signed its existing data. They are frozen; data already
 // stored opens only with exactly these values. What each kind means to Wappie
-// stays in Wappie.
+// stays in Wappie. Since v0.5.0 it also holds Wappie's platform wrap (SPEC
+// section 6.8), an addition that changes none of them.
 
 import { encodeUTF8, type Bytes } from '../bytes.js'
 import { canonicalJSON } from '../jcs.js'
@@ -119,3 +120,23 @@ export const wappieMCPHMAC: HMACScheme = Object.freeze({
   headers: Object.freeze({ sender: 'X-Wappie-Reader', timestamp: 'X-Wappie-Timestamp', nonce: 'X-Wappie-Nonce', signature: 'X-Wappie-Signature' }),
   skewSeconds: 60,
 })
+
+// ---------------------------------------------------------------------------
+// The platform wrap (SPEC section 6.8): the account key under a key derived
+// from the product key sk_p that the platform's id. delivers
+// ---------------------------------------------------------------------------
+
+export { isPlatformWrapError, PlatformWrapError } from '../errors.js'
+export {
+  checkPlatformWrapShape,
+  openPlatformWrap,
+  PLATFORM_WRAP_HEADER,
+  PLATFORM_WRAP_LABEL,
+  PLATFORM_WRAP_LEN,
+  PLATFORM_WRAP_PRODUCT,
+  PLATFORM_WRAP_SALT,
+  platformWrapAAD,
+  platformWrapInfo,
+  sealPlatformWrap,
+  type PlatformWrapBinding,
+} from '../internal/wappie/platformwrap.js'

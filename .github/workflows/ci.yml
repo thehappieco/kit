@@ -49,6 +49,10 @@ jobs:
       # own profile: it must write all fourteen platform files byte for byte.
       - name: the platform's files reproduce from the kit's copy of its generator
         run: make vectors-platform-regen
+      # The parsers a server runs on untrusted input: the envelope, the
+      # request signature, the key bundle, every field of the platform's
+      # requests (addresses, base64url, recovery codes, relying party ids,
+      # client extension results) and what a relying party is sent.
       - name: fuzz the parsers
         run: |
           go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./seal
@@ -59,6 +63,9 @@ jobs:
           go test -run '^$' -fuzz '^FuzzPKCEChallenge$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzCheckClientExtensions$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzValidRPID$' -fuzztime 30s ./profiles/platform
+          go test -run '^$' -fuzz '^FuzzNormalizeEmail$' -fuzztime 30s ./profiles/platform
+          go test -run '^$' -fuzz '^FuzzDecodeB64$' -fuzztime 30s ./profiles/platform
+          go test -run '^$' -fuzz '^FuzzCanonicalRecoveryCode$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzReadUserinfo$' -fuzztime 30s ./oidcrp
 
   go-current:

@@ -578,7 +578,7 @@ What a product's page runs to sign a person in with id. and, when it asks, to re
 
 Any failure shows a security error and leaves no state that holds a key: the flow is deleted before the code is exchanged, and a key that fails a check is zeroed before the error is thrown.
 
-**Serving the callback.** The route is served with `Referrer-Policy: strict-origin` or stricter, so its own subresource requests do not carry the code in `Referer`; never `no-referrer`, under which the page's same-origin POST to its server carries `Origin: null`. It is logged without its query string. The page's `connect-src` includes the issuer.
+**Serving the callback.** The route is served with `Referrer-Policy: strict-origin` or stricter, so its own subresource requests do not carry the code in `Referer`; never `no-referrer` for the page's same-origin POST to its server, which would then carry `Origin: null`, unless that request sets its own `referrerPolicy` (for example `'same-origin'`), under which Chromium, Firefox and WebKit send the page's real origin. It is logged without its query string. The page's `connect-src` includes the issuer.
 
 **Identity only.** A product that already holds the key for (`sub`, `product_key_id`) asks without `account_key`; with an id. session that is silent (`prompt=none` allowed). **Signing out** of id. is `GET {issuer}/oauth2/logout?client_id&post_logout_redirect_uri&state`, with the client's post-logout URI on the page's origin and a state of 1 to 512 visible ASCII characters (by default 32 random bytes in base64url), which id. confirms; it signs nobody out of a product.
 

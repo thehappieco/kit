@@ -1,0 +1,181 @@
+{
+  "format": "thehappie-id/vectors",
+  "version": 1,
+  "kind": "rp-id-ends-in-number",
+  "cases": [
+    {
+      "name": "the production relying party",
+      "rp_id": "id.thehappie.co",
+      "ends_in_a_number": false,
+      "prf_salt": "bfXhmXwNWTxBlIM_eJeGrFssTtbVypdC50j3PKYUeH4"
+    },
+    {
+      "name": "the development relying party",
+      "rp_id": "id.thehappie.localhost",
+      "ends_in_a_number": false,
+      "prf_salt": "ScINFe9mJAsVWlBDtIHHcVnCOoo6EMHXjvVSKfxhlhY"
+    },
+    {
+      "name": "a hexadecimal number as the first label, which does not count",
+      "rp_id": "0x7f000001.thehappie.co",
+      "ends_in_a_number": false,
+      "prf_salt": "p6YN7YNmAa_3PjgVuNr1WfsGT3YoaftAhLGfggl7du0"
+    },
+    {
+      "name": "a last label of 0x and a letter that is no hex digit",
+      "rp_id": "id.0x1g",
+      "ends_in_a_number": false,
+      "prf_salt": "0_tPrTRTgldvGTAuMwvpxQ2a2uvLK4hKr_x8300ZLPk"
+    },
+    {
+      "name": "a single label of 0x, a hex digit and a letter that is no hex digit",
+      "rp_id": "0x1g",
+      "ends_in_a_number": false,
+      "prf_salt": "DWl1Tsxwdi6mwskIELLJ3_V-hGWwMkiaCZReljoVIzU"
+    },
+    {
+      "name": "a last label of 0x twice, whose second x is no hex digit",
+      "rp_id": "id.0x0x",
+      "ends_in_a_number": false,
+      "prf_salt": "cMzDvs8kFKvfJBAsjQ0365rkOQGgChzLy52FptX5MdE"
+    },
+    {
+      "name": "a last label of 0x, hex digits and a dash",
+      "rp_id": "id.0xabc-def",
+      "ends_in_a_number": false,
+      "prf_salt": "9okiFvPOzvk9K1zH20xi9sWGApv6TyzCgQwiu5rZoWs"
+    },
+    {
+      "name": "a last label of 00x1: a leading zero makes it octal, and x is no octal digit",
+      "rp_id": "id.00x1",
+      "ends_in_a_number": false,
+      "prf_salt": "eiEQAJUCK4U-0oddCwkpOs8BVEi56kgCVmfW7Z3Ob2g"
+    },
+    {
+      "name": "a last label of a decimal with an exponent",
+      "rp_id": "id.1e3",
+      "ends_in_a_number": false,
+      "prf_salt": "OJvBBUFfpsQ2fzS4VftI8s2jPyYqLuFK-KwZCC17PNw"
+    },
+    {
+      "name": "a last label of 0b and a binary digit",
+      "rp_id": "id.0b1",
+      "ends_in_a_number": false,
+      "prf_salt": "LXHrZhiPnD_O0zaqH4MpuacbFys4T2-mCy_YQ3DphbE"
+    },
+    {
+      "name": "a last label of x and hex digits",
+      "rp_id": "id.x7f",
+      "ends_in_a_number": false,
+      "prf_salt": "2IpDqeDPLWYW23lVNzkI_rG0w-MJzA_YA8dtqLseYqI"
+    },
+    {
+      "name": "a last label of digits and a letter",
+      "rp_id": "1.2.3.4a",
+      "ends_in_a_number": false,
+      "prf_salt": "koI3Gtci_b8z2aKCiUaCrd5URo2S_-_ozk4zyQqLgQg"
+    },
+    {
+      "name": "a hexadecimal IPv4 address in one label",
+      "rp_id": "0x7f000001",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a hexadecimal last label",
+      "rp_id": "id.0xff",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a dotted address whose last part is hexadecimal",
+      "rp_id": "1.2.3.0x4",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "0x alone, which is the number zero",
+      "rp_id": "0x",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a last label of 0x alone",
+      "rp_id": "id.0x",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "0x as both labels",
+      "rp_id": "0x.0x",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a hexadecimal last label past 32 bits",
+      "rp_id": "id.thehappie.0x100000000",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a hexadecimal last label with many leading zeros",
+      "rp_id": "a.0x00000000000000000000001",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a hexadecimal IPv4 address in one label, in upper case",
+      "rp_id": "0X7F000001",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a hexadecimal last label with 0X in upper case",
+      "rp_id": "x.0XFF",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a hexadecimal last label before a trailing dot",
+      "rp_id": "id.0x1.",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a dotted-decimal IPv4 address",
+      "rp_id": "127.0.0.1",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a decimal last label",
+      "rp_id": "id.thehappie.123",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a decimal last label with a leading zero and a digit that is not octal",
+      "rp_id": "id.09",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a dotted-decimal IPv4 address with a trailing dot",
+      "rp_id": "1.2.3.4.",
+      "ends_in_a_number": true,
+      "error": "wrap"
+    },
+    {
+      "name": "a lone dot",
+      "rp_id": ".",
+      "ends_in_a_number": false,
+      "error": "wrap"
+    },
+    {
+      "name": "a hexadecimal label before two trailing dots",
+      "rp_id": "id.0x1..",
+      "ends_in_a_number": false,
+      "error": "wrap"
+    }
+  ]
+}

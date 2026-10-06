@@ -67,9 +67,11 @@ make test-browser      # the TypeScript specs in Chromium, Firefox and WebKit
 make test-browser-linux   # the same in Playwright's Linux image (Docker), where WebKit is WPE with libgcrypt: CI's browser versions, but the image's Node 24 and the host's architecture
 make cross             # fresh vectors in each direction, opened by the other language
 make lint-go vectors-check reproduce
-make vectors-platform-check PLATFORM=../platform   # regenerate all thirteen of the platform's files at b5d9f69 and compare
+make vectors-platform-check PLATFORM=../platform   # regenerate all fourteen of the platform's files at 75b6b94 and compare
+make vectors-platform-check PLATFORM=../platform PLATFORM_COMMIT=b5d9f69 PLATFORM_FILES=13   # the thirteen files of parts 1 to 3 at b5d9f69
 make vectors-platform-check PLATFORM=../platform PLATFORM_COMMIT=4476bf4 PLATFORM_FILES=11   # the eleven files of parts 1 and 2 at 4476bf4
 make vectors-platform-check PLATFORM=../platform PLATFORM_COMMIT=5e66d84 PLATFORM_FILES=8   # the eight part-1 files at 5e66d84
+make vectors-platform-regen   # the same fourteen files from the kit's own copy of the platform's generator, against this tree (CI runs it)
 ```
 
 The Go code must compile with Go 1.26.7; CI builds and tests it with exactly that toolchain. A `v*` tag publishes a release only after every CI job passes on the tagged commit, browsers included, and only if that commit is on `main`. Everything in this repository is written in English (the platform's decision 0021); products map the kit's error codes to their own messages.

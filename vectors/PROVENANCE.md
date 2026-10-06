@@ -180,6 +180,42 @@ The generator at `b5d9f69`. Not built, not embedded; it imports the platform's p
 
 sha256 (first 16 hex digits) at `b5d9f69` of what the kit's part 3 was taken from: `internal/crypto/idcrypto/passkey.go` `62c315b5f129bfc1`, `extensions.go` `9b7885854bd59fa8`, `json.go` `ce3546a0c5c15900`, `errors.go` `2674826999266ea6`; `web/shared/crypto/passkey.ts` `b7a569ae7f958f00`, `webauthn.ts` `2cd1905d9c1ffebc` (the allowlist only), `strictjson.ts` `e161b3831f095a9a` (as carried in v0.2.0), `errors.ts` `68e3133898332bda`, `rootwrap.ts` `6e454f8930be7e1e`.
 
+### The relying party rule, at 75b6b94
+
+- **Source:** commit `75b6b940df5c6903023f9030f5f3875540f6a36f` (2026-10-06T00:22:57-03:00), "Switch to kit v0.4.0, refuse RP IDs that end in a number, and close accounts on request", `testdata/vectors/id-v1/rp-id-ends-in-number.json`: the cases of `docs/protocol/id-v1.md` section 8.1, the WHATWG URL Standard's "ends in a number" rule, handed to the kit by the platform's `docs/handoff/2026-10-05-wappie-kit-rpid.md` (decision 0017). It is a new file because the thirteen earlier ones are frozen.
+- **Generator:** the same tool and rules, now over the kit's own platform profile: since this commit `internal/crypto/idvectors` (moved from `internal/crypto/idcrypto/idvectors`) runs `github.com/thehappieco/kit/profiles/platform` v0.4.0 instead of the platform's idcrypto, so the files are a pure function of the kit's code and a regenerated file that differs is a regression of the kit. `rpid.go` runs the standard's steps as written, declares each case's answer and outcome, and refuses to write a case that comes out otherwise. Every case records the checker's answer (`ends_in_a_number`) and either the PRF salt of an accepted id or `"error": "wrap"`.
+- **Captured:** 2026-10-06, byte for byte with `git show <commit>:<path>`; the platform's repository was only read. Its later commits up to `c1ba67e` change no vector, generator or crypto file.
+- **The thirteen files of parts 1 to 3 at this commit** are byte for byte those recorded above, so `make vectors-platform-check`, whose default commit is now `75b6b94`, checks all fourteen (`PLATFORM_COMMIT=b5d9f69a4836736e792914b20d7c2c4ce573fedf PLATFORM_FILES=13` checks parts 1 to 3 at `b5d9f69`).
+- **Toolchains:** the platform's go1.27.1 with kit v0.4.0 wrote these bytes. On 2026-10-06 the generator at this commit also wrote all fourteen files byte for byte from the copy below as a throwaway module on go1.26.7 (`make vectors-platform-regen`), against kit v0.4.0 and against this release's tree, and its tests passed there.
+- **Case identity:** names are unique, and no case carries an `op`.
+
+| File | Kind | Cases | Must fail | sha256 |
+|---|---|---|---|---|
+| `platform/id-v1/rp-id-ends-in-number.json` | rp-id-ends-in-number | 29 | 17 | `b361d107e1f50d51cd146b6c74b9079676942ab8f01d7b2833d43ee437d33d56` |
+
+The 17 refusals are all `wrap`: 8 are the hex forms kit v0.4.0 accepted, and 9 it refused already (four decimal last labels, two upper-case `0X` forms, a hex label before a trailing dot, a lone dot, and a hex label before two trailing dots; the last two do not end in a number and are refused for their empty labels). The file is ASCII, 5116 bytes, and ends with one newline. With parts 1 to 3, 486 cases, 356 of which must fail. Both implementations reproduce every case (`profiles/platform/vectors_rpid_test.go`, `js/test/platform.spec.ts`); `vectors/vectors_test.go` checks the file's sha256 and counts.
+
+### platform/_generators-75b6b94
+
+The generator at `75b6b94`. Not built by the go tool, not embedded. Unlike the earlier copies it builds: it imports only the standard library and the kit's `profiles/platform`, and `make vectors-platform-regen`, which CI runs, builds it as a throwaway module against the kit's own tree, runs its tests and compares the fourteen files it writes with the kit's.
+
+| File | sha256 | Since b5d9f69 |
+|---|---|---|
+| `internal/crypto/idvectors/idvectors.go` | `25367d9e2c854dcae5ea899ef95d22dcc75536d32b96cffe9792ddbbee22fc0f` | changed (the kind, the docs, the kit import) |
+| `internal/crypto/idvectors/rpid.go` | `beced678205a0d2d0e483798d863d3442f3ae151214ebcb521862a333a18120e` | new |
+| `internal/crypto/idvectors/bundle.go` | `78a36bb6f03a617a0d9a1ac39b5d29d418d16d82235d4974fb80174c06cd6325` | changed (imports) |
+| `internal/crypto/idvectors/hpke.go` | `c211f7181dda55bb43a359fbc4093cd4b5d644c7c12613b8c97a50f078497ba1` | same |
+| `internal/crypto/idvectors/hpke_test.go` | `487d8529c77a395011552f5192034b936daf33a3af1819519aaf0826d22ef322` | changed (import) |
+| `internal/crypto/idvectors/keydelivery.go` | `2d5dd3a3dab50872bc9ad9454a11339d59f6ce05a2ebdb8e3728331e0687705e` | changed (import) |
+| `internal/crypto/idvectors/passkey.go` | `fb5f0a3d40846036933b3f2422e8aa85152f14aeea8c24e5890f422d513567af` | changed (import) |
+| `internal/crypto/idvectors/password.go` | `ad79b3c2b52de9377d7dd5ea37cc29e1866abde9b3a883dc7c67ef0e2b4cd513` | changed (import) |
+| `internal/crypto/idvectors/product.go` | `9847c1296a0482ea4149140e7dbdc24b9ab2fc89de067b9005cad12326d18677` | changed (import) |
+| `internal/crypto/idvectors/recovery.go` | `2178163052c5a7c0b532bc31e158d5f43851e7b902a63f1d7626a7a6fee4c611` | changed (import) |
+| `internal/crypto/idvectors/wrap.go` | `deb2aa15a4d74fa45170e9a743ce76815204d5ec17b740a2d08e554009517e79` | changed (import) |
+| `tools/vectors/main.go` | `0e635adb4401f56481caeb8810aa984bb8857355359931bd27fa6ee8bcb883c0` | changed (doc comment) |
+
+The generator moved from `internal/crypto/idcrypto/idvectors` to `internal/crypto/idvectors` at this commit, which is why every file but `hpke.go` changed by its import or doc lines; the earlier copies keep their paths.
+
 ## The kit's own vectors
 
 `kit/*-go.json` were written by `internal/cross/write_test.go` and `kit/*-ts.json` by `js/test/cross.spec.ts`, each at the kit commit recorded in its `generated_by.source`, with fresh randomness (`make vectors-kit`). They are the golden vectors of the kit's own implementations from v0.1.0 on.

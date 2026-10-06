@@ -70,6 +70,7 @@ func TestManifest(t *testing.T) {
 		"platform/_generators/tools/vectors/main.go",
 		"platform/_generators-4476bf4/tools/vectors/main.go",
 		"platform/_generators-b5d9f69/tools/vectors/main.go",
+		"platform/_generators-75b6b94/tools/vectors/main.go",
 	} {
 		if _, err := fs.Stat(vectors.FS, generator); err == nil {
 			t.Errorf("the generators are embedded: %s", generator)
@@ -185,7 +186,8 @@ func platformCaseID(op, name string) string {
 
 // The platform's id-v1 files are the ones captured at the platform commits
 // PROVENANCE.md records: the eight part-1 files at 5e66d84, the three part-2
-// files at 4476bf4 and the two part-3 files at b5d9f69. Each has the sha256 recorded there, so a copy from
+// files at 4476bf4, the two part-3 files at b5d9f69 and the relying party
+// rule's file at 75b6b94. Each has the sha256 recorded there, so a copy from
 // another platform commit or an edit fails here even after `make manifest`
 // has recorded it, and no tag can freeze other bytes as these. Then their
 // header, ASCII only with exactly one final newline, unique case ids (the
@@ -210,6 +212,7 @@ func TestPlatformVectorFiles(t *testing.T) {
 		{"password-stream-safe", 19, 11, "4476bf4", "6c0be5a1e236fab99e97cacbff527674b76f65a9a1c5b2630bdf8558465021cc"},
 		{"passkey", 44, 35, "b5d9f69", "dca9707d800996f219b62a5fc09b56b693be98a0487494bebb4bd6ad2606e286"},
 		{"client-extensions", 46, 37, "b5d9f69", "e5c6e6a4ac7dad59fbbd131f095721842d53432699fad72a7db82be6884afb3b"},
+		{"rp-id-ends-in-number", 29, 17, "75b6b94", "b361d107e1f50d51cd146b6c74b9079676942ab8f01d7b2833d43ee437d33d56"},
 	}
 	entries, err := fs.ReadDir(vectors.FS, "platform/id-v1")
 	if err != nil {
@@ -271,7 +274,7 @@ func TestPlatformVectorFiles(t *testing.T) {
 		total += len(f.Cases)
 		failing += bad
 	}
-	if total != 457 || failing != 339 {
-		t.Errorf("%d cases, %d must fail; want 457 and 339", total, failing)
+	if total != 486 || failing != 356 {
+		t.Errorf("%d cases, %d must fail; want 486 and 356", total, failing)
 	}
 }

@@ -45,6 +45,10 @@ jobs:
         run: |
           out=$(go test -count=1 -v -run 'TestWappieSealVectors|TestWappieRequestHMACVectors' ./seal ./reqhmac)
           if echo "$out" | grep -q 'replay needs'; then echo "replays skipped on go1.26.7"; exit 1; fi
+      # The platform's generator at 75b6b94, kept in the kit, runs the kit's
+      # own profile: it must write all fourteen platform files byte for byte.
+      - name: the platform's files reproduce from the kit's copy of its generator
+        run: make vectors-platform-regen
       - name: fuzz the parsers
         run: |
           go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./seal

@@ -12,10 +12,11 @@ There are two file formats: the kit's own (below), used by everything under `wap
 | `wappie/golden/` | Vectors written by Wappie's code at the commit in `PROVENANCE.md`, by the generators in `wappie/_generators/`. |
 | `wappie/_generators/` | The generators, kept for provenance and for `make vectors-regen-check`. Not built by the go tool, not embedded. |
 | `kit/` | Vectors written by the kit itself: `*-go.json` by the Go code for TypeScript to open, `*-ts.json` the reverse. |
-| `platform/id-v1/` | The platform's golden vectors of its protocol `id-v1`, byte for byte as the platform's Go code wrote them at the commits in `PROVENANCE.md`, in the platform's format: part 1 (SPEC sections 11.1 to 11.11) at `5e66d84`, part 2 (sections 11.12 to 11.15) at `4476bf4`, part 3 (section 11.16) at `b5d9f69`. |
+| `platform/id-v1/` | The platform's golden vectors of its protocol `id-v1`, byte for byte as the platform's Go code wrote them at the commits in `PROVENANCE.md`, in the platform's format: part 1 (SPEC sections 11.1 to 11.11) at `5e66d84`, part 2 (sections 11.12 to 11.15) at `4476bf4`, part 3 (section 11.16) at `b5d9f69`, and the relying party rule of section 11.16 at `75b6b94`. |
 | `platform/_generators/` | The platform's generator at `5e66d84`, kept for provenance. Not built, not embedded. |
 | `platform/_generators-4476bf4/` | The platform's generator at `4476bf4`, which wrote part 2 and writes the part-1 files unchanged. Not built, not embedded. |
 | `platform/_generators-b5d9f69/` | The platform's generator at `b5d9f69`, which wrote part 3 and writes the files of parts 1 and 2 unchanged. Not built, not embedded. |
+| `platform/_generators-75b6b94/` | The platform's generator at `75b6b94`, which wrote `rp-id-ends-in-number.json` and writes the thirteen earlier files unchanged. It imports only the standard library and the kit's `profiles/platform`, so `make vectors-platform-regen` builds it against the kit's own tree; not built by the go tool, not embedded. |
 | `MANIFEST.sha256` | The sha256 of every file above. `make vectors-check`. |
 
 Files are append-only once a release is tagged: a changed case is a new id, and no file present at a tag changes or disappears.
@@ -135,6 +136,7 @@ Every dispatcher fails on a case for its language whose op it does not handle.
 | `pkce` | `code_verifier` | `code_challenge` |
 | `passkey` | `op` on a must-fail case (`salt`, `key` or `open`); `rp_id`; `prf` (the PRF output; good, `key` and `open` cases); `root`, `nonce` (good); `sub`, `epoch`, `credential_id` (good and `open`); `wrap` (on an `open` refusal, the wrap to open) | `prf_salt`, `k_pk`, `aad`, `wrap` |
 | `client-extensions` | `client_extension_results`: the exact JSON text of a credential's `clientExtensionResults`, as a JSON string, so that a repeated member, a byte order mark or data after the object can be expressed | accepted, or `"error": "client_extensions"` |
+| `rp-id-ends-in-number` | `rp_id` | `ends_in_a_number` (the WHATWG URL Standard's "ends in a number checker" on `rp_id`, on every case), and `prf_salt` on an accepted id or `"error": "wrap"` on a refused one |
 
 - A binary member the generator left empty is omitted (`omitempty`): a runner reads a missing `akd_sealed` or `akd_pub` as empty. `prf`, `rp_id` and `client_extension_results` are written even when empty (`passkey.json#key/an empty PRF output`, `#salt/an empty relying party id`, `client-extensions.json#an empty text`), so a missing one fails the run.
 - Argon2id cases use the floor parameters (m 65536, t 3, p 1), and one uses p = 4.
@@ -150,4 +152,5 @@ make cross             # fresh round trips: each language writes, the other open
 make vectors-check     # the manifest
 make vectors-regen-check WAPPIE=../whatserver2   # regenerate from Wappie and compare
 make vectors-platform-check PLATFORM=../platform # regenerate from the platform and compare
+make vectors-platform-regen      # regenerate the platform's files from the kit's copy of its generator and compare
 ```

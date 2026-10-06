@@ -7,10 +7,11 @@ GO_FILES = $$(find . -name '*.go' -not -path './js/*' -not -path './.git/*')
 WAPPIE ?= ../whatserver2
 WAPPIE_COMMIT ?= 8c0c1f74103bc6bb65a93b13613ad1964d4399c4
 PLATFORM ?= ../platform
-PLATFORM_COMMIT ?= b5d9f69a4836736e792914b20d7c2c4ce573fedf
-PLATFORM_FILES ?= 13
+PLATFORM_COMMIT ?= 75b6b940df5c6903023f9030f5f3875540f6a36f
+PLATFORM_FILES ?= 14
+PLATFORM_GENERATOR ?= vectors/platform/_generators-75b6b94
 
-.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen pack reproduce clean
 
 all: lint-go test-go test-js vectors-check cross
 
@@ -88,7 +89,9 @@ vectors-regen-check:
 # PLATFORM_COMMIT (git archive into a temporary directory; the platform's
 # repository is only read), compares each file it writes with the committed
 # one, and fails unless it wrote exactly PLATFORM_FILES files. At the default,
-# b5d9f69, that is all thirteen; the part-2 check is
+# 75b6b94, that is all fourteen; the part-3 check is
+# make vectors-platform-check PLATFORM_COMMIT=b5d9f69a4836736e792914b20d7c2c4ce573fedf PLATFORM_FILES=13
+# the part-2 check
 # make vectors-platform-check PLATFORM_COMMIT=4476bf4b446297ee2b74a6f032fede7786345327 PLATFORM_FILES=11
 # and the part-1 check
 # make vectors-platform-check PLATFORM_COMMIT=5e66d841145b33dcd73cd575f2816a866793d774 PLATFORM_FILES=8
@@ -101,6 +104,27 @@ vectors-platform-check:
 	n=$$(ls $$tmp/out | wc -l | tr -d ' ') && \
 	{ test "$$n" -eq $(PLATFORM_FILES) || { echo "the generator at $(PLATFORM_COMMIT) wrote $$n files, want $(PLATFORM_FILES)"; exit 1; }; } && \
 	echo "$$n of $$(ls vectors/platform/id-v1 | wc -l | tr -d ' ') platform files reproduce from $(PLATFORM_COMMIT)" && \
+	rm -rf "$${tmp:?}"
+
+# Regenerates every platform id-v1 file from the kit's own copy of the
+# platform's generator at 75b6b94 (PLATFORM_GENERATOR), which builds on the
+# standard library and profiles/platform alone, as a throwaway module against
+# this working tree: it runs the generator's own tests, writes the files into
+# a temporary directory and compares each with the kit's byte for byte. The
+# module takes the platform's module path only so that the generator's own
+# import resolves, and the kit's go.sum, so every dependency is checked
+# against the kit's hashes. Needs neither the platform's repository nor its
+# toolchain, so CI runs it on go1.26.7: since 75b6b94 the generator is a pure
+# function of the kit's code, and a file that comes out differently is a
+# regression of the kit.
+vectors-platform-regen:
+	tmp=$$(mktemp -d) && kit=$$(pwd) && \
+	cp -R $(PLATFORM_GENERATOR)/. $$tmp/ && cp go.sum $$tmp/go.sum && \
+	printf 'module github.com/thehappieco/platform\n\ngo 1.26\n\nrequire github.com/thehappieco/kit v0.0.0\n\nreplace github.com/thehappieco/kit => %s\n' "$$kit" > $$tmp/go.mod && \
+	(cd $$tmp && GOFLAGS=-mod=mod go mod tidy && GOFLAGS=-mod=mod go test -count=1 ./... && GOFLAGS=-mod=mod go run ./tools/vectors -out $$tmp/out) && \
+	n=0 && for f in vectors/platform/id-v1/*.json; do b=$${f##*/}; cmp -s "$$f" "$$tmp/out/$$b" || { echo "$$b: the generator at $(PLATFORM_GENERATOR) writes other bytes"; exit 1; }; n=$$((n+1)); done && \
+	{ test "$$(ls $$tmp/out | wc -l | tr -d ' ')" -eq "$$n" || { echo "the generator at $(PLATFORM_GENERATOR) writes files the kit does not hold"; exit 1; }; } && \
+	echo "all $$n platform files reproduce from $(PLATFORM_GENERATOR) on this tree" && \
 	rm -rf "$${tmp:?}"
 
 pack:

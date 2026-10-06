@@ -97,15 +97,18 @@ func (k *PasswordKeys) Zero() {
 	}
 }
 
-// deriveFn is account.DerivePrepared. It is a variable only so that a test
-// can prove the bounds are checked before anything is derived.
-var deriveFn = account.DerivePrepared
+// deriveFn is account.DerivePreparedBytes, which makes no string of K_auth.
+// It is a variable only so that a test can prove the bounds are checked
+// before anything is derived, and that what it returns is cleared.
+var deriveFn = account.DerivePreparedBytes
 
 // DerivePassword derives K_auth and K_wrap from a prepared password (section
-// 11.3): account.DerivePrepared with Account(). It refuses parameters and
-// salts outside the bounds before it runs Argon2id, so a server that answers
-// absurd parameters cannot make the client spend memory or time, nor
-// downgrade it. The caller clears prepared.
+// 11.3): account.DerivePreparedBytes with Account(). It refuses parameters
+// and salts outside the bounds before it runs Argon2id, so a server that
+// answers absurd parameters cannot make the client spend memory or time, nor
+// downgrade it. It makes no string of K_auth, and clears every byte account
+// handed it once the keys are copied; the keys are the caller's
+// (PasswordKeys.Zero), and so is prepared.
 func DerivePassword(prepared, salt []byte, k KDF) (*PasswordKeys, error) {
 	if err := k.Check(); err != nil {
 		return nil, err
@@ -118,8 +121,7 @@ func DerivePassword(prepared, salt []byte, k KDF) (*PasswordKeys, error) {
 		// Unreachable once Check has passed: account's bounds are the same.
 		return nil, fmt.Errorf("%w: %w", ErrKDFPolicy, err)
 	}
-	defer clear(d.Auth)
-	defer clear(d.Wrap)
+	defer d.Clear()
 	keys := &PasswordKeys{}
 	copy(keys.Auth[:], d.Auth)
 	copy(keys.Wrap[:], d.Wrap)

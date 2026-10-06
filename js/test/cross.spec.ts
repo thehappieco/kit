@@ -18,10 +18,13 @@ import { derive, newRecoveryCode, normaliseRecoveryCode, recoveryProof, unwrapPr
 import { formatUUID, fromBase64URL, parseUUID, toBase64URL, uuidV5, type Bytes } from '../src/bytes.js'
 import { generateKeyPair, importPrivateKey, publicFromPrivate, seal as hpkeSeal } from '../src/hpke.js'
 import { canonicalJSON, CanonicalJSONError } from '../src/jcs.js'
-import { prfSalt, unwrapPasskey, wrapPasskey } from '../src/passkey.js'
+import { endsInANumber, prfSalt, unwrapPasskey, wrapPasskey } from '../src/passkey.js'
 import { canonical, signature } from '../src/reqhmac.js'
 import { grantRow, openDirect, sealDirect } from '../src/seal.js'
-import { accountWrapAAD, DIRECTION_TO_READER, Kind, passkeyAAD, wappieAccount, wappieMCPHMAC, wappiePasskey, wappieSeal } from '../src/profiles/wappie.js'
+import {
+  accountWrapAAD, DIRECTION_TO_READER, isPlatformWrapError, Kind, openPlatformWrap, PLATFORM_WRAP_LEN, passkeyAAD, platformWrapAAD, platformWrapInfo, sealPlatformWrap,
+  wappieAccount, wappieMCPHMAC, wappiePasskey, wappieSeal, type PlatformWrapBinding,
+} from '../src/profiles/wappie.js'
 import * as platform from '../src/profiles/platform.js'
 import { sealBase } from '../src/internal/platform/hpkebase.js'
 import { codeOf, recording, toB64, toWTF8, utf8, type VectorCase } from './vectors.js'
@@ -566,6 +569,84 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
       'crypto.getRandomValues and WebCrypto X25519; nothing drawn is recorded, so seals are checked by opening')
   })
 
+  it('writes wappie-platform-wrap-ts.json', async () => {
+    const cases: VectorCase[] = []
+    const below = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n
+    const bytes = (n: number) => crypto.getRandomValues(new Uint8Array(n)) as Bytes
+    const epoch = () => (below(2) === 0 ? 1 + below(3) : 1 + below(2 ** 31 - 1))
+    const refused = async (id: string, fn: () => Promise<unknown>) => {
+      const err = await fn().then(() => null, (e: unknown) => e)
+      if (!isPlatformWrapError(err)) expect.fail(`${id}: not refused`)
+    }
+    const bindingIn = (b: PlatformWrapBinding) => ({ user_id: b.userId, sub: b.sub, product_key_id: b.productKeyId, account_public_key_b64: toB64(b.accountPublicKey) })
+    const newBinding = async (usk: Bytes): Promise<PlatformWrapBinding> => {
+      const sub = crypto.randomUUID()
+      return { userId: below(2) === 0 ? sub : crypto.randomUUID(), sub, productKeyId: `wappie:${epoch()}`, accountPublicKey: await publicFromPrivate(usk) }
+    }
+
+    // Fresh wraps, each with the nonce it drew, then opened with one thing
+    // changed at a time. K_pw is a non-extractable key here, so it is not
+    // recorded: Go checks it by the wrap.
+    for (let n = 0; n < 32; n++) {
+      const sk = bytes(32), usk = bytes(32)
+      if (n % 8 === 0) sk[0] = 0
+      if (n % 8 === 1) usk[0] = 0
+      const b = await newBinding(usk)
+      const id = `wappie/platform-wrap/${n}`
+      const { value: wrap, bytes: drawn } = await recording(() => sealPlatformWrap(sk, usk, b))
+      expect(drawn.map((d) => d.length), id).toEqual([12])
+      expect(toB64(await openPlatformWrap(sk, wrap, b)), id).toBe(toB64(usk))
+      const i = bindingIn(b)
+      cases.push(
+        { id: `${id}/info`, op: 'wappie.platform_wrap_info', in: i, out: { info_b64: toB64(platformWrapInfo(b)) } },
+        { id: `${id}/aad`, op: 'wappie.platform_wrap_aad', in: i, out: { aad_b64: toB64(platformWrapAAD(b)) } },
+        { id: `${id}/seal`, op: 'wappie.platform_wrap_seal', in: { ...i, product_key_b64: toB64(sk), account_key_b64: toB64(usk), nonce_b64: toB64(drawn[0]!) }, out: { wrap_b64: toB64(wrap) } },
+        { id: `${id}/open`, op: 'wappie.platform_wrap_open', in: { ...i, product_key_b64: toB64(sk), wrap_b64: toB64(wrap) }, out: { account_key_b64: toB64(usk) } },
+      )
+      const open = async (what: string, key: Bytes, w: Uint8Array, bb: PlatformWrapBinding) => {
+        await refused(`${id}/${what}`, () => openPlatformWrap(key, w, bb))
+        cases.push({ id: `${id}/open/refuses/${what}`, op: 'wappie.platform_wrap_open', in: { ...bindingIn(bb), product_key_b64: toB64(key), wrap_b64: toB64(w) }, error: 'platform_wrap' })
+      }
+      const flipped = new Uint8Array(wrap)
+      const bit = 8 + below(flipped.length * 8 - 8)
+      flipped[bit >> 3]! ^= 1 << (bit & 7)
+      await open(`flipped-bit-${bit}`, sk, flipped, b)
+      const header = new Uint8Array(wrap)
+      header[0] = [0x00, 0x01, 0x02, 0x04, 0xff][below(5)]!
+      await open(`header-0x${header[0]!.toString(16).padStart(2, '0')}`, sk, header, b)
+      if (below(2) === 0) await open('length', sk, wrap.subarray(0, PLATFORM_WRAP_LEN - 1 - below(3)), b)
+      else await open('length', sk, Uint8Array.of(...wrap, ...bytes(1 + below(3))), b)
+      await open('other-product-key', bytes(32), wrap, b)
+      await open('other-user-id', sk, wrap, { ...b, userId: crypto.randomUUID() })
+      await open('other-sub', sk, wrap, { ...b, sub: crypto.randomUUID() })
+      let other = b.productKeyId
+      while (other === b.productKeyId) other = `wappie:${epoch()}`
+      await open('other-epoch', sk, wrap, { ...b, productKeyId: other })
+      await open('other-account-public-key', sk, wrap, { ...b, accountPublicKey: await publicFromPrivate(bytes(32)) })
+    }
+
+    // Seals refused before anything is encrypted.
+    for (let n = 0; n < 16; n++) {
+      let sk = bytes(32), usk = bytes(32)
+      const b = await newBinding(usk)
+      let how = ''
+      switch (n % 8) {
+        case 0: usk = bytes(32); how = 'account-key-not-the-public-keys'; break
+        case 1: usk = usk.slice(0, 31) as Bytes; how = 'account-key-of-31-bytes'; break
+        case 2: sk = Uint8Array.of(...sk, ...bytes(1)) as Bytes; how = 'product-key-of-33-bytes'; break
+        case 3: b.userId = b.userId.toUpperCase(); how = 'user-id-in-upper-case'; break
+        case 4: b.sub = `{${b.sub}}`; how = 'sub-in-braces'; break
+        case 5: b.productKeyId = ['mailie:1', 'vaultie:2', 'platform:1'][below(3)]!; how = 'another-products-key-id'; break
+        case 6: b.productKeyId = ['wappie:0', 'wappie:01', 'wappie:2147483648', 'wappie', 'wappie:-1'][below(5)]!; how = 'epoch-out-of-range'; break
+        default: b.accountPublicKey = b.accountPublicKey.slice(0, 31); how = 'account-public-key-of-31-bytes'
+      }
+      const id = `wappie/platform-wrap/seal/refuses/${n}/${how}`
+      await refused(id, () => sealPlatformWrap(sk, usk, b))
+      cases.push({ id, op: 'wappie.platform_wrap_seal', in: { ...bindingIn(b), product_key_b64: toB64(sk), account_key_b64: toB64(usk) }, error: 'platform_wrap' })
+    }
+    write('wappie-platform-wrap-ts.json', 'wappie.platform_wrap', 'Fresh platform wraps of the Wappie profile (SPEC section 6.8) by the kit\'s TypeScript, for Go: 32 random bindings (an account created through id., whose user id is its sub, or a linked one; a random epoch), random product and account keys, some with a first byte of zero, each wrap with the nonce it drew, its info and AAD (K_pw is a non-extractable key here, so it is not recorded), each also opened with one thing changed (a bit, the header, the length, the product key, the user id, the sub, the epoch, the account public key); and 16 seals refused for a key or a binding outside the rules.', cases)
+  })
+
   it('writes platform-passkey-ts.json', async () => {
     const cases: VectorCase[] = []
     const below = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n
@@ -579,17 +660,22 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
     // broken ones: the same generator as internal/cross/platform_passkey_test.go.
     const EDGE = 'abcdefghijklmnopqrstuvwxyz0123456789'
     const label = (n: number) => (n === 1 ? from(EDGE, 1) : from(EDGE, 1) + from(`${EDGE}-`, n - 2) + from(EDGE, 1))
+    // None ends in a number (endsInANumber), which the spelling refuses since v0.5.0.
     const rpId = (): string => {
       switch (below(4)) {
         case 0: return pickOf(['id.thehappie.co', 'id.thehappie.localhost', 'localhost'])
-        case 1: return `${label(63)}.${label(63)}.${label(63)}.${label(61)}`
+        case 1:
+          for (;;) {
+            const s = `${label(63)}.${label(63)}.${label(63)}.${label(61)}`
+            if (!endsInANumber(s)) return s
+          }
       }
       for (;;) {
         const labels = Array.from({ length: 1 + below(4) }, () => label(below(8) === 0 ? 1 + below(63) : 1 + below(12)))
         const last = labels[labels.length - 1]
         if (/^[0-9]+$/.test(last)) labels[labels.length - 1] = `x${last.slice(1)}`
         const s = labels.join('.')
-        if (s.length <= 253) return s
+        if (s.length <= 253 && !endsInANumber(s)) return s
       }
     }
     const breakRPID = (rp: string): [string, string] => {
@@ -600,7 +686,7 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
       for (;;) {
         let broken: string
         let how: string
-        switch (below(16)) {
+        switch (below(17)) {
           case 0: [broken, how] = [insert(rp, pickOf(['A', 'Z', 'Q'])), 'upper-case']; break
           case 1: [broken, how] = [rp + pickOf([':443', ':8290', ':']), 'port']; break
           case 2: [broken, how] = [pickOf(['https://', 'http://', '//']) + rp, 'scheme']; break
@@ -616,6 +702,7 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
           case 12: [broken, how] = [pickOf(['[::1]', '::1', '[2001:db8::1]']), 'ipv6']; break
           case 13: [broken, how] = [insert(rp, pickOf(['_', ' ', '/', '@', '|', '*', '\t', '\u0000'])), 'character']; break
           case 14: [broken, how] = [insert(rp, pickOf(['\u00e9', '\u0131', '\u0430', '\u00fc', '\u2028'])), 'non-ascii']; break
+          case 15: [broken, how] = [`${rp}.0x${from('0123456789abcdef', below(9))}`, 'hex-number']; break
           default: [broken, how] = ['', 'empty']
         }
         if (!platform.isRPID(broken)) return [broken, how]

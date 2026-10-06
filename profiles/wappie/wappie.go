@@ -1,6 +1,8 @@
 // Package wappie is the Wappie profile: the wire constants and AAD builders
 // with which Wappie sealed, wrapped and signed its existing data. They are
-// frozen; data already stored opens only with exactly these values.
+// frozen; data already stored opens only with exactly these values. Since
+// v0.5.0 it also holds Wappie's platform wrap (platformwrap.go, SPEC section
+// 6.8), an addition that changes none of them.
 //
 // Only wire values are here. What each kind means to Wappie (which WhatsApp
 // field is sealed under which kind) stays in Wappie.

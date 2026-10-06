@@ -7,6 +7,10 @@
 //
 // The PRF output stays local; only the envelope may be sent. From Wappie's
 // packages/client/src/crypto/passkey.ts; the AAD is the profile's.
+//
+// The functions of this module do not check the RP ID's spelling: the RP ID
+// is the profile's configuration, and the profile or the product checks it
+// where it is configured. endsInANumber is the check every product needs.
 
 import { concat, encodeUTF8, type Bytes } from './bytes.js'
 import { PasskeyError } from './errors.js'
@@ -81,4 +85,52 @@ export function bind(p: PasskeyProfile) {
     wrapPasskey: (privateKey: Bytes, prf: Bytes, rpID: string, aad: Bytes) => wrapPasskey(p, privateKey, prf, rpID, aad),
     unwrapPasskey: (envelope: Bytes, prf: Bytes, rpID: string, aad: Bytes) => unwrapPasskey(p, envelope, prf, rpID, aad),
   }
+}
+
+/**
+ * endsInANumber is the "ends in a number checker" of the WHATWG URL Standard
+ * (https://url.spec.whatwg.org/#ends-in-a-number-checker), step by step, as
+ * the platform's vector generator runs it (rp-id-ends-in-number.json):
+ *
+ *   1. strictly split input on ".";
+ *   2. if the last part is empty, return false when it is the only part, and
+ *      otherwise drop it (one trailing empty label only);
+ *   3. let last be the last part;
+ *   4. if last is non-empty and all ASCII digits, return true;
+ *   5. if the standard's IPv4 number parser does not fail on last, return
+ *      true;
+ *   6. return false.
+ *
+ * A browser's host parser runs it on every domain; when it is true, the host
+ * is parsed as an IPv4 address ("0x7f000001" is 127.0.0.1, "1.2.3.0x4" is
+ * 1.2.3.4) or refused ("id.0xff"), and is never a domain, so no passkey is
+ * ever made for a relying party id that ends in a number. The functions of
+ * this module do not refuse one: the profile or the product checks the id
+ * where it is configured (the platform profile's isRPID calls this).
+ */
+export function endsInANumber(input: string): boolean {
+  const parts = input.split('.')
+  if (parts[parts.length - 1] === '') {
+    if (parts.length === 1) return false
+    parts.pop()
+  }
+  const last = parts[parts.length - 1]!
+  if (/^[0-9]+$/.test(last)) return true
+  return isIPv4Number(last)
+}
+
+/**
+ * isIPv4Number says whether the WHATWG "IPv4 number parser"
+ * (https://url.spec.whatwg.org/#ipv4-number-parser) does not fail on input;
+ * only that matters here, not the value. The empty string fails. A "0x" or
+ * "0X" prefix makes the rest radix 16, and a leading "0" of an input of two
+ * or more code points makes the rest radix 8; otherwise it is radix 10. The
+ * parser succeeds when what follows the prefix is empty (the number zero) or
+ * holds only digits of the radix.
+ */
+function isIPv4Number(input: string): boolean {
+  if (input === '') return false
+  if (/^0[xX]/.test(input)) return /^[0-9a-fA-F]*$/.test(input.slice(2))
+  if (input.length >= 2 && input[0] === '0') return /^[0-7]*$/.test(input.slice(1))
+  return /^[0-9]+$/.test(input)
 }

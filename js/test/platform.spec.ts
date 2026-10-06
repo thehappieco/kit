@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { unwrapPrivateKey } from '../src/account.js'
-import { prfSalt as passkeyPRFSalt, unwrapPasskey } from '../src/passkey.js'
+import { endsInANumber, prfSalt as passkeyPRFSalt, unwrapPasskey, wrapPasskey } from '../src/passkey.js'
 import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes.js'
 import { HPKEError, PlatformError } from '../src/errors.js'
 import * as platform from '../src/profiles/platform.js'
@@ -36,6 +36,7 @@ const MEMBERS: Record<string, readonly string[]> = {
   pkce: ['name', 'error', 'code_verifier', 'code_challenge'],
   passkey: ['name', 'op', 'error', 'rp_id', 'prf', 'root', 'sub', 'epoch', 'credential_id', 'nonce', 'prf_salt', 'k_pk', 'aad', 'wrap'],
   'client-extensions': ['name', 'error', 'client_extension_results'],
+  'rp-id-ends-in-number': ['name', 'error', 'rp_id', 'ends_in_a_number', 'prf_salt'],
 }
 
 /** The number of cases and of must-fail cases per kind (vectors/PROVENANCE.md). */
@@ -53,6 +54,7 @@ const COUNTS: Record<string, [number, number]> = {
   'password-stream-safe': [19, 11],
   passkey: [44, 35],
   'client-extensions': [46, 37],
+  'rp-id-ends-in-number': [29, 17],
 }
 
 const NAMES = new Set([
@@ -506,6 +508,46 @@ runners['client-extensions'] = async (c) => {
   if (c.error === undefined) platform.checkClientExtensions(JSON.parse(text))
 }
 
+/**
+ * rp-id-ends-in-number: ends_in_a_number is endsInANumber's answer. An
+ * accepted relying party id gives exactly its PRF salt, the same as section
+ * 7's with the platform's passkey profile, a key and a passkey wrap that
+ * opens; a refused one is wrap at the salt, the key and the one-call seal,
+ * and unwrapRootWithPasskey refuses with wrap a wrap that section 7's
+ * generic scheme, which checks no spelling, seals and opens under it.
+ */
+runners['rp-id-ends-in-number'] = async (c) => {
+  const rpId = c.rp_id
+  if (typeof rpId !== 'string' || typeof c.ends_in_a_number !== 'boolean') expect.fail(`case "${c.name}": no rp_id or ends_in_a_number`)
+  if (c.op !== undefined) expect.fail(`case "${c.name}": an op`)
+  expect(endsInANumber(rpId), `case "${c.name}": ends in a number`).toBe(c.ends_in_a_number)
+  const prf = new Uint8Array(32).fill(0x5a) as Bytes
+  const root = new Uint8Array(32).fill(0x33) as Bytes
+  const binding: platform.PasskeyBinding = { rpId, credentialId: 'AA' }
+  const sub = '0199a5b2-c3d4-7e5f-8a6b-0c1d2e3f4a5b'
+  if (c.error === undefined) {
+    if (c.ends_in_a_number) expect.fail(`case "${c.name}": accepted, and ends in a number`)
+    expect(platform.isRPID(rpId), `case "${c.name}"`).toBe(true)
+    same(toBase64URL(await platform.prfSalt(rpId)), str(c, 'prf_salt'), `case "${c.name}": prf_salt`)
+    same(toBase64URL(await passkeyPRFSalt(platform.platformPasskey, rpId)), str(c, 'prf_salt'), `case "${c.name}": section 7's salt`)
+    await platform.passkeyWrapKey(prf, rpId)
+    const wrap = await platform.wrapRootWithPasskey({ prf, root, sub, epoch: 1, ...binding })
+    await platform.unwrapRootWithPasskey({ prf, wrap, sub, epoch: 1, ...binding }, async (got) => same(toBase64URL(got as Bytes), toBase64URL(root), `case "${c.name}": the root`))
+    return
+  }
+  if (c.prf_salt !== undefined) expect.fail(`case "${c.name}": a refused case with prf_salt`)
+  expect(platform.isRPID(rpId), `case "${c.name}"`).toBe(false)
+  await outcome(c, async () => { await platform.prfSalt(rpId) }, 'the salt')
+  await outcome(c, async () => { await platform.passkeyWrapKey(prf, rpId) }, 'the key')
+  await outcome(c, async () => { await platform.wrapRootWithPasskey({ prf, root, sub, epoch: 1, ...binding }) }, 'the one-call seal')
+  const aad = encodeUTF8(platform.rootWrapAAD('passkey', sub, 1, binding))
+  const blob = await wrapPasskey(platform.platformPasskey, root, prf, rpId, aad)
+  same(toBase64URL(await unwrapPasskey(platform.platformPasskey, blob, prf, rpId, aad)), toBase64URL(root), `case "${c.name}": section 7's own wrap`)
+  await outcome(c, async () => {
+    await platform.unwrapRootWithPasskey({ prf, wrap: toBase64URL(blob), sub, epoch: 1, ...binding }, async () => expect.fail(`case "${c.name}": opened`))
+  }, 'the one-call open')
+}
+
 describe('the platform\'s id-v1 vectors', () => {
   it('are all here, in their recorded shape', () => {
     let total = 0
@@ -521,7 +563,7 @@ describe('the platform\'s id-v1 vectors', () => {
       total += cases
       failing += mustFail
     }
-    expect([total, failing]).toEqual([457, 339])
+    expect([total, failing]).toEqual([486, 356])
   })
 })
 
@@ -744,6 +786,18 @@ describe('platform/id-v1/passkey.json', () => {
     expect(count((c) => c.error === 'wrap')).toBe(35)
     expect(count((c) => c.op === undefined && c.error !== undefined) + count((c) => c.op !== undefined && c.error === undefined)).toBe(0)
     expect(new Set(cases.map((c) => c.name)).size).toBe(cases.length)
+  })
+})
+
+describe('platform/id-v1/rp-id-ends-in-number.json', () => {
+  it('counts 12 accepted and 17 refused, all wrap, 8 of them the hex forms v0.4.0 accepted', () => {
+    const cases = loadPlatform('rp-id-ends-in-number').cases
+    // isRPID as v0.4.0 shipped it, which refused a last label only when it was all digits.
+    const v040 = (rp: string) => rp.length >= 1 && rp.length <= 253 && rp.split('.').every((l) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(l)) &&
+      !/^[0-9]+$/.test(rp.slice(rp.lastIndexOf('.') + 1))
+    expect(cases.filter((c) => c.error === undefined).length).toBe(12)
+    expect(cases.filter((c) => c.error === 'wrap').length).toBe(17)
+    expect(cases.filter((c) => c.error !== undefined && c.ends_in_a_number === true && v040(c.rp_id as string)).length).toBe(8)
   })
 })
 

@@ -14,6 +14,7 @@ import (
 	"golang.org/x/text/unicode/norm"
 
 	"github.com/thehappieco/kit/internal/vectest"
+	"github.com/thehappieco/kit/passkey"
 	"github.com/thehappieco/kit/profiles/platform"
 )
 
@@ -370,19 +371,44 @@ func allowlisted(v any) bool {
 }
 
 // rpIDLabel is one label of a relying party id as the TypeScript side's
-// isRPID matches it; rpIDDigits is a label of digits only.
+// isRPID matches it; rpIDDigits is a label of digits only; rpIDNumber is the
+// WHATWG "ends in a number" rule as one expression, as the platform's own
+// rule (its internal/rpid) reads it: after at most one trailing dot, a last
+// label of decimal digits, or of "0x" or "0X" and zero or more hex digits.
 var (
 	rpIDLabel  = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
 	rpIDDigits = regexp.MustCompile(`^[0-9]+$`)
+	rpIDNumber = regexp.MustCompile(`(^|\.)([0-9]+|0[xX][0-9a-fA-F]*)\.?$`)
 )
 
-// FuzzValidRPID: no input panics; ValidRPID's byte loop agrees with the
-// regular expressions TypeScript's isRPID uses (labels split on '.', 1 to
-// 253 bytes in all, the last label not all digits); every id it accepts
-// passes WrapAAD's alphabet and gives a salt and a key, and every id it
-// refuses gives neither.
+// rpIDSpelling is the spelling of a relying party id without the number
+// rule, as TypeScript's isRPID matches it: 1 to 253 bytes of labels split on
+// '.', each matching rpIDLabel.
+func rpIDSpelling(rpID string) bool {
+	ok := len(rpID) >= 1 && len(rpID) <= 253
+	for _, l := range strings.Split(rpID, ".") {
+		ok = ok && rpIDLabel.MatchString(l)
+	}
+	return ok
+}
+
+// lastLabel is what follows the last '.', or the whole id.
+func lastLabel(rpID string) string { return rpID[strings.LastIndexByte(rpID, '.')+1:] }
+
+// FuzzValidRPID: no input panics; passkey.EndsInANumber, the WHATWG checker
+// step by step, agrees with the one-expression reading of it; ValidRPID's
+// byte loop agrees with the regular expressions TypeScript's isRPID uses
+// (labels split on '.', 1 to 253 bytes in all) less the ids that end in a
+// number; every id it accepts passes WrapAAD's alphabet and gives a salt and
+// a key, and every id it refuses gives neither.
 func FuzzValidRPID(f *testing.F) {
 	for _, c := range vectest.Platform[vectest.PasskeyCase](f, "passkey") {
+		if c.RPID == nil {
+			f.Fatalf("%s: a case without rp_id", c.CaseName())
+		}
+		f.Add(*c.RPID)
+	}
+	for _, c := range vectest.Platform[vectest.RPIDEndsInNumberCase](f, "rp-id-ends-in-number") {
 		if c.RPID == nil {
 			f.Fatalf("%s: a case without rp_id", c.CaseName())
 		}
@@ -392,19 +418,22 @@ func FuzzValidRPID(f *testing.F) {
 		"a", "1", "a.1", "1.a", "a-", "-a", "a..b", ".", "", "xn--bcher-kva.example", "A.b", "a_b", "a\x00",
 		strings.Repeat("a", 63), strings.Repeat("a", 64), strings.Repeat("a.", 126) + "a", strings.Repeat("a.", 126) + "ab",
 		"\xff", "\u0430.com", "id.thehappie.co\n",
+		"0x", "0X", "00x1", "09", "id.0x0x", "1.2.3.4a", "0x.", "a..", "..", "0x\x00", "0x\u0661", "\u0661",
 	} {
 		f.Add(s)
 	}
 	prf := testBytes(platform.PRFOutputLen, 0x5a)
 	f.Fuzz(func(t *testing.T, rpID string) {
-		got := platform.ValidRPID(rpID)
-		labels := strings.Split(rpID, ".")
-		want := len(rpID) >= 1 && len(rpID) <= 253 && !rpIDDigits.MatchString(labels[len(labels)-1])
-		for _, l := range labels {
-			want = want && rpIDLabel.MatchString(l)
+		ends := passkey.EndsInANumber(rpID)
+		if want := rpIDNumber.MatchString(rpID); ends != want {
+			t.Fatalf("EndsInANumber says %v, the regular expression %v", ends, want)
 		}
-		if got != want {
+		got := platform.ValidRPID(rpID)
+		if want := rpIDSpelling(rpID) && !ends; got != want {
 			t.Fatalf("ValidRPID says %v, the regular expressions %v", got, want)
+		}
+		if got && rpIDDigits.MatchString(lastLabel(rpID)) {
+			t.Fatal("ValidRPID accepts an all-decimal last label")
 		}
 		salt, sErr := platform.PRFSalt(rpID)
 		key, kErr := platform.PasskeyWrapKey(prf, rpID)

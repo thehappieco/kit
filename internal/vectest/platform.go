@@ -269,6 +269,20 @@ type ClientExtensionsCase struct {
 	Error                  string  `json:"error,omitempty"`
 }
 
+// RPIDEndsInNumberCase is an rp-id-ends-in-number case (SPEC section
+// 11.16): a relying party id, the answer of the WHATWG URL Standard's "ends
+// in a number checker" on it, and either the PRF salt of an id the profile
+// accepts or the error "wrap". RPID is a pointer so that a missing member
+// fails rather than reads as the empty id, and EndsInANumber so that a
+// missing answer fails rather than reads as false.
+type RPIDEndsInNumberCase struct {
+	Name          string  `json:"name"`
+	RPID          *string `json:"rp_id"`
+	EndsInANumber *bool   `json:"ends_in_a_number"`
+	PRFSalt       string  `json:"prf_salt,omitempty"`
+	Error         string  `json:"error,omitempty"`
+}
+
 // CaseName is op "/" name for a case with an op, its name otherwise, and ""
 // for a case without a name.
 func (c KeyDeliveryCase) CaseName() string {
@@ -298,9 +312,11 @@ func (c PasskeyCase) CaseName() string {
 }
 
 func (c ClientExtensionsCase) CaseName() string { return c.Name }
+func (c RPIDEndsInNumberCase) CaseName() string { return c.Name }
 
 func (c PasskeyCase) CaseError() string          { return c.Error }
 func (c ClientExtensionsCase) CaseError() string { return c.Error }
+func (c RPIDEndsInNumberCase) CaseError() string { return c.Error }
 
 func (c PasswordProfileCase) CaseError() string { return c.Error }
 func (c KDFCase) CaseError() string             { return c.Error }

@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { encodeUTF8, fromBase64URL, toBase64URL, type Bytes } from '../src/bytes.js'
 import { PlatformError, type PlatformErrorCode } from '../src/errors.js'
-import { unwrapPasskey, wrapPasskey } from '../src/passkey.js'
+import { endsInANumber, unwrapPasskey, wrapPasskey } from '../src/passkey.js'
 import * as platform from '../src/profiles/platform.js'
 
 const RP = 'id.thehappie.co'
@@ -173,12 +173,24 @@ describe('the PRF salt and K_pk', () => {
     for (const v of [undefined, null, 7, ['localhost'], { toString: () => RP }]) expect(platform.isRPID(v)).toBe(false)
   })
 
-  // Only an all-decimal last label is refused (SPEC section 11.16): a last
-  // label of "0x" and hex digits, which a browser's URL parser reads as an
-  // IPv4 address, passes, as in Go and on the platform's server.
-  it('refuses only an all-decimal last label, not a hex number', () => {
-    for (const rp of ['0x7f000001', '0x', 'id.0xff', 'id.0x1', '1.0x']) expect(platform.isRPID(rp), rp).toBe(true)
-    for (const rp of ['127.0.0.1', '1', 'id.123', '0']) expect(platform.isRPID(rp), rp).toBe(false)
+  // A relying party id that ends in a number is refused (SPEC section
+  // 11.16), as the WHATWG URL Standard's host parser reads it: a last label
+  // of digits, or of "0x" and zero or more hex digits, which a browser reads
+  // as an IPv4 address or refuses. A hex number in another label, and a last
+  // label that only looks like a number, pass. v0.4.0 refused only the
+  // all-decimal form.
+  it('refuses a relying party id that ends in a number, decimal or hex', async () => {
+    for (const rp of ['127.0.0.1', '1', 'id.123', '0', '0x7f000001', '0x', 'id.0xff', 'id.0x1', '1.0x', '1.2.3.0x4', 'id.thehappie.0x100000000']) {
+      expect(platform.isRPID(rp), rp).toBe(false)
+      expect(endsInANumber(rp), rp).toBe(true)
+      await expectRefusal(() => platform.prfSalt(rp), 'wrap', rp)
+      await expectRefusal(() => platform.passkeyWrapKey(PRF, rp), 'wrap', rp)
+      await expectRefusal(() => wrapped({ rpId: rp }), 'wrap', rp)
+    }
+    for (const rp of ['0x7f000001.thehappie.co', 'id.0x1g', '0x1g', 'id.0x0x', 'id.0xabc-def', 'id.00x1', 'id.1e3', 'id.0b1', 'id.x7f', '1.2.3.4a', 'x0', '0xg']) {
+      expect(platform.isRPID(rp), rp).toBe(true)
+      expect(endsInANumber(rp), rp).toBe(false)
+    }
   })
 })
 

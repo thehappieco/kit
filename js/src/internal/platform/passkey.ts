@@ -39,7 +39,7 @@
 
 import { encodeUTF8, fromBase64URL, isBase64URL, toBase64URL, type Bytes } from '../../bytes.js'
 import { PlatformError } from '../../errors.js'
-import { prfSalt as passkeyPRFSalt, type PasskeyProfile } from '../../passkey.js'
+import { endsInANumber, prfSalt as passkeyPRFSalt, type PasskeyProfile } from '../../passkey.js'
 import { zero } from '../zero.js'
 import { WRAP_KIND_BYTE, WRAP_LEN, WRAP_VERSION } from './profile.js'
 import { isEpoch, isSub, openRootWrap, sealRootWrap, type PasskeyBinding } from './rootwrap.js'
@@ -75,20 +75,25 @@ export const platformPasskey: PasskeyProfile = Object.freeze({
 
 const MAX_RP_ID_LEN = 253
 const RP_ID_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/
-const ALL_DIGITS = /^[0-9]+$/
 
 /**
  * isRPID says whether s is a relying party id in its one spelling, the rule
  * of Go's ValidRPID: a domain name of 1 to 253 characters whose
  * dot-separated labels are each 1 to 63 characters of [a-z0-9-], none
- * starting or ending with '-', and whose last label is not all digits. That
- * is the host of an origin as a browser serializes it: lower case, no port,
- * no scheme, no trailing dot, no dotted-decimal IPv4 address. Only an
- * all-decimal last label is refused: a last label of "0x" and hex digits,
- * such as "0x7f000001", which a browser's URL parser reads as an IPv4
- * address, passes, as it does in Go and on the platform's server. Go counts
- * bytes and this counts UTF-16 units, but only ASCII is accepted, so both
- * refuse the same inputs.
+ * starting or ending with '-', that does not end in a number as the WHATWG
+ * URL Standard's host parser decides it (endsInANumber of the passkey
+ * module). That leaves out upper case, a port, a scheme, a trailing dot,
+ * and every host a browser reads as an IPv4 address or refuses for ending in
+ * a number, whose last label is all digits or "0x" and zero or more hex digits
+ * ("127.0.0.1", "0x7f000001", "1.2.3.0x4", "id.0xff"); "id.0x1g" and
+ * "id.00x1", which a browser keeps as domains, pass. Kit v0.4.0 refused only
+ * an all-decimal last label. Go counts bytes and this counts UTF-16 units,
+ * but only ASCII is accepted, so both refuse the same inputs.
+ *
+ * It does not check that an "xn--" label is valid Punycode, on which engines
+ * disagree: Firefox's URL parser and Node's refuse "xn--a", Chromium's and
+ * WebKit's keep it. Apart from such labels, every id it accepts is the host
+ * of an origin as a browser serializes it.
  *
  * One spelling, because the relying party id is hashed into the PRF salt
  * and the HKDF salt and written into the AAD: a second spelling would be a
@@ -97,9 +102,8 @@ const ALL_DIGITS = /^[0-9]+$/
  */
 export function isRPID(s: unknown): s is string {
   if (typeof s !== 'string' || s.length < 1 || s.length > MAX_RP_ID_LEN) return false
-  const labels = s.split('.')
-  if (!labels.every((l) => RP_ID_LABEL.test(l))) return false
-  return !ALL_DIGITS.test(labels[labels.length - 1]!)
+  if (!s.split('.').every((l) => RP_ID_LABEL.test(l))) return false
+  return !endsInANumber(s)
 }
 
 function checkRPID(rpId: unknown): asserts rpId is string {

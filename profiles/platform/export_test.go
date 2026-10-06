@@ -28,3 +28,20 @@ var (
 	MarkRunTooLong = markRunTooLong
 	Counted        = counted
 )
+
+// ObserveDerivations records what account hands DerivePassword for the rest
+// of the test, so a test can check that it made no string and that every
+// byte of it is cleared. Tests that use it must not run in parallel with
+// tests that derive.
+func ObserveDerivations(t testing.TB) *[]account.Derived {
+	t.Helper()
+	seen := new([]account.Derived)
+	orig := deriveFn
+	deriveFn = func(p account.Profile, prepared, salt []byte, params account.KDFParams) (account.Derived, error) {
+		d, err := orig(p, prepared, salt, params)
+		*seen = append(*seen, d)
+		return d, err
+	}
+	t.Cleanup(func() { deriveFn = orig })
+	return seen
+}

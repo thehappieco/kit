@@ -16,113 +16,44 @@
 // the profile's; what a wrap binds to (its AAD) is the caller's, built by the
 // profile's own helper.
 //
+// The implementation is internal/accountcore.ts, which names no worker file.
+// This module adds the kit's own KDF worker (kdf.worker.js) as the default of
+// derive, derivePrepared and bind(p).derive, so a bundle that imports it
+// emits that worker; a bundle that reaches the account core only through
+// @thehappieco/kit/profiles/platform/core or @thehappieco/kit/oidc-rp emits
+// none.
+//
 // Argon2id is the one place the kit uses a dependency (@noble/hashes):
 // WebCrypto has PBKDF2 and nothing memory-hard, and the wrapped key sits in a
 // server's database, which is the threat this scheme is built against.
 
-import { concat, encodeUTF8, toBase64, toBase64URL, type Bytes } from './bytes.js'
-import { AccountError } from './errors.js'
-import { generateKeyPair } from './hpke.js'
+import type { Bytes } from './bytes.js'
+import { bindWith, deriveWith, derivePreparedWith, type AccountProfile, type DeriveOptions, type Derived, type KDFParams } from './internal/accountcore.js'
+import { kitWorker } from './internal/kdfworker.js'
 
-export { AccountError }
-export type { AccountErrorCode, AccountErrorReason } from './errors.js'
-
-/** KDFParams mirror what the server stores, so the cost can be raised later. */
-export interface KDFParams {
-  alg: string
-  /** Memory in KiB. */
-  m: number
-  /** Passes. */
-  t: number
-  p: number
-}
-
-export const defaultKDFParams: KDFParams = Object.freeze({ alg: 'argon2id', m: 64 * 1024, t: 3, p: 1 }) as KDFParams
-
-/**
- * KDFBounds are the parameters and salt a client accepts from a server before
- * deriving. Without them whoever writes the server's database can hand a
- * client cheap parameters, or a salt it has used before.
- */
-export interface KDFBounds {
-  min: { m: number; t: number; p: number }
-  max: { m: number; t: number; p: number }
-  /** Bounds m times t; absent means no bound. */
-  maxCost?: number
-  /**
-   * Bound the salt's length in bytes; absent means no bound beyond Argon2id's
-   * own 8. Equal values fix it (the platform's policy: exactly 16).
-   */
-  minSaltLen?: number
-  maxSaltLen?: number
-}
-
-/** AccountProfile is everything a product chooses about the scheme. */
-export interface AccountProfile {
-  readonly authLabel: string
-  readonly wrapLabel: string
-  readonly recoveryKeyLabel: string
-  readonly recoveryProofLabel: string
-  /** Prefixes every wrap: header, nonce (12), ciphertext and tag. */
-  readonly wrapHeader: readonly number[]
-  /** Also open header-less nonce, ciphertext and tag with no AAD, as stale. */
-  readonly legacyV1: boolean
-  /** How the auth key and the recovery proof are written as text. */
-  readonly encoding: 'base64' | 'base64url'
-  /**
-   * Turns a password into the bytes Argon2id reads; absent means UTF-8,
-   * unchanged. derive zeroes the array it returns.
-   */
-  readonly prepare?: (password: string) => Bytes
-  /** Enforced before any derivation; absent means none. */
-  readonly bounds?: KDFBounds
-  /** Canonicalises a typed recovery code; absent means normaliseRecoveryCode. */
-  readonly normaliseRecovery?: (code: string) => string
-}
-
-const SALT_LEN = 16
-const NONCE_LEN = 12
-const TAG_LEN = 16
-
-function encode(p: AccountProfile, b: Bytes): string {
-  return p.encoding === 'base64url' ? toBase64URL(b) : toBase64(b)
-}
-
-/** checkKDFParams throws unless params are ones this profile derives with. */
-export function checkKDFParams(p: AccountProfile, params: KDFParams): void {
-  if (params.alg !== 'argon2id') throw new AccountError('unsupported key derivation', 'kdf', 'unsupported_alg')
-  const b = p.bounds
-  if (!b) return
-  if (params.m < b.min.m || params.m > b.max.m || params.t < b.min.t || params.t > b.max.t || params.p < b.min.p || params.p > b.max.p ||
-    (b.maxCost !== undefined && params.m * params.t > b.maxCost)) {
-    throw new AccountError('key derivation parameters out of bounds', 'kdf', 'out_of_bounds')
-  }
-}
-
-/** checkSalt throws unless the salt has a length this profile derives with. */
-export function checkSalt(p: AccountProfile, salt: Bytes): void {
-  const b = p.bounds
-  if (!b) return
-  if ((b.minSaltLen !== undefined && salt.length < b.minSaltLen) || (b.maxSaltLen !== undefined && salt.length > b.maxSaltLen)) {
-    throw new AccountError('the salt is out of bounds', 'kdf', 'out_of_bounds')
-  }
-}
-
-/** Derived is the pair a password becomes. Neither half is the password. */
-export interface Derived {
-  /** Sent to the server, in the profile's encoding. */
-  authKey: string
-  /** Stays here, non-extractable. Wraps and unwraps the account key. */
-  wrapKey: CryptoKey
-}
-
-export interface DeriveOptions {
-  /**
-   * Makes the Argon2id worker. The default loads ./kdf.worker.js beside this
-   * module; a bundler that moves files can supply the right URL here.
-   */
-  worker?: () => Worker
-}
+export {
+  AccountError,
+  checkKDFParams,
+  checkSalt,
+  defaultKDFParams,
+  freshSalt,
+  generateAccountKeys,
+  newRecoveryCode,
+  normaliseRecoveryCode,
+  recoveryKey,
+  recoveryProof,
+  unwrapPrivateKey,
+  wrapPrivateKey,
+  type AccountErrorCode,
+  type AccountErrorReason,
+  type AccountKeys,
+  type AccountProfile,
+  type DeriveOptions,
+  type Derived,
+  type KDFBounds,
+  type KDFParams,
+  type Unwrapped,
+} from './internal/accountcore.js'
 
 /**
  * derive turns a password into the two branches:
@@ -132,25 +63,14 @@ export interface DeriveOptions {
  *   wrap   = HKDF-SHA256(master, salt empty, info wrapLabel)
  *
  * The parameters and the salt are checked against the profile's bounds before
- * anything is derived. The prepared password bytes, the master key and the raw
- * wrap key are zeroed before it returns; the password string itself cannot be.
+ * anything is derived. Argon2id runs in the kit's worker, or options.worker's,
+ * where there are Workers, and on the calling thread otherwise. The prepared
+ * password bytes, the master key and the raw auth and wrap keys are zeroed
+ * before it returns; the password string itself cannot be, nor can authKey, a
+ * string, which is sent as text anyway.
  */
 export async function derive(p: AccountProfile, password: string, salt: Bytes, params: KDFParams, options: DeriveOptions = {}): Promise<Derived> {
-  checkKDFParams(p, params)
-  checkSalt(p, salt)
-  let prepared: Bytes
-  try {
-    prepared = p.prepare ? p.prepare(password) : encodeUTF8(password)
-  } catch {
-    throw new AccountError('the password was refused', 'password', 'rejected')
-  }
-  let master: Bytes
-  try {
-    master = await stretch(prepared, salt, params, options)
-  } finally {
-    prepared.fill(0)
-  }
-  return split(p, master)
+  return deriveWith(kitWorker, p, password, salt, params, options)
 }
 
 /**
@@ -158,210 +78,14 @@ export async function derive(p: AccountProfile, password: string, salt: Bytes, p
  * the bytes Argon2id reads, such as a profile's own preparation produced
  * them. The profile's prepare is not called. The parameters and the salt are
  * checked exactly as derive checks them, before anything is derived, and the
- * master key and the raw wrap key are zeroed before it returns; prepared stays
- * the caller's to zero.
+ * master key and the raw auth and wrap keys are zeroed before it returns;
+ * prepared stays the caller's to zero.
  */
 export async function derivePrepared(p: AccountProfile, prepared: Bytes, salt: Bytes, params: KDFParams, options: DeriveOptions = {}): Promise<Derived> {
-  checkKDFParams(p, params)
-  checkSalt(p, salt)
-  return split(p, await stretch(prepared, salt, params, options))
-}
-
-/** split derives the two branches from the master key, and zeroes it. */
-async function split(p: AccountProfile, master: Bytes): Promise<Derived> {
-  try {
-    const base = await crypto.subtle.importKey('raw', master, 'HKDF', false, ['deriveBits'])
-    const branch = (label: string) =>
-      crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: encodeUTF8(label) }, base, 256)
-    const [auth, wrap] = (await Promise.all([branch(p.authLabel), branch(p.wrapLabel)])).map((bits) => new Uint8Array(bits))
-    try {
-      return {
-        authKey: encode(p, auth),
-        wrapKey: await crypto.subtle.importKey('raw', wrap, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']),
-      }
-    } finally {
-      wrap.fill(0)
-    }
-  } finally {
-    master.fill(0)
-  }
-}
-
-/**
- * stretch runs Argon2id, in a worker where there is one. The fallback is the
- * same function called directly: a login that works slowly beats one that
- * does not, and Node, where the tests run, has no Worker.
- */
-async function stretch(password: Bytes, salt: Bytes, params: KDFParams, options: DeriveOptions): Promise<Bytes> {
-  const direct = async () => {
-    // Loaded on demand: a browser normally derives in the worker, and should
-    // not download a second copy of Argon2 for this path.
-    const { argon2id } = await import('@noble/hashes/argon2.js')
-    try {
-      return argon2id(password, salt, { m: params.m, t: params.t, p: params.p, dkLen: 32 }) as Bytes
-    } catch {
-      throw new AccountError('the key derivation failed', 'kdf', 'kdf_failed')
-    }
-  }
-  if (!options.worker && typeof Worker === 'undefined') return direct()
-  try {
-    const worker = options.worker ? options.worker() : new Worker(new URL('./kdf.worker.js', import.meta.url), { type: 'module' })
-    try {
-      return await new Promise<Bytes>((resolve, reject) => {
-        worker.onmessage = (event: MessageEvent<{ ok: boolean; master?: Bytes; error?: string }>) => {
-          if (event.data.ok && event.data.master) resolve(event.data.master)
-          else reject(new AccountError('the key derivation failed', 'kdf', 'kdf_failed'))
-        }
-        worker.onerror = () => reject(new AccountError('the key derivation failed', 'kdf', 'kdf_failed'))
-        worker.postMessage({ password, salt, m: params.m, t: params.t, p: params.p })
-      })
-    } finally {
-      worker.terminate()
-    }
-  } catch {
-    // No module workers, or the bundle could not load one. Slower and
-    // blocking, but it works.
-    return direct()
-  }
-}
-
-export function freshSalt(): Bytes {
-  return crypto.getRandomValues(new Uint8Array(SALT_LEN))
-}
-
-/** AccountKeys is an X25519 pair; the private half is held only to be wrapped. */
-export interface AccountKeys {
-  publicKey: Bytes
-  privateKey: Bytes
-}
-
-export async function generateAccountKeys(): Promise<AccountKeys> {
-  return generateKeyPair()
-}
-
-/** wrapPrivateKey seals a key (an account key, or a root) under a wrap key, bound to aad. */
-export async function wrapPrivateKey(p: AccountProfile, privateKey: Bytes, under: CryptoKey, aad: Bytes): Promise<Bytes> {
-  const nonce = crypto.getRandomValues(new Uint8Array(NONCE_LEN))
-  const sealed = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad }, under, privateKey))
-  return concat(new Uint8Array(p.wrapHeader), nonce, sealed)
-}
-
-/** Unwrapped is the key, and whether the blob it came from needs re-wrapping. */
-export interface Unwrapped {
-  privateKey: Bytes
-  /** True for a legacy blob, which carries no binding. */
-  stale: boolean
-}
-
-/**
- * unwrapPrivateKey reverses it. A blob with the profile's header is tried
- * under its binding first; with legacyV1 it is then tried as a legacy blob. A
- * wrong key and a wrong binding are the same failure: wrong_key.
- */
-export async function unwrapPrivateKey(p: AccountProfile, blob: Bytes, under: CryptoKey, aad: Bytes): Promise<Unwrapped> {
-  const h = p.wrapHeader.length
-  if (blob.length > NONCE_LEN + h && p.wrapHeader.every((b, i) => blob[i] === b)) {
-    try {
-      const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: blob.subarray(h, h + NONCE_LEN), additionalData: aad }, under, blob.subarray(h + NONCE_LEN))
-      return { privateKey: new Uint8Array(plain) as Bytes, stale: false }
-    } catch {
-      // Not this account's wrap, or the wrong key. A legacy blob is tried below.
-    }
-  }
-  if (!p.legacyV1) {
-    if (blob.length < h + NONCE_LEN + TAG_LEN) throw new AccountError('the stored key is truncated', 'wrap', 'truncated')
-    throw new AccountError('the key does not open this wrap', 'wrap', 'wrong_key')
-  }
-  if (blob.length <= NONCE_LEN) throw new AccountError('the stored key is truncated', 'wrap', 'truncated')
-  try {
-    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: blob.subarray(0, NONCE_LEN) }, under, blob.subarray(NONCE_LEN))
-    return { privateKey: new Uint8Array(plain) as Bytes, stale: true }
-  } catch {
-    throw new AccountError('the key does not open this wrap', 'wrap', 'wrong_key')
-  }
-}
-
-// ---------------------------------------------------------------------------
-// The recovery code
-// ---------------------------------------------------------------------------
-
-// Crockford's base32: no I, L, O or U, so nothing reads as a digit and back.
-const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
-const CODE_GROUPS = 6
-const GROUP_LEN = 5
-
-function group(chars: string): string {
-  const groups: string[] = []
-  for (let i = 0; i < CODE_GROUPS; i++) groups.push(chars.slice(i * GROUP_LEN, (i + 1) * GROUP_LEN))
-  return groups.join('-')
-}
-
-/** newRecoveryCode returns 150 random bits as six groups of five characters. */
-export function newRecoveryCode(): string {
-  const raw = crypto.getRandomValues(new Uint8Array(CODE_GROUPS * GROUP_LEN))
-  // Unbiased: 256 is a multiple of 32.
-  return group(Array.from(raw, (b) => ALPHABET[b % ALPHABET.length]).join(''))
-}
-
-/** normaliseRecoveryCode accepts what somebody actually types back. */
-export function normaliseRecoveryCode(code: string): string {
-  const cleaned = code
-    .toUpperCase()
-    .replace(/[^0-9A-Z]/g, '')
-    // The letters the alphabet leaves out, mapped to what they were meant to be.
-    .replace(/O/g, '0')
-    .replace(/[IL]/g, '1')
-    .replace(/U/g, 'V')
-  if (cleaned.length !== CODE_GROUPS * GROUP_LEN) {
-    throw new AccountError(`a recovery code has ${CODE_GROUPS * GROUP_LEN} characters`, 'recovery', 'recovery_length')
-  }
-  return group(cleaned)
-}
-
-async function recoveryBranch(p: AccountProfile, code: string, label: string): Promise<Bytes> {
-  const normalised = p.normaliseRecovery ? p.normaliseRecovery(code) : normaliseRecoveryCode(code)
-  const text = encodeUTF8(normalised)
-  try {
-    const material = await crypto.subtle.importKey('raw', text, 'HKDF', false, ['deriveBits'])
-    return new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: encodeUTF8(label) }, material, 256))
-  } finally {
-    text.fill(0)
-  }
-}
-
-/**
- * recoveryKey derives the wrap key of a recovery code. Not stretched: the
- * code is 150 random bits, so slowing it down would only punish its owner.
- */
-export async function recoveryKey(p: AccountProfile, code: string): Promise<CryptoKey> {
-  const bits = await recoveryBranch(p, code, p.recoveryKeyLabel)
-  try {
-    return await crypto.subtle.importKey('raw', bits, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
-  } finally {
-    bits.fill(0)
-  }
-}
-
-/** recoveryProof is the branch of the code that is sent, independent of the key. */
-export async function recoveryProof(p: AccountProfile, code: string): Promise<string> {
-  return encode(p, await recoveryBranch(p, code, p.recoveryProofLabel))
+  return derivePreparedWith(kitWorker, p, prepared, salt, params, options)
 }
 
 /** bind fixes a profile, for a product's own wrappers. */
 export function bind(p: AccountProfile) {
-  return {
-    profile: p,
-    checkKDFParams: (params: KDFParams) => checkKDFParams(p, params),
-    checkSalt: (salt: Bytes) => checkSalt(p, salt),
-    derive: (password: string, salt: Bytes, params: KDFParams, options?: DeriveOptions) => derive(p, password, salt, params, options),
-    derivePrepared: (prepared: Bytes, salt: Bytes, params: KDFParams, options?: DeriveOptions) => derivePrepared(p, prepared, salt, params, options),
-    wrapPrivateKey: (privateKey: Bytes, under: CryptoKey, aad: Bytes) => wrapPrivateKey(p, privateKey, under, aad),
-    unwrapPrivateKey: (blob: Bytes, under: CryptoKey, aad: Bytes) => unwrapPrivateKey(p, blob, under, aad),
-    recoveryKey: (code: string) => recoveryKey(p, code),
-    recoveryProof: (code: string) => recoveryProof(p, code),
-    freshSalt,
-    generateAccountKeys,
-    newRecoveryCode,
-    normaliseRecoveryCode,
-  }
+  return bindWith(kitWorker, p)
 }

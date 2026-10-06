@@ -52,7 +52,8 @@ const bundled: Record<string, string> = Object.fromEntries(
     .map(([path, text]) => [path.replace(/^\.\.\/\.\.\/vectors\//, ''), text]),
 )
 
-function text(path: string): string {
+/** text is a vector file's exact text, for the files whose bytes a test reproduces. */
+export function text(path: string): string {
   const t = bundled[path]
   if (t === undefined) throw new Error(`no vector file ${path}`)
   return t

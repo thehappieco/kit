@@ -1,7 +1,7 @@
 // The platform profile's values (SPEC section 11.1): its labels, the
 // root-wrap header, and its profile for the kit's account scheme.
 
-import type { AccountProfile, KDFBounds } from '../../account.js'
+import type { AccountProfile, KDFBounds } from '../accountcore.js'
 import { PlatformError } from '../../errors.js'
 import { KDF_BOUNDS, SALT_LEN } from './kdfpolicy.js'
 import { preparePassword } from './password.js'

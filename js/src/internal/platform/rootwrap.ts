@@ -18,7 +18,7 @@
 // account the first time it is needed. From the platform's
 // web/shared/crypto/rootwrap.ts.
 
-import { unwrapPrivateKey, wrapPrivateKey } from '../../account.js'
+import { unwrapPrivateKey, wrapPrivateKey } from '../accountcore.js'
 import { encodeUTF8, equal, isBase64URL, type Bytes } from '../../bytes.js'
 import { PlatformError } from '../../errors.js'
 import { canonicalJSON } from '../../jcs.js'

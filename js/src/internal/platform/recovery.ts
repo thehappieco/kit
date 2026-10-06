@@ -9,7 +9,7 @@
 // guessed offline. The proof and the wrap key are separate HKDF branches, so
 // the server, which sees R_proof, learns nothing about K_rwrap.
 
-import { recoveryKey, recoveryProof } from '../../account.js'
+import { recoveryKey, recoveryProof } from '../accountcore.js'
 import { canonicalRecoveryCode } from './recoverycode.js'
 import { platformAccount } from './profile.js'
 

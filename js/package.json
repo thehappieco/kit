@@ -1,7 +1,7 @@
 {
   "name": "@thehappieco/kit",
-  "version": "0.4.0",
-  "description": "The Happie Co's shared cryptographic kit: HPKE, sealed envelopes, the zero-knowledge account scheme, passkey PRF wraps, request signing, the platform's account protocol with its key delivery and passkeys, and the relying party of its id.",
+  "version": "0.5.0",
+  "description": "The Happie Co's shared cryptographic kit: HPKE, sealed envelopes, the zero-knowledge account scheme, passkey PRF wraps, request signing, Wappie's platform wrap, the platform's account protocol with its key delivery and passkeys, and the relying party of its id.",
   "type": "module",
   "license": "Apache-2.0",
   "repository": "github:thehappieco/kit",
@@ -28,6 +28,7 @@
     "./reqhmac": { "types": "./dist/reqhmac.d.ts", "import": "./dist/reqhmac.js" },
     "./profiles/wappie": { "types": "./dist/profiles/wappie.d.ts", "import": "./dist/profiles/wappie.js" },
     "./profiles/platform": { "types": "./dist/profiles/platform.d.ts", "import": "./dist/profiles/platform.js" },
+    "./profiles/platform/core": { "types": "./dist/profiles/platform/core.d.ts", "import": "./dist/profiles/platform/core.js" },
     "./oidc-rp": { "types": "./dist/oidc-rp.d.ts", "import": "./dist/oidc-rp.js" }
   },
   "dependencies": {

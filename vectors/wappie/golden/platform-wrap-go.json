@@ -1,0 +1,766 @@
+{
+  "format": "thehappieco-kit-vectors/1",
+  "module": "wappie.platform_wrap",
+  "profile": "wappie",
+  "generated_by": {
+    "lang": "go",
+    "source": "github.com/thehappieco/wappie-cloud@3bfee279581ad15f6d2d2db3d3a9794c8eac50ca platformwrap, with vectors/wappie/_generators/cloud/header-0x03.patch (sha256 8be482a6f0629556...) applied",
+    "toolchain": "go1.26.7",
+    "randomness": "none: every key and nonce is SHA-256 of a fixed label",
+    "generator": "vectors/wappie/_generators/cloud/platformwrap/kitgen_internal_test.go"
+  },
+  "note": "Wappie's platform wrap (SPEC section 6.8), written by the console's Go package. k_pw_b64 is computed by the generator with HKDF and recorded only after a wrap sealed under it with the case's nonce was byte for byte the package's Seal. The bindings new, linked and epoch-2 are the package's own vectors, with its labels; the others are the kit's: an account key whose first byte is zero, a product key whose first byte is zero, and the largest epoch.",
+  "cases": [
+    {
+      "id": "wappie/platform-wrap/info/new",
+      "op": "wappie.platform_wrap_info",
+      "in": {
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "out": {
+        "info_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJiIiwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJiIiwid2FwcGllOjEiXQ=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/aad/new",
+      "op": "wappie.platform_wrap_aad",
+      "in": {
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "out": {
+        "aad_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJiIiwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJiIiwid2FwcGllOjEiLCI5WEx3WmlxeEVfOUw2ajZxTS1YUWJMTWZLMmx6a2h3Ul9ua3dIdm16VzJvIl0="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/seal/new",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "nonce_b64": "5JfvbCnY1M0IHe1L",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "out": {
+        "k_pw_b64": "jp3UjwSjMr3OGUorbxmk667VK0CBx5OVGfFJboy2LnY=",
+        "wrap_b64": "A+SX72wp2NTNCB3tS7XqR/rKtlAl8E+UpogalIBIGh/X2qWSDItAbXm3q46SMQU+jaVvAdDzKKa+ll2gIg=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/open/new",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "wrap_b64": "A+SX72wp2NTNCB3tS7XqR/rKtlAl8E+UpogalIBIGh/X2qWSDItAbXm3q46SMQU+jaVvAdDzKKa+ll2gIg=="
+      },
+      "out": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/info/linked",
+      "op": "wappie.platform_wrap_info",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f"
+      },
+      "out": {
+        "info_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDFhMDhlMGUtNWExYy03YjJkLTllM2YtNGE1YjZjN2Q4ZTlmIiwiMDE5YTJiM2MtNGQ1ZS03ZjYwLTgxNzItOTNhNGI1YzZkN2U4Iiwid2FwcGllOjEiXQ=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/aad/linked",
+      "op": "wappie.platform_wrap_aad",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f"
+      },
+      "out": {
+        "aad_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDFhMDhlMGUtNWExYy03YjJkLTllM2YtNGE1YjZjN2Q4ZTlmIiwiMDE5YTJiM2MtNGQ1ZS03ZjYwLTgxNzItOTNhNGI1YzZkN2U4Iiwid2FwcGllOjEiLCJPbnRrT1p1RDBSbE9ram1PSFlzdlRFLVJWSFl2MmVWbXdLRkd1RndGUVhBIl0="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/seal/linked",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "GPnDskpaw+4qCePcKQ8AVz0eG1SzP7Al6nFrtbpiG3s=",
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "nonce_b64": "Z7LD1dNAHt0mkct9",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f"
+      },
+      "out": {
+        "k_pw_b64": "9SjfGhsjG01VeQKuik4cg4jnn75JMfLnJEZpI6bqPwk=",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/open/linked",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "out": {
+        "account_key_b64": "GPnDskpaw+4qCePcKQ8AVz0eG1SzP7Al6nFrtbpiG3s="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/info/epoch-2",
+      "op": "wappie.platform_wrap_info",
+      "in": {
+        "account_public_key_b64": "6KTBdt4KNFqBeF7sLXRPWZbl1dc+pkwt+KN8wtND8T4=",
+        "product_key_id": "wappie:2",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f"
+      },
+      "out": {
+        "info_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDFhMDhlMGUtNWExYy03YjJkLTllM2YtNGE1YjZjN2Q4ZTlmIiwiMDE5YTJiM2MtNGQ1ZS03ZjYwLTgxNzItOTNhNGI1YzZkN2U4Iiwid2FwcGllOjIiXQ=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/aad/epoch-2",
+      "op": "wappie.platform_wrap_aad",
+      "in": {
+        "account_public_key_b64": "6KTBdt4KNFqBeF7sLXRPWZbl1dc+pkwt+KN8wtND8T4=",
+        "product_key_id": "wappie:2",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f"
+      },
+      "out": {
+        "aad_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDFhMDhlMGUtNWExYy03YjJkLTllM2YtNGE1YjZjN2Q4ZTlmIiwiMDE5YTJiM2MtNGQ1ZS03ZjYwLTgxNzItOTNhNGI1YzZkN2U4Iiwid2FwcGllOjIiLCI2S1RCZHQ0S05GcUJlRjdzTFhSUFdaYmwxZGMtcGt3dC1LTjh3dE5EOFQ0Il0="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/seal/epoch-2",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "bFyPJld9qnU1GxUm7qbaZnXMSBeJ97k4Xon0X5jVqEs=",
+        "account_public_key_b64": "6KTBdt4KNFqBeF7sLXRPWZbl1dc+pkwt+KN8wtND8T4=",
+        "nonce_b64": "LaoLfPwnwddi71Ek",
+        "product_key_b64": "r67y5So2eBuTB2C6VLOnFeyLLU3JEvPSRPuP+jEQNxM=",
+        "product_key_id": "wappie:2",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f"
+      },
+      "out": {
+        "k_pw_b64": "UYbb0Y2d4zDz4PITlDi/CnyqTha3qAKX0g2jw0bzQYI=",
+        "wrap_b64": "Ay2qC3z8J8HXYu9RJP5H4+2/qgcjYPhdHZKj3g6We8/8P67CdOgAigMa/Hkry9He0Y4zFSXvodh0Nd4aDA=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/open/epoch-2",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "6KTBdt4KNFqBeF7sLXRPWZbl1dc+pkwt+KN8wtND8T4=",
+        "product_key_b64": "r67y5So2eBuTB2C6VLOnFeyLLU3JEvPSRPuP+jEQNxM=",
+        "product_key_id": "wappie:2",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "Ay2qC3z8J8HXYu9RJP5H4+2/qgcjYPhdHZKj3g6We8/8P67CdOgAigMa/Hkry9He0Y4zFSXvodh0Nd4aDA=="
+      },
+      "out": {
+        "account_key_b64": "bFyPJld9qnU1GxUm7qbaZnXMSBeJ97k4Xon0X5jVqEs="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/info/account-key-zero-first-byte",
+      "op": "wappie.platform_wrap_info",
+      "in": {
+        "account_public_key_b64": "JzrVseRx/sGSj5xiehVxFPE0FED3YNZSvmtcrct3BwM=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2c",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2c"
+      },
+      "out": {
+        "info_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJjIiwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJjIiwid2FwcGllOjEiXQ=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/aad/account-key-zero-first-byte",
+      "op": "wappie.platform_wrap_aad",
+      "in": {
+        "account_public_key_b64": "JzrVseRx/sGSj5xiehVxFPE0FED3YNZSvmtcrct3BwM=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2c",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2c"
+      },
+      "out": {
+        "aad_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJjIiwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJjIiwid2FwcGllOjEiLCJKenJWc2VSeF9zR1NqNXhpZWhWeEZQRTBGRUQzWU5aU3ZtdGNyY3QzQndNIl0="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/seal/account-key-zero-first-byte",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "AIzQPo63lIL0btcA+RM3E4V3Dbhs/BudZCN6Tt6gs9k=",
+        "account_public_key_b64": "JzrVseRx/sGSj5xiehVxFPE0FED3YNZSvmtcrct3BwM=",
+        "nonce_b64": "dcZ9W7r5JS5jrR1t",
+        "product_key_b64": "eP+0VTpxRntVKLMAen2AWwm433VwZIwGmGC5nLEqjE8=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2c",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2c"
+      },
+      "out": {
+        "k_pw_b64": "Zc6a8GzFGU58HR1T5pALwz+6Ce6qdQU7sqIjQJeWxgY=",
+        "wrap_b64": "A3XGfVu6+SUuY60dbT44YZunqhJisKFuC6R1AT7IaE9hDtP2M/OL6vA2H3rhKbXTJ/XeOcvHBjpI9KOmOw=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/open/account-key-zero-first-byte",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "JzrVseRx/sGSj5xiehVxFPE0FED3YNZSvmtcrct3BwM=",
+        "product_key_b64": "eP+0VTpxRntVKLMAen2AWwm433VwZIwGmGC5nLEqjE8=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2c",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2c",
+        "wrap_b64": "A3XGfVu6+SUuY60dbT44YZunqhJisKFuC6R1AT7IaE9hDtP2M/OL6vA2H3rhKbXTJ/XeOcvHBjpI9KOmOw=="
+      },
+      "out": {
+        "account_key_b64": "AIzQPo63lIL0btcA+RM3E4V3Dbhs/BudZCN6Tt6gs9k="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/info/product-key-zero-first-byte",
+      "op": "wappie.platform_wrap_info",
+      "in": {
+        "account_public_key_b64": "QNDoZys1ZnMKrJXHhCjJZxrLyqTC8gwmRlvak5FPnSY=",
+        "product_key_id": "wappie:3",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2d",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2d"
+      },
+      "out": {
+        "info_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJkIiwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJkIiwid2FwcGllOjMiXQ=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/aad/product-key-zero-first-byte",
+      "op": "wappie.platform_wrap_aad",
+      "in": {
+        "account_public_key_b64": "QNDoZys1ZnMKrJXHhCjJZxrLyqTC8gwmRlvak5FPnSY=",
+        "product_key_id": "wappie:3",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2d",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2d"
+      },
+      "out": {
+        "aad_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJkIiwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJkIiwid2FwcGllOjMiLCJRTkRvWnlzMVpuTUtySlhIaENqSlp4ckx5cVRDOGd3bVJsdmFrNUZQblNZIl0="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/seal/product-key-zero-first-byte",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "skkX5pxARfyoBANAC8RbebsTZMj7MjMaet6nHnM6gKg=",
+        "account_public_key_b64": "QNDoZys1ZnMKrJXHhCjJZxrLyqTC8gwmRlvak5FPnSY=",
+        "nonce_b64": "RqQ5M1ZKMYpz7zZ+",
+        "product_key_b64": "AMcLTWHKn+CinPc8fXCOFEtOhsYhofcVmBFWzQqcO/k=",
+        "product_key_id": "wappie:3",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2d",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2d"
+      },
+      "out": {
+        "k_pw_b64": "7J8cUGxQ1CMzaK4HrFf5ekybPHfe1zy4QuUCHBpgM+U=",
+        "wrap_b64": "A0akOTNWSjGKc+82fs6/WZCNwDb8+v13OXbVUasY35xB2ZV9EILGGH6vtKW6SaT4ogOgAEZ+dsKffuULLQ=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/open/product-key-zero-first-byte",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "QNDoZys1ZnMKrJXHhCjJZxrLyqTC8gwmRlvak5FPnSY=",
+        "product_key_b64": "AMcLTWHKn+CinPc8fXCOFEtOhsYhofcVmBFWzQqcO/k=",
+        "product_key_id": "wappie:3",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2d",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2d",
+        "wrap_b64": "A0akOTNWSjGKc+82fs6/WZCNwDb8+v13OXbVUasY35xB2ZV9EILGGH6vtKW6SaT4ogOgAEZ+dsKffuULLQ=="
+      },
+      "out": {
+        "account_key_b64": "skkX5pxARfyoBANAC8RbebsTZMj7MjMaet6nHnM6gKg="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/info/largest-epoch",
+      "op": "wappie.platform_wrap_info",
+      "in": {
+        "account_public_key_b64": "/6d/v0POQ5P/PsstsXSDu/kzHuFto1zOhBOFVWhJBxQ=",
+        "product_key_id": "wappie:2147483647",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e9",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2e"
+      },
+      "out": {
+        "info_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJlIiwiMDE5YTJiM2MtNGQ1ZS03ZjYwLTgxNzItOTNhNGI1YzZkN2U5Iiwid2FwcGllOjIxNDc0ODM2NDciXQ=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/aad/largest-epoch",
+      "op": "wappie.platform_wrap_aad",
+      "in": {
+        "account_public_key_b64": "/6d/v0POQ5P/PsstsXSDu/kzHuFto1zOhBOFVWhJBxQ=",
+        "product_key_id": "wappie:2147483647",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e9",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2e"
+      },
+      "out": {
+        "aad_b64": "WyJ3YXBwaWUvcGxhdGZvcm0td3JhcCIsMSwiMDE5OWExYjItYzNkNC03ZTVmLThhNmItN2M4ZDllMGYxYTJlIiwiMDE5YTJiM2MtNGQ1ZS03ZjYwLTgxNzItOTNhNGI1YzZkN2U5Iiwid2FwcGllOjIxNDc0ODM2NDciLCJfNmRfdjBQT1E1UF9Qc3N0c1hTRHVfa3pIdUZ0bzF6T2hCT0ZWV2hKQnhRIl0="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/seal/largest-epoch",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "1GIoXKArP+n7pEbNPlNHgjm1ESx07fhN0de1nQwAoG8=",
+        "account_public_key_b64": "/6d/v0POQ5P/PsstsXSDu/kzHuFto1zOhBOFVWhJBxQ=",
+        "nonce_b64": "2Dgk0d384jvLveT7",
+        "product_key_b64": "KrhueVBk8bCVCcK5nTRHdJbE72MgO1XVQgwVPBBfC9w=",
+        "product_key_id": "wappie:2147483647",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e9",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2e"
+      },
+      "out": {
+        "k_pw_b64": "d+b48/kyVmljFDgdbF7S04rdmAkwswhJS4Mtj8f1VWk=",
+        "wrap_b64": "A9g4JNHd/OI7y73k+8L+rBta+Id1JBzUifaSdPyOyHz8eKZEki+pWbHbN4mkoZQSSMCQ0qizOhloSRUAZg=="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/open/largest-epoch",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "/6d/v0POQ5P/PsstsXSDu/kzHuFto1zOhBOFVWhJBxQ=",
+        "product_key_b64": "KrhueVBk8bCVCcK5nTRHdJbE72MgO1XVQgwVPBBfC9w=",
+        "product_key_id": "wappie:2147483647",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e9",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2e",
+        "wrap_b64": "A9g4JNHd/OI7y73k+8L+rBta+Id1JBzUifaSdPyOyHz8eKZEki+pWbHbN4mkoZQSSMCQ0qizOhloSRUAZg=="
+      },
+      "out": {
+        "account_key_b64": "1GIoXKArP+n7pEbNPlNHgjm1ESx07fhN0de1nQwAoG8="
+      }
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/another-user-id",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e90",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/another-sub",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e9",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/another-epoch",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:2",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/another-account-public-key",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "JoiAawxiYwZLTUgXMqfGQTwQkR0T9XiI6m/pQvOh+WE=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/another-product-key",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "r67y5So2eBuTB2C6VLOnFeyLLU3JEvPSRPuP+jEQNxM=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/the-epoch-2-wrap",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "Ay2qC3z8J8HXYu9RJP5H4+2/qgcjYPhdHZKj3g6We8/8P67CdOgAigMa/Hkry9He0Y4zFSXvodh0Nd4aDA=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/flipped-nonce",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2ayw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/flipped-ciphertext",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv1mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/flipped-tag",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1Q=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/header-0x01-the-passkey-envelope",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "AWeyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/header-0x02-the-password-wrap",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "Ameyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/header-0x00",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "AGeyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/length-60",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/length-62",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1AA="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/empty",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": ""
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/sub-in-upper-case",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019A2B3C-4D5E-7F60-8172-93A4B5C6D7E8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/another-products-key-id",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "mailie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/product-key-of-31-bytes",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIow==",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/account-public-key-of-31-bytes",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQQ==",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A2eyw9XTQB7dJpHLfeEJX7eKHPv0mXhM1Z1zMtMiVck3NBtvvCbV8qozw6/Og27VZB9m/yclwujNMDxM1A=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/open/refuses/opens-to-another-accounts-key",
+      "op": "wappie.platform_wrap_open",
+      "in": {
+        "account_public_key_b64": "OntkOZuD0RlOkjmOHYsvTE+RVHYv2eVmwKFGuFwFQXA=",
+        "product_key_b64": "BsImzh9GfFa+n2PbTmn0rs+q1oCS21Rcl8ebnmXIo1g=",
+        "product_key_id": "wappie:1",
+        "sub": "019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8",
+        "user_id": "01a08e0e-5a1c-7b2d-9e3f-4a5b6c7d8e9f",
+        "wrap_b64": "A3MbijWdFqVmoOxPbe3sgLonSz7XS93KdNrWRlHp8v0TWWxS0Frhvy6aR8LeL5ZDD2KlPMqS9wLxO/tExA=="
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/account-key-not-the-public-keys",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "ASkZjv8VkLjvipcmL6hyqrPVrXQJWy4Eftf0jhwnFW8=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/account-key-of-31-bytes",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzQ==",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/product-key-of-31-bytes",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MA==",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/product-key-of-33-bytes",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCoA",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/user-id-not-a-uuid",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "not-a-uuid"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/user-id-in-upper-case",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "wappie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199A1B2-C3D4-7E5F-8A6B-7C8D9E0F1A2B"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/epoch-with-a-leading-zero",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "wappie:01",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/epoch-0",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "wappie:0",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/epoch-2147483648",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "wappie:2147483648",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/another-products-key-id",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "mailie:1",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "error": "platform_wrap"
+    },
+    {
+      "id": "wappie/platform-wrap/seal/refuses/no-epoch",
+      "op": "wappie.platform_wrap_seal",
+      "in": {
+        "account_key_b64": "rsKy7HOHU8yeoZdFzvKKIwBweB2CLcIxXjMV1LvUzUk=",
+        "account_public_key_b64": "9XLwZiqxE/9L6j6qM+XQbLMfK2lzkhwR/nkwHvmzW2o=",
+        "product_key_b64": "r2pdM/41yYcwnhTq7YMnXXGUchWHUAp/FUeleZj6MCo=",
+        "product_key_id": "wappie",
+        "sub": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b",
+        "user_id": "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b"
+      },
+      "error": "platform_wrap"
+    }
+  ]
+}

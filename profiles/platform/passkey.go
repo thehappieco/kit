@@ -84,19 +84,24 @@ func PasskeyProfile() passkey.Profile {
 
 // ValidRPID reports whether rpID is a relying party id in its one spelling:
 // a domain name of 1 to 253 bytes whose dot-separated labels are each 1 to
-// 63 bytes from [a-z0-9-], none starting or ending with '-', and whose last
-// label is not all digits. Every such name is the host of an origin as a
-// browser serializes it, and the rule leaves out what cannot be the id.
+// 63 bytes from [a-z0-9-], none starting or ending with '-', that does not
+// end in a number as the WHATWG URL Standard's host parser decides it
+// (passkey.EndsInANumber). The rule leaves out what cannot be the id of a
 // relying party: upper case, which a browser never serializes, a port or a
-// scheme, which are not part of a host, a trailing dot, and a dotted-decimal
-// IPv4 address, whose last label is all digits. So "id.thehappie.co" and
-// "id.thehappie.localhost" pass, and "ID.thehappie.co", "id.thehappie.co:443",
-// "https://id.thehappie.co" and "127.0.0.1" do not.
+// scheme, which are not part of a host, a trailing dot, and every host a
+// browser reads as an IPv4 address or refuses for ending in a number, whose
+// last label is all digits or "0x" and zero or more hex digits
+// ("127.0.0.1", "0x7f000001", "1.2.3.0x4", "id.0xff"). So "id.thehappie.co"
+// and "id.thehappie.localhost" pass, and so do "id.0x1g" and "id.00x1",
+// which a browser keeps as domains; "ID.thehappie.co", "id.thehappie.co:443",
+// "https://id.thehappie.co", "127.0.0.1" and "id.0xff" do not. Kit v0.4.0
+// refused only an all-decimal last label; the platform's server refuses the
+// rest since its 75b6b94.
 //
-// Only an all-decimal last label is refused: a last label of "0x" and hex
-// digits, such as "0x7f000001", which a browser's host parser also reads as
-// an IPv4 address, passes, as it does in the platform's idcrypto.ValidRPID
-// and in TypeScript's isRPID. An id. origin spelt so fails at WebAuthn.
+// It does not check that an "xn--" label is valid Punycode, on which engines
+// disagree: Firefox's URL parser and Node's refuse "xn--a", Chromium's and
+// WebKit's keep it. Apart from such labels, every name it accepts is the host
+// of an origin as a browser serializes it.
 //
 // The protocol needs one spelling because the relying party id is hashed into
 // the PRF salt and the HKDF salt and written into the AAD: a second spelling
@@ -111,14 +116,10 @@ func ValidRPID(rpID string) bool {
 		return false
 	}
 	start := 0
-	allDigits := true
 	for i := 0; i <= len(rpID); i++ {
 		if i < len(rpID) && rpID[i] != '.' {
-			c := rpID[i]
-			switch {
-			case 'a' <= c && c <= 'z', c == '-':
-				allDigits = false
-			case '0' <= c && c <= '9':
+			switch c := rpID[i]; {
+			case 'a' <= c && c <= 'z', '0' <= c && c <= '9', c == '-':
 			default:
 				return false
 			}
@@ -128,12 +129,9 @@ func ValidRPID(rpID string) bool {
 		if len(label) < 1 || len(label) > maxRPIDLabelLen || label[0] == '-' || label[len(label)-1] == '-' {
 			return false
 		}
-		if i == len(rpID) && allDigits {
-			return false
-		}
-		start, allDigits = i+1, true
+		start = i + 1
 	}
-	return true
+	return !passkey.EndsInANumber(rpID)
 }
 
 // PRFSalt returns the public PRF salt of a relying party (section 11.16):

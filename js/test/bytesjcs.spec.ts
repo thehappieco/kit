@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
-import { Base64Error, formatUUID, fromBase64, fromBase64URL, fromHex, isBase64URL, parseUUID, toBase64, toBase64URL, uuidV5, type Bytes } from '../src/bytes.js'
+import { Base64Error, encodeUTF8, formatUUID, fromBase64, fromBase64URL, fromHex, isBase64URL, parseUUID, toBase64, toBase64URL, uuidV5, type Bytes } from '../src/bytes.js'
 import { canonicalJSON, CanonicalJSONError } from '../src/jcs.js'
 import { b64, codeOf, files, forTS, toB64, unhandled } from './vectors.js'
 
@@ -58,6 +58,27 @@ for (const [path, f] of files('wappie/golden/bytes-jcs-ts.json', 'kit/jcs-go.jso
 
 it('writes base64url without padding', () => {
   expect(toBase64URL(new Uint8Array([0xfb, 0xff]) as Bytes)).toBe('-_8')
+})
+
+describe('encodeUTF8', () => {
+  it("zeroes TextEncoder's own buffer once it has copied it", () => {
+    const made: Uint8Array[] = []
+    const encode = TextEncoder.prototype.encode
+    const spy = vi.spyOn(TextEncoder.prototype, 'encode').mockImplementation(function (this: TextEncoder, s?: string) {
+      const raw = encode.call(this, s)
+      made.push(raw)
+      return raw
+    })
+    try {
+      const out = encodeUTF8('senha correta ✓')
+      expect(Array.from(out)).toEqual(Array.from(encode.call(new TextEncoder(), 'senha correta ✓')))
+      expect(made).toHaveLength(1)
+      expect(made[0].buffer).not.toBe(out.buffer)
+      expect(made[0].every((b) => b === 0)).toBe(true)
+    } finally {
+      spy.mockRestore()
+    }
+  })
 })
 
 describe('strict base64url', () => {

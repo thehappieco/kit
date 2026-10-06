@@ -70,6 +70,9 @@ func TestManifest(t *testing.T) {
 		"platform/_generators/tools/vectors/main.go",
 		"platform/_generators-4476bf4/tools/vectors/main.go",
 		"platform/_generators-b5d9f69/tools/vectors/main.go",
+		"platform/_generators-75b6b94/tools/vectors/main.go",
+		"wappie/_generators/run-cloud.sh",
+		"wappie/_generators/cloud/header-0x03.patch",
 	} {
 		if _, err := fs.Stat(vectors.FS, generator); err == nil {
 			t.Errorf("the generators are embedded: %s", generator)
@@ -185,7 +188,8 @@ func platformCaseID(op, name string) string {
 
 // The platform's id-v1 files are the ones captured at the platform commits
 // PROVENANCE.md records: the eight part-1 files at 5e66d84, the three part-2
-// files at 4476bf4 and the two part-3 files at b5d9f69. Each has the sha256 recorded there, so a copy from
+// files at 4476bf4, the two part-3 files at b5d9f69 and the relying party
+// rule's file at 75b6b94. Each has the sha256 recorded there, so a copy from
 // another platform commit or an edit fails here even after `make manifest`
 // has recorded it, and no tag can freeze other bytes as these. Then their
 // header, ASCII only with exactly one final newline, unique case ids (the
@@ -210,6 +214,7 @@ func TestPlatformVectorFiles(t *testing.T) {
 		{"password-stream-safe", 19, 11, "4476bf4", "6c0be5a1e236fab99e97cacbff527674b76f65a9a1c5b2630bdf8558465021cc"},
 		{"passkey", 44, 35, "b5d9f69", "dca9707d800996f219b62a5fc09b56b693be98a0487494bebb4bd6ad2606e286"},
 		{"client-extensions", 46, 37, "b5d9f69", "e5c6e6a4ac7dad59fbbd131f095721842d53432699fad72a7db82be6884afb3b"},
+		{"rp-id-ends-in-number", 29, 17, "75b6b94", "b361d107e1f50d51cd146b6c74b9079676942ab8f01d7b2833d43ee437d33d56"},
 	}
 	entries, err := fs.ReadDir(vectors.FS, "platform/id-v1")
 	if err != nil {
@@ -271,7 +276,72 @@ func TestPlatformVectorFiles(t *testing.T) {
 		total += len(f.Cases)
 		failing += bad
 	}
-	if total != 457 || failing != 339 {
-		t.Errorf("%d cases, %d must fail; want 457 and 339", total, failing)
+	if total != 486 || failing != 356 {
+		t.Errorf("%d cases, %d must fail; want 486 and 356", total, failing)
+	}
+}
+
+// Wappie's platform-wrap files (SPEC section 6.8) are the ones captured from
+// Wappie's console at the commit PROVENANCE.md records, with the header
+// patch recorded there: each has the sha256 recorded there, so an edit or
+// a capture from another commit fails here even after `make manifest` has
+// recorded it. The golden files have their counts of cases and of
+// must-fail cases; the console's own file its 3 vectors, 15 open refusals
+// and 5 seal refusals.
+func TestWappiePlatformWrapFiles(t *testing.T) {
+	for _, w := range []struct {
+		path            string
+		cases, mustFail int
+		sha256          string
+	}{
+		{"wappie/golden/platform-wrap-go.json", 55, 31, "e3d5e918fbb239d59e01e22dcffa94ad5e3da111425fe1f386b215f8a1b9e933"},
+		{"wappie/golden/platform-wrap-ts.json", 22, 10, "cfb7390af38d26e63acf03004628c9af29595bc47069ce4808bd654e0cd5eb37"},
+	} {
+		raw, err := fs.ReadFile(vectors.FS, w.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != w.sha256 {
+			t.Errorf("%s is not the file captured from the console (PROVENANCE.md)", w.path)
+		}
+		var f struct {
+			Format string `json:"format"`
+			Module string `json:"module"`
+			Cases  []struct {
+				ID    string `json:"id"`
+				Error string `json:"error"`
+			} `json:"cases"`
+		}
+		if err := json.Unmarshal(raw, &f); err != nil {
+			t.Fatal(err)
+		}
+		bad := 0
+		for _, c := range f.Cases {
+			if c.Error != "" {
+				bad++
+			}
+		}
+		if f.Format != "thehappieco-kit-vectors/1" || f.Module != "wappie.platform_wrap" || len(f.Cases) != w.cases || bad != w.mustFail {
+			t.Errorf("%s: %q %q, %d cases, %d must fail; want %d and %d", w.path, f.Format, f.Module, len(f.Cases), bad, w.cases, w.mustFail)
+		}
+	}
+	const legacy = "wappie/legacy/platform-wrap-vectors.json"
+	raw, err := fs.ReadFile(vectors.FS, legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != "fb96f29339e3e9855d3835ef21d3742837f9f760d7748fbce35430ce8b084ec7" {
+		t.Errorf("%s is not the file captured from the console (PROVENANCE.md)", legacy)
+	}
+	var f struct {
+		Vectors      []json.RawMessage `json:"vectors"`
+		OpenRefusals []json.RawMessage `json:"open_refusals"`
+		SealRefusals []json.RawMessage `json:"seal_refusals"`
+	}
+	if err := json.Unmarshal(raw, &f); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Vectors) != 3 || len(f.OpenRefusals) != 15 || len(f.SealRefusals) != 5 {
+		t.Errorf("%s: %d vectors, %d and %d refusals; want 3, 15 and 5", legacy, len(f.Vectors), len(f.OpenRefusals), len(f.SealRefusals))
 	}
 }

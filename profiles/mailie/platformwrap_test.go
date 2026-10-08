@@ -198,6 +198,19 @@ func platformWrapCase(t *testing.T, c vectest.Case) {
 	}
 }
 
+// TestKitMailiePlatformWrapVectors reproduces the kit's own round trips of
+// Mailie's platform wrap that the TypeScript side wrote: the fresh file of
+// that name in $KIT_CROSS_IN in the cross-language job, every seal replayed
+// from the nonce it drew, and every wrap also refused under Wappie's labels.
+func TestKitMailiePlatformWrapVectors(t *testing.T) {
+	for _, c := range vectest.Fresh(t, "mailie-platform-wrap-ts.json") {
+		if !c.ForGo() {
+			continue
+		}
+		t.Run(c.ID, func(t *testing.T) { platformWrapCase(t, c) })
+	}
+}
+
 // The golden file holds the bindings the kit asked for: an account whose
 // user id is not its sub, an account key and a product key whose first byte
 // is zero, the largest epoch; and every product key of a binding of Mailie's

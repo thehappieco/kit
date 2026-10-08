@@ -62,7 +62,8 @@ jobs:
       # request signature, the key bundle, every field of the platform's
       # requests (addresses, base64url, recovery codes, relying party ids,
       # client extension results), what a relying party is sent, the
-      # platform wrap an export carries, and THCSEAL's decoder and opener.
+      # platform wrap an export carries (Wappie's, and the generic one under
+      # every product's profile), and THCSEAL's decoder and opener.
       - name: fuzz the parsers
         run: |
           go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./seal
@@ -78,6 +79,7 @@ jobs:
           go test -run '^$' -fuzz '^FuzzCanonicalRecoveryCode$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzReadUserinfo$' -fuzztime 30s ./oidcrp
           go test -run '^$' -fuzz '^FuzzOpenPlatformWrap$' -fuzztime 30s ./profiles/wappie
+          go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./platformwrap
           go test -run '^$' -fuzz '^FuzzDecodeAcceptsOnlyTheLayoutItDocuments$' -fuzztime 30s ./thcseal
           go test -run '^$' -fuzz '^FuzzOpenNeverOpensAnAlteredEnvelope$' -fuzztime 30s ./thcseal
 

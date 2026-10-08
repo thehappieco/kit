@@ -9,5 +9,7 @@
 /oidcrp/          @frrestum
 /thcseal/         @frrestum
 /kms/             @frrestum
+/platformwrap/    @frrestum
+/js/src/platformwrap.ts @frrestum
 /scripts/         @frrestum
 /.github/         @frrestum

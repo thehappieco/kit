@@ -26,6 +26,7 @@
     "./passkey": { "types": "./dist/passkey.d.ts", "import": "./dist/passkey.js" },
     "./browserAccount": { "types": "./dist/browserAccount.d.ts", "import": "./dist/browserAccount.js" },
     "./reqhmac": { "types": "./dist/reqhmac.d.ts", "import": "./dist/reqhmac.js" },
+    "./platformwrap": { "types": "./dist/platformwrap.d.ts", "import": "./dist/platformwrap.js" },
     "./profiles/wappie": { "types": "./dist/profiles/wappie.d.ts", "import": "./dist/profiles/wappie.js" },
     "./profiles/platform": { "types": "./dist/profiles/platform.d.ts", "import": "./dist/profiles/platform.js" },
     "./profiles/platform/core": { "types": "./dist/profiles/platform/core.d.ts", "import": "./dist/profiles/platform/core.js" },

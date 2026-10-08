@@ -2,7 +2,9 @@
 // sealed, wrapped and signed its existing data. They are frozen; data already
 // stored opens only with exactly these values. What each kind means to Wappie
 // stays in Wappie. Since v0.5.0 it also holds Wappie's platform wrap (SPEC
-// section 6.8), an addition that changes none of them.
+// section 6.8), an addition that changes none of them; since v0.6.0 that is
+// the generic @thehappieco/kit/platformwrap under wappiePlatformWrap, with
+// the same functions and bytes.
 
 import { encodeUTF8, type Bytes } from '../bytes.js'
 import { canonicalJSON } from '../jcs.js'
@@ -138,5 +140,6 @@ export {
   platformWrapAAD,
   platformWrapInfo,
   sealPlatformWrap,
+  wappiePlatformWrap,
   type PlatformWrapBinding,
 } from '../internal/wappie/platformwrap.js'

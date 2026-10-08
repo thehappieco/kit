@@ -11,6 +11,7 @@ import (
 
 	"github.com/thehappieco/kit/internal/vectest"
 	"github.com/thehappieco/kit/platformwrap"
+	"github.com/thehappieco/kit/profiles/mailie"
 	"github.com/thehappieco/kit/profiles/wappie"
 )
 
@@ -44,13 +45,17 @@ func binding(t testing.TB, p platformwrap.Profile, usk []byte) platformwrap.Bind
 	return platformwrap.Binding{UserID: "019a7c1e-2b3d-7e4f-8a5b-6c7d8e9f0a1b", Sub: "019a7c1e-2b3d-7e4f-8a5b-6c7d8e9f0a1b", ProductKeyID: p.Product + ":1", AccountPublicKey: public(t, usk)}
 }
 
-// The construction's fixed values (SPEC section 6.8), and Wappie's labels.
+// The construction's fixed values (SPEC section 6.8), and the products'
+// labels (Appendices A and D).
 func TestConstants(t *testing.T) {
 	if platformwrap.Header != 0x03 || platformwrap.Len != 61 || platformwrap.Version != 1 {
 		t.Fatal("a fixed value of SPEC section 6.8 changed")
 	}
 	if wappie.PlatformWrap() != (platformwrap.Profile{Product: "wappie", Salt: "wappie/platform-wrap/v1", Label: "wappie/platform-wrap"}) {
 		t.Fatalf("Wappie's profile is %+v", wappie.PlatformWrap())
+	}
+	if mailie.PlatformWrap() != (platformwrap.Profile{Product: "mailie", Salt: "mailie/platform-wrap/v1", Label: "mailie/platform-wrap"}) {
+		t.Fatalf("Mailie's profile is %+v", mailie.PlatformWrap())
 	}
 	if wappie.PlatformWrapHeader != platformwrap.Header || wappie.PlatformWrapLen != platformwrap.Len || wappie.ErrPlatformWrap != platformwrap.ErrPlatformWrap {
 		t.Fatal("Wappie's names are not the generic ones")
@@ -187,12 +192,14 @@ func profileOf(op string) (platformwrap.Profile, bool) {
 	switch {
 	case strings.HasPrefix(op, "wappie.platform_wrap_"):
 		return wappie.PlatformWrap(), true
+	case strings.HasPrefix(op, "mailie.platform_wrap_"):
+		return mailie.PlatformWrap(), true
 	}
 	return platformwrap.Profile{}, false
 }
 
 // goldenFiles are the golden files of every product's platform wrap.
-var goldenFiles = []string{"wappie/golden/platform-wrap-go.json", "wappie/golden/platform-wrap-ts.json"}
+var goldenFiles = []string{"wappie/golden/platform-wrap-go.json", "wappie/golden/platform-wrap-ts.json", "mailie/golden/platform-wrap-go.json"}
 
 // Every seal of the golden files, replayed through this package under the
 // op's profile, is the recorded wrap, and every open refusal is refused: the
@@ -235,7 +242,7 @@ func TestGoldenThroughTheGenericPackage(t *testing.T) {
 // key whose public half is the binding's, which a fresh seal under the same
 // profile and binding opens to again. Seeded from every golden file.
 func FuzzOpen(f *testing.F) {
-	profiles := []platformwrap.Profile{wappie.PlatformWrap()}
+	profiles := []platformwrap.Profile{wappie.PlatformWrap(), mailie.PlatformWrap()}
 	index := func(p platformwrap.Profile) uint8 {
 		for i, q := range profiles {
 			if q == p {

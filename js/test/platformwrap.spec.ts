@@ -24,6 +24,7 @@ import {
   type PlatformWrapBinding,
   type PlatformWrapProfile,
 } from '../src/platformwrap.js'
+import { mailiePlatformWrap } from '../src/profiles/mailie.js'
 import * as wappie from '../src/profiles/wappie.js'
 import { b64, files, toB64, withDraws, withEngineRefusingX25519 } from './vectors.js'
 
@@ -44,10 +45,11 @@ async function refused(id: string, fn: () => Promise<unknown> | unknown): Promis
 /** profileOf is the profile a golden case's op runs under. */
 function profileOf(op: string): PlatformWrapProfile | undefined {
   if (op.startsWith('wappie.platform_wrap_')) return wappie.wappiePlatformWrap
+  if (op.startsWith('mailie.platform_wrap_')) return mailiePlatformWrap
   return undefined
 }
 
-const goldenFiles = ['wappie/golden/platform-wrap-go.json', 'wappie/golden/platform-wrap-ts.json']
+const goldenFiles = ['wappie/golden/platform-wrap-go.json', 'wappie/golden/platform-wrap-ts.json', 'mailie/golden/platform-wrap-go.json']
 
 const binding = (i: Record<string, string>): PlatformWrapBinding => ({ userId: i.user_id!, sub: i.sub!, productKeyId: i.product_key_id!, accountPublicKey: b64(i.account_public_key_b64!) })
 

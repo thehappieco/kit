@@ -10,7 +10,8 @@ package vectors
 
 import "embed"
 
-// FS holds MANIFEST.sha256 and every file under wappie/, kit/ and platform/.
+// FS holds MANIFEST.sha256 and every file under wappie/, kit/, platform/
+// and mailie/.
 //
-//go:embed MANIFEST.sha256 wappie kit platform
+//go:embed MANIFEST.sha256 wappie kit platform mailie
 var FS embed.FS

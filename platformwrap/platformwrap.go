@@ -4,8 +4,9 @@
 // (section 6.4, the X25519 key the product's grants and records are sealed
 // to) is kept, not replaced: whoever holds sk_p opens the wrap, and below it
 // the hierarchy is the one a password account has. A Profile holds a
-// product's labels; Wappie's wrap (the platform's decision 0023) is this
-// construction under profiles/wappie.PlatformWrap().
+// product's labels: Wappie's wrap (the platform's decision 0023) is this
+// construction under profiles/wappie.PlatformWrap(), and Mailie's under
+// profiles/mailie.PlatformWrap().
 //
 //	K_pw = HKDF-SHA256(IKM = sk_p (32 bytes), salt = UTF-8(profile salt),
 //	                   info = JCS([label, 1, user_id, sub, product_key_id]), L = 32)

@@ -52,7 +52,7 @@ func TestManifest(t *testing.T) {
 			t.Errorf("%s does not match its manifest hash", name)
 		}
 	}
-	for _, root := range []string{"wappie", "kit", "platform"} {
+	for _, root := range []string{"wappie", "kit", "platform", "mailie"} {
 		if err := fs.WalkDir(os.DirFS("."), root, func(path string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() {
 				return err
@@ -81,7 +81,8 @@ func TestManifest(t *testing.T) {
 }
 
 // Every case SPEC.md cites as `file#case-id` exists: a bare file name is
-// under wappie/golden/, and an id ending in * names at least one case. The
+// under wappie/golden/, a file under mailie/golden/ is named with its
+// directory, and an id ending in * names at least one case. The
 // platform's files name their cases instead (`platform/id-v1/kdf.json#the
 // floor parameters`), and a case of theirs that carries an op is cited by op
 // and name (`platform/id-v1/key-delivery.json#open/a sub in upper case`).
@@ -92,7 +93,7 @@ func TestSpecCitations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cite := regexp.MustCompile("`((?:kit/|wappie/golden/|platform/id-v1/|platform/thcseal-v1/)?[a-z0-9-]+\\.json)#([^`]+)`")
+	cite := regexp.MustCompile("`((?:kit/|wappie/golden/|mailie/golden/|platform/id-v1/|platform/thcseal-v1/)?[a-z0-9-]+\\.json)#([^`]+)`")
 	matches := cite.FindAllStringSubmatch(string(spec), -1)
 	if len(matches) < 10 {
 		t.Fatalf("only %d citations found", len(matches))
@@ -424,5 +425,67 @@ func TestTHCSEALVectorFile(t *testing.T) {
 	if f.Provider != "localkek (0x7f)" || len(f.Valid) != 5 || len(f.Invalid) != 21 ||
 		errs["decrypt"] != 12 || errs["malformed"] != 8 || errs["provider_mismatch"] != 1 || len(errs) != 3 {
 		t.Errorf("%s: provider %q, %d valid, %d invalid %v; want localkek (0x7f), 5 and 21 (12 decrypt, 8 malformed, 1 provider_mismatch)", path, f.Provider, len(f.Valid), len(f.Invalid), errs)
+	}
+}
+
+// Mailie's golden file (SPEC section 6.8 and Appendix D) is the one the
+// kit's generator wrote at the commit PROVENANCE.md records: it has the
+// sha256 recorded there, so an edit or a file from a changed generator
+// fails here even after `make manifest` has recorded it; make
+// vectors-mailie-regen writes it again byte for byte. Its directory holds
+// only it; it is ASCII with exactly one final newline; and it has 60 cases,
+// 36 of them must fail, 7 of those across the two products, under unique
+// ids.
+func TestMailiePlatformWrapFile(t *testing.T) {
+	const path = "mailie/golden/platform-wrap-go.json"
+	raw, err := fs.ReadFile(vectors.FS, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != "1546933624b0355cba4657467552570e20ae6ac7b62735ce0ac4ac316beda864" {
+		t.Errorf("%s is not the file PROVENANCE.md records", path)
+	}
+	entries, err := fs.ReadDir(vectors.FS, "mailie/golden")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("mailie/golden holds %d files, want 1", len(entries))
+	}
+	for i, c := range raw {
+		if c >= 0x80 {
+			t.Fatalf("%s: a non-ASCII byte at offset %d", path, i)
+		}
+	}
+	if !bytes.HasSuffix(raw, []byte("}\n")) || bytes.HasSuffix(raw, []byte("\n\n")) {
+		t.Errorf("%s does not end with exactly one newline", path)
+	}
+	var f struct {
+		Format  string `json:"format"`
+		Module  string `json:"module"`
+		Profile string `json:"profile"`
+		Cases   []struct {
+			ID    string `json:"id"`
+			Error string `json:"error"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(raw, &f); err != nil {
+		t.Fatal(err)
+	}
+	ids, bad, cross := map[string]bool{}, 0, 0
+	for _, c := range f.Cases {
+		if c.ID == "" || ids[c.ID] {
+			t.Errorf("%s: an empty or repeated id %q", path, c.ID)
+		}
+		ids[c.ID] = true
+		if c.Error != "" {
+			bad++
+			if strings.Contains(c.ID, "/cross-product/") {
+				cross++
+			}
+		}
+	}
+	if f.Format != "thehappieco-kit-vectors/1" || f.Module != "mailie.platform_wrap" || f.Profile != "mailie" || len(f.Cases) != 60 || bad != 36 || cross != 7 {
+		t.Errorf("%s: %q %q %q, %d cases, %d must fail, %d across products; want 60, 36 and 7", path, f.Format, f.Module, f.Profile, len(f.Cases), bad, cross)
 	}
 }

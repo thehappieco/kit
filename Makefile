@@ -21,7 +21,7 @@ WAPPIE_CLOUD ?= ../whatserver2/commercial
 WAPPIE_CLOUD_COMMIT ?= 3bfee279581ad15f6d2d2db3d3a9794c8eac50ca
 WAPPIE_CLOUD_PATCH ?= vectors/wappie/_generators/cloud/header-0x03.patch
 
-.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go imports-check identifiers-check cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check vectors-thcseal-check pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go imports-check identifiers-check cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check vectors-thcseal-check vectors-mailie-regen pack reproduce clean
 
 all: lint-go imports-check identifiers-check test-go test-js vectors-check cross
 
@@ -106,7 +106,7 @@ vectors-check:
 	cd vectors && shasum -a 256 -c MANIFEST.sha256 --quiet
 
 manifest:
-	cd vectors && find wappie kit platform -type f | LC_ALL=C sort | xargs shasum -a 256 > MANIFEST.sha256
+	cd vectors && find wappie kit platform mailie -type f | LC_ALL=C sort | xargs shasum -a 256 > MANIFEST.sha256
 
 # Writes vectors/kit/*.json from both languages, at release time, into a
 # temporary directory, and adds only the files vectors/kit does not hold yet:
@@ -194,6 +194,24 @@ vectors-platform-regen:
 	n=0 && for f in vectors/platform/id-v1/*.json; do b=$${f##*/}; cmp -s "$$f" "$$tmp/out/$$b" || { echo "$$b: the generator at $(PLATFORM_GENERATOR) writes other bytes"; exit 1; }; n=$$((n+1)); done && \
 	{ test "$$(ls $$tmp/out | wc -l | tr -d ' ')" -eq "$$n" || { echo "the generator at $(PLATFORM_GENERATOR) writes files the kit does not hold"; exit 1; }; } && \
 	echo "all $$n platform files reproduce from $(PLATFORM_GENERATOR) on this tree" && \
+	rm -rf "$${tmp:?}"
+
+# Regenerates vectors/mailie/golden/platform-wrap-go.json (SPEC section 6.8
+# under Mailie's labels) with the kit's own generator, MAILIE_GENERATOR,
+# which the go tool does not build, as a throwaway module against this
+# working tree with the kit's go.sum, and compares it with the committed
+# file byte for byte. Nothing in it is random, so the file is a function of
+# the kit's code and of the toolchain it records, go1.26.7, on which this
+# runs; CI runs it. A file that comes out differently is a regression of the
+# kit, or a change of the generator, which a new file must record.
+MAILIE_GENERATOR ?= vectors/mailie/_generators
+vectors-mailie-regen:
+	tmp=$$(mktemp -d) && kit=$$(pwd) && \
+	cp -R $(MAILIE_GENERATOR)/. $$tmp/ && cp go.sum $$tmp/go.sum && mkdir $$tmp/out && \
+	printf 'module kitgen.local\n\ngo 1.26\n\nrequire github.com/thehappieco/kit v0.0.0\n\nreplace github.com/thehappieco/kit => %s\n' "$$kit" > $$tmp/go.mod && \
+	(cd $$tmp && export GOTOOLCHAIN=go1.26.7 GOFLAGS=-mod=mod && go mod tidy && KIT_GOLDEN_OUT=$$tmp/out go test -count=1 -run '^TestWriteMailiePlatformWrapGolden$$' .) && \
+	{ cmp -s $$tmp/out/platform-wrap-go.json vectors/mailie/golden/platform-wrap-go.json || { echo "vectors/mailie/golden/platform-wrap-go.json: $(MAILIE_GENERATOR) writes other bytes on this tree"; exit 1; }; } && \
+	echo "vectors/mailie/golden/platform-wrap-go.json reproduces from $(MAILIE_GENERATOR) on this tree" && \
 	rm -rf "$${tmp:?}"
 
 # Regenerates THCSEAL's vector file from the platform's own generator at

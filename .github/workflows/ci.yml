@@ -58,6 +58,10 @@ jobs:
       # own profile: it must write all fourteen platform files byte for byte.
       - name: the platform's files reproduce from the kit's copy of its generator
         run: make vectors-platform-regen
+      # The kit's generator of Mailie's golden file, which draws nothing
+      # random and records go1.26.7, must write it byte for byte.
+      - name: Mailie's golden file reproduces from the kit's generator
+        run: make vectors-mailie-regen
       # The parsers a server runs on untrusted input: the envelope, the
       # request signature, the key bundle, every field of the platform's
       # requests (addresses, base64url, recovery codes, relying party ids,
@@ -197,7 +201,7 @@ jobs:
         run: |
           previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)
           if [ -z "$previous" ]; then echo "no earlier tag"; exit 0; fi
-          changed=$(git diff --name-status "$previous" HEAD -- vectors/wappie vectors/kit vectors/platform | grep -v '^A' || true)
+          changed=$(git diff --name-status "$previous" HEAD -- vectors/wappie vectors/kit vectors/platform vectors/mailie | grep -v '^A' || true)
           if [ -n "$changed" ]; then echo "vector files of $previous changed or disappeared:"; echo "$changed"; exit 1; fi
 
   # The kit is public, and so is its history: no identifier of a real AWS

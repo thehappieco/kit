@@ -28,6 +28,7 @@
     "./reqhmac": { "types": "./dist/reqhmac.d.ts", "import": "./dist/reqhmac.js" },
     "./platformwrap": { "types": "./dist/platformwrap.d.ts", "import": "./dist/platformwrap.js" },
     "./profiles/wappie": { "types": "./dist/profiles/wappie.d.ts", "import": "./dist/profiles/wappie.js" },
+    "./profiles/mailie": { "types": "./dist/profiles/mailie.d.ts", "import": "./dist/profiles/mailie.js" },
     "./profiles/platform": { "types": "./dist/profiles/platform.d.ts", "import": "./dist/profiles/platform.js" },
     "./profiles/platform/core": { "types": "./dist/profiles/platform/core.d.ts", "import": "./dist/profiles/platform/core.js" },
     "./oidc-rp": { "types": "./dist/oidc-rp.d.ts", "import": "./dist/oidc-rp.js" }

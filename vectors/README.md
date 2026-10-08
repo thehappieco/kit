@@ -2,7 +2,7 @@
 
 The kit's conformance data. Go reads it through the `vectors` package (`vectors.FS`, so a consumer's tests can run the vectors of the kit version it imports); the TypeScript tests read it from this directory. It is not in the npm tarball.
 
-There are three file formats: the kit's own (below), used by everything under `wappie/` and `kit/`; the platform's (`platform/id-v1/`, described in "The platform's format"); and THCSEAL's (`platform/thcseal-v1/`, described in "THCSEAL's format").
+There are three file formats: the kit's own (below), used by everything under `wappie/`, `kit/` and `mailie/`; the platform's (`platform/id-v1/`, described in "The platform's format"); and THCSEAL's (`platform/thcseal-v1/`, described in "THCSEAL's format").
 
 ## Layout
 
@@ -12,6 +12,8 @@ There are three file formats: the kit's own (below), used by everything under `w
 | `wappie/golden/` | Vectors written by Wappie's code at the commits in `PROVENANCE.md`, by the generators in `wappie/_generators/`: Wappie's at `8c0c1f7`, and its console's platform wrap (`platform-wrap-{go,ts}.json`) at `3bfee27` with the header patch recorded there. |
 | `wappie/_generators/` | The generators, kept for provenance and for `make vectors-regen-check`; `run-cloud.sh` and `cloud/` are those of the console's platform wrap, for `make vectors-cloud-regen-check`. Not built by the go tool, not embedded. |
 | `kit/` | Vectors written by the kit itself: `*-go.json` by the Go code for TypeScript to open, `*-ts.json` the reverse. |
+| `mailie/golden/` | Mailie's golden vectors: `platform-wrap-go.json`, its platform wrap (SPEC section 6.8 under Mailie's labels, Appendix D), written by the kit's Go code with nothing random, by the generator in `mailie/_generators/` (`PROVENANCE.md`). TypeScript opens every case. |
+| `mailie/_generators/` | The generator of `mailie/golden/platform-wrap-go.json`, for `make vectors-mailie-regen`, which CI runs. Not built by the go tool, not embedded. |
 | `platform/id-v1/` | The platform's golden vectors of its protocol `id-v1`, byte for byte as the platform's Go code wrote them at the commits in `PROVENANCE.md`, in the platform's format: part 1 (SPEC sections 11.1 to 11.11) at `5e66d84`, part 2 (sections 11.12 to 11.15) at `4476bf4`, part 3 (section 11.16) at `b5d9f69`, and the relying party rule of section 11.16 at `75b6b94`. |
 | `platform/_generators/` | The platform's generator at `5e66d84`, kept for provenance. Not built, not embedded. |
 | `platform/_generators-4476bf4/` | The platform's generator at `4476bf4`, which wrote part 2 and writes the part-1 files unchanged. Not built, not embedded. |
@@ -58,7 +60,7 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | hpke | `open_failed`, `invalid_key` |
 | reqhmac | `hmac_missing`, `hmac_stale`, `hmac_bad`, `hmac_replay`, `replay_cache_full` |
 | jcs | `jcs` |
-| wappie.platform_wrap | `platform_wrap` |
+| wappie.platform_wrap, mailie.platform_wrap | `platform_wrap` |
 | platform (its own format) | `password_invalid`, `password_too_short`, `password_too_long`, `kdf_policy`, `wrap`, `recovery_code`, `email`, `product_key`, `bundle`, `key_delivery`, `pkce`, `client_extensions`, `encoding` |
 | THCSEAL (its own format) | `malformed`, `provider_mismatch`, `decrypt` |
 
@@ -100,7 +102,10 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | `platform.prf_salt`, `platform.check_client_extensions` | compute | compute |
 | `wappie.platform_wrap_info`, `wappie.platform_wrap_aad` | compute | compute |
 | `wappie.platform_wrap_seal` (`k_pw_b64` from Go only: TypeScript's K_pw is not extractable) | replay (nonce); refuse | replay (nonce); refuse |
-| `wappie.platform_wrap_open` | compute; refuse | compute; refuse |
+| `wappie.platform_wrap_open` (also in Mailie's file: a Mailie wrap refused under Wappie's labels) | compute; refuse | compute; refuse |
+| `mailie.platform_wrap_info`, `mailie.platform_wrap_aad` | compute | compute |
+| `mailie.platform_wrap_seal` (`k_pw_b64` on every replayed seal) | replay (nonce); refuse | replay (nonce); refuse |
+| `mailie.platform_wrap_open` | compute; refuse | compute; refuse |
 | `platform.passkey_wrap` (`k_pk_b64` from Go only: TypeScript's K_pk is not extractable) | compute; replay (nonce); open | compute; replay (nonce); open |
 | `platform.open_passkey_wrap` | refuse | refuse |
 
@@ -184,6 +189,7 @@ make vectors-cloud-regen-check WAPPIE_CLOUD=../whatserver2/commercial   # regene
 make vectors-platform-check PLATFORM=../platform # regenerate from the platform and compare
 make vectors-platform-regen      # regenerate the platform's files from the kit's copy of its generator and compare
 make vectors-thcseal-check PLATFORM=../platform   # regenerate THCSEAL's file from the platform's own generator at d32b663 and compare
+make vectors-mailie-regen        # regenerate Mailie's golden file from the kit's generator, on go1.26.7, and compare
 ```
 
 The Go targets pass `-tags kitdevkek` (`GO_TAGS`), which THCSEAL's runner needs; a plain `go test ./...` fails in `thcseal` and `kms/awskms` with a test that says so.

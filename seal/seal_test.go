@@ -19,8 +19,8 @@ import (
 // added: the domain as a parameter.
 
 var (
-	tenant     = uuid.MustParse("01a034b7-d09c-7121-b7f8-41f210a9244a")
-	testDevice = uuid.MustParse("01a036b0-ddcc-78ae-a207-82f3cb3e9502")
+	tenant     = uuid.MustParse("0190c0de-0000-7000-8000-00000000000a")
+	testDevice = uuid.MustParse("0190c0de-0000-7000-8000-00000000000d")
 	rowA       = uuid.MustParse("11111111-1111-7111-8111-111111111111")
 	rowB       = uuid.MustParse("22222222-2222-7222-8222-222222222222")
 )

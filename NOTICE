@@ -54,8 +54,20 @@ under vectors/wappie/golden, and platform-wrap-vectors.json under
 vectors/wappie/legacy, were produced by the console's code at that commit
 with that change (vectors/wappie/_generators/cloud/header-0x03.patch).
 
+THCSEAL v1 and its key wrappers (thcseal, kms, kms/awskms and kms/localkek)
+were taken from the platform at commit
+d32b6632a45f1fc5a1884bb4fbe02d8ec8c74371: internal/seal and internal/kms,
+with the tests of commit d3e8c6d6cdf886b02f135a7067a3de02a576528e, which
+replace the platform's AWS identifiers with AWS's documentation
+placeholders. The platform's handoff of 2026-10-08 places them under the
+kit's license. The vector file thcseal-v1.json under
+vectors/platform/thcseal-v1 was produced by the platform's code at that
+commit.
+
 This project includes dependencies distributed under their own licenses. Go
 dependencies and versions are recorded in go.mod/go.sum (golang.org/x/crypto,
-golang.org/x/text and github.com/google/uuid, all BSD-3-Clause); the npm
-package's dependency is recorded in js/package.json (@noble/hashes, MIT).
-Third-party source is not relicensed by this project's Apache-2.0 license.
+golang.org/x/text and github.com/google/uuid, all BSD-3-Clause; and
+github.com/aws/aws-sdk-go-v2 and github.com/aws/smithy-go, Apache-2.0, which
+only kms/awskms links); the npm package's dependency is recorded in
+js/package.json (@noble/hashes, MIT). Third-party source is not relicensed by
+this project's Apache-2.0 license.

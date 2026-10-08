@@ -7,4 +7,6 @@
 /js/src/internal/ @frrestum
 /js/src/oidc-rp.ts @frrestum
 /oidcrp/          @frrestum
+/thcseal/         @frrestum
+/kms/             @frrestum
 /.github/         @frrestum

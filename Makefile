@@ -1,8 +1,15 @@
 # The kit's checks, the same ones CI runs. Go runs on the explicit package
 # list rather than ./..., so a stray .go file under js/node_modules is never
 # picked up.
+#
+# kms/localkek, the local KEK, compiles only with the build tag kitdevkek,
+# and the tests of thcseal and kms/awskms seal under it, so the Go targets
+# pass GO_TAGS; without the tag those two packages' tests fail and say so.
+# CI's Go jobs set GOFLAGS=-tags=kitdevkek for the commands they run
+# directly.
 
-GO_PACKAGES = $$(go list ./... | grep -v /js/)
+GO_TAGS ?= kitdevkek
+GO_PACKAGES = $$(go list -tags=$(GO_TAGS) ./... | grep -v /js/)
 GO_FILES = $$(find . -name '*.go' -not -path './js/*' -not -path './.git/*')
 WAPPIE ?= ../whatserver2
 WAPPIE_COMMIT ?= 8c0c1f74103bc6bb65a93b13613ad1964d4399c4
@@ -14,23 +21,42 @@ WAPPIE_CLOUD ?= ../whatserver2/commercial
 WAPPIE_CLOUD_COMMIT ?= 3bfee279581ad15f6d2d2db3d3a9794c8eac50ca
 WAPPIE_CLOUD_PATCH ?= vectors/wappie/_generators/cloud/header-0x03.patch
 
-.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go imports-check cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check vectors-thcseal-check pack reproduce clean
 
-all: lint-go test-go test-js vectors-check cross
+all: lint-go imports-check test-go test-js vectors-check cross
 
 test: test-go test-js
 
 lint-go:
 	test -z "$$(gofmt -l $(GO_FILES))"
-	go vet $(GO_PACKAGES)
+	go vet -tags=$(GO_TAGS) $(GO_PACKAGES)
 
 test-go:
-	go test -race -count=1 $(GO_PACKAGES)
+	go test -race -count=1 -tags=$(GO_TAGS) $(GO_PACKAGES)
 
 # The seeded replays of Wappie's Go vectors run only on the toolchain that
 # wrote them; on any other they skip and say so.
 test-go-1.26.7:
-	GOTOOLCHAIN=go1.26.7 go test -race -count=1 $(GO_PACKAGES)
+	GOTOOLCHAIN=go1.26.7 go test -race -count=1 -tags=$(GO_TAGS) $(GO_PACKAGES)
+
+# What the kit's packages may link (SPEC section 14.3): kms/localkek only
+# from tests, and the AWS SDK only from kms/awskms. With the tag kitdevkek
+# on, no package but kms/localkek itself has it among its dependencies (the
+# dependencies of a package's own files, not of its tests), and none but
+# kms/awskms has a module of github.com/aws. Then, without the tag, every
+# package builds and every test compiles (go vet), so a release build of a
+# consumer, which passes no tag, never needs the local KEK.
+KIT_MODULE = github.com/thehappieco/kit
+imports-check:
+	pkgs=$$(go list -tags=kitdevkek ./... | grep -v /js/) && \
+	deps=$$(go list -tags=kitdevkek -f '{{.ImportPath}} {{join .Deps " "}}' $$pkgs) && \
+	bad=$$(echo "$$deps" | awk '$$1 != "$(KIT_MODULE)/kms/localkek" { for (i = 2; i <= NF; i++) if ($$i == "$(KIT_MODULE)/kms/localkek") { print $$1; break } }' | paste -sd ' ' -) && \
+	{ test -z "$$bad" || { echo "kms/localkek is linked by $$bad: only tests may import it"; exit 1; }; } && \
+	aws=$$(echo "$$deps" | awk '$$1 != "$(KIT_MODULE)/kms/awskms" { for (i = 2; i <= NF; i++) if ($$i ~ /^github\.com\/aws\//) { print $$1; break } }' | paste -sd ' ' -) && \
+	{ test -z "$$aws" || { echo "the AWS SDK is linked by $$aws: only kms/awskms may"; exit 1; }; } && \
+	go build -tags= $$(go list -tags= -f '{{if .GoFiles}}{{.ImportPath}}{{end}}' ./... | grep -v /js/) && \
+	go vet -tags= $$(go list -tags= ./... | grep -v /js/) && \
+	echo "kms/localkek is linked by no package and the AWS SDK only by kms/awskms; every package builds without the tag kitdevkek"
 
 test-js:
 	cd js && npm ci --ignore-scripts --no-audit --no-fund && npm run typecheck && npm test && npm run build
@@ -59,7 +85,7 @@ cross:
 	tmp=$$(mktemp -d) && \
 	KIT_CROSS_OUT=$$tmp/go go test -count=1 -run TestWriteCrossVectors ./internal/cross && \
 	(cd js && KIT_CROSS_OUT=$$tmp/ts npx vitest run test/cross.spec.ts) && \
-	KIT_CROSS_IN=$$tmp/ts go test -count=1 $(GO_PACKAGES) && \
+	KIT_CROSS_IN=$$tmp/ts go test -count=1 -tags=$(GO_TAGS) $(GO_PACKAGES) && \
 	(cd js && KIT_CROSS_IN=$$tmp/go npx vitest run) && \
 	rm -rf "$${tmp:?}"
 
@@ -155,6 +181,26 @@ vectors-platform-regen:
 	n=0 && for f in vectors/platform/id-v1/*.json; do b=$${f##*/}; cmp -s "$$f" "$$tmp/out/$$b" || { echo "$$b: the generator at $(PLATFORM_GENERATOR) writes other bytes"; exit 1; }; n=$$((n+1)); done && \
 	{ test "$$(ls $$tmp/out | wc -l | tr -d ' ')" -eq "$$n" || { echo "the generator at $(PLATFORM_GENERATOR) writes files the kit does not hold"; exit 1; }; } && \
 	echo "all $$n platform files reproduce from $(PLATFORM_GENERATOR) on this tree" && \
+	rm -rf "$${tmp:?}"
+
+# Regenerates THCSEAL's vector file from the platform's own generator at
+# THCSEAL_COMMIT (SPEC section 14): git archive of the platform's
+# internal/seal and internal/kms, with its go.mod and go.sum, into a
+# temporary directory (the platform's repository is only read); the copy of
+# the file there is deleted, the platform's golden test writes it again
+# (-update, on the toolchain the platform's go.mod names), and that is
+# compared with the kit's byte for byte. thcseal's own tests run the same
+# generator over the kit's code in every run
+# (TestThisPackageWritesTheGoldenVectorsAgain). Not in CI: the platform's
+# repository is private.
+THCSEAL_COMMIT ?= d32b6632a45f1fc5a1884bb4fbe02d8ec8c74371
+vectors-thcseal-check:
+	tmp=$$(mktemp -d) && \
+	git -C $(PLATFORM) archive $(THCSEAL_COMMIT) go.mod go.sum internal/seal internal/kms | tar -x -C $$tmp && \
+	rm $$tmp/internal/seal/testdata/thcseal-v1.json && \
+	(cd $$tmp && GOFLAGS=-mod=readonly go test -count=1 -run '^TestTheGoldenVectorsOpenAndTheBadOnesFailAsRecorded$$' ./internal/seal -args -update) && \
+	{ cmp -s $$tmp/internal/seal/testdata/thcseal-v1.json vectors/platform/thcseal-v1/thcseal-v1.json || { echo "thcseal-v1.json differs from what $(THCSEAL_COMMIT) writes"; exit 1; }; } && \
+	echo "vectors/platform/thcseal-v1/thcseal-v1.json reproduces from $(THCSEAL_COMMIT)" && \
 	rm -rf "$${tmp:?}"
 
 pack:

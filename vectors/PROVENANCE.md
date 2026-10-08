@@ -246,6 +246,42 @@ The generator at `75b6b94`. Not built by the go tool, not embedded. Unlike the e
 
 The generator moved from `internal/crypto/idcrypto/idvectors` to `internal/crypto/idvectors` at this commit, which is why every file but `hpke.go` changed by its import or doc lines; the earlier copies keep their paths.
 
+### THCSEAL v1, at d32b663
+
+- **Source:** commit `d32b6632a45f1fc5a1884bb4fbe02d8ec8c74371` (2026-10-07T14:33:03-03:00) of the platform's `main`, `internal/seal/testdata/thcseal-v1.json`: the golden vectors of THCSEAL v1, the envelope of the platform's tier-2 secrets (its decision 0003), unchanged since the commit that added it, `e3989f0` (2026-10-01). Handed to the kit, with the packages that wrote it, by the platform's `docs/handoff/2026-10-08-wappie-kit-seal.md` (decisions 0003 and 0017) at `e69e7bf98cef60ea145b99126ac95c8102e3de29` (its `shell` branch), whose `internal/seal` and `internal/kms` are byte for byte `d32b663`'s.
+- **The code and its tests:** the kit's `thcseal`, `kms`, `kms/awskms` and `kms/localkek` are the platform's `internal/seal`, `internal/kms`, `internal/kms/awskms` and `internal/kms/localkek` at `d32b663`, with the tests of `d3e8c6d6cdf886b02f135a7067a3de02a576528e` (2026-10-08T06:20:48-03:00, the `shell` branch, "Use AWS documentation placeholders in the KMS wrapper's tests"). Between the two commits only `internal/kms/awskms/awskms_test.go` and `sdk_test.go` differ (`git diff d32b663 d3e8c6d -- internal/seal internal/kms`): they replace the owner's AWS account, host role and KMS alias with AWS's documentation placeholders, so that no identifier of a real account is in this public repository. The edits the kit made are listed below.
+- **Generator:** `writeGolden` of the platform's `internal/seal/golden_test.go`: five envelopes sealed with the local provider under the published test KEK `000102…1f`, with `crypto/rand` made deterministic by `testing/cryptotest.SetGlobalRandom(0x7468637365616c31)` ("thcseal1"), and 21 edits of the second one, or of its context, that must fail with the error named, checked in the order `malformed`, `provider_mismatch`, `decrypt`; 2-space indented JSON with one final newline. The kit's `thcseal/golden_test.go` carries the same function, which returns the bytes instead of writing them, and `TestThisPackageWritesTheGoldenVectorsAgain` compares them with this file in every test run, so no copy of the generator is kept under `_generators`.
+- **Captured:** 2026-10-08, byte for byte with `git show <commit>:<path>`; the platform's repository was only read.
+- **Toolchains:** the platform's go1.27.1 wrote these bytes. On 2026-10-08 the kit's `thcseal` wrote them again on go1.26.7 and on go1.27.1, and the platform's own generator at `d32b663` on go1.27.1 (`make vectors-thcseal-check PLATFORM=../platform`, which deletes the platform's copy in a `git archive` of the commit and has its golden test write it again with `-update`).
+- **Format:** THCSEAL's own, described in `README.md` and SPEC section 12.3. The kit reads it with a strict runner and never rewrites it.
+
+| File | Valid | Invalid | sha256 |
+|---|---|---|---|
+| `platform/thcseal-v1/thcseal-v1.json` | 5 | 21 (12 `decrypt`, 8 `malformed`, 1 `provider_mismatch`) | `8d4c96590d60d076f1eb40c68a67fed5aae876311200e1ea87916881e63df86a` |
+
+The valid envelopes are an empty plaintext, a short secret, a 32-byte server key, every byte value with no ref, and another service; each records its data key and its AAD. The file is ASCII, 16327 bytes, and ends with one newline. `thcseal`'s tests open every valid envelope to its plaintext, recompute its AAD and data key, and refuse every invalid one with its error (`thcseal/golden_test.go`, with `-tags kitdevkek`); `vectors/vectors_test.go` checks the file's sha256 and counts.
+
+### The sources of THCSEAL and the key wrappers
+
+sha256 of the platform files the kit's packages were taken from, and the kit's edits. Every file lost its `//go:build go1.26` line, which the platform needed because its module declares a newer Go: the kit's `go.mod` declares `go 1.26.7`, so go vet's stdversion check already holds every file to Go 1.26.7. The files that compile or test the local KEK carry `//go:build kitdevkek` instead (SPEC section 14.3). Import paths name the kit's packages, and the package comments say where they came from.
+
+| Platform file | Commit | sha256 | Kit file | Edits beyond the above |
+|---|---|---|---|---|
+| `internal/seal/seal.go` | `d32b663` | `fdbacf4c0d74c19b2023e8dcd2ba382533abb7cb5e0e743349c5cf8511ecc41d` | `thcseal/thcseal.go` | package `thcseal`; its 13 error messages start `thcseal:` instead of `seal:` |
+| `internal/seal/seal_test.go` | `d3e8c6d` | `d2fbdd3adb8c0a0e26ab35fe87473514cd81d80f2fc6cfccb8818ed6672c7d90` | `thcseal/thcseal_test.go` | package `thcseal_test`, `seal.` read `thcseal.` |
+| `internal/seal/golden_test.go` | `d3e8c6d` | `7f493f89216a8de2154f649268183e0e58e36a4580b02504597c571cc4fb4d63` | `thcseal/golden_test.go` | the file is read from `vectors.FS`, strictly, with its counts; no `-update` flag; `writeGolden` returns the bytes, which a new test compares with the file |
+| `internal/seal/fuzz_test.go` | `d3e8c6d` | `04d851d5876974973842af7c5427b73e3c659639eddd05f7ca5401f6359e8ad5` | `thcseal/fuzz_test.go` | the seeds are read from `vectors.FS`; `seal.` read `thcseal.` |
+| `internal/seal/testdata/thcseal-v1.json` | `d32b663` | `8d4c96590d60d076f1eb40c68a67fed5aae876311200e1ea87916881e63df86a` | `vectors/platform/thcseal-v1/thcseal-v1.json` | none |
+| `internal/kms/kms.go` | `d32b663` | `bacca38d7c0a642a2fdf63c4adf7ddc827c5eaabc2baf3715908a813b2cd3785` | `kms/kms.go` | none |
+| `internal/kms/kms_test.go` | `d3e8c6d` | `ea3ada3eb3fcfdcb651ae5bd16a476ba69f79af0d4f9092be20e1fc16a5170b5` | `kms/kms_test.go` | none |
+| `internal/kms/awskms/awskms.go` | `d32b663` | `7739b019707b8cecb0d56db773f8fed0d91caebabd8e58f26bab251cc43dabdb` | `kms/awskms/awskms.go` | none |
+| `internal/kms/awskms/awskms_test.go` | `d3e8c6d` | `a689921d917d238bf6d8b5c05487f7ae62222f1a8ca53f9f13260e92c4f2ceb5` | `kms/awskms/awskms_test.go` | none |
+| `internal/kms/awskms/sdk_test.go` | `d3e8c6d` | `69b8cfab8bd96cb9ef2b23aa4b9b7212b300faecb3bc892bf87d8f1b2de9f651` | `kms/awskms/sdk_test.go` | `seal.` read `thcseal.` |
+| `internal/kms/localkek/localkek.go` | `d32b663` | `40dead3090dd732dbe9ddc8998c933232f2ee6507357c5bf472a6e721678abf3` | `kms/localkek/localkek.go` | none |
+| `internal/kms/localkek/localkek_test.go` | `d3e8c6d` | `b1ca0d9f0f3e32d19c87153ad11df302fdfc17999e4b7fecca9bb04c5db6e129` | `kms/localkek/localkek_test.go` | none |
+
+New in the kit: `thcseal/tag_test.go` and `kms/awskms/tag_test.go`, built only without the tag, which fail and say that the package's tests need `-tags kitdevkek`.
+
 ## The kit's own vectors
 
 `kit/*-go.json` were written by `internal/cross/write_test.go` and `kit/*-ts.json` by `js/test/cross.spec.ts`, each at the kit commit recorded in its `generated_by.source`, with fresh randomness (`make vectors-kit`). They are the golden vectors of the kit's own implementations from v0.1.0 on.

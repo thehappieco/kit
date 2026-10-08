@@ -1,8 +1,8 @@
 # The Happie Co kit: specification
 
 - Spec version: 6 (kit v0.6.0)
-- Status: normative for the Wappie profile, which is frozen but for the addition of its platform wrap (section 6.8), for parts 1 to 3 of the platform profile (section 11), and for THCSEAL v1 and its key wrappers (section 14). Section 11.17 is reserved.
-- Vectors: every byte below is pinned by a case in `vectors/`. A case is cited as `file#case-id`, or for the platform's files as `platform/id-v1/<kind>.json#<case name>`, and `#<op>/<case name>` for a case that carries an op; a case of THCSEAL's file, `platform/thcseal-v1/thcseal-v1.json`, is cited by its list and name, `#valid/<case name>` or `#invalid/<case name>`.
+- Status: normative for the Wappie profile, which is frozen but for the addition of its platform wrap (section 6.8), for the Mailie profile, its platform wrap (section 6.8 and Appendix D), for parts 1 to 3 of the platform profile (section 11), and for THCSEAL v1 and its key wrappers (section 14). Section 11.17 is reserved.
+- Vectors: every byte below is pinned by a case in `vectors/`. A case is cited as `file#case-id`, the file by its bare name under `vectors/wappie/golden/` and by its path under `vectors/` otherwise (Mailie's as `mailie/golden/platform-wrap-go.json`), or for the platform's files as `platform/id-v1/<kind>.json#<case name>`, and `#<op>/<case name>` for a case that carries an op; a case of THCSEAL's file, `platform/thcseal-v1/thcseal-v1.json`, is cited by its list and name, `#valid/<case name>` or `#invalid/<case name>`.
 
 ## 1. Status and scope
 
@@ -10,7 +10,7 @@ The kit standardises the client-side cryptography The Happie Co's products share
 
 - HPKE with one fixed suite (section 4.4, and on its own for product-key delivery, section 11.12);
 - the sealed envelope, in direct and batch mode, with content keys, rows and grants (sections 4 and 5);
-- the zero-knowledge account scheme: Argon2id, the auth/wrap split, wraps and recovery codes, and Wappie's wrap of its account key under its product key (section 6);
+- the zero-knowledge account scheme: Argon2id, the auth/wrap split, wraps and recovery codes, and a product's wrap of its account key under its product key, the platform wrap, under Wappie's and Mailie's labels (section 6);
 - the passkey PRF wrap (section 7);
 - a key at rest in the browser (section 8);
 - the request HMAC between two services (section 9);
@@ -22,7 +22,7 @@ The kit standardises the client-side cryptography The Happie Co's products share
 
 What a product chooses is a **profile** (section 3): labels, prefixes, magic bytes, kind names, AAD builders and bounds. Everything else is fixed, and changing it is a new format version, never a profile.
 
-**Conformance.** An implementation conforms to a profile when it reproduces every case of that profile's vector files that is marked for its language (section 12). The Go module and the TypeScript package in this repository conform to the Wappie profile and to parts 1 to 3 of the platform profile. An implementation of THCSEAL v1 conforms when it opens every valid envelope of its vector file and refuses every invalid one with its error (sections 12.3 and 14); the Go module does, and there is no TypeScript, since only servers seal tier-2 secrets.
+**Conformance.** An implementation conforms to a profile when it reproduces every case of that profile's vector files that is marked for its language (section 12). The Go module and the TypeScript package in this repository conform to the Wappie profile, to the Mailie profile (its platform wrap, the one part of Mailie's scheme in the kit so far) and to parts 1 to 3 of the platform profile. An implementation of THCSEAL v1 conforms when it opens every valid envelope of its vector file and refuses every invalid one with its error (sections 12.3 and 14); the Go module does, and there is no TypeScript, since only servers seal tier-2 secrets.
 
 **Versioning.** The spec changes only additively within a major kit version: new sections, new profiles, new ops and new cases. A byte that changes is a new format version byte or a new profile, with new vectors, and the old vectors keep passing.
 
@@ -65,8 +65,9 @@ What a product chooses is a **profile** (section 3): labels, prefixes, magic byt
 | reqhmac | headers | `X-Wappie-Reader`, `X-Wappie-Timestamp`, `X-Wappie-Nonce`, `X-Wappie-Signature` |
 | reqhmac | directions | `to-reader`, `to-go` |
 | reqhmac | skew; replay lifetime; replay capacity | 60 s; 61 s; 100,000 |
+| platformwrap | product, HKDF salt, label (section 6.8) | `wappie`, `wappie/platform-wrap/v1`, `wappie/platform-wrap` |
 
-Appendix A lists the Wappie profile's every value in one place. The platform profile (section 11) sets these parameters too, listed in Appendix C; its root wrap is the wrap envelope of section 6.5 with a two-byte header.
+Appendix A lists the Wappie profile's every value in one place, and Appendix D the Mailie profile's, which sets the platform wrap's parameters only. The platform profile (section 11) sets these parameters too, listed in Appendix C; its root wrap is the wrap envelope of section 6.5 with a two-byte header.
 
 ### 3.2 Fixed values
 
@@ -225,27 +226,36 @@ with ECMAScript's `String.prototype.trim` (WhiteSpace and LineTerminator: TAB, V
 
 The platform profile uses its own canonical form of a recovery code (section 11.6).
 
-### 6.8 Wappie's platform wrap
+### 6.8 The platform wrap
 
-When Wappie's accounts sign in through the platform's id., Wappie keeps its account key (section 6.4) and wraps it under a key derived from its product key `sk_p` (section 11.4, product `wappie`, delivered by section 11.12), so that what a person unlocks on id. opens what Wappie sealed before: grants, the AI keychain and the sealed archives keep opening, and Wappie's export carries the wrap, so that a command-line tool opens Wappie data starting from the key bundle (section 11.9: the root, then `sk_p` by 11.4, then the account key) (the platform's decision 0023).
+When a product's accounts sign in through the platform's id., the product keeps its account key (section 6.4) and wraps it under a key derived from its product key `sk_p` (section 11.4, delivered by section 11.12), so that what a person unlocks on id. opens what the product sealed before, and the product's export carries the wrap, so that a command-line tool opens the product's data starting from the key bundle (section 11.9: the root, then `sk_p` by 11.4, then the account key). Wappie's wrap is the platform's decision 0023; Mailie's is the same construction under its own labels. Each product's labels are a profile:
+
+| Profile | Product (of `product_key_id`) | HKDF salt | Label (info and AAD) |
+|---|---|---|---|
+| Wappie (Appendix A) | `wappie` | `wappie/platform-wrap/v1` | `wappie/platform-wrap` |
+| Mailie (Appendix D) | `mailie` | `mailie/platform-wrap/v1` | `mailie/platform-wrap` |
 
 ```
-K_pw = HKDF(IKM = sk_p (32), salt = UTF-8("wappie/platform-wrap/v1"),
-            info = JSON AAD ["wappie/platform-wrap", 1, user_id, sub, product_key_id], L = 32)
-AAD  = JSON AAD ["wappie/platform-wrap", 1, user_id, sub, product_key_id, base64url(account public key)]
+K_pw = HKDF(IKM = sk_p (32), salt = UTF-8(salt),
+            info = JSON AAD [label, 1, user_id, sub, product_key_id], L = 32)
+AAD  = JSON AAD [label, 1, user_id, sub, product_key_id, base64url(account public key)]
 wrap = 0x03 || nonce (12) || AES-256-GCM(K_pw, nonce, account key (32), AAD)          61 bytes
 ```
 
-- **The binding.** `user_id` is Wappie's `users.id`: the `sub` itself for an account created through id., the old id for a linked account. `sub` is id.'s account id. Both are lowercase hyphenated UUIDs (section 11.1). `product_key_id` is `wappie:` and an epoch, in the grammar of section 11.12, for the product `wappie` only (`platform-wrap-go.json#wappie/platform-wrap/seal/refuses/another-products-key-id`, `platform-wrap-go.json#wappie/platform-wrap/seal/refuses/epoch-with-a-leading-zero`). The account public key is `X25519(account key, 9)`, 32 bytes, written in base64url without padding. Every element is drawn from the restricted alphabet of section 11.1, so the info and the AAD are the same text from any JCS or `JSON.stringify`; a binding outside these is refused before anything is derived (`platform-wrap-go.json#wappie/platform-wrap/seal/refuses/user-id-in-upper-case`). The email is not bound, so an address change needs no re-wrap. The epoch is, so a new product-key epoch is a new wrap (`platform-wrap-go.json#wappie/platform-wrap/open/refuses/another-epoch`, `platform-wrap-go.json#wappie/platform-wrap/open/refuses/the-epoch-2-wrap`), and so are the user and the account (`platform-wrap-go.json#wappie/platform-wrap/open/refuses/another-user-id`, `platform-wrap-go.json#wappie/platform-wrap/open/refuses/another-sub`). The `1` in the info and the AAD is the format's version.
-- **The key** is an HKDF branch of `sk_p` under labels of Wappie's, distinct from every label of Appendices A and C. `sk_p` is also an X25519 private key (section 11.4); the branch keeps the two uses apart. The binding is the HKDF info as well as the AAD, so every binding has a key of its own.
-- **The envelope** is the wrap envelope of section 6.5 with the one-byte header `0x03` and no legacy form: section 6.5's opener with that header and no legacy blobs opens it under `K_pw` (`platform-wrap-go.json#wappie/platform-wrap/seal/linked`). Wappie's other 61-byte envelopes of the account key start with `0x02` (the password and recovery wraps, section 6.5) and `0x01` (the passkey envelope, section 7), so a blob in the wrong column fails at its header, not at its tag (`platform-wrap-go.json#wappie/platform-wrap/open/refuses/header-0x01-the-passkey-envelope`, `platform-wrap-go.json#wappie/platform-wrap/open/refuses/header-0x02-the-password-wrap`). The header is not in the AAD; it is checked exactly, and `K_pw` keys nothing else.
-- **Sealing** refuses, before anything is encrypted, an account key that is not 32 bytes or whose public half is not the binding's, compared in constant time (`platform-wrap-go.json#wappie/platform-wrap/seal/refuses/account-key-not-the-public-keys`), a product key that is not 32 bytes (`platform-wrap-go.json#wappie/platform-wrap/seal/refuses/product-key-of-31-bytes`) and a binding outside its spelling; it then draws a fresh random nonce, and self-tests: the new wrap is opened again and compared with the account key, and a wrap that fails is never returned.
-- **Opening** checks 61 bytes and the header `0x03` first, then the product key's 32 bytes and the binding, the tag, and that the opened key's public half is the binding's, compared in constant time, clearing the key otherwise (`platform-wrap-go.json#wappie/platform-wrap/open/refuses/opens-to-another-accounts-key`: a wrap that authenticates under its own AAD around another account's key). The caller also compares the public key with the one Wappie's server holds for the account (`users.public_key`).
-- **Every refusal is one error** (`platform_wrap`: Go `ErrPlatformWrap`, TypeScript `PlatformWrapError`), so the order of the checks is not observable, and which one failed is not said beyond a message that never repeats a key.
-- **The server** cannot open a wrap: it checks the length and the header only (`CheckPlatformWrapShape`, `checkPlatformWrapShape`).
-- **Symmetric on purpose.** An HPKE seal to `pk_p` could be made by anyone who holds `pk_p`, Wappie's server included, which could then plant an account key of its choosing; only a holder of `sk_p` makes this wrap.
+- **The profile.** The product is a product id of section 11.4; the salt and the label are non-empty strings from the alphabet of section 11.1, distinct from every label of Appendices A, C and D and from every other product's. A profile outside these is refused before anything is derived. The header, the `1` (the format's version) and the layout are the construction's, the same for every product.
+- **The binding.** `user_id` is the product's id of the account: the `sub` itself for an account created through id., the product's old id for an account it had before (Wappie's `users.id`, `platform-wrap-go.json#wappie/platform-wrap/seal/linked`; `mailie/golden/platform-wrap-go.json#mailie/platform-wrap/seal/user-id-is-not-the-sub`). `sub` is id.'s account id. Both are lowercase hyphenated UUIDs (section 11.1). `product_key_id` is the profile's product, `:` and an epoch, in the grammar of section 11.12, for that product only (`platform-wrap-go.json#wappie/platform-wrap/seal/refuses/another-products-key-id`, `mailie/golden/platform-wrap-go.json#mailie/platform-wrap/seal/refuses/cross-product/a-wappie-product-key-id`, `platform-wrap-go.json#wappie/platform-wrap/seal/refuses/epoch-with-a-leading-zero`). The account public key is `X25519(account key, 9)`, 32 bytes, written in base64url without padding. Every element is drawn from the restricted alphabet of section 11.1, so the info and the AAD are the same text from any JCS or `JSON.stringify`; a binding outside these is refused before anything is derived (`platform-wrap-go.json#wappie/platform-wrap/seal/refuses/user-id-in-upper-case`). The email is not bound, so an address change needs no re-wrap. The epoch is, so a new product-key epoch is a new wrap (`platform-wrap-go.json#wappie/platform-wrap/open/refuses/another-epoch`, `platform-wrap-go.json#wappie/platform-wrap/open/refuses/the-epoch-2-wrap`), and so are the user and the account (`platform-wrap-go.json#wappie/platform-wrap/open/refuses/another-user-id`, `platform-wrap-go.json#wappie/platform-wrap/open/refuses/another-sub`).
+- **The key** is an HKDF branch of `sk_p` under the product's labels. `sk_p` is also an X25519 private key (section 11.4); the branch keeps the two uses apart. The binding is the HKDF info as well as the AAD, so every binding has a key of its own.
+- **Products apart.** A person has a product key per product (section 11.4), and a wrap opens only under the profile it was sealed under: a Wappie wrap does not open as Mailie's, nor a Mailie wrap as Wappie's, with the same person's key of the other product (`mailie/golden/platform-wrap-go.json#mailie/platform-wrap/open/refuses/cross-product/the-same-persons-wappie-wrap`, `mailie/golden/platform-wrap-go.json#wappie/platform-wrap/open/refuses/cross-product/the-same-persons-mailie-wrap`), with the very same key bytes, where only the labels and the key id's product differ (`mailie/golden/platform-wrap-go.json#mailie/platform-wrap/open/refuses/cross-product/a-wappie-wrap-under-the-same-key-bytes`, `mailie/golden/platform-wrap-go.json#wappie/platform-wrap/open/refuses/cross-product/a-mailie-wrap-under-the-same-key-bytes`), or with its own binding, whose `product_key_id` names the other product (`mailie/golden/platform-wrap-go.json#mailie/platform-wrap/open/refuses/cross-product/a-wappie-wrap-with-its-own-binding`). The header is the same for every product, so the shape check does not tell products apart: each keeps its wraps in a column of its own.
+- **The envelope** is the wrap envelope of section 6.5 with the one-byte header `0x03` and no legacy form: section 6.5's opener with that header and no legacy blobs opens it under `K_pw` (`platform-wrap-go.json#wappie/platform-wrap/seal/linked`). A product's other 61-byte envelopes of its account key do not start with `0x03`: Wappie's start with `0x02` (the password and recovery wraps, section 6.5) and `0x01` (the passkey envelope, section 7), so a blob in the wrong column fails at its header, not at its tag (`platform-wrap-go.json#wappie/platform-wrap/open/refuses/header-0x01-the-passkey-envelope`, `platform-wrap-go.json#wappie/platform-wrap/open/refuses/header-0x02-the-password-wrap`, `mailie/golden/platform-wrap-go.json#mailie/platform-wrap/open/refuses/header-0x02`). The header is not in the AAD; it is checked exactly, and `K_pw` keys nothing else.
+- **Sealing** refuses, before anything is encrypted, an account key that is not 32 bytes or whose public half is not the binding's, compared in constant time (`platform-wrap-go.json#wappie/platform-wrap/seal/refuses/account-key-not-the-public-keys`), a product key that is not 32 bytes (`platform-wrap-go.json#wappie/platform-wrap/seal/refuses/product-key-of-31-bytes`), and a profile or a binding outside its spelling; it then draws a fresh random nonce, and self-tests: the new wrap is opened again and compared with the account key, and a wrap that fails is never returned.
+- **Opening** checks 61 bytes and the header `0x03` first, then the product key's 32 bytes, the profile and the binding, the tag, and that the opened key's public half is the binding's, compared in constant time, clearing the key otherwise (`platform-wrap-go.json#wappie/platform-wrap/open/refuses/opens-to-another-accounts-key`, `mailie/golden/platform-wrap-go.json#mailie/platform-wrap/open/refuses/opens-to-another-accounts-key`: a wrap that authenticates under its own AAD around another account's key). The caller also compares the public key with the one the product's server holds for the account (Wappie's `users.public_key`).
+- **Every refusal is one error** (`platform_wrap`: Go `platformwrap.ErrPlatformWrap`, which Wappie's profile names `ErrPlatformWrap`; TypeScript `PlatformWrapError`), so the order of the checks is not observable, and which one failed is not said beyond a message that never repeats a key.
+- **The server** cannot open a wrap: it checks the length and the header only (`CheckShape`, `checkPlatformWrapShape`).
+- **Symmetric on purpose.** An HPKE seal to `pk_p` could be made by anyone who holds `pk_p`, the product's server included, which could then plant an account key of its choosing; only a holder of `sk_p` makes this wrap.
 
-Vectors: `wappie/golden/platform-wrap-go.json` (55 cases, 31 must fail) and `wappie/golden/platform-wrap-ts.json` (22 cases, 10 must fail), written by the Go and TypeScript modules of Wappie's console with the header of this section (`vectors/PROVENANCE.md`), and the console's own file, `wappie/legacy/platform-wrap-vectors.json`, which both implementations run and write again byte for byte. Every refusal is `platform_wrap`. The console's module had the header `0x01`, the passkey envelope's; every other byte of its wraps is unchanged. The kit's own round trips of the wrap, in the format of section 12.1, are `kit/wappie-platform-wrap-go.json` and `kit/wappie-platform-wrap-ts.json`. Nothing Wappie or the platform sealed before changes: the wrap is new, and no other byte of the Wappie profile moves.
+Implementations: Go `platformwrap` with a `Profile` (`profiles/wappie.PlatformWrap()`, `profiles/mailie.PlatformWrap()`; Wappie's profile keeps the names of v0.5.0, `SealPlatformWrap` and the rest, bound to its labels), TypeScript `@thehappieco/kit/platformwrap` with a `PlatformWrapProfile` (`wappiePlatformWrap` of `profiles/wappie`, which keeps v0.5.0's bound functions, and `mailiePlatformWrap` of `profiles/mailie`).
+
+Vectors: Wappie's, `wappie/golden/platform-wrap-go.json` (55 cases, 31 must fail) and `wappie/golden/platform-wrap-ts.json` (22 cases, 10 must fail), written by the Go and TypeScript modules of Wappie's console with the header of this section (`vectors/PROVENANCE.md`), and the console's own file, `wappie/legacy/platform-wrap-vectors.json`, which both implementations run and write again byte for byte; Mailie's, `mailie/golden/platform-wrap-go.json` (60 cases, 36 must fail, 7 of them across the two products), written by the kit's Go implementation, which TypeScript opens. Every refusal is `platform_wrap`. The console's module had the header `0x01`, the passkey envelope's; every other byte of its wraps is unchanged. The kit's own round trips of Wappie's wrap, in the format of section 12.1, are `kit/wappie-platform-wrap-go.json` and `kit/wappie-platform-wrap-ts.json`. Kit v0.6.0 made the construction generic; no byte of Wappie's wrap moved.
 
 ## 7. Passkey PRF wrap
 
@@ -391,7 +401,7 @@ product_key_id = product ":" decimal(epoch)
 
 **The server's check of a submitted `pk_p`:** 32 bytes; the canonical encoding (bit 255 clear and the value below 2^255 − 19), because X25519 accepts other spellings as aliases and a pinned key must have one; and an X25519 exchange with a fresh private key does not give 32 zero bytes, which refuses the low-order points (section 4.4). Any failure is `product_key`. This check is also the one of 11.12 for `akd_pub`.
 
-A product may wrap its own keys under a key derived from `sk_p`, an HKDF branch under labels of its own: Wappie's platform wrap, section 6.8.
+A product may wrap its own keys under a key derived from `sk_p`, an HKDF branch under labels of its own: the platform wrap, section 6.8, under each product's labels.
 
 ### 11.5 Root wraps
 
@@ -645,11 +655,11 @@ Its types, and its HMAC as section 9 with the platform's label (the platform's d
 
 ## 12. Vectors
 
-The layout, the op catalogue and the provenance of every file are in `vectors/README.md` and `vectors/PROVENANCE.md`. Run the conformance suites with `make test` (both languages), `make test-go-1.26.7` (adds the byte-for-byte replays of Wappie's Go vectors), and `make cross` (fresh round trips in both directions); the Go targets pass the build tag `kitdevkek`, which THCSEAL's runner needs (section 14.3). Files are append-only once a release is tagged.
+The layout, the op catalogue and the provenance of every file are in `vectors/README.md` and `vectors/PROVENANCE.md`. Mailie's golden file is under `vectors/mailie/`, in the kit's format, written by the kit's own generator, which `make vectors-mailie-regen` runs again. Run the conformance suites with `make test` (both languages), `make test-go-1.26.7` (adds the byte-for-byte replays of Wappie's Go vectors), and `make cross` (fresh round trips in both directions); the Go targets pass the build tag `kitdevkek`, which THCSEAL's runner needs (section 14.3). Files are append-only once a release is tagged.
 
 ### 12.1 The kit's format
 
-Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `thehappieco-kit-vectors/1`: cases with an `id`, an `op`, `in`, and exactly one of `out` and `error`, bytes in standard base64 (`vectors/README.md`, "Format").
+Everything under `vectors/wappie/`, `vectors/kit/` and `vectors/mailie/` is in the kit's format, `thehappieco-kit-vectors/1`: cases with an `id`, an `op`, `in`, and exactly one of `out` and `error`, bytes in standard base64 (`vectors/README.md`, "Format").
 
 ### 12.2 The platform's format
 
@@ -669,7 +679,8 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 - **The KDF worker** (TypeScript, `kdf.worker`). The page posts a hello and waits up to 10 seconds for `{ready: true, v: 2}`; a worker that cannot be made, fails to load, answers anything else or does not answer in time is terminated before it is sent the password, and Argon2id runs on the calling thread with the password the page still holds. Once the password is sent, as a transferred copy, the worker checks the algorithm, the parameters and the profile's bounds again and answers a refusal (`out_of_bounds`, `unsupported_alg`) apart from a failure (`kdf_failed`), never with a message; a failure, or a worker that dies, is `kdf`/`kdf_failed` and is not derived again on the calling thread. The worker answers version 1 of its protocol (kit v0.1.0) as before and posts nothing it was not asked for. Only the entries that start the kit's worker name its file (`account` and `profiles/platform`); `profiles/platform/core` runs Argon2id only in the worker the caller's `options.worker` makes, or on the calling thread, and `oidc-rp` reaches no worker.
 - **Random nonces.** At most 2^20 values per content key (section 4.9).
 - **Wappie's wrap binds the email** (section 6.6): an email change needs a re-wrap.
-- **Wappie's platform wrap is symmetric** (section 6.8): an HPKE seal to `pk_p` could be made by anyone who holds `pk_p`, Wappie's server included; only a holder of `sk_p` makes the wrap, and an opener checks the opened key's public half against the binding's, which the page compares with the account's (`users.public_key`). It binds the account, the sub and the product key's epoch, never the email. In TypeScript `K_pw` is a non-extractable `CryptoKey`, and the copies of `sk_p` and of the account key handed to WebCrypto are zeroed; in Go `K_pw` is cleared once the cipher holds it. The account key it opens is the caller's to clear.
+- **The platform wrap is symmetric** (section 6.8): an HPKE seal to `pk_p` could be made by anyone who holds `pk_p`, the product's server included; only a holder of `sk_p` makes the wrap, and an opener checks the opened key's public half against the binding's, which the page compares with the account's (Wappie's `users.public_key`). It binds the account, the sub and the product key's epoch, never the email. In TypeScript `K_pw` is a non-extractable `CryptoKey`, and the copies of `sk_p` and of the account key handed to WebCrypto are zeroed; in Go `K_pw` is cleared once the cipher holds it. The account key it opens is the caller's to clear.
+- **The platform wrap's header is the same for every product** (section 6.8): products are kept apart by `sk_p`, the labels and the `product_key_id` in the info and the AAD, each alone enough (`mailie/golden/platform-wrap-go.json#mailie/platform-wrap/open/refuses/cross-product/*`, `mailie/golden/platform-wrap-go.json#wappie/platform-wrap/open/refuses/cross-product/*`), so a second header would be a second knob with no cryptographic effect. A product's other envelopes of its account key must not start with `0x03`, and each product keeps its wraps in a column of its own, since the shape check cannot tell a Wappie wrap from a Mailie one.
 - **No KDF bounds in the Wappie profile** (section 6.2): a downgrade by whoever writes the database. New profiles set bounds.
 - **Passkeys are bound to the RP ID** (section 7).
 - **All-zero shared secrets** (section 4.4). A public or encapsulated key of low order yields an all-zero X25519 output. Go's `crypto/ecdh` refuses it. The TypeScript implementation checks the output itself, with no early exit, whatever WebCrypto does, in sealing and in opening; its tests run every forgery also on a stand-in engine that lets the zeros through. The vectors carry real forgeries, which an implementation missing the check opens.
@@ -767,7 +778,7 @@ Vectors: `platform/thcseal-v1/thcseal-v1.json`, 26 cases: 5 envelopes that open 
 | Passkey AAD | `["wappie/passkey-vault",1,rpID,userID,credentialID]` |
 | Browser key AAD | `["wappie/browser-account-key",1,userID,base64(public key)]` |
 | Request HMAC | `wappie-mcp-hmac/v1`; `X-Wappie-Reader`, `-Timestamp`, `-Nonce`, `-Signature`; `to-reader`, `to-go`; skew 60 s; replay lifetime 61 s; capacity 100,000 |
-| Platform wrap | header `0x03`, 61 bytes; `K_pw` HKDF salt `wappie/platform-wrap/v1`, info JSON AAD `["wappie/platform-wrap",1,user_id,sub,product_key_id]`; AAD `["wappie/platform-wrap",1,user_id,sub,product_key_id,base64url(account public key)]` (section 6.8) |
+| Platform wrap | header `0x03`, 61 bytes; product `wappie`; `K_pw` HKDF salt `wappie/platform-wrap/v1`, info JSON AAD `["wappie/platform-wrap",1,user_id,sub,product_key_id]`; AAD `["wappie/platform-wrap",1,user_id,sub,product_key_id,base64url(account public key)]` (section 6.8) |
 
 ## Appendix B. Changes
 
@@ -776,7 +787,7 @@ Vectors: `platform/thcseal-v1/thcseal-v1.json`, 26 cases: 5 envelopes that open 
 - Spec 3 (kit v0.3.0): section 11 part 2 (sections 11.12 to 11.15), with the platform's vectors at `4476bf4`; the reservations for the passkey root-wrap key and the product contract move to sections 11.16 and 11.17; sections 1, 11.1, 11.2, 11.4, 11.5, 11.10, 11.11, 12.2 and 13 extended. Nothing in the Wappie profile or in part 1 changed.
 - Spec 4 (kit v0.4.0): section 11 part 3 (section 11.16), with the platform's vectors at `b5d9f69`; section 6.8 reserved for Wappie's platform wrap; sections 1, 7, 11, 11.1, 11.5, 11.10, 11.11, 12.2 and 13 and Appendices A and C extended. Nothing in the Wappie profile or in parts 1 and 2 changed.
 - Spec 5 (kit v0.5.0): section 6.8, Wappie's platform wrap, replaces its reservation, an addition to the Wappie profile, with vectors written by Wappie's console; section 11.16 refuses a relying party id that ends in a number, with the platform's vectors at `75b6b94`, a refusal of ids no browser serves; sections 1, 7, 11, 11.4, 11.10, 11.11, 12.2 and 13 and Appendix A extended. No byte of the Wappie profile or of parts 1 to 3 changed.
-- Spec 6 (kit v0.6.0): section 14, THCSEAL v1 and its key wrappers, from the platform at `d32b663` with its vectors, and section 12.3, their file's format; sections 1, 3.2, 12 and 13 extended. No byte of the Wappie profile or of the platform profile changed.
+- Spec 6 (kit v0.6.0): section 6.8 generalised to any product's labels, Wappie's wrap an instance of it, with the Mailie profile (Appendix D) and its vectors, written by the kit; section 14, THCSEAL v1 and its key wrappers, from the platform at `d32b663` with its vectors, and section 12.3, their file's format; sections 1, 3.1, 3.2, 11.4, 12, 12.1 and 13 and Appendix A extended. No byte of the Wappie profile or of the platform profile changed.
 
 ## Appendix C. The platform profile
 
@@ -798,3 +809,11 @@ Vectors: `platform/thcseal-v1/thcseal-v1.json`, 26 cases: 5 envelopes that open 
 | Pin verdicts | `new`, `same`, `account_key_changed` (section 11.15) |
 | Passkeys | PRF salt SHA-256(`thehappie-id/v1/passkey-prf\|` + rp_id); `K_pk` HKDF info `thehappie-id/v1/passkey/wrap`, salt rp_id; the kind-3 root wrap (section 11.16) |
 | Client extensions | `{}` or a subset of `credProps {rk: boolean}` and `prf {enabled: boolean}`, read on the exact text (section 11.16) |
+
+## Appendix D. The Mailie profile
+
+The Mailie profile holds Mailie's platform wrap only; Mailie's other labels join it when its scheme has vectors (section 3.3).
+
+| Value | |
+|---|---|
+| Platform wrap | header `0x03`, 61 bytes; product `mailie`; `K_pw` HKDF salt `mailie/platform-wrap/v1`, info JSON AAD `["mailie/platform-wrap",1,user_id,sub,product_key_id]`; AAD `["mailie/platform-wrap",1,user_id,sub,product_key_id,base64url(account public key)]` (section 6.8) |

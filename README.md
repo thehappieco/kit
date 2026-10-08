@@ -2,7 +2,7 @@
 
 The client-side cryptography The Happie Co's products share, in Go and TypeScript, with one specification ([SPEC.md](SPEC.md)) and one set of test vectors ([vectors/](vectors/)) that both languages reproduce byte for byte.
 
-It was extracted from [Wappie](https://github.com/thehappieco/wappie) at commit `8c0c1f74103bc6bb65a93b13613ad1964d4399c4`, and every vector Wappie's code produced, along with every fixture Wappie already had, is reproduced by both implementations here. Data Wappie has already sealed keeps opening. The platform profile was taken from the platform's identity service at commits `5e66d84` (part 1), `4476bf4` (part 2) and `b5d9f69` (part 3), with the relying party rule of `75b6b94`, and both implementations reproduce the 486 vectors of its protocol `id-v1` unchanged. Wappie's platform wrap was taken from Wappie's console, whose code wrote its vectors.
+It was extracted from [Wappie](https://github.com/thehappieco/wappie) at commit `8c0c1f74103bc6bb65a93b13613ad1964d4399c4`, and every vector Wappie's code produced, along with every fixture Wappie already had, is reproduced by both implementations here. Data Wappie has already sealed keeps opening. The platform profile was taken from the platform's identity service at commits `5e66d84` (part 1), `4476bf4` (part 2) and `b5d9f69` (part 3), with the relying party rule of `75b6b94`, and both implementations reproduce the 486 vectors of its protocol `id-v1` unchanged. Wappie's platform wrap was taken from Wappie's console, whose code wrote its vectors. THCSEAL v1, the envelope of the platform's tier-2 secrets, and its key wrappers were taken from the platform at commit `d32b663`, with the tests of `d3e8c6d`, and the kit's code opens and writes again, byte for byte, the platform's vectors of it.
 
 | | Go (`github.com/thehappieco/kit/...`) | TypeScript (`@thehappieco/kit/...`) |
 |---|---|---|
@@ -20,6 +20,8 @@ It was extracted from [Wappie](https://github.com/thehappieco/wappie) at commit 
 | The platform profile, part 3: passkeys with PRF (the relying party id's one spelling, which does not end in a number, the PRF salt, `K_pk`, the kind-3 root wrap) and the allowlist of WebAuthn client extension results | `profiles/platform` | `profiles/platform` |
 | The relying party of the platform's id., the page: begin, callback, and keeping a delivered key only once the product's server has pinned it | | `oidc-rp` |
 | The relying party's server: the userinfo call and its checks, the client check, the insert-only pin | `oidcrp` | |
+| THCSEAL v1, the envelope of a server's tier-2 secrets (SPEC 14): one data key per envelope, AES-256-GCM, the header and the context `{service, env, purpose, ref}` as additional data | `thcseal` | |
+| Its key wrappers: the `Wrapper` interface and the context; AWS KMS with one pinned key and the instance role's credentials only; a local key-encryption key for development and tests, which compiles only with the build tag `kitdevkek` | `kms`, `kms/awskms`, `kms/localkek` | |
 | The vectors, embedded for consumers' tests | `vectors` | |
 
 ## Profiles
@@ -41,6 +43,10 @@ go get github.com/thehappieco/kit@v0.5.0
 ```
 
 Do not cover this module with `GOPRIVATE`, `GONOSUMDB` or `GONOPROXY` wildcards such as `github.com/thehappieco/*`: that skips the checksum database. Name only the private repositories.
+
+The kit is one module. Of its packages only `kms/awskms` imports the AWS SDK (`make imports-check` holds it to that): a module that never imports `kms/awskms` compiles nothing of the SDK, downloads none of it, and its `go.mod` and `go.sum` after `go mod tidy` are what they would be without it. Two things still see the SDK's modules, because they are in the kit's `go.mod`: `go list -m all`, and with it SBOM tools and dependency alerts, names them; and minimal version selection raises a module that requires older versions of them to the kit's, which are the platform's (`aws-sdk-go-v2` v1.47.1, `credentials` v1.20.6, `feature/ec2/imds` v1.20.1, `service/kms` v1.61.1).
+
+`kms/localkek`, the local key-encryption key, compiles only with the build tag `kitdevkek`, so a release build, which passes no tag, cannot link it. A module that seals under it in its tests passes `-tags kitdevkek` to those tests, to `go vet` and to its linters (for example `GOFLAGS=-tags=kitdevkek`), and to its development builds that select it (the platform's `-tags dev,kitdevkek`); so does a run of the kit's own tests of `thcseal` and `kms/awskms` from a consumer, such as the platform's `make kit-test`, or they fail with a test that says so. THCSEAL's package is `thcseal`, because the kit's `seal` is Wappie's envelope; its names are the platform's, so the platform imports it as `seal "github.com/thehappieco/kit/thcseal"`, and its error messages start `thcseal:`.
 
 TypeScript, from the GitHub release asset (the package is not published to a registry); the lockfile records the URL and a sha512 integrity, and `npm ci` refuses other bytes:
 
@@ -72,7 +78,12 @@ make vectors-platform-check PLATFORM=../platform PLATFORM_COMMIT=5e66d84 PLATFOR
 make vectors-platform-regen   # the same fourteen files from the kit's own copy of the platform's generator, against this tree (CI runs it)
 make vectors-regen-check WAPPIE=../whatserver2   # Wappie's vectors from Wappie's code at 8c0c1f7
 make vectors-cloud-regen-check WAPPIE_CLOUD=../whatserver2/commercial   # the platform wrap's vectors from Wappie's console
+make vectors-thcseal-check PLATFORM=../platform   # THCSEAL's vectors from the platform's own generator at d32b663
+make imports-check     # only tests link kms/localkek, only kms/awskms links the AWS SDK, and everything builds without the tag
+make identifiers-check   # no identifier of a real AWS account in any commit (KIT_IDENTIFIERS="$(cat <the owner's list>)" make identifiers-check)
 ```
+
+The Go targets pass `-tags kitdevkek` (`GO_TAGS`); a plain `go test ./...` fails in `thcseal` and `kms/awskms` and says why. The repository is public, history included, so it names no identifier of a real AWS account: AWS's documentation placeholders only (`111122223333`, `alias/example-alias`, `example-…` roles). `make identifiers-check`, which CI runs over every commit and commit message, refuses the classes of identifier and the owner's private list, which CI takes from the repository secret `KIT_IDENTIFIERS` and a local run from that variable or from `identifiers.local.txt` (git-ignored); the list is never committed. Run it before pushing: a value committed and then removed is still published.
 
 The Go code must compile with Go 1.26.7; CI builds and tests it with exactly that toolchain. A `v*` tag publishes a release only after every CI job passes on the tagged commit, browsers included, and only if that commit is on `main`. Everything in this repository is written in English (the platform's decision 0021); products map the kit's error codes to their own messages.
 

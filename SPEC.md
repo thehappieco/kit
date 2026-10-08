@@ -1,8 +1,8 @@
 # The Happie Co kit: specification
 
-- Spec version: 5 (kit v0.5.0)
-- Status: normative for the Wappie profile, which is frozen but for the addition of its platform wrap (section 6.8), and for parts 1 to 3 of the platform profile (section 11). Section 11.17 is reserved.
-- Vectors: every byte below is pinned by a case in `vectors/`. A case is cited as `file#case-id`, or for the platform's files as `platform/id-v1/<kind>.json#<case name>`, and `#<op>/<case name>` for a case that carries an op.
+- Spec version: 6 (kit v0.6.0)
+- Status: normative for the Wappie profile, which is frozen but for the addition of its platform wrap (section 6.8), for parts 1 to 3 of the platform profile (section 11), and for THCSEAL v1 and its key wrappers (section 14). Section 11.17 is reserved.
+- Vectors: every byte below is pinned by a case in `vectors/`. A case is cited as `file#case-id`, or for the platform's files as `platform/id-v1/<kind>.json#<case name>`, and `#<op>/<case name>` for a case that carries an op; a case of THCSEAL's file, `platform/thcseal-v1/thcseal-v1.json`, is cited by its list and name, `#valid/<case name>` or `#invalid/<case name>`.
 
 ## 1. Status and scope
 
@@ -17,11 +17,12 @@ The kit standardises the client-side cryptography The Happie Co's products share
 - RFC 8785 for JSON additional data (section 10);
 - the platform's account core: its password profile, KDF policy, root wraps, recovery code, per-product keys, server verifiers, email normalisation and key bundle (section 11);
 - the platform's sealed key delivery, PKCE and the relying party of its OpenID Connect provider, page and server (sections 11.12 to 11.15);
-- the platform's passkeys with PRF: the key a passkey's PRF output gives for the root wrap, and the allowlist of the client extension results the id. server accepts (section 11.16).
+- the platform's passkeys with PRF: the key a passkey's PRF output gives for the root wrap, and the allowlist of the client extension results the id. server accepts (section 11.16);
+- the envelope of a server's tier-2 secrets, THCSEAL v1, and its key wrappers, AWS KMS and a local key-encryption key for development and tests (section 14).
 
 What a product chooses is a **profile** (section 3): labels, prefixes, magic bytes, kind names, AAD builders and bounds. Everything else is fixed, and changing it is a new format version, never a profile.
 
-**Conformance.** An implementation conforms to a profile when it reproduces every case of that profile's vector files that is marked for its language (section 12). The Go module and the TypeScript package in this repository conform to the Wappie profile and to parts 1 to 3 of the platform profile.
+**Conformance.** An implementation conforms to a profile when it reproduces every case of that profile's vector files that is marked for its language (section 12). The Go module and the TypeScript package in this repository conform to the Wappie profile and to parts 1 to 3 of the platform profile. An implementation of THCSEAL v1 conforms when it opens every valid envelope of its vector file and refuses every invalid one with its error (sections 12.3 and 14); the Go module does, and there is no TypeScript, since only servers seal tier-2 secrets.
 
 **Versioning.** The spec changes only additively within a major kit version: new sections, new profiles, new ops and new cases. A byte that changes is a new format version byte or a new profile, with new vectors, and the old vectors keep passing.
 
@@ -77,6 +78,7 @@ Appendix A lists the Wappie profile's every value in one place. The platform pro
 - The recovery code's generation: 150 bits, Crockford's alphabet, 6 groups of 5 (section 6.7).
 - Key lengths: 32 bytes for X25519 keys, content keys, wrap keys and account keys.
 - The request HMAC's canonical string and signature shape (section 9).
+- THCSEAL v1 and its key wrappers (section 14), which take no profile: the magic, the version, the provider bytes, the layout and the local KEK's label are the format's, and the encryption context is the caller's.
 
 ### 3.3 Adding a profile
 
@@ -643,7 +645,7 @@ Its types, and its HMAC as section 9 with the platform's label (the platform's d
 
 ## 12. Vectors
 
-The layout, the op catalogue and the provenance of every file are in `vectors/README.md` and `vectors/PROVENANCE.md`. Run the conformance suites with `make test` (both languages), `make test-go-1.26.7` (adds the byte-for-byte replays of Wappie's Go vectors), and `make cross` (fresh round trips in both directions). Files are append-only once a release is tagged.
+The layout, the op catalogue and the provenance of every file are in `vectors/README.md` and `vectors/PROVENANCE.md`. Run the conformance suites with `make test` (both languages), `make test-go-1.26.7` (adds the byte-for-byte replays of Wappie's Go vectors), and `make cross` (fresh round trips in both directions); the Go targets pass the build tag `kitdevkek`, which THCSEAL's runner needs (section 14.3). Files are append-only once a release is tagged.
 
 ### 12.1 The kit's format
 
@@ -652,6 +654,10 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 ### 12.2 The platform's format
 
 `vectors/platform/id-v1/*.json` are the platform's own files, carried byte for byte (provenance in `vectors/PROVENANCE.md`). Each is `{"format": "thehappie-id/vectors", "version": 1, "kind": "<kind>", "cases": [...]}`; a case has a unique `name`, or, in a file whose cases carry `op`, a unique `op` and `name`, and either its outputs or `"error": "<name>"` (section 11.10). Binary values are base64url without padding; texts are JSON strings; the files are ASCII. Kinds and members: `password-profile` (`password`, or `password_utf16` with `password_utf8_b64url` for a string that is not Unicode, each language taking its own form; `new`; `prepared_b64url`), `kdf` (`prepared_b64url`, `salt`, `kdf`; `k_auth`, `k_wrap`, `auth_key`), `root-wrap` (`kind`, `key`, `nonce`, `root`, `sub`, `epoch`, `rp_id`, `credential_id`; `aad`, `wrap`), `recovery-code` (`bytes` or `input`; `display`, `canonical`, `k_rwrap`, `recovery_auth`), `product-key` (`root`, `product`, `epoch`; `sk`, `pub`, `product_key_id`), `verifier` (`sub`, `k_auth` or `r_proof`; `auth_verifier` or `recovery_verifier`), `email` (`input`; `email_norm`), `key-bundle` (`password` or `recovery_code`, `bundle` as a JSON value or `bundle_text` as the exact file text; `root`), `password-stream-safe` (the members of `password-profile`), `key-delivery` (`op` on must-fail cases, `open` or `seal`; `root`, `product`, `epoch`, `iss`, `client_id`, `redirect_uri`, `sub`, `product_key_id`, `pk_p`, `code_challenge`, `nonce`, `akd_priv`, `akd_pub`, `eph_priv`; `aad`, `akd_sealed`), `pkce` (`code_verifier`; `code_challenge`), `passkey` (`op` on must-fail cases, `salt`, `key` or `open`; `rp_id`, `prf`, `root`, `sub`, `epoch`, `credential_id`, `nonce`; `prf_salt`, `k_pk`, `aad`, `wrap`), `client-extensions` (`client_extension_results`, the exact JSON text as a string), `rp-id-ends-in-number` (`rp_id`; `ends_in_a_number`, `prf_salt`). A binary member the generator left empty is omitted; `prf`, `rp_id` and `client_extension_results` are written even when empty, and `rp_id` and `ends_in_a_number` on every case of their kind. Argon2id cases use the floor parameters, and one uses p = 4. A runner decodes strictly: a member it does not read fails it.
+
+### 12.3 THCSEAL's format
+
+`vectors/platform/thcseal-v1/thcseal-v1.json` is the platform's own file, carried byte for byte (provenance in `vectors/PROVENANCE.md`): `{"comment": [...], "provider": "localkek (0x7f)", "kek_hex": "<32 bytes>", "valid": [...], "invalid": [...]}`. Every envelope in it is sealed with the local provider (section 14.3) under `kek_hex`, the published test key `000102…1f`. A valid case has a `name`, a `context` (`service`, `env`, `purpose` and `ref`, written even when empty), `plaintext_hex`, `envelope_hex`, and the intermediate values `data_key_hex` and `aad_hex`; an invalid case has a `name`, a `context`, `envelope_hex` and an `error`, one of `malformed`, `provider_mismatch` and `decrypt` (section 14.2), which an opener reaches in that order. Bytes are lowercase hex. Names are unique within each list, and a case is identified and cited by its list and its name (`platform/thcseal-v1/thcseal-v1.json#invalid/version 2`). The file is ASCII and ends with one newline. A runner decodes strictly: a member it does not read fails it.
 
 ## 13. Security considerations
 
@@ -692,6 +698,59 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 - **A passkey wrap is as strong as the passkey.** Whoever holds the authenticator (or, for a synced passkey, any device it syncs to) and a copy of the wrap opens the root. Recovery revokes every passkey on the platform's server, but the root does not change, so a wrap copied before keeps opening with that passkey's PRF: the honest limit of the key bundle (11.9), for passkeys.
 - **An all-zero PRF output** is a valid input here; refusing one read out of a credential is the ceremony's rule (11.16).
 - **Error codes, not messages.** Direct-mode failures are one code, so a reader is not an oracle for which binding failed.
+- **Tier-2 secrets** (section 14). The context is in the envelope's AAD, so a wrapper that ignored it would still not open an envelope moved to another row; an unwrap that fails and a tag that fails are one error, `decrypt`, while a wrapper that cannot be reached (an outage, a refused permission, a cancelled request) is reported as itself and never as tampering. The context is written to KMS's audit log in clear, so it never carries personal data, which its alphabet makes hard to do by accident. The local KEK cannot be linked into a build without the tag `kitdevkek`, and its envelopes carry a provider byte that every other wrapper refuses. The AWS wrapper takes its credentials from the instance role alone, so anything on the machine that reaches the instance metadata service acts with the whole role: the honest limit of the platform's decision 0003, which the machine narrows (IMDSv2 required and a hop limit of 1, so containers on it cannot reach the role: the platform's decision 0020).
+
+## 14. Tier-2 secrets: THCSEAL v1 and the key wrappers
+
+- Status: normative, from the platform's `internal/seal` and `internal/kms` at platform commit `d32b663` (the platform's decisions 0003 and 0017), with their tests at `d3e8c6d`. Only servers seal tier-2 secrets, so there is no TypeScript.
+- Implementations: Go `thcseal` (the envelope), `kms` (the encryption context, the `Wrapper` interface and the provider bytes), `kms/awskms` (AWS KMS) and `kms/localkek` (a local key-encryption key, for development and tests only, which compiles only with the build tag `kitdevkek`).
+- Vectors: `platform/thcseal-v1/thcseal-v1.json`, the platform's file, carried byte for byte (section 12.3).
+
+A tier-2 secret is one a server uses on its own: the platform's OIDC signing key and HMAC keys, Stripe and SMTP credentials, a product's mail provider credentials, the database backups (the platform's decision 0003). It exists at rest only inside an envelope whose data key is wrapped by a key wrapper, and the envelope opens only for the exact encryption context it was sealed under, and only with the provider that sealed it.
+
+### 14.1 The encryption context
+
+```
+context = {service, env, purpose, ref}
+```
+
+`service` is the product (`platform`, `mailie`), `env` the deployment (`prod`, `dev`, `test`), `purpose` what the secret is (`config/stripe-secret-key`, `serverkey/oidc-signing`, `backup`, `credentials`) and `ref` which one (a key id, a secret name, a backup stamp). `service`, `env` and `purpose` are required and `ref` may be empty; every field is at most 128 bytes of `[a-z0-9._:/-]`, so that it stays short and holds no personal data: KMS writes the context to its audit log in clear, and the key policy conditions on it. A context outside these is refused before any wrapper is called, with an error that names the field and never its value (Go `kms.ErrInvalidContext`). The context is bound into every envelope, and an envelope of one service does not open as another's (`platform/thcseal-v1/thcseal-v1.json#valid/another service`, `platform/thcseal-v1/thcseal-v1.json#invalid/another service`). As KMS takes it, the context is the map of the four fields with `ref` left out when it is empty; since `ref` is the only optional field, the mapping stays one to one.
+
+### 14.2 The envelope
+
+```
+envelope = "THCSEAL" (7) || 0x01 || provider (1) || u16be(L) || wrapped data key (L)
+           || nonce (12) || AES-256-GCM(data key, nonce, plaintext, AAD)
+AAD      = envelope bytes [0, 11 + L) || u16be(len(service)) || service || u16be(len(env)) || env
+           || u16be(len(purpose)) || purpose || u16be(len(ref)) || ref
+```
+
+- **One data key per envelope**, 32 bytes, made by the wrapper together with its wrapped form and bound to the context; it is zeroed after use. Sealing is rare (key generation, secret entry, backups), so there is no nonce accounting.
+- **Every header byte is authenticated**: the magic, the version, the provider byte, `L` and the wrapped key are in the AAD, so changing any of them is a decryption failure, never a change of behaviour (`platform/thcseal-v1/thcseal-v1.json#invalid/wrapped key byte flipped`, `platform/thcseal-v1/thcseal-v1.json#invalid/wrapped key length one short`, `platform/thcseal-v1/thcseal-v1.json#invalid/nonce byte flipped`). The context in the AAD binds the envelope to its row as well as to its wrapped key: an envelope moved to another purpose, ref or env does not open, even under a wrapper that ignored the context (`platform/thcseal-v1/thcseal-v1.json#invalid/another purpose`, `platform/thcseal-v1/thcseal-v1.json#invalid/another ref`, `platform/thcseal-v1/thcseal-v1.json#invalid/no ref`, `platform/thcseal-v1/thcseal-v1.json#invalid/another env`).
+- **Bounds.** `L` is 1 to 6144, the largest ciphertext KMS returns; a plaintext is at most 256 MiB, because a GCM message is held whole to be authenticated, and anything bigger needs a chunked format, not a bigger envelope. An empty plaintext seals and opens (`platform/thcseal-v1/thcseal-v1.json#valid/empty plaintext`); the smallest envelope is 40 bytes, a one-byte wrapped key and an empty plaintext.
+- **Decoding** checks only the structure, in this order: at least the smallest length, the magic, the version `0x01`, `L` within its bounds, then that the nonce and a tag fit and the ciphertext is within the plaintext bound. A failure of any of these is `malformed` (`platform/thcseal-v1/thcseal-v1.json#invalid/empty input`, `platform/thcseal-v1/thcseal-v1.json#invalid/magic altered`, `platform/thcseal-v1/thcseal-v1.json#invalid/version 2`, `platform/thcseal-v1/thcseal-v1.json#invalid/wrapped key length 0`, `platform/thcseal-v1/thcseal-v1.json#invalid/wrapped key length 6145`, `platform/thcseal-v1/thcseal-v1.json#invalid/wrapped key length past the end`, `platform/thcseal-v1/thcseal-v1.json#invalid/truncated after the nonce`). Nothing decoded is authenticated until the envelope opens.
+- **Opening**, in this order: the context (section 14.1); decoding (`malformed`); the provider byte must be the wrapper's own, or the envelope is `provider_mismatch` before the wrapper is asked anything (`platform/thcseal-v1/thcseal-v1.json#invalid/provider relabelled as aws-kms`); the wrapper unwraps the data key under the context; AES-256-GCM with the AAD. A wrapped key that does not unwrap, a data key that is not 32 bytes and a tag that fails are all `decrypt`, and which one is not said (`platform/thcseal-v1/thcseal-v1.json#invalid/tag byte flipped`, `platform/thcseal-v1/thcseal-v1.json#invalid/truncated by one byte`, `platform/thcseal-v1/thcseal-v1.json#invalid/a trailing byte`). A failure to reach the wrapper (KMS unavailable, access denied, a cancelled request) is returned as it is, never as `decrypt`, because it says nothing about the envelope and the operator needs to see it.
+- **Sealing** refuses an invalid context and a plaintext over the bound before a data key is made, and a wrapper that returns a data key that is not 32 bytes or a wrapped key outside 1 to 6144 bytes; it draws a fresh random nonce.
+
+Go: `thcseal.Seal(ctx, w, ec, plaintext)`, `thcseal.Open(ctx, w, ec, envelope)` and `thcseal.Decode`, with the errors `thcseal.ErrMalformed`, `ErrProviderMismatch`, `ErrDecrypt` and `ErrTooLarge` (matched with `errors.Is`), and `kms.ErrInvalidContext`. The names are the platform's; only the package's name and the prefix of its messages, `thcseal:`, differ, because the kit's `seal` is section 4's envelope.
+
+### 14.3 The key wrappers
+
+A wrapper (`kms.Wrapper`) has a provider byte, which it writes into byte 8 of every envelope it seals and requires on every envelope it opens, so a production wrapper never opens an envelope sealed with a development key. It makes fresh 32-byte data keys together with their wrapped form, bound to a context, and unwraps a wrapped form only under the same context; a wrapped form that does not unwrap is `kms.ErrUnwrap`, and every other failure is reported as itself.
+
+| Provider | Byte | Wrapped data key |
+|---|---|---|
+| AWS KMS (`kms/awskms`) | `0x01` | KMS's `CiphertextBlob` of `GenerateDataKey` (`AES_256`) under one key, with the context as KMS's encryption context |
+| reserved | `0x02` | the platform's transitional host-key provider |
+| local KEK (`kms/localkek`) | `0x7F` | `nonce (12) \|\| AES-256-GCM(KEK, nonce, data key, aad)`, 60 bytes, with `aad = "thcseal-localkek/v1\n" + service + "\n" + env + "\n" + purpose + "\n" + ref` |
+
+- **AWS KMS.** The key is a full key ARN, never an alias or a bare key id, in the wrapper's own region (a multi-region key's ARN included), and every call names it. At start, `DescribeKey` must show that exact ARN, enabled, `SYMMETRIC_DEFAULT` and `ENCRYPT_DECRYPT`, or the wrapper is not made. Every response must name the same ARN and carry a 32-byte key; any other answer is refused, and the key it carried is zeroed. Unwrapping names the key, the symmetric algorithm and the context. Credentials come only from the EC2 instance role through IMDSv2, at the fixed metadata address, with the IMDSv1 fallback off: environment variables, shared credential and config files, profiles, endpoint overrides and proxy variables are never read, so nothing on the machine can make the wrapper act as someone else or talk to another endpoint. KMS's refusal of a ciphertext (another key, another context, altered bytes: `InvalidCiphertextException`, `IncorrectKeyException`) is `kms.ErrUnwrap`; any other failure is returned as it is. Every request to KMS and to the metadata service has a 5-second timeout. The provider has no vectors, since its wrapped keys are KMS's; its tests run the real SDK client against a fake metadata service and a fake KMS on loopback.
+- **The local KEK** is for development and tests only. Its package compiles only with the build tag `kitdevkek`, and no package of the kit imports it outside tests (`make imports-check`, in CI), so a binary built without the tag cannot link it; its envelopes carry `0x7F`, which every other wrapper refuses. The context's alphabet has no newline, so the separators of its AAD are unambiguous: a key wrapped for one purpose does not unwrap for the same bytes split differently between purpose and ref. A consumer passes `-tags kitdevkek` to the tests, vet and linters of every package whose tests use it and to its development builds, and no tag to its release builds; the tests of the kit's `thcseal` and `kms/awskms` need it too.
+- **The AWS SDK** is a dependency of `kms/awskms` alone (`make imports-check`): a module that never imports that package compiles nothing of the SDK, and its `go.mod` and `go.sum` gain no line for it, though `go list -m all` names the SDK's modules, which are in the kit's `go.mod`.
+
+Go: `kms.Context` (`Validate`, `Map`), `kms.Wrapper`, `kms.ProviderAWS`, `kms.ProviderLocal`, `kms.DataKeyLen`, `kms.MaxFieldLen`, `kms.ErrUnwrap`; `awskms.New(ctx, region, keyARN)`, `awskms.NewWithAPI` (the same checks over a given client, for tests and for an owner's tool that runs outside the server), `awskms.RoleCredentials` (the same instance-role credentials for the server's other AWS client), with `ErrKeyARN`, `ErrKeyRefused` and `ErrUnexpectedResponse`; `localkek.New(kek)`, with `ErrKEKLength`.
+
+Vectors: `platform/thcseal-v1/thcseal-v1.json`, 26 cases: 5 envelopes that open under the published test KEK `000102…1f` with the local provider (an empty plaintext, a short secret, a 32-byte server key, every byte value with no ref, another service), each with its data key and AAD, and 21 that must fail, 12 `decrypt`, 8 `malformed` and 1 `provider_mismatch`. The kit's Go implementation opens and refuses every one, and writes the file again byte for byte with the platform's generator in every test run.
 
 ## Appendix A. The Wappie profile
 
@@ -717,6 +776,7 @@ Everything under `vectors/wappie/` and `vectors/kit/` is in the kit's format, `t
 - Spec 3 (kit v0.3.0): section 11 part 2 (sections 11.12 to 11.15), with the platform's vectors at `4476bf4`; the reservations for the passkey root-wrap key and the product contract move to sections 11.16 and 11.17; sections 1, 11.1, 11.2, 11.4, 11.5, 11.10, 11.11, 12.2 and 13 extended. Nothing in the Wappie profile or in part 1 changed.
 - Spec 4 (kit v0.4.0): section 11 part 3 (section 11.16), with the platform's vectors at `b5d9f69`; section 6.8 reserved for Wappie's platform wrap; sections 1, 7, 11, 11.1, 11.5, 11.10, 11.11, 12.2 and 13 and Appendices A and C extended. Nothing in the Wappie profile or in parts 1 and 2 changed.
 - Spec 5 (kit v0.5.0): section 6.8, Wappie's platform wrap, replaces its reservation, an addition to the Wappie profile, with vectors written by Wappie's console; section 11.16 refuses a relying party id that ends in a number, with the platform's vectors at `75b6b94`, a refusal of ids no browser serves; sections 1, 7, 11, 11.4, 11.10, 11.11, 12.2 and 13 and Appendix A extended. No byte of the Wappie profile or of parts 1 to 3 changed.
+- Spec 6 (kit v0.6.0): section 14, THCSEAL v1 and its key wrappers, from the platform at `d32b663` with its vectors, and section 12.3, their file's format; sections 1, 3.2, 12 and 13 extended. No byte of the Wappie profile or of the platform profile changed.
 
 ## Appendix C. The platform profile
 

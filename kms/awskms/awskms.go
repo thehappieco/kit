@@ -32,7 +32,8 @@
 // so a module that does not import it compiles none of the SDK.
 //
 // From the platform (github.com/thehappieco/platform), internal/kms/awskms at
-// d32b663, unchanged in behaviour: only its import path and these comments
+// d32b663, unchanged in behaviour: only its import path, its build
+// constraint (the platform's file required go1.26) and these comments
 // differ, and its tests are those of d3e8c6d, which name AWS's documentation
 // placeholders instead of real identifiers (vectors/PROVENANCE.md).
 package awskms

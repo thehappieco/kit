@@ -146,7 +146,8 @@ func TestUnits(t *testing.T) {
 	refused(t, "a wrap opened under another product's labels", k, err)
 	k, err = platformwrap.Open(wappie.PlatformWrap(), sk, one, b)
 	refused(t, "a binding of another product", k, err)
-	// A profile that differs in one label only does not open it either.
+	// A profile that differs in one label only does not open it either,
+	// with the same key bytes and the same binding.
 	for _, p := range []platformwrap.Profile{
 		{Product: vaultie.Product, Salt: "vaultie/platform-wrap/v2", Label: vaultie.Label},
 		{Product: vaultie.Product, Salt: vaultie.Salt, Label: "vaultie/platform-wrap/x"},
@@ -154,6 +155,13 @@ func TestUnits(t *testing.T) {
 		k, err := platformwrap.Open(p, sk, one, b)
 		refused(t, "a wrap opened under another label", k, err)
 	}
+	// Nor does a profile with the same labels that differs only in its
+	// product, with the binding's key id naming that product: the key id
+	// alone keeps two products apart.
+	ob := b
+	ob.ProductKeyID = "vaultie-two:1"
+	k, err = platformwrap.Open(platformwrap.Profile{Product: "vaultie-two", Salt: vaultie.Salt, Label: vaultie.Label}, sk, one, ob)
+	refused(t, "a wrap opened under another product with the same labels", k, err)
 	// The same bytes sealed under Wappie's labels are Wappie's wrap.
 	nonce := digest("nonce")[:12]
 	generic, err := platformwrap.Seal(wappie.PlatformWrap(), bytes.NewReader(nonce), sk, usk, wb)

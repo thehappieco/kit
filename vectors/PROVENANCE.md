@@ -280,7 +280,7 @@ sha256 of the platform files the kit's packages were taken from, and the kit's e
 | `internal/kms/localkek/localkek.go` | `d32b663` | `40dead3090dd732dbe9ddc8998c933232f2ee6507357c5bf472a6e721678abf3` | `kms/localkek/localkek.go` | none |
 | `internal/kms/localkek/localkek_test.go` | `d3e8c6d` | `b1ca0d9f0f3e32d19c87153ad11df302fdfc17999e4b7fecca9bb04c5db6e129` | `kms/localkek/localkek_test.go` | none |
 
-New in the kit: `thcseal/tag_test.go` and `kms/awskms/tag_test.go`, built only without the tag, which fail and say that the package's tests need `-tags kitdevkek`.
+New in the kit: `thcseal/tag_test.go` and `kms/awskms/tag_test.go`, built only without the tag, which fail and say that the package's tests need `-tags kitdevkek`; and `kms/links_test.go`, which reads the imports of every non-test file of the kit under every build constraint and fails if a package but `kms/localkek` reaches it, if a package but `kms/awskms` reaches the AWS SDK, or if a file of `kms/localkek` does not require the tag (`make imports-check`).
 
 ## Mailie's platform wrap, written by the kit
 

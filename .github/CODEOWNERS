@@ -13,3 +13,11 @@
 /js/src/platformwrap.ts @frrestum
 /scripts/         @frrestum
 /.github/         @frrestum
+# CI runs the safety checks through the Makefile's recipes (imports-check,
+# identifiers-check, the vector checks), and go.mod and go.sum decide what
+# every consumer's build links; .gitleaks.toml decides what the secret scan
+# skips.
+/Makefile         @frrestum
+/go.mod           @frrestum
+/go.sum           @frrestum
+/.gitleaks.toml   @frrestum

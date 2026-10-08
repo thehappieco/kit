@@ -148,11 +148,14 @@ describe('the module', () => {
     const wrap = await sealPlatformWrap(vaultie, sk, usk, b)
     expect(toB64(await openPlatformWrap(vaultie, sk, wrap, b))).toBe(toB64(usk))
     // Under Wappie's labels with the same key bytes, the binding naming
-    // Wappie's key id or still Vaultie's; and under one label changed.
+    // Wappie's key id or still Vaultie's; under one label changed; and under
+    // the same labels for another product.
     await refused("another product's labels", async () => openPlatformWrap(wappie.wappiePlatformWrap, sk, wrap, { ...b, productKeyId: 'wappie:1' }))
     await refused("another product's binding", () => openPlatformWrap(wappie.wappiePlatformWrap, sk, wrap, b))
     await refused('another salt', () => openPlatformWrap({ ...vaultie, salt: 'vaultie/platform-wrap/v2' }, sk, wrap, b))
     await refused('another label', () => openPlatformWrap({ ...vaultie, label: 'vaultie/platform-wrap/x' }, sk, wrap, b))
+    // The same labels under another product, the binding's key id naming it: the key id alone.
+    await refused('another product with the same labels', () => openPlatformWrap({ ...vaultie, product: 'vaultie-two' }, sk, wrap, { ...b, productKeyId: 'vaultie-two:1' }))
     expect(() => platformWrapInfo(vaultie, { ...b, productKeyId: 'wappie:1' })).toThrow(/product_key_id is not a product key id of vaultie/)
   })
 

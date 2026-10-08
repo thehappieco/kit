@@ -70,7 +70,10 @@ const (
 var ErrPlatformWrap = errors.New("platformwrap: the platform wrap is malformed, does not open, or names another account")
 
 // Profile is a product's labels. Its values are wire format: a wrap opens
-// only under the profile it was sealed under.
+// only under the profile it was sealed under. A product's salt and label
+// must differ from every label of the kit's profiles and from every other
+// product's (SPEC sections 3.3 and 6.8); that is the rule of whoever defines
+// the profile, and nothing here checks it.
 type Profile struct {
 	// Product is the product of the product key ids a wrap is made for, a
 	// product id of SPEC section 11.4 ("wappie").

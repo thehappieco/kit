@@ -13,8 +13,9 @@
 // without the tag cannot link it, and an import of it fails to build. No
 // package of the kit imports it outside its tests (make imports-check, in
 // CI). So a consumer passes -tags kitdevkek to the tests, vet and linters of
-// every package whose tests use it, and to its development builds; its
-// release builds go without the tag. A product gates it further where it
+// every package whose tests use it, and to its development builds, on their
+// command lines; its release builds go without the tag, so never set it in a
+// GOFLAGS that a release build also reads. A product gates it further where it
 // selects a provider: the platform's code that does so compiles only with
 // -tags dev, and its config refuses it when PLATFORM_ENV is prod. Do not
 // import this package from anything that ships in a release binary.

@@ -22,11 +22,15 @@
 //
 // The additional data is the header, bytes [0, 11+L), followed by service,
 // env, purpose and ref, each as a u16 length and its bytes. Every header byte
-// is therefore authenticated: changing the version, the provider, the length
-// or the wrapped key is a decryption failure, not a change of behaviour. The
-// context in the additional data binds the envelope to its row as well as to
-// its wrapped key: an envelope moved to another purpose or ref does not open
-// even under a provider that ignored the context.
+// is therefore authenticated: a change to any of them never opens and never
+// changes behaviour. Another magic or version is ErrMalformed, from Decode;
+// another provider is ErrProviderMismatch, or ErrDecrypt if it is the
+// opener's own; a length that leaves its bounds or the envelope is
+// ErrMalformed; any other change of the length or of the wrapped key is
+// ErrDecrypt (SPEC section 14.2). The context in the additional data binds
+// the envelope to its row as well as to its wrapped key: an envelope moved to
+// another purpose or ref does not open even under a provider that ignored
+// the context.
 //
 // Each envelope gets its own data key. Sealing is rare (key generation,
 // secret entry, backups), so there is no nonce accounting to do; the data
@@ -34,7 +38,8 @@
 //
 // From the platform (github.com/thehappieco/platform), internal/seal at
 // d32b663, unchanged in behaviour: only the package's name, the prefix of
-// its error messages, its import paths and these comments differ
+// its error messages, its import paths, its build constraint (the
+// platform's file required go1.26) and these comments differ
 // (vectors/PROVENANCE.md). The kit's package seal is Wappie's envelope
 // (SPEC section 4), hence the name; a consumer that keeps the platform's
 // name imports this one as seal "github.com/thehappieco/kit/thcseal".

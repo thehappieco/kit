@@ -59,7 +59,11 @@ export const PLATFORM_WRAP_LEN = 61
 /** PLATFORM_WRAP_VERSION is the format's version, the 1 in the info and the AAD. */
 export const PLATFORM_WRAP_VERSION = 1
 
-/** A product's labels. Its values are wire format: a wrap opens only under the profile it was sealed under. */
+/**
+ * A product's labels. Its values are wire format: a wrap opens only under the profile it was sealed under.
+ * A product's salt and label must differ from every label of the kit's profiles and from every other
+ * product's (SPEC sections 3.3 and 6.8); that is the rule of whoever defines the profile, and nothing here checks it.
+ */
 export interface PlatformWrapProfile {
   /** The product of the product key ids a wrap is made for, a product id of SPEC section 11.4 ("wappie"). */
   readonly product: string

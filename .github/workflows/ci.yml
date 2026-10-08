@@ -50,8 +50,9 @@ jobs:
         run: |
           out=$(go test -count=1 -v -run 'TestWappieSealVectors|TestWappieRequestHMACVectors' ./seal ./reqhmac)
           if echo "$out" | grep -q 'replay needs'; then echo "replays skipped on go1.26.7"; exit 1; fi
-      # Only tests link the local KEK, only kms/awskms links the AWS SDK, and
-      # every package builds without the tag, as a consumer's release does.
+      # Only tests link the local KEK, only kms/awskms links the AWS SDK,
+      # under any build constraint, and every package builds without the
+      # tag, as a consumer's release does.
       - name: what the packages link
         run: make imports-check
       # The platform's generator at 75b6b94, kept in the kit, runs the kit's
@@ -205,10 +206,12 @@ jobs:
           if [ -n "$changed" ]; then echo "vector files of $previous changed or disappeared:"; echo "$changed"; exit 1; fi
 
   # The kit is public, and so is its history: no identifier of a real AWS
-  # account in any commit, path or commit message reachable from the checked
-  # out commit (make identifiers-check). The owner's list of values is the
-  # repository secret KIT_IDENTIFIERS, never a file of the repository; the
-  # job fails without it, so it fails for a pull request from a fork.
+  # account in the files, paths or commit messages of any commit of any
+  # branch or tag the repository has (fetch-depth 0 fetches them all, and
+  # --all reaches them, the checked-out commit included; make
+  # identifiers-check). The owner's list of values is the repository secret
+  # KIT_IDENTIFIERS, never a file of the repository; the job fails without
+  # it, so it fails for a pull request from a fork.
   identifiers:
     name: no identifier of an AWS account
     runs-on: ubuntu-24.04
@@ -217,7 +220,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - run: make identifiers-check
+      - run: make identifiers-check IDENTIFIERS_REVS=--all
         env:
           KIT_IDENTIFIERS: ${{ secrets.KIT_IDENTIFIERS }}
 

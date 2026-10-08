@@ -18,7 +18,8 @@
 // secret is for, never whose it is.
 //
 // From the platform (github.com/thehappieco/platform), internal/kms at
-// d32b663, unchanged in behaviour: only these comments differ
+// d32b663, unchanged in behaviour: only its build constraint (the
+// platform's file required go1.26) and these comments differ
 // (vectors/PROVENANCE.md).
 package kms
 

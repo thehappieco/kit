@@ -6,7 +6,8 @@
 # repository is public and its history is published with every branch, so a
 # value committed and then removed counts as published.
 #
-# Two checks, and this file names no real value in either:
+# Two checks, each over the files, the paths and the commit messages of
+# every commit, and this file names no real value in either:
 #
 #  1. Classes of identifier, whatever their value, of which only AWS's
 #     documentation placeholders and the kit's own test values are allowed:
@@ -20,8 +21,12 @@
 #     into the repository: a public rule would have to spell the values it
 #     forbids. With CI=true and no list, the check fails.
 #
-# A match is reported by commit, path, line and the check that matched,
-# never by what matched. Run by make identifiers-check, which CI runs.
+# A match is reported by commit, place and the check that matched, never by
+# what matched: a file by its path and line, a commit message by its line,
+# and a path that matches a class or the list, or a file whose path does, by
+# its index in the commit's tree (line N of git ls-tree -r --name-only
+# <commit>), so the value never reaches a log through its file's name. Run
+# by make identifiers-check, which CI runs.
 set -eu
 
 [ $# -gt 0 ] || set -- HEAD
@@ -33,7 +38,10 @@ count=$(printf '%s\n' "$revs" | wc -l | tr -d ' ')
 list=$(mktemp)
 found=$(mktemp)
 hits=$(mktemp)
-trap 'rm -f "$list" "$found" "$hits"' EXIT
+texthits=$(mktemp)
+message=$(mktemp)
+paths=$(mktemp)
+trap 'rm -f "$list" "$found" "$hits" "$texthits" "$message" "$paths"' EXIT
 
 # grep_revs <git grep options>...: git grep over every commit, into $hits.
 # Exit status 1 is no match; anything else but 0 is an error, which fails
@@ -43,6 +51,16 @@ grep_revs() {
 	# shellcheck disable=SC2086 # one commit per word
 	git grep "$@" $revs > "$hits" || rc=$?
 	[ "$rc" -le 1 ] || { echo "identifiers-check: git grep failed ($rc)"; exit 1; }
+}
+
+# grep_text <file> <grep options>...: grep -n of a text, into $texthits,
+# with the same rule for the exit status.
+grep_text() {
+	f=$1
+	shift
+	rc=0
+	grep -n "$@" "$f" > "$texthits" || rc=$?
+	[ "$rc" -le 1 ] || { echo "identifiers-check: grep failed ($rc)"; exit 1; }
 }
 
 # One value per line; carriage returns, surrounding blanks and blank lines
@@ -72,10 +90,56 @@ aliases='^alias/(example-alias|aws/[a-z0-9_-]+)$'
 buckets='^(amzn-s3-demo-bucket[a-z0-9.-]*|example-bucket|bucket)$'
 roles='^example-[a-z0-9+=,.@_-]*$'
 
-# class <name> <pattern> <value> <allowed>: every match of the extended
-# regular expression <pattern> in a text file of a commit, reduced to the
+hex='[0-9A-Fa-f]'
+uuid="${hex}{8}-${hex}{4}-${hex}{4}-${hex}{4}-${hex}{12}"
+field='["'\'']?[[:space:]]*[:=][[:space:]]*["'\'']?'
+
+# classes <command> [<argument>...]: runs the command once per class, with
+# the class's <name> <pattern> <value> <allowed> after its own arguments:
+# every match of the extended regular expression <pattern>, reduced to the
 # first match of <value> in it, must match <allowed>.
-class() {
+classes() {
+	"$@" 'an AWS account id in an ARN' 'arn:aws[a-z-]*:[a-z0-9-]*:[a-z0-9-]*:[0-9]+:' '[0-9]+:$' "$(printf '%s' "$accounts" | sed 's/)\$$/):$/')"
+	"$@" 'an AWS account id in a field' "([Aa]ccount_?[Ii][Dd]|AWS_ACCOUNT_ID|AWSAccountId)${field}[0-9]{10,13}" '[0-9]{10,13}$' "$accounts"
+	"$@" 'an EC2 or VPC resource id' "(^|[^A-Za-z0-9_-])(i|sg|subnet|vpc|vpce|vol|snap|ami|eni|igw|rtb|nat|eipalloc|lt|tgw)-(${hex}{17}|${hex}{8})([^A-Za-z0-9_-]|\$)" '[a-z]+-[0-9A-Fa-f]+' "$resources"
+	"$@" 'a KMS key id' "(:key/|KeyId${field})(mrk-${hex}{32}|$uuid)" "(mrk-${hex}{32}|$uuid)\$" "$keyids"
+	"$@" 'a KMS alias' 'alias/[A-Za-z0-9/_-]+' 'alias/[A-Za-z0-9/_-]+' "$aliases"
+	"$@" 'an S3 bucket' '(s3://|arn:aws[a-z-]*:s3:::)[A-Za-z0-9.-]+' '[A-Za-z0-9.-]+$' "$buckets"
+	"$@" 'an IAM role or instance profile in an ARN' ':(role|assumed-role|instance-profile)/[A-Za-z0-9+=,.@_-]+' '[A-Za-z0-9+=,.@_-]+$' "$roles"
+	"$@" 'an IAM Identity Center portal' '[A-Za-z0-9-]+\.awsapps\.com' '.*' '^$'
+}
+
+# allowed <match> <value> <allowed>: whether the first match of <value> in
+# <match> is one of the values <allowed> holds.
+allowed() {
+	value=$(printf '%s\n' "$1" | grep -o -E -e "$2" | head -n 1) || value=
+	printf '%s\n' "$value" | grep -q -i -E -e "$3"
+}
+
+# A path that matches any class's pattern, whatever its value, or the list
+# is never printed: it is shown by its index in its commit's tree.
+any_class=
+add_pattern() { any_class="${any_class:+$any_class|}($2)"; }
+classes add_pattern
+named() {
+	if [ -s "$list" ] && printf '%s\n' "$1" | grep -q -i -F -f "$list"; then
+		return 0
+	fi
+	printf '%s\n' "$1" | grep -q -E -e "$any_class"
+}
+# shown <rev> <path>: the path as a report prints it.
+shown() {
+	if named "$2"; then
+		n=$(git ls-tree -r --name-only "$1" | grep -n -x -F -e "$2" | head -n 1 | cut -d: -f1) || n=
+		echo "path #${n:-?} of its tree"
+	else
+		printf '%s\n' "$2"
+	fi
+}
+
+# in_files <name> <pattern> <value> <allowed>: the class in every text file
+# of every commit.
+in_files() {
 	grep_revs -I -n -o -E -e "$2"
 	while IFS= read -r hit; do
 		rev=${hit%%:*}
@@ -84,40 +148,60 @@ class() {
 		rest=${rest#*:}
 		line=${rest%%:*}
 		match=${rest#*:}
-		value=$(printf '%s\n' "$match" | grep -o -E -e "$3" | head -n 1) || value=
-		if ! printf '%s\n' "$value" | grep -q -i -E -e "$4"; then
-			echo "$(echo "$rev" | cut -c1-12) $path:$line: $1" >> "$found"
+		if ! allowed "$match" "$3" "$4"; then
+			echo "$(echo "$rev" | cut -c1-12) $(shown "$rev" "$path"):$line: $1" >> "$found"
 		fi
 	done < "$hits"
 }
-hex='[0-9A-Fa-f]'
-uuid="${hex}{8}-${hex}{4}-${hex}{4}-${hex}{4}-${hex}{12}"
-field='["'\'']?[[:space:]]*[:=][[:space:]]*["'\'']?'
-class 'an AWS account id in an ARN' 'arn:aws[a-z-]*:[a-z0-9-]*:[a-z0-9-]*:[0-9]+:' '[0-9]+:$' "$(printf '%s' "$accounts" | sed 's/)\$$/):$/')"
-class 'an AWS account id in a field' "([Aa]ccount_?[Ii][Dd]|AWS_ACCOUNT_ID|AWSAccountId)${field}[0-9]{10,13}" '[0-9]{10,13}$' "$accounts"
-class 'an EC2 or VPC resource id' "(^|[^A-Za-z0-9_-])(i|sg|subnet|vpc|vpce|vol|snap|ami|eni|igw|rtb|nat|eipalloc|lt|tgw)-(${hex}{17}|${hex}{8})([^A-Za-z0-9_-]|\$)" '[a-z]+-[0-9A-Fa-f]+' "$resources"
-class 'a KMS key id' "(:key/|KeyId${field})(mrk-${hex}{32}|$uuid)" "(mrk-${hex}{32}|$uuid)\$" "$keyids"
-class 'a KMS alias' 'alias/[A-Za-z0-9/_-]+' 'alias/[A-Za-z0-9/_-]+' "$aliases"
-class 'an S3 bucket' '(s3://|arn:aws[a-z-]*:s3:::)[A-Za-z0-9.-]+' '[A-Za-z0-9.-]+$' "$buckets"
-class 'an IAM role or instance profile in an ARN' ':(role|assumed-role|instance-profile)/[A-Za-z0-9+=,.@_-]+' '[A-Za-z0-9+=,.@_-]+$' "$roles"
-class 'an IAM Identity Center portal' '[A-Za-z0-9-]+\.awsapps\.com' '.*' '^$'
+
+# in_text <text> <place> <commit> <name> <pattern> <value> <allowed>: the
+# class in a commit's message or in its list of paths, one per line; a match
+# is reported by its line number, put into the printf format <place>.
+in_text() {
+	grep_text "$1" -o -E -e "$5"
+	while IFS= read -r hit; do
+		if ! allowed "${hit#*:}" "$6" "$7"; then
+			# shellcheck disable=SC2059 # the format is this file's
+			printf "$3 $2: $4\n" "${hit%%:*}" >> "$found"
+		fi
+	done < "$texthits"
+}
+
+classes in_files
 
 if [ -s "$list" ]; then
 	grep_revs --text -n -i -F -f "$list"
-	awk -F: '{ print substr($1, 1, 12) " " $2 ":" $3 ": an identifier of the private list" }' "$hits" >> "$found"
-	for rev in $revs; do
-		short=$(echo "$rev" | cut -c1-12)
-		git log -1 --format=%B "$rev" | grep -n -i -F -f "$list" |
-			awk -F: -v r="$short" '{ print r " commit message, line " $1 ": an identifier of the private list" }' >> "$found" || true
-		if git ls-tree -r --name-only "$rev" | grep -q -i -F -f "$list"; then
-			echo "$short a path: an identifier of the private list" >> "$found"
-		fi
-	done
+	while IFS= read -r hit; do
+		rev=${hit%%:*}
+		rest=${hit#*:}
+		path=${rest%%:*}
+		rest=${rest#*:}
+		line=${rest%%:*}
+		echo "$(echo "$rev" | cut -c1-12) $(shown "$rev" "$path"):$line: an identifier of the private list" >> "$found"
+	done < "$hits"
 fi
+
+for rev in $revs; do
+	short=$(echo "$rev" | cut -c1-12)
+	git log -1 --format=%B "$rev" > "$message"
+	git ls-tree -r --name-only "$rev" > "$paths"
+	classes in_text "$message" 'commit message, line %s' "$short"
+	classes in_text "$paths" 'path #%s of its tree' "$short"
+	if [ -s "$list" ]; then
+		grep_text "$message" -i -F -f "$list"
+		cut -d: -f1 "$texthits" | while IFS= read -r n; do
+			echo "$short commit message, line $n: an identifier of the private list"
+		done >> "$found"
+		grep_text "$paths" -i -F -f "$list"
+		cut -d: -f1 "$texthits" | while IFS= read -r n; do
+			echo "$short path #$n of its tree: an identifier of the private list"
+		done >> "$found"
+	fi
+done
 
 if [ -s "$found" ]; then
 	sort -u "$found"
-	echo "identifiers-check: $(sort -u "$found" | wc -l | tr -d ' ') matches in $count commits"
+	echo "identifiers-check: $(sort -u "$found" | wc -l | tr -d ' ') matches in $count commits (path #N is line N of git ls-tree -r --name-only <commit>)"
 	exit 1
 fi
-echo "identifiers-check: $count commits, no identifier of an AWS account"
+echo "identifiers-check: $count commits, their files, paths and messages, no identifier of an AWS account"

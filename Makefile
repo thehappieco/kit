@@ -40,23 +40,31 @@ test-go-1.26.7:
 	GOTOOLCHAIN=go1.26.7 go test -race -count=1 -tags=$(GO_TAGS) $(GO_PACKAGES)
 
 # What the kit's packages may link (SPEC section 14.3): kms/localkek only
-# from tests, and the AWS SDK only from kms/awskms. With the tag kitdevkek
-# on, no package but kms/localkek itself has it among its dependencies (the
-# dependencies of a package's own files, not of its tests), and none but
-# kms/awskms has a module of github.com/aws. Then, without the tag, every
-# package builds and every test compiles (go vet), so a release build of a
-# consumer, which passes no tag, never needs the local KEK.
+# from tests, and the AWS SDK only from kms/awskms. First from the source,
+# whatever the build constraints (kms/links_test.go): every non-test .go file
+# is parsed for its imports, a file under a tag of its own (a product's dev,
+# say) or for another platform included, and every file of kms/localkek must
+# require the tag kitdevkek. Then in the build contexts of the go tool: with
+# the tag kitdevkek on, no package but kms/localkek itself has it among its
+# dependencies (the dependencies of a package's own files, not of its tests),
+# and none but kms/awskms has a module of github.com/aws; without the tag,
+# kms/localkek has no file to compile, every package builds and every test
+# compiles (go vet), so a release build of a consumer, which passes no tag,
+# never needs the local KEK.
 KIT_MODULE = github.com/thehappieco/kit
 imports-check:
+	go test -count=1 -run '^TestOnlyTestsLinkTheLocalKEKAndOnlyAWSKMSTheSDK$$' ./kms && \
 	pkgs=$$(go list -tags=kitdevkek ./... | grep -v /js/) && \
 	deps=$$(go list -tags=kitdevkek -f '{{.ImportPath}} {{join .Deps " "}}' $$pkgs) && \
 	bad=$$(echo "$$deps" | awk '$$1 != "$(KIT_MODULE)/kms/localkek" { for (i = 2; i <= NF; i++) if ($$i == "$(KIT_MODULE)/kms/localkek") { print $$1; break } }' | paste -sd ' ' -) && \
 	{ test -z "$$bad" || { echo "kms/localkek is linked by $$bad: only tests may import it"; exit 1; }; } && \
 	aws=$$(echo "$$deps" | awk '$$1 != "$(KIT_MODULE)/kms/awskms" { for (i = 2; i <= NF; i++) if ($$i ~ /^github\.com\/aws\//) { print $$1; break } }' | paste -sd ' ' -) && \
 	{ test -z "$$aws" || { echo "the AWS SDK is linked by $$aws: only kms/awskms may"; exit 1; }; } && \
+	kek=$$(go list -tags= -e -f '{{len .GoFiles}}' ./kms/localkek) && \
+	{ test "$$kek" = 0 || { echo "kms/localkek compiles $$kek files without the tag kitdevkek"; exit 1; }; } && \
 	go build -tags= $$(go list -tags= -f '{{if .GoFiles}}{{.ImportPath}}{{end}}' ./... | grep -v /js/) && \
 	go vet -tags= $$(go list -tags= ./... | grep -v /js/) && \
-	echo "kms/localkek is linked by no package and the AWS SDK only by kms/awskms; every package builds without the tag kitdevkek"
+	echo "kms/localkek is linked by no package and the AWS SDK only by kms/awskms, under any build constraint; without the tag kitdevkek kms/localkek has no file and every other package builds"
 
 test-js:
 	cd js && npm ci --ignore-scripts --no-audit --no-fund && npm run typecheck && npm test && npm run build
@@ -80,11 +88,12 @@ test-browser-linux:
 		bash -c 'mkdir /kit && tar -x -C /kit && cd /kit/js && npm ci --ignore-scripts --no-audit --no-fund && npm run test:browser'
 
 # No identifier of a real AWS account in any commit reachable from
-# IDENTIFIERS_REVS (HEAD's history by default; --all for every branch), in
-# its paths or in its commit message: an account id, a resource id, a KMS
-# key id or alias, a bucket, a role or a portal is allowed only as one of
-# AWS's documentation placeholders, and nothing of the owner's private list
-# may appear (scripts/identifiers-check.sh). The list comes from the
+# IDENTIFIERS_REVS (HEAD's history by default; --all for every branch and
+# tag, as CI runs it), in its files, its paths or its commit message: an
+# account id, a resource id, a KMS key id or alias, a bucket, a role or a
+# portal is allowed only as one of AWS's documentation placeholders, and
+# nothing of the owner's private list may appear
+# (scripts/identifiers-check.sh). The list comes from the
 # environment variable KIT_IDENTIFIERS (in CI, the repository secret) or
 # from identifiers.local.txt (git-ignored); without one the check runs the
 # classes only, and fails in CI.

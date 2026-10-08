@@ -4,7 +4,8 @@ js/dist/
 js/*.tgz
 js/SHA256SUMS
 
-# Local notes (paths on the owner's machine), per the platform's decisions README.
+# Local notes (paths on the owner's machine), per the platform's decisions README,
+# and the private list of make identifiers-check (identifiers.local.txt).
 *.local.*
 
 .DS_Store

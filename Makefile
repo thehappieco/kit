@@ -21,9 +21,9 @@ WAPPIE_CLOUD ?= ../whatserver2/commercial
 WAPPIE_CLOUD_COMMIT ?= 3bfee279581ad15f6d2d2db3d3a9794c8eac50ca
 WAPPIE_CLOUD_PATCH ?= vectors/wappie/_generators/cloud/header-0x03.patch
 
-.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go imports-check cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check vectors-thcseal-check pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go imports-check identifiers-check cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check vectors-thcseal-check pack reproduce clean
 
-all: lint-go imports-check test-go test-js vectors-check cross
+all: lint-go imports-check identifiers-check test-go test-js vectors-check cross
 
 test: test-go test-js
 
@@ -78,6 +78,19 @@ PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v$$(node -p "require('./js/pack
 test-browser-linux:
 	git archive --format=tar HEAD | docker run --rm -i --ipc=host -e KIT_BROWSERS $(PLAYWRIGHT_IMAGE) \
 		bash -c 'mkdir /kit && tar -x -C /kit && cd /kit/js && npm ci --ignore-scripts --no-audit --no-fund && npm run test:browser'
+
+# No identifier of a real AWS account in any commit reachable from
+# IDENTIFIERS_REVS (HEAD's history by default; --all for every branch), in
+# its paths or in its commit message: an account id, a resource id, a KMS
+# key id or alias, a bucket, a role or a portal is allowed only as one of
+# AWS's documentation placeholders, and nothing of the owner's private list
+# may appear (scripts/identifiers-check.sh). The list comes from the
+# environment variable KIT_IDENTIFIERS (in CI, the repository secret) or
+# from identifiers.local.txt (git-ignored); without one the check runs the
+# classes only, and fails in CI.
+IDENTIFIERS_REVS ?= HEAD
+identifiers-check:
+	scripts/identifiers-check.sh $(IDENTIFIERS_REVS)
 
 # Fresh round trips: each language writes vectors with fresh keys and the
 # other opens them.

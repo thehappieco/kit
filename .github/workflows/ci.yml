@@ -7,6 +7,9 @@ on:
     branches: [main]
   pull_request:
   workflow_call:
+    secrets:
+      KIT_IDENTIFIERS:
+        required: true
 
 permissions:
   contents: read
@@ -194,6 +197,23 @@ jobs:
           if [ -z "$previous" ]; then echo "no earlier tag"; exit 0; fi
           changed=$(git diff --name-status "$previous" HEAD -- vectors/wappie vectors/kit vectors/platform | grep -v '^A' || true)
           if [ -n "$changed" ]; then echo "vector files of $previous changed or disappeared:"; echo "$changed"; exit 1; fi
+
+  # The kit is public, and so is its history: no identifier of a real AWS
+  # account in any commit, path or commit message reachable from the checked
+  # out commit (make identifiers-check). The owner's list of values is the
+  # repository secret KIT_IDENTIFIERS, never a file of the repository; the
+  # job fails without it, so it fails for a pull request from a fork.
+  identifiers:
+    name: no identifier of an AWS account
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - run: make identifiers-check
+        env:
+          KIT_IDENTIFIERS: ${{ secrets.KIT_IDENTIFIERS }}
 
   # Every byte of the tarball is measured in Wappie's enclave image: check what
   # is in it, that two builds from clean are identical, and that it installs

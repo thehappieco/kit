@@ -2,7 +2,7 @@
 
 The kit's conformance data. Go reads it through the `vectors` package (`vectors.FS`, so a consumer's tests can run the vectors of the kit version it imports); the TypeScript tests read it from this directory. It is not in the npm tarball.
 
-There are two file formats: the kit's own (below), used by everything under `wappie/` and `kit/`, and the platform's (`platform/id-v1/`, described in "The platform's format").
+There are three file formats: the kit's own (below), used by everything under `wappie/`, `kit/` and `mailie/`; the platform's (`platform/id-v1/`, described in "The platform's format"); and THCSEAL's (`platform/thcseal-v1/`, described in "THCSEAL's format").
 
 ## Layout
 
@@ -12,10 +12,13 @@ There are two file formats: the kit's own (below), used by everything under `wap
 | `wappie/golden/` | Vectors written by Wappie's code at the commits in `PROVENANCE.md`, by the generators in `wappie/_generators/`: Wappie's at `8c0c1f7`, and its console's platform wrap (`platform-wrap-{go,ts}.json`) at `3bfee27` with the header patch recorded there. |
 | `wappie/_generators/` | The generators, kept for provenance and for `make vectors-regen-check`; `run-cloud.sh` and `cloud/` are those of the console's platform wrap, for `make vectors-cloud-regen-check`. Not built by the go tool, not embedded. |
 | `kit/` | Vectors written by the kit itself: `*-go.json` by the Go code for TypeScript to open, `*-ts.json` the reverse. |
+| `mailie/golden/` | Mailie's golden vectors: `platform-wrap-go.json`, its platform wrap (SPEC section 6.8 under Mailie's labels, Appendix D), written by the kit's Go code with nothing random, by the generator in `mailie/_generators/` (`PROVENANCE.md`). TypeScript opens every case. |
+| `mailie/_generators/` | The generator of `mailie/golden/platform-wrap-go.json`, for `make vectors-mailie-regen`, which CI runs. Not built by the go tool, not embedded. |
 | `platform/id-v1/` | The platform's golden vectors of its protocol `id-v1`, byte for byte as the platform's Go code wrote them at the commits in `PROVENANCE.md`, in the platform's format: part 1 (SPEC sections 11.1 to 11.11) at `5e66d84`, part 2 (sections 11.12 to 11.15) at `4476bf4`, part 3 (section 11.16) at `b5d9f69`, and the relying party rule of section 11.16 at `75b6b94`. |
 | `platform/_generators/` | The platform's generator at `5e66d84`, kept for provenance. Not built, not embedded. |
 | `platform/_generators-4476bf4/` | The platform's generator at `4476bf4`, which wrote part 2 and writes the part-1 files unchanged. Not built, not embedded. |
 | `platform/_generators-b5d9f69/` | The platform's generator at `b5d9f69`, which wrote part 3 and writes the files of parts 1 and 2 unchanged. Not built, not embedded. |
+| `platform/thcseal-v1/` | The platform's golden vectors of THCSEAL v1 (SPEC section 14), `thcseal-v1.json`, byte for byte as the platform's Go code wrote them, captured at `d32b663` (`PROVENANCE.md`), in THCSEAL's own format. No copy of its generator is kept here: it is a function of the platform's test, which the kit's `thcseal` tests carry and run, writing the file again byte for byte. |
 | `platform/_generators-75b6b94/` | The platform's generator at `75b6b94`, which wrote `rp-id-ends-in-number.json` and writes the thirteen earlier files unchanged. It imports only the standard library and the kit's `profiles/platform`, so `make vectors-platform-regen` builds it against the kit's own tree; not built by the go tool, not embedded. |
 | `MANIFEST.sha256` | The sha256 of every file above. `make vectors-check`. |
 
@@ -57,8 +60,9 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | hpke | `open_failed`, `invalid_key` |
 | reqhmac | `hmac_missing`, `hmac_stale`, `hmac_bad`, `hmac_replay`, `replay_cache_full` |
 | jcs | `jcs` |
-| wappie.platform_wrap | `platform_wrap` |
+| wappie.platform_wrap, mailie.platform_wrap | `platform_wrap` |
 | platform (its own format) | `password_invalid`, `password_too_short`, `password_too_long`, `kdf_policy`, `wrap`, `recovery_code`, `email`, `product_key`, `bundle`, `key_delivery`, `pkce`, `client_extensions`, `encoding` |
+| THCSEAL (its own format) | `malformed`, `provider_mismatch`, `decrypt` |
 
 ### Op catalogue
 
@@ -98,7 +102,10 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | `platform.prf_salt`, `platform.check_client_extensions` | compute | compute |
 | `wappie.platform_wrap_info`, `wappie.platform_wrap_aad` | compute | compute |
 | `wappie.platform_wrap_seal` (`k_pw_b64` from Go only: TypeScript's K_pw is not extractable) | replay (nonce); refuse | replay (nonce); refuse |
-| `wappie.platform_wrap_open` | compute; refuse | compute; refuse |
+| `wappie.platform_wrap_open` (also in Mailie's file: a Mailie wrap refused under Wappie's labels) | compute; refuse | compute; refuse |
+| `mailie.platform_wrap_info`, `mailie.platform_wrap_aad` | compute | compute |
+| `mailie.platform_wrap_seal` (`k_pw_b64` on every replayed seal) | replay (nonce); refuse | replay (nonce); refuse |
+| `mailie.platform_wrap_open` | compute; refuse | compute; refuse |
 | `platform.passkey_wrap` (`k_pk_b64` from Go only: TypeScript's K_pk is not extractable) | compute; replay (nonce); open | compute; replay (nonce); open |
 | `platform.open_passkey_wrap` | refuse | refuse |
 
@@ -146,6 +153,29 @@ Every dispatcher fails on a case for its language whose op it does not handle.
 - Argon2id cases use the floor parameters (m 65536, t 3, p 1), and one uses p = 4.
 - The runners decode strictly: a member a runner does not read fails the run, and so does a refusal with any error other than the recorded one.
 
+## THCSEAL's format
+
+`platform/thcseal-v1/thcseal-v1.json` is the platform's own file, carried byte for byte (SPEC section 12.3):
+
+```json
+{
+  "comment": ["THCSEAL v1 golden vectors, generated by internal/seal/golden_test.go. Test data only.", "..."],
+  "provider": "localkek (0x7f)",
+  "kek_hex": "000102...1f",
+  "valid": [
+    { "name": "a short secret", "context": { "service": "platform", "env": "test", "purpose": "config/smtp-password", "ref": "smtp-password" }, "plaintext_hex": "...", "envelope_hex": "...", "data_key_hex": "...", "aad_hex": "..." }
+  ],
+  "invalid": [
+    { "name": "version 2", "context": { "...": "..." }, "envelope_hex": "...", "error": "malformed" }
+  ]
+}
+```
+
+- Bytes are lowercase hex in fields ending `_hex`; the context is the four fields of SPEC section 14.1, `ref` written even when empty.
+- Every envelope is sealed with the local provider (`0x7f`) under `kek_hex`, the published test KEK `000102…1f`. A valid case must open to `plaintext_hex` under its context; `data_key_hex` and `aad_hex` are its intermediate values, which the kit's runner checks too. An invalid case must fail with its `error`, one of `malformed`, `provider_mismatch` and `decrypt` (SPEC section 14.2), checked in that order.
+- A case is identified by its list and its name, which are unique, and cited as `platform/thcseal-v1/thcseal-v1.json#valid/<name>` or `#invalid/<name>`.
+- The file is ASCII and ends with one newline. The runner (`thcseal/golden_test.go`) decodes strictly: a member it does not read fails the run. Its tests and the fuzzers seeded from the file seal under the local KEK, so they need `-tags kitdevkek`.
+
 ## Running
 
 ```
@@ -158,4 +188,8 @@ make vectors-regen-check WAPPIE=../whatserver2   # regenerate from Wappie and co
 make vectors-cloud-regen-check WAPPIE_CLOUD=../whatserver2/commercial   # regenerate the platform wrap's from Wappie's console and compare
 make vectors-platform-check PLATFORM=../platform # regenerate from the platform and compare
 make vectors-platform-regen      # regenerate the platform's files from the kit's copy of its generator and compare
+make vectors-thcseal-check PLATFORM=../platform   # regenerate THCSEAL's file from the platform's own generator at d32b663 and compare
+make vectors-mailie-regen        # regenerate Mailie's golden file from the kit's generator, on go1.26.7, and compare
 ```
+
+The Go targets pass `-tags kitdevkek` (`GO_TAGS`), which THCSEAL's runner needs; a plain `go test ./...` fails in `thcseal` and `kms/awskms` with a test that says so.

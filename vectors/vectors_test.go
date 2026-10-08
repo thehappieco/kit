@@ -52,7 +52,7 @@ func TestManifest(t *testing.T) {
 			t.Errorf("%s does not match its manifest hash", name)
 		}
 	}
-	for _, root := range []string{"wappie", "kit", "platform"} {
+	for _, root := range []string{"wappie", "kit", "platform", "mailie"} {
 		if err := fs.WalkDir(os.DirFS("."), root, func(path string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() {
 				return err
@@ -81,16 +81,19 @@ func TestManifest(t *testing.T) {
 }
 
 // Every case SPEC.md cites as `file#case-id` exists: a bare file name is
-// under wappie/golden/, and an id ending in * names at least one case. The
+// under wappie/golden/, a file under mailie/golden/ is named with its
+// directory, and an id ending in * names at least one case. The
 // platform's files name their cases instead (`platform/id-v1/kdf.json#the
 // floor parameters`), and a case of theirs that carries an op is cited by op
 // and name (`platform/id-v1/key-delivery.json#open/a sub in upper case`).
+// THCSEAL's file holds two lists, and a case of it is cited by its list and
+// name (`platform/thcseal-v1/thcseal-v1.json#invalid/version 2`).
 func TestSpecCitations(t *testing.T) {
 	spec, err := os.ReadFile("../SPEC.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	cite := regexp.MustCompile("`((?:kit/|wappie/golden/|platform/id-v1/)?[a-z0-9-]+\\.json)#([^`]+)`")
+	cite := regexp.MustCompile("`((?:kit/|wappie/golden/|mailie/golden/|platform/id-v1/|platform/thcseal-v1/)?[a-z0-9-]+\\.json)#([^`]+)`")
 	matches := cite.FindAllStringSubmatch(string(spec), -1)
 	if len(matches) < 10 {
 		t.Fatalf("only %d citations found", len(matches))
@@ -105,22 +108,37 @@ func TestSpecCitations(t *testing.T) {
 			t.Errorf("%s: %v", m[0], err)
 			continue
 		}
+		type named struct {
+			Name string `json:"name"`
+		}
 		var f struct {
 			Cases []struct {
 				ID   string `json:"id"`
 				Op   string `json:"op"`
 				Name string `json:"name"`
 			} `json:"cases"`
+			Valid   []named `json:"valid"`
+			Invalid []named `json:"invalid"`
 		}
 		if err := json.Unmarshal(raw, &f); err != nil {
 			t.Fatal(err)
 		}
-		found := false
+		var ids []string
 		for _, c := range f.Cases {
-			if strings.HasPrefix(file, "platform/") {
+			if strings.HasPrefix(file, "platform/id-v1/") {
 				c.ID = platformCaseID(c.Op, c.Name)
 			}
-			if c.ID == id || (strings.HasSuffix(id, "*") && strings.HasPrefix(c.ID, strings.TrimSuffix(id, "*"))) {
+			ids = append(ids, c.ID)
+		}
+		for _, c := range f.Valid {
+			ids = append(ids, "valid/"+c.Name)
+		}
+		for _, c := range f.Invalid {
+			ids = append(ids, "invalid/"+c.Name)
+		}
+		found := false
+		for _, have := range ids {
+			if have == id || (strings.HasSuffix(id, "*") && strings.HasPrefix(have, strings.TrimSuffix(id, "*"))) {
 				found = true
 				break
 			}
@@ -343,5 +361,131 @@ func TestWappiePlatformWrapFiles(t *testing.T) {
 	}
 	if len(f.Vectors) != 3 || len(f.OpenRefusals) != 15 || len(f.SealRefusals) != 5 {
 		t.Errorf("%s: %d vectors, %d and %d refusals; want 3, 15 and 5", legacy, len(f.Vectors), len(f.OpenRefusals), len(f.SealRefusals))
+	}
+}
+
+// THCSEAL's file (SPEC sections 12.3 and 14) is the platform's, captured at
+// the commit PROVENANCE.md records: it has the sha256 recorded there, so a
+// copy from another commit or an edit fails here even after `make manifest`
+// has recorded it. Then its directory holds only it; it is ASCII with
+// exactly one final newline; and it has 5 valid and 21 invalid cases, 12 of
+// them decrypt, 8 malformed and 1 provider_mismatch, under unique names.
+// thcseal's own tests open and refuse every case.
+func TestTHCSEALVectorFile(t *testing.T) {
+	const path = "platform/thcseal-v1/thcseal-v1.json"
+	raw, err := fs.ReadFile(vectors.FS, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != "8d4c96590d60d076f1eb40c68a67fed5aae876311200e1ea87916881e63df86a" {
+		t.Errorf("%s is not the file captured at platform d32b663 (PROVENANCE.md)", path)
+	}
+	entries, err := fs.ReadDir(vectors.FS, "platform/thcseal-v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("platform/thcseal-v1 holds %d files, want 1", len(entries))
+	}
+	for i, c := range raw {
+		if c >= 0x80 {
+			t.Fatalf("%s: a non-ASCII byte at offset %d", path, i)
+		}
+	}
+	if !bytes.HasSuffix(raw, []byte("}\n")) || bytes.HasSuffix(raw, []byte("\n\n")) {
+		t.Errorf("%s does not end with exactly one newline", path)
+	}
+	var f struct {
+		Provider string `json:"provider"`
+		Valid    []struct {
+			Name string `json:"name"`
+		} `json:"valid"`
+		Invalid []struct {
+			Name  string `json:"name"`
+			Error string `json:"error"`
+		} `json:"invalid"`
+	}
+	if err := json.Unmarshal(raw, &f); err != nil {
+		t.Fatal(err)
+	}
+	names, errs := map[string]bool{}, map[string]int{}
+	for _, c := range f.Valid {
+		if c.Name == "" || names["valid/"+c.Name] {
+			t.Errorf("%s: an empty or repeated valid case %q", path, c.Name)
+		}
+		names["valid/"+c.Name] = true
+	}
+	for _, c := range f.Invalid {
+		if c.Name == "" || names["invalid/"+c.Name] {
+			t.Errorf("%s: an empty or repeated invalid case %q", path, c.Name)
+		}
+		names["invalid/"+c.Name] = true
+		errs[c.Error]++
+	}
+	if f.Provider != "localkek (0x7f)" || len(f.Valid) != 5 || len(f.Invalid) != 21 ||
+		errs["decrypt"] != 12 || errs["malformed"] != 8 || errs["provider_mismatch"] != 1 || len(errs) != 3 {
+		t.Errorf("%s: provider %q, %d valid, %d invalid %v; want localkek (0x7f), 5 and 21 (12 decrypt, 8 malformed, 1 provider_mismatch)", path, f.Provider, len(f.Valid), len(f.Invalid), errs)
+	}
+}
+
+// Mailie's golden file (SPEC section 6.8 and Appendix D) is the one the
+// kit's generator wrote at the commit PROVENANCE.md records: it has the
+// sha256 recorded there, so an edit or a file from a changed generator
+// fails here even after `make manifest` has recorded it; make
+// vectors-mailie-regen writes it again byte for byte. Its directory holds
+// only it; it is ASCII with exactly one final newline; and it has 60 cases,
+// 36 of them must fail, 7 of those across the two products, under unique
+// ids.
+func TestMailiePlatformWrapFile(t *testing.T) {
+	const path = "mailie/golden/platform-wrap-go.json"
+	raw, err := fs.ReadFile(vectors.FS, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != "1546933624b0355cba4657467552570e20ae6ac7b62735ce0ac4ac316beda864" {
+		t.Errorf("%s is not the file PROVENANCE.md records", path)
+	}
+	entries, err := fs.ReadDir(vectors.FS, "mailie/golden")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("mailie/golden holds %d files, want 1", len(entries))
+	}
+	for i, c := range raw {
+		if c >= 0x80 {
+			t.Fatalf("%s: a non-ASCII byte at offset %d", path, i)
+		}
+	}
+	if !bytes.HasSuffix(raw, []byte("}\n")) || bytes.HasSuffix(raw, []byte("\n\n")) {
+		t.Errorf("%s does not end with exactly one newline", path)
+	}
+	var f struct {
+		Format  string `json:"format"`
+		Module  string `json:"module"`
+		Profile string `json:"profile"`
+		Cases   []struct {
+			ID    string `json:"id"`
+			Error string `json:"error"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(raw, &f); err != nil {
+		t.Fatal(err)
+	}
+	ids, bad, cross := map[string]bool{}, 0, 0
+	for _, c := range f.Cases {
+		if c.ID == "" || ids[c.ID] {
+			t.Errorf("%s: an empty or repeated id %q", path, c.ID)
+		}
+		ids[c.ID] = true
+		if c.Error != "" {
+			bad++
+			if strings.Contains(c.ID, "/cross-product/") {
+				cross++
+			}
+		}
+	}
+	if f.Format != "thehappieco-kit-vectors/1" || f.Module != "mailie.platform_wrap" || f.Profile != "mailie" || len(f.Cases) != 60 || bad != 36 || cross != 7 {
+		t.Errorf("%s: %q %q %q, %d cases, %d must fail, %d across products; want 60, 36 and 7", path, f.Format, f.Module, f.Profile, len(f.Cases), bad, cross)
 	}
 }

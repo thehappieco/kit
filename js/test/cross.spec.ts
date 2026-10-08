@@ -22,8 +22,11 @@ import { endsInANumber, prfSalt, unwrapPasskey, wrapPasskey } from '../src/passk
 import { canonical, signature } from '../src/reqhmac.js'
 import { grantRow, openDirect, sealDirect } from '../src/seal.js'
 import {
-  accountWrapAAD, DIRECTION_TO_READER, isPlatformWrapError, Kind, openPlatformWrap, PLATFORM_WRAP_LEN, passkeyAAD, platformWrapAAD, platformWrapInfo, sealPlatformWrap,
-  wappieAccount, wappieMCPHMAC, wappiePasskey, wappieSeal, type PlatformWrapBinding,
+  isPlatformWrapError, openPlatformWrap, PLATFORM_WRAP_LEN, platformWrapAAD, platformWrapInfo, sealPlatformWrap, type PlatformWrapBinding, type PlatformWrapProfile,
+} from '../src/platformwrap.js'
+import { mailiePlatformWrap } from '../src/profiles/mailie.js'
+import {
+  accountWrapAAD, DIRECTION_TO_READER, Kind, passkeyAAD, wappieAccount, wappieMCPHMAC, wappiePasskey, wappiePlatformWrap, wappieSeal,
 } from '../src/profiles/wappie.js'
 import * as platform from '../src/profiles/platform.js'
 import { sealBase } from '../src/internal/platform/hpkebase.js'
@@ -80,6 +83,103 @@ function write(name: string, module: string, note: string, cases: VectorCase[], 
 const hkdf = async (ikm: Bytes, salt: Bytes, info: string) => {
   const key = await crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveBits'])
   return new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info: utf8(info) }, key, 256)) as Bytes
+}
+
+/**
+ * writePlatformWrap writes kit/<product>-platform-wrap-ts.json: fresh
+ * platform wraps under the profile p by the kit's TypeScript, for Go. Each
+ * has a random binding (an account created through id., whose user id is
+ * its sub, or a linked one; a random epoch), random product and account
+ * keys (some with a first byte of zero), the nonce it drew, its info and
+ * AAD (K_pw is a non-extractable key here, so it is not recorded: Go checks
+ * it by the wrap); each is also opened with one thing changed, and, when
+ * other is given, under other's labels with the same key bytes and the key
+ * id of other's product (the op of other's product). Then seals refused for
+ * a key or a binding outside the rules; otherKeyIds are product key ids of
+ * other products.
+ */
+async function writePlatformWrap(p: PlatformWrapProfile, name: string, otherKeyIds: string[], other?: PlatformWrapProfile): Promise<void> {
+  const cases: VectorCase[] = []
+  const op = (q: PlatformWrapProfile, what: string) => `${q.product}.platform_wrap_${what}`
+  const below = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n
+  const bytes = (n: number) => crypto.getRandomValues(new Uint8Array(n)) as Bytes
+  const epoch = () => (below(2) === 0 ? 1 + below(3) : 1 + below(2 ** 31 - 1))
+  const refused = async (id: string, fn: () => Promise<unknown>) => {
+    const err = await fn().then(() => null, (e: unknown) => e)
+    if (!isPlatformWrapError(err)) expect.fail(`${id}: not refused`)
+  }
+  const bindingIn = (b: PlatformWrapBinding) => ({ user_id: b.userId, sub: b.sub, product_key_id: b.productKeyId, account_public_key_b64: toB64(b.accountPublicKey) })
+  const newBinding = async (usk: Bytes): Promise<PlatformWrapBinding> => {
+    const sub = crypto.randomUUID()
+    return { userId: below(2) === 0 ? sub : crypto.randomUUID(), sub, productKeyId: `${p.product}:${epoch()}`, accountPublicKey: await publicFromPrivate(usk) }
+  }
+
+  // Fresh wraps, each with the nonce it drew, then opened with one thing
+  // changed at a time.
+  for (let n = 0; n < 32; n++) {
+    const sk = bytes(32), usk = bytes(32)
+    if (n % 8 === 0) sk[0] = 0
+    if (n % 8 === 1) usk[0] = 0
+    const b = await newBinding(usk)
+    const id = `${p.product}/platform-wrap/${n}`
+    const { value: wrap, bytes: drawn } = await recording(() => sealPlatformWrap(p, sk, usk, b))
+    expect(drawn.map((d) => d.length), id).toEqual([12])
+    expect(toB64(await openPlatformWrap(p, sk, wrap, b)), id).toBe(toB64(usk))
+    const i = bindingIn(b)
+    cases.push(
+      { id: `${id}/info`, op: op(p, 'info'), in: i, out: { info_b64: toB64(platformWrapInfo(p, b)) } },
+      { id: `${id}/aad`, op: op(p, 'aad'), in: i, out: { aad_b64: toB64(platformWrapAAD(p, b)) } },
+      { id: `${id}/seal`, op: op(p, 'seal'), in: { ...i, product_key_b64: toB64(sk), account_key_b64: toB64(usk), nonce_b64: toB64(drawn[0]!) }, out: { wrap_b64: toB64(wrap) } },
+      { id: `${id}/open`, op: op(p, 'open'), in: { ...i, product_key_b64: toB64(sk), wrap_b64: toB64(wrap) }, out: { account_key_b64: toB64(usk) } },
+    )
+    const openUnder = async (q: PlatformWrapProfile, what: string, key: Bytes, w: Uint8Array, bb: PlatformWrapBinding) => {
+      await refused(`${id}/${what}`, () => openPlatformWrap(q, key, w, bb))
+      cases.push({ id: `${id}/open/refuses/${what}`, op: op(q, 'open'), in: { ...bindingIn(bb), product_key_b64: toB64(key), wrap_b64: toB64(w) }, error: 'platform_wrap' })
+    }
+    const open = (what: string, key: Bytes, w: Uint8Array, bb: PlatformWrapBinding) => openUnder(p, what, key, w, bb)
+    const flipped = new Uint8Array(wrap)
+    const bit = 8 + below(flipped.length * 8 - 8)
+    flipped[bit >> 3]! ^= 1 << (bit & 7)
+    await open(`flipped-bit-${bit}`, sk, flipped, b)
+    const header = new Uint8Array(wrap)
+    header[0] = [0x00, 0x01, 0x02, 0x04, 0xff][below(5)]!
+    await open(`header-0x${header[0]!.toString(16).padStart(2, '0')}`, sk, header, b)
+    if (below(2) === 0) await open('length', sk, wrap.subarray(0, PLATFORM_WRAP_LEN - 1 - below(3)), b)
+    else await open('length', sk, Uint8Array.of(...wrap, ...bytes(1 + below(3))), b)
+    await open('other-product-key', bytes(32), wrap, b)
+    await open('other-user-id', sk, wrap, { ...b, userId: crypto.randomUUID() })
+    await open('other-sub', sk, wrap, { ...b, sub: crypto.randomUUID() })
+    let otherEpoch = b.productKeyId
+    while (otherEpoch === b.productKeyId) otherEpoch = `${p.product}:${epoch()}`
+    await open('other-epoch', sk, wrap, { ...b, productKeyId: otherEpoch })
+    await open('other-account-public-key', sk, wrap, { ...b, accountPublicKey: await publicFromPrivate(bytes(32)) })
+    if (other !== undefined) {
+      const productKeyId = `${other.product}:${b.productKeyId.slice(b.productKeyId.indexOf(':') + 1)}`
+      await openUnder(other, `under-${other.product}s-labels`, sk, wrap, { ...b, productKeyId })
+    }
+  }
+
+  // Seals refused before anything is encrypted.
+  for (let n = 0; n < 16; n++) {
+    let sk = bytes(32), usk = bytes(32)
+    const b = await newBinding(usk)
+    let how = ''
+    switch (n % 8) {
+      case 0: usk = bytes(32); how = 'account-key-not-the-public-keys'; break
+      case 1: usk = usk.slice(0, 31) as Bytes; how = 'account-key-of-31-bytes'; break
+      case 2: sk = Uint8Array.of(...sk, ...bytes(1)) as Bytes; how = 'product-key-of-33-bytes'; break
+      case 3: b.userId = b.userId.toUpperCase(); how = 'user-id-in-upper-case'; break
+      case 4: b.sub = `{${b.sub}}`; how = 'sub-in-braces'; break
+      case 5: b.productKeyId = otherKeyIds[below(otherKeyIds.length)]!; how = 'another-products-key-id'; break
+      case 6: b.productKeyId = [`${p.product}:0`, `${p.product}:01`, `${p.product}:2147483648`, p.product, `${p.product}:-1`][below(5)]!; how = 'epoch-out-of-range'; break
+      default: b.accountPublicKey = b.accountPublicKey.slice(0, 31); how = 'account-public-key-of-31-bytes'
+    }
+    const id = `${p.product}/platform-wrap/seal/refuses/${n}/${how}`
+    await refused(id, () => sealPlatformWrap(p, sk, usk, b))
+    cases.push({ id, op: op(p, 'seal'), in: { ...bindingIn(b), product_key_b64: toB64(sk), account_key_b64: toB64(usk) }, error: 'platform_wrap' })
+  }
+  const crossNote = other === undefined ? '' : `, and under ${other.product}'s labels with the same key bytes and the key id of ${other.product}'s product (op ${op(other, 'open')})`
+  write(`${p.product}-platform-wrap-ts.json`, `${p.product}.platform_wrap`, `Fresh platform wraps of the ${name} profile (SPEC section 6.8) by the kit's TypeScript, for Go: 32 random bindings (an account created through id., whose user id is its sub, or a linked one; a random epoch), random product and account keys, some with a first byte of zero, each wrap with the nonce it drew, its info and AAD (K_pw is a non-extractable key here, so it is not recorded), each also opened with one thing changed (a bit, the header, the length, the product key, the user id, the sub, the epoch, the account public key)${crossNote}; and 16 seals refused for a key or a binding outside the rules.`, cases, undefined, p.product)
 }
 
 describe.skipIf(!OUT)('fresh vectors for Go', () => {
@@ -570,81 +670,11 @@ describe.skipIf(!OUT)('fresh vectors for Go', () => {
   })
 
   it('writes wappie-platform-wrap-ts.json', async () => {
-    const cases: VectorCase[] = []
-    const below = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n
-    const bytes = (n: number) => crypto.getRandomValues(new Uint8Array(n)) as Bytes
-    const epoch = () => (below(2) === 0 ? 1 + below(3) : 1 + below(2 ** 31 - 1))
-    const refused = async (id: string, fn: () => Promise<unknown>) => {
-      const err = await fn().then(() => null, (e: unknown) => e)
-      if (!isPlatformWrapError(err)) expect.fail(`${id}: not refused`)
-    }
-    const bindingIn = (b: PlatformWrapBinding) => ({ user_id: b.userId, sub: b.sub, product_key_id: b.productKeyId, account_public_key_b64: toB64(b.accountPublicKey) })
-    const newBinding = async (usk: Bytes): Promise<PlatformWrapBinding> => {
-      const sub = crypto.randomUUID()
-      return { userId: below(2) === 0 ? sub : crypto.randomUUID(), sub, productKeyId: `wappie:${epoch()}`, accountPublicKey: await publicFromPrivate(usk) }
-    }
+    await writePlatformWrap(wappiePlatformWrap, 'Wappie', ['mailie:1', 'vaultie:2', 'platform:1'])
+  })
 
-    // Fresh wraps, each with the nonce it drew, then opened with one thing
-    // changed at a time. K_pw is a non-extractable key here, so it is not
-    // recorded: Go checks it by the wrap.
-    for (let n = 0; n < 32; n++) {
-      const sk = bytes(32), usk = bytes(32)
-      if (n % 8 === 0) sk[0] = 0
-      if (n % 8 === 1) usk[0] = 0
-      const b = await newBinding(usk)
-      const id = `wappie/platform-wrap/${n}`
-      const { value: wrap, bytes: drawn } = await recording(() => sealPlatformWrap(sk, usk, b))
-      expect(drawn.map((d) => d.length), id).toEqual([12])
-      expect(toB64(await openPlatformWrap(sk, wrap, b)), id).toBe(toB64(usk))
-      const i = bindingIn(b)
-      cases.push(
-        { id: `${id}/info`, op: 'wappie.platform_wrap_info', in: i, out: { info_b64: toB64(platformWrapInfo(b)) } },
-        { id: `${id}/aad`, op: 'wappie.platform_wrap_aad', in: i, out: { aad_b64: toB64(platformWrapAAD(b)) } },
-        { id: `${id}/seal`, op: 'wappie.platform_wrap_seal', in: { ...i, product_key_b64: toB64(sk), account_key_b64: toB64(usk), nonce_b64: toB64(drawn[0]!) }, out: { wrap_b64: toB64(wrap) } },
-        { id: `${id}/open`, op: 'wappie.platform_wrap_open', in: { ...i, product_key_b64: toB64(sk), wrap_b64: toB64(wrap) }, out: { account_key_b64: toB64(usk) } },
-      )
-      const open = async (what: string, key: Bytes, w: Uint8Array, bb: PlatformWrapBinding) => {
-        await refused(`${id}/${what}`, () => openPlatformWrap(key, w, bb))
-        cases.push({ id: `${id}/open/refuses/${what}`, op: 'wappie.platform_wrap_open', in: { ...bindingIn(bb), product_key_b64: toB64(key), wrap_b64: toB64(w) }, error: 'platform_wrap' })
-      }
-      const flipped = new Uint8Array(wrap)
-      const bit = 8 + below(flipped.length * 8 - 8)
-      flipped[bit >> 3]! ^= 1 << (bit & 7)
-      await open(`flipped-bit-${bit}`, sk, flipped, b)
-      const header = new Uint8Array(wrap)
-      header[0] = [0x00, 0x01, 0x02, 0x04, 0xff][below(5)]!
-      await open(`header-0x${header[0]!.toString(16).padStart(2, '0')}`, sk, header, b)
-      if (below(2) === 0) await open('length', sk, wrap.subarray(0, PLATFORM_WRAP_LEN - 1 - below(3)), b)
-      else await open('length', sk, Uint8Array.of(...wrap, ...bytes(1 + below(3))), b)
-      await open('other-product-key', bytes(32), wrap, b)
-      await open('other-user-id', sk, wrap, { ...b, userId: crypto.randomUUID() })
-      await open('other-sub', sk, wrap, { ...b, sub: crypto.randomUUID() })
-      let other = b.productKeyId
-      while (other === b.productKeyId) other = `wappie:${epoch()}`
-      await open('other-epoch', sk, wrap, { ...b, productKeyId: other })
-      await open('other-account-public-key', sk, wrap, { ...b, accountPublicKey: await publicFromPrivate(bytes(32)) })
-    }
-
-    // Seals refused before anything is encrypted.
-    for (let n = 0; n < 16; n++) {
-      let sk = bytes(32), usk = bytes(32)
-      const b = await newBinding(usk)
-      let how = ''
-      switch (n % 8) {
-        case 0: usk = bytes(32); how = 'account-key-not-the-public-keys'; break
-        case 1: usk = usk.slice(0, 31) as Bytes; how = 'account-key-of-31-bytes'; break
-        case 2: sk = Uint8Array.of(...sk, ...bytes(1)) as Bytes; how = 'product-key-of-33-bytes'; break
-        case 3: b.userId = b.userId.toUpperCase(); how = 'user-id-in-upper-case'; break
-        case 4: b.sub = `{${b.sub}}`; how = 'sub-in-braces'; break
-        case 5: b.productKeyId = ['mailie:1', 'vaultie:2', 'platform:1'][below(3)]!; how = 'another-products-key-id'; break
-        case 6: b.productKeyId = ['wappie:0', 'wappie:01', 'wappie:2147483648', 'wappie', 'wappie:-1'][below(5)]!; how = 'epoch-out-of-range'; break
-        default: b.accountPublicKey = b.accountPublicKey.slice(0, 31); how = 'account-public-key-of-31-bytes'
-      }
-      const id = `wappie/platform-wrap/seal/refuses/${n}/${how}`
-      await refused(id, () => sealPlatformWrap(sk, usk, b))
-      cases.push({ id, op: 'wappie.platform_wrap_seal', in: { ...bindingIn(b), product_key_b64: toB64(sk), account_key_b64: toB64(usk) }, error: 'platform_wrap' })
-    }
-    write('wappie-platform-wrap-ts.json', 'wappie.platform_wrap', 'Fresh platform wraps of the Wappie profile (SPEC section 6.8) by the kit\'s TypeScript, for Go: 32 random bindings (an account created through id., whose user id is its sub, or a linked one; a random epoch), random product and account keys, some with a first byte of zero, each wrap with the nonce it drew, its info and AAD (K_pw is a non-extractable key here, so it is not recorded), each also opened with one thing changed (a bit, the header, the length, the product key, the user id, the sub, the epoch, the account public key); and 16 seals refused for a key or a binding outside the rules.', cases)
+  it('writes mailie-platform-wrap-ts.json', async () => {
+    await writePlatformWrap(mailiePlatformWrap, 'Mailie', ['wappie:1', 'vaultie:2', 'platform:1'], wappiePlatformWrap)
   })
 
   it('writes platform-passkey-ts.json', async () => {

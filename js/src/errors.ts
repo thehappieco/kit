@@ -225,11 +225,12 @@ export function isRPError(err: unknown, code?: RPErrorCode): err is RPError {
 }
 
 /**
- * PlatformWrapError is every refusal of Wappie's platform wrap (SPEC section
- * 6.8, @thehappieco/kit/profiles/wappie), an engine without X25519 included.
- * Which check failed is not said beyond the message, which never repeats a
- * key. The name and the message prefix are those of Wappie's console, whose
- * module this is.
+ * PlatformWrapError is every refusal of the platform wrap (SPEC section 6.8,
+ * @thehappieco/kit/platformwrap under any product's profile, and Wappie's
+ * bound functions in @thehappieco/kit/profiles/wappie), an engine without
+ * X25519 included. Which check failed is not said beyond the message, which
+ * never repeats a key. The name and the message prefix are those of Wappie's
+ * console, whose module the wrap came from.
  */
 export class PlatformWrapError extends Error {
   readonly code = 'platform_wrap'

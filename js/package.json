@@ -1,7 +1,7 @@
 {
   "name": "@thehappieco/kit",
-  "version": "0.5.0",
-  "description": "The Happie Co's shared cryptographic kit: HPKE, sealed envelopes, the zero-knowledge account scheme, passkey PRF wraps, request signing, Wappie's platform wrap, the platform's account protocol with its key delivery and passkeys, and the relying party of its id.",
+  "version": "0.6.0",
+  "description": "The Happie Co's shared cryptographic kit: HPKE, sealed envelopes, the zero-knowledge account scheme, passkey PRF wraps, request signing, a product's platform wrap (Wappie's and Mailie's labels), the platform's account protocol with its key delivery and passkeys, and the relying party of its id.",
   "type": "module",
   "license": "Apache-2.0",
   "repository": "github:thehappieco/kit",
@@ -26,7 +26,9 @@
     "./passkey": { "types": "./dist/passkey.d.ts", "import": "./dist/passkey.js" },
     "./browserAccount": { "types": "./dist/browserAccount.d.ts", "import": "./dist/browserAccount.js" },
     "./reqhmac": { "types": "./dist/reqhmac.d.ts", "import": "./dist/reqhmac.js" },
+    "./platformwrap": { "types": "./dist/platformwrap.d.ts", "import": "./dist/platformwrap.js" },
     "./profiles/wappie": { "types": "./dist/profiles/wappie.d.ts", "import": "./dist/profiles/wappie.js" },
+    "./profiles/mailie": { "types": "./dist/profiles/mailie.d.ts", "import": "./dist/profiles/mailie.js" },
     "./profiles/platform": { "types": "./dist/profiles/platform.d.ts", "import": "./dist/profiles/platform.js" },
     "./profiles/platform/core": { "types": "./dist/profiles/platform/core.d.ts", "import": "./dist/profiles/platform/core.js" },
     "./oidc-rp": { "types": "./dist/oidc-rp.d.ts", "import": "./dist/oidc-rp.js" }

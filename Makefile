@@ -1,8 +1,15 @@
 # The kit's checks, the same ones CI runs. Go runs on the explicit package
 # list rather than ./..., so a stray .go file under js/node_modules is never
 # picked up.
+#
+# kms/localkek, the local KEK, compiles only with the build tag kitdevkek,
+# and the tests of thcseal and kms/awskms seal under it, so the Go targets
+# pass GO_TAGS; without the tag those two packages' tests fail and say so.
+# CI's Go jobs set GOFLAGS=-tags=kitdevkek for the commands they run
+# directly.
 
-GO_PACKAGES = $$(go list ./... | grep -v /js/)
+GO_TAGS ?= kitdevkek
+GO_PACKAGES = $$(go list -tags=$(GO_TAGS) ./... | grep -v /js/)
 GO_FILES = $$(find . -name '*.go' -not -path './js/*' -not -path './.git/*')
 WAPPIE ?= ../whatserver2
 WAPPIE_COMMIT ?= 8c0c1f74103bc6bb65a93b13613ad1964d4399c4
@@ -14,23 +21,50 @@ WAPPIE_CLOUD ?= ../whatserver2/commercial
 WAPPIE_CLOUD_COMMIT ?= 3bfee279581ad15f6d2d2db3d3a9794c8eac50ca
 WAPPIE_CLOUD_PATCH ?= vectors/wappie/_generators/cloud/header-0x03.patch
 
-.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go imports-check identifiers-check cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check vectors-thcseal-check vectors-mailie-regen pack reproduce clean
 
-all: lint-go test-go test-js vectors-check cross
+all: lint-go imports-check identifiers-check test-go test-js vectors-check cross
 
 test: test-go test-js
 
 lint-go:
 	test -z "$$(gofmt -l $(GO_FILES))"
-	go vet $(GO_PACKAGES)
+	go vet -tags=$(GO_TAGS) $(GO_PACKAGES)
 
 test-go:
-	go test -race -count=1 $(GO_PACKAGES)
+	go test -race -count=1 -tags=$(GO_TAGS) $(GO_PACKAGES)
 
 # The seeded replays of Wappie's Go vectors run only on the toolchain that
 # wrote them; on any other they skip and say so.
 test-go-1.26.7:
-	GOTOOLCHAIN=go1.26.7 go test -race -count=1 $(GO_PACKAGES)
+	GOTOOLCHAIN=go1.26.7 go test -race -count=1 -tags=$(GO_TAGS) $(GO_PACKAGES)
+
+# What the kit's packages may link (SPEC section 14.3): kms/localkek only
+# from tests, and the AWS SDK only from kms/awskms. First from the source,
+# whatever the build constraints (kms/links_test.go): every non-test .go file
+# is parsed for its imports, a file under a tag of its own (a product's dev,
+# say) or for another platform included, and every file of kms/localkek must
+# require the tag kitdevkek. Then in the build contexts of the go tool: with
+# the tag kitdevkek on, no package but kms/localkek itself has it among its
+# dependencies (the dependencies of a package's own files, not of its tests),
+# and none but kms/awskms has a module of github.com/aws; without the tag,
+# kms/localkek has no file to compile, every package builds and every test
+# compiles (go vet), so a release build of a consumer, which passes no tag,
+# never needs the local KEK.
+KIT_MODULE = github.com/thehappieco/kit
+imports-check:
+	go test -count=1 -run '^TestOnlyTestsLinkTheLocalKEKAndOnlyAWSKMSTheSDK$$' ./kms && \
+	pkgs=$$(go list -tags=kitdevkek ./... | grep -v /js/) && \
+	deps=$$(go list -tags=kitdevkek -f '{{.ImportPath}} {{join .Deps " "}}' $$pkgs) && \
+	bad=$$(echo "$$deps" | awk '$$1 != "$(KIT_MODULE)/kms/localkek" { for (i = 2; i <= NF; i++) if ($$i == "$(KIT_MODULE)/kms/localkek") { print $$1; break } }' | paste -sd ' ' -) && \
+	{ test -z "$$bad" || { echo "kms/localkek is linked by $$bad: only tests may import it"; exit 1; }; } && \
+	aws=$$(echo "$$deps" | awk '$$1 != "$(KIT_MODULE)/kms/awskms" { for (i = 2; i <= NF; i++) if ($$i ~ /^github\.com\/aws\//) { print $$1; break } }' | paste -sd ' ' -) && \
+	{ test -z "$$aws" || { echo "the AWS SDK is linked by $$aws: only kms/awskms may"; exit 1; }; } && \
+	kek=$$(go list -tags= -e -f '{{len .GoFiles}}' ./kms/localkek) && \
+	{ test "$$kek" = 0 || { echo "kms/localkek compiles $$kek files without the tag kitdevkek"; exit 1; }; } && \
+	go build -tags= $$(go list -tags= -f '{{if .GoFiles}}{{.ImportPath}}{{end}}' ./... | grep -v /js/) && \
+	go vet -tags= $$(go list -tags= ./... | grep -v /js/) && \
+	echo "kms/localkek is linked by no package and the AWS SDK only by kms/awskms, under any build constraint; without the tag kitdevkek kms/localkek has no file and every other package builds"
 
 test-js:
 	cd js && npm ci --ignore-scripts --no-audit --no-fund && npm run typecheck && npm test && npm run build
@@ -53,13 +87,27 @@ test-browser-linux:
 	git archive --format=tar HEAD | docker run --rm -i --ipc=host -e KIT_BROWSERS $(PLAYWRIGHT_IMAGE) \
 		bash -c 'mkdir /kit && tar -x -C /kit && cd /kit/js && npm ci --ignore-scripts --no-audit --no-fund && npm run test:browser'
 
+# No identifier of a real AWS account in any commit reachable from
+# IDENTIFIERS_REVS (HEAD's history by default; --all for every branch and
+# tag, as CI runs it), in its files, its paths or its commit message: an
+# account id, a resource id, a KMS key id or alias, a bucket, a role or a
+# portal is allowed only as one of AWS's documentation placeholders, and
+# nothing of the owner's private list may appear
+# (scripts/identifiers-check.sh). The list comes from the
+# environment variable KIT_IDENTIFIERS (in CI, the repository secret) or
+# from identifiers.local.txt (git-ignored); without one the check runs the
+# classes only, and fails in CI.
+IDENTIFIERS_REVS ?= HEAD
+identifiers-check:
+	scripts/identifiers-check.sh $(IDENTIFIERS_REVS)
+
 # Fresh round trips: each language writes vectors with fresh keys and the
 # other opens them.
 cross:
 	tmp=$$(mktemp -d) && \
 	KIT_CROSS_OUT=$$tmp/go go test -count=1 -run TestWriteCrossVectors ./internal/cross && \
 	(cd js && KIT_CROSS_OUT=$$tmp/ts npx vitest run test/cross.spec.ts) && \
-	KIT_CROSS_IN=$$tmp/ts go test -count=1 $(GO_PACKAGES) && \
+	KIT_CROSS_IN=$$tmp/ts go test -count=1 -tags=$(GO_TAGS) $(GO_PACKAGES) && \
 	(cd js && KIT_CROSS_IN=$$tmp/go npx vitest run) && \
 	rm -rf "$${tmp:?}"
 
@@ -67,7 +115,7 @@ vectors-check:
 	cd vectors && shasum -a 256 -c MANIFEST.sha256 --quiet
 
 manifest:
-	cd vectors && find wappie kit platform -type f | LC_ALL=C sort | xargs shasum -a 256 > MANIFEST.sha256
+	cd vectors && find wappie kit platform mailie -type f | LC_ALL=C sort | xargs shasum -a 256 > MANIFEST.sha256
 
 # Writes vectors/kit/*.json from both languages, at release time, into a
 # temporary directory, and adds only the files vectors/kit does not hold yet:
@@ -155,6 +203,44 @@ vectors-platform-regen:
 	n=0 && for f in vectors/platform/id-v1/*.json; do b=$${f##*/}; cmp -s "$$f" "$$tmp/out/$$b" || { echo "$$b: the generator at $(PLATFORM_GENERATOR) writes other bytes"; exit 1; }; n=$$((n+1)); done && \
 	{ test "$$(ls $$tmp/out | wc -l | tr -d ' ')" -eq "$$n" || { echo "the generator at $(PLATFORM_GENERATOR) writes files the kit does not hold"; exit 1; }; } && \
 	echo "all $$n platform files reproduce from $(PLATFORM_GENERATOR) on this tree" && \
+	rm -rf "$${tmp:?}"
+
+# Regenerates vectors/mailie/golden/platform-wrap-go.json (SPEC section 6.8
+# under Mailie's labels) with the kit's own generator, MAILIE_GENERATOR,
+# which the go tool does not build, as a throwaway module against this
+# working tree with the kit's go.sum, and compares it with the committed
+# file byte for byte. Nothing in it is random, so the file is a function of
+# the kit's code and of the toolchain it records, go1.26.7, on which this
+# runs; CI runs it. A file that comes out differently is a regression of the
+# kit, or a change of the generator, which a new file must record.
+MAILIE_GENERATOR ?= vectors/mailie/_generators
+vectors-mailie-regen:
+	tmp=$$(mktemp -d) && kit=$$(pwd) && \
+	cp -R $(MAILIE_GENERATOR)/. $$tmp/ && cp go.sum $$tmp/go.sum && mkdir $$tmp/out && \
+	printf 'module kitgen.local\n\ngo 1.26\n\nrequire github.com/thehappieco/kit v0.0.0\n\nreplace github.com/thehappieco/kit => %s\n' "$$kit" > $$tmp/go.mod && \
+	(cd $$tmp && export GOTOOLCHAIN=go1.26.7 GOFLAGS=-mod=mod && go mod tidy && KIT_GOLDEN_OUT=$$tmp/out go test -count=1 -run '^TestWriteMailiePlatformWrapGolden$$' .) && \
+	{ cmp -s $$tmp/out/platform-wrap-go.json vectors/mailie/golden/platform-wrap-go.json || { echo "vectors/mailie/golden/platform-wrap-go.json: $(MAILIE_GENERATOR) writes other bytes on this tree"; exit 1; }; } && \
+	echo "vectors/mailie/golden/platform-wrap-go.json reproduces from $(MAILIE_GENERATOR) on this tree" && \
+	rm -rf "$${tmp:?}"
+
+# Regenerates THCSEAL's vector file from the platform's own generator at
+# THCSEAL_COMMIT (SPEC section 14): git archive of the platform's
+# internal/seal and internal/kms, with its go.mod and go.sum, into a
+# temporary directory (the platform's repository is only read); the copy of
+# the file there is deleted, the platform's golden test writes it again
+# (-update, on the toolchain the platform's go.mod names), and that is
+# compared with the kit's byte for byte. thcseal's own tests run the same
+# generator over the kit's code in every run
+# (TestThisPackageWritesTheGoldenVectorsAgain). Not in CI: the platform's
+# repository is private.
+THCSEAL_COMMIT ?= d32b6632a45f1fc5a1884bb4fbe02d8ec8c74371
+vectors-thcseal-check:
+	tmp=$$(mktemp -d) && \
+	git -C $(PLATFORM) archive $(THCSEAL_COMMIT) go.mod go.sum internal/seal internal/kms | tar -x -C $$tmp && \
+	rm $$tmp/internal/seal/testdata/thcseal-v1.json && \
+	(cd $$tmp && GOFLAGS=-mod=readonly go test -count=1 -run '^TestTheGoldenVectorsOpenAndTheBadOnesFailAsRecorded$$' ./internal/seal -args -update) && \
+	{ cmp -s $$tmp/internal/seal/testdata/thcseal-v1.json vectors/platform/thcseal-v1/thcseal-v1.json || { echo "thcseal-v1.json differs from what $(THCSEAL_COMMIT) writes"; exit 1; }; } && \
+	echo "vectors/platform/thcseal-v1/thcseal-v1.json reproduces from $(THCSEAL_COMMIT)" && \
 	rm -rf "$${tmp:?}"
 
 pack:

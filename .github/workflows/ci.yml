@@ -7,6 +7,9 @@ on:
     branches: [main]
   pull_request:
   workflow_call:
+    secrets:
+      KIT_IDENTIFIERS:
+        required: true
 
 permissions:
   contents: read
@@ -20,13 +23,15 @@ jobs:
   # Decision 0017 of the platform: the kit's Go compiles and passes with Go
   # 1.26.7, the version Wappie uses. GOTOOLCHAIN=local stops go from switching
   # toolchains; go vet's stdversion analyzer flags any newer standard-library
-  # API. The seeded replays of Wappie's Go vectors run only here.
+  # API. The seeded replays of Wappie's Go vectors run only here. The tag
+  # kitdevkek compiles kms/localkek, under which the tests of thcseal and
+  # kms/awskms seal (SPEC section 14.3).
   go-1-26-7:
     name: go 1.26.7 (race, vet, gofmt, replays, fuzz)
     runs-on: ubuntu-24.04
     env:
       GOTOOLCHAIN: local
-      GOFLAGS: -mod=readonly
+      GOFLAGS: -mod=readonly -tags=kitdevkek
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,15 +50,25 @@ jobs:
         run: |
           out=$(go test -count=1 -v -run 'TestWappieSealVectors|TestWappieRequestHMACVectors' ./seal ./reqhmac)
           if echo "$out" | grep -q 'replay needs'; then echo "replays skipped on go1.26.7"; exit 1; fi
+      # Only tests link the local KEK, only kms/awskms links the AWS SDK,
+      # under any build constraint, and every package builds without the
+      # tag, as a consumer's release does.
+      - name: what the packages link
+        run: make imports-check
       # The platform's generator at 75b6b94, kept in the kit, runs the kit's
       # own profile: it must write all fourteen platform files byte for byte.
       - name: the platform's files reproduce from the kit's copy of its generator
         run: make vectors-platform-regen
+      # The kit's generator of Mailie's golden file, which draws nothing
+      # random and records go1.26.7, must write it byte for byte.
+      - name: Mailie's golden file reproduces from the kit's generator
+        run: make vectors-mailie-regen
       # The parsers a server runs on untrusted input: the envelope, the
       # request signature, the key bundle, every field of the platform's
       # requests (addresses, base64url, recovery codes, relying party ids,
-      # client extension results), what a relying party is sent, and the
-      # platform wrap an export carries.
+      # client extension results), what a relying party is sent, the
+      # platform wrap an export carries (Wappie's, and the generic one under
+      # every product's profile), and THCSEAL's decoder and opener.
       - name: fuzz the parsers
         run: |
           go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./seal
@@ -69,10 +84,15 @@ jobs:
           go test -run '^$' -fuzz '^FuzzCanonicalRecoveryCode$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzReadUserinfo$' -fuzztime 30s ./oidcrp
           go test -run '^$' -fuzz '^FuzzOpenPlatformWrap$' -fuzztime 30s ./profiles/wappie
+          go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./platformwrap
+          go test -run '^$' -fuzz '^FuzzDecodeAcceptsOnlyTheLayoutItDocuments$' -fuzztime 30s ./thcseal
+          go test -run '^$' -fuzz '^FuzzOpenNeverOpensAnAlteredEnvelope$' -fuzztime 30s ./thcseal
 
   go-current:
     name: go stable
     runs-on: ubuntu-24.04
+    env:
+      GOFLAGS: -tags=kitdevkek
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -102,7 +122,9 @@ jobs:
         with:
           go-version: stable
           cache: false
-      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+      # With the tag, so the local KEK is scanned too; kms/awskms, and the
+      # AWS SDK it calls, build either way.
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -tags kitdevkek ./...
 
   js:
     name: typescript (node ${{ matrix.node }})
@@ -180,8 +202,27 @@ jobs:
         run: |
           previous=$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)
           if [ -z "$previous" ]; then echo "no earlier tag"; exit 0; fi
-          changed=$(git diff --name-status "$previous" HEAD -- vectors/wappie vectors/kit vectors/platform | grep -v '^A' || true)
+          changed=$(git diff --name-status "$previous" HEAD -- vectors/wappie vectors/kit vectors/platform vectors/mailie | grep -v '^A' || true)
           if [ -n "$changed" ]; then echo "vector files of $previous changed or disappeared:"; echo "$changed"; exit 1; fi
+
+  # The kit is public, and so is its history: no identifier of a real AWS
+  # account in the files, paths or commit messages of any commit of any
+  # branch or tag the repository has (fetch-depth 0 fetches them all, and
+  # --all reaches them, the checked-out commit included; make
+  # identifiers-check). The owner's list of values is the repository secret
+  # KIT_IDENTIFIERS, never a file of the repository; the job fails without
+  # it, so it fails for a pull request from a fork.
+  identifiers:
+    name: no identifier of an AWS account
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - run: make identifiers-check IDENTIFIERS_REVS=--all
+        env:
+          KIT_IDENTIFIERS: ${{ secrets.KIT_IDENTIFIERS }}
 
   # Every byte of the tarball is measured in Wappie's enclave image: check what
   # is in it, that two builds from clean are identical, and that it installs

@@ -199,11 +199,13 @@ func platformWrapCase(t *testing.T, c vectest.Case) {
 }
 
 // TestKitMailiePlatformWrapVectors reproduces the kit's own round trips of
-// Mailie's platform wrap that the TypeScript side wrote: the fresh file of
-// that name in $KIT_CROSS_IN in the cross-language job, every seal replayed
-// from the nonce it drew, and every wrap also refused under Wappie's labels.
+// Mailie's platform wrap: those the TypeScript side wrote
+// (kit/mailie-platform-wrap-ts.json, and the fresh file of the same name in
+// $KIT_CROSS_IN in the cross-language job) and those this side wrote at
+// release time (kit/mailie-platform-wrap-go.json), every seal replayed from
+// the nonce it drew, and every wrap also refused under Wappie's labels.
 func TestKitMailiePlatformWrapVectors(t *testing.T) {
-	for _, c := range vectest.Fresh(t, "mailie-platform-wrap-ts.json") {
+	for _, c := range vectest.Cases(t, "kit/mailie-platform-wrap-ts.json", "kit/mailie-platform-wrap-go.json") {
 		if !c.ForGo() {
 			continue
 		}

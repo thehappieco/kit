@@ -27,7 +27,9 @@ import * as account from '@thehappieco/kit/account'
 import * as passkey from '@thehappieco/kit/passkey'
 import * as browserAccount from '@thehappieco/kit/browserAccount'
 import * as reqhmac from '@thehappieco/kit/reqhmac'
+import * as platformwrap from '@thehappieco/kit/platformwrap'
 import * as wappie from '@thehappieco/kit/profiles/wappie'
+import * as mailie from '@thehappieco/kit/profiles/mailie'
 import * as platform from '@thehappieco/kit/profiles/platform'
 import * as platformCore from '@thehappieco/kit/profiles/platform/core'
 import * as errors from '@thehappieco/kit/errors'
@@ -94,6 +96,17 @@ assert.deepEqual([platformWrap.length, platformWrap[0]], [61, 3])
 assert.deepEqual(await wappie.openPlatformWrap(productKey.sk, platformWrap, wrapBinding), accountKey)
 await assert.rejects(wappie.openPlatformWrap(productKey.sk, platformWrap, { ...wrapBinding, productKeyId: 'wappie:2' }), (err) => wappie.isPlatformWrapError(err) && err instanceof errors.PlatformWrapError && err.code === 'platform_wrap')
 assert.throws(() => wappie.checkPlatformWrapShape(Uint8Array.of(1, ...platformWrap.subarray(1))), wappie.PlatformWrapError)
+assert.deepEqual(await platformwrap.openPlatformWrap(wappie.wappiePlatformWrap, productKey.sk, platformWrap, wrapBinding), accountKey)
+assert.deepEqual(wappie.platformWrapAAD(wrapBinding), platformwrap.bind(wappie.wappiePlatformWrap).platformWrapAAD(wrapBinding))
+assert.deepEqual(mailie.mailiePlatformWrap, { product: 'mailie', salt: 'mailie/platform-wrap/v1', label: 'mailie/platform-wrap' })
+const mailieKey = await platform.deriveProductKey(new Uint8Array(32).fill(4), 'mailie', 1)
+const mailieBinding = { ...wrapBinding, productKeyId: mailieKey.id }
+const mailieWrap = await platformwrap.sealPlatformWrap(mailie.mailiePlatformWrap, mailieKey.sk, accountKey, mailieBinding)
+platformwrap.checkPlatformWrapShape(mailieWrap)
+assert.deepEqual([mailieWrap.length, mailieWrap[0], platformwrap.PLATFORM_WRAP_HEADER, platformwrap.PLATFORM_WRAP_LEN, platformwrap.PLATFORM_WRAP_VERSION], [61, 3, 3, 61, 1])
+assert.deepEqual(await platformwrap.openPlatformWrap(mailie.mailiePlatformWrap, mailieKey.sk, mailieWrap, mailieBinding), accountKey)
+await assert.rejects(platformwrap.openPlatformWrap(wappie.wappiePlatformWrap, mailieKey.sk, mailieWrap, wrapBinding), (err) => platformwrap.isPlatformWrapError(err) && err instanceof errors.PlatformWrapError)
+await assert.rejects(wappie.openPlatformWrap(productKey.sk, mailieWrap, wrapBinding), wappie.PlatformWrapError)
 assert.equal(rp.sameOriginPath('//x', 'https://app.wappie.thehappie.co'), null)
 const logout = new URL(rp.logoutURL({ issuer: 'https://id.thehappie.co', clientId: 'wappie-app', postLogoutRedirectUri: 'https://app.wappie.thehappie.co/' }))
 assert.deepEqual([logout.origin + logout.pathname, logout.searchParams.get('client_id'), logout.searchParams.get('post_logout_redirect_uri'), logout.searchParams.get('state').length], ['https://id.thehappie.co/oauth2/logout', 'wappie-app', 'https://app.wappie.thehappie.co/', 43])

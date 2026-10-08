@@ -5,8 +5,8 @@
 // refusal a PlatformWrapError, the cross-product ones included (a Wappie
 // wrap opened under Mailie's labels and a Mailie wrap under Wappie's); K_pw
 // checked through the wrap envelope of section 6.5 (account.unwrapPrivateKey
-// with the header 0x03); and, in the cross-language job, the fresh round
-// trips the Go side wrote.
+// with the header 0x03); and the kit's own round trips of it, in both
+// directions.
 
 import { describe, expect, it } from 'vitest'
 
@@ -25,7 +25,7 @@ import {
 } from '../src/platformwrap.js'
 import { mailiePlatformWrap, PLATFORM_WRAP_LABEL, PLATFORM_WRAP_PRODUCT, PLATFORM_WRAP_SALT } from '../src/profiles/mailie.js'
 import { wappiePlatformWrap } from '../src/profiles/wappie.js'
-import { b64, files, forTS, freshOnly, toB64, unhandled, withDraws, type VectorCase } from './vectors.js'
+import { b64, files, forTS, toB64, unhandled, withDraws, type VectorCase } from './vectors.js'
 
 const IN = ['user_id', 'sub', 'product_key_id', 'account_public_key_b64', 'product_key_b64', 'account_key_b64', 'nonce_b64', 'wrap_b64']
 const OUT = ['info_b64', 'aad_b64', 'wrap_b64', 'k_pw_b64', 'account_key_b64']
@@ -114,10 +114,12 @@ async function run(c: VectorCase): Promise<void> {
   unhandled(c)
 }
 
-// The kit's own round trips that the Go side wrote: the fresh file of that
-// name in $KIT_CROSS_IN in the cross-language job, each wrap also refused
+// The kit's own round trips: those the Go side wrote
+// (kit/mailie-platform-wrap-go.json, and the fresh file of the same name in
+// $KIT_CROSS_IN in the cross-language job) and those this side wrote at
+// release time (kit/mailie-platform-wrap-ts.json), each wrap also refused
 // under Wappie's labels.
-for (const [path, f] of freshOnly('mailie-platform-wrap-go.json')) {
+for (const [path, f] of files('kit/mailie-platform-wrap-go.json', 'kit/mailie-platform-wrap-ts.json')) {
   describe(path, () => {
     for (const c of f.cases.filter(forTS)) it(c.id, async () => run(c))
   })

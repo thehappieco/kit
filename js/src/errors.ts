@@ -244,3 +244,32 @@ export class PlatformWrapError extends Error {
 export function isPlatformWrapError(err: unknown): err is PlatformWrapError {
   return err instanceof PlatformWrapError
 }
+
+/**
+ * MailieError is what the Mailie profile refuses on its own
+ * (@thehappieco/kit/profiles/mailie, SPEC Appendix D): binding, an input
+ * outside its spelling, refused before anything is derived, sealed or
+ * opened (a seal id or namespace that is not a lowercase UUIDv4, a wrap kind
+ * other than password and recovery, an epoch out of range, a key that is not
+ * 32 bytes, a platform wrap's seal id equal to the sub); shape, what a
+ * server refuses of a wrap or a grant it stores; and vault, a browser vault
+ * record that does not open for the person named, which the product wipes.
+ * The kit's own errors (AccountError, SealError, PlatformWrapError) pass
+ * through as they are. Messages never repeat a refused value.
+ */
+export type MailieErrorCode = 'binding' | 'shape' | 'vault'
+
+export class MailieError extends Error {
+  constructor(
+    message: string,
+    readonly code: MailieErrorCode,
+  ) {
+    super(message)
+    this.name = 'MailieError'
+  }
+}
+
+/** isMailieError narrows a caught value, and checks its code when one is given. */
+export function isMailieError(err: unknown, code?: MailieErrorCode): err is MailieError {
+  return err instanceof MailieError && (code === undefined || err.code === code)
+}

@@ -1,7 +1,7 @@
 {
   "name": "@thehappieco/kit",
-  "version": "0.6.0",
-  "description": "The Happie Co's shared cryptographic kit: HPKE, sealed envelopes, the zero-knowledge account scheme, passkey PRF wraps, request signing, a product's platform wrap (Wappie's and Mailie's labels), the platform's account protocol with its key delivery and passkeys, and the relying party of its id.",
+  "version": "0.7.0",
+  "description": "The Happie Co's shared cryptographic kit: HPKE, sealed envelopes, the zero-knowledge account scheme, passkey PRF wraps, request signing, a product's platform wrap, the Wappie profile and Mailie's key scheme, the platform's account protocol with its key delivery and passkeys, and the relying party of its id.",
   "type": "module",
   "license": "Apache-2.0",
   "repository": "github:thehappieco/kit",
@@ -39,6 +39,7 @@
   "devDependencies": {
     "@types/node": "26.6.0",
     "@vitest/browser": "3.2.7",
+    "esbuild": "0.28.2",
     "fake-indexeddb": "6.2.5",
     "playwright": "1.63.0",
     "typescript": "5.9.3",

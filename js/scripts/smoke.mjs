@@ -1,5 +1,6 @@
 // Installs the packed tarball into an empty directory, as a consumer would,
-// and exercises every subpath export from there.
+// and exercises every subpath export from there; then bundles Mailie's
+// profile from there, as Mailie's console does.
 //
 //   node scripts/pack.mjs && node scripts/smoke.mjs
 
@@ -8,6 +9,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { build } from 'esbuild'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
@@ -107,6 +109,27 @@ assert.deepEqual([mailieWrap.length, mailieWrap[0], platformwrap.PLATFORM_WRAP_H
 assert.deepEqual(await platformwrap.openPlatformWrap(mailie.mailiePlatformWrap, mailieKey.sk, mailieWrap, mailieBinding), accountKey)
 await assert.rejects(platformwrap.openPlatformWrap(wappie.wappiePlatformWrap, mailieKey.sk, mailieWrap, wrapBinding), (err) => platformwrap.isPlatformWrapError(err) && err instanceof errors.PlatformWrapError)
 await assert.rejects(wappie.openPlatformWrap(productKey.sk, mailieWrap, wrapBinding), wappie.PlatformWrapError)
+const sealID = 'b8cbc8a8-0c90-48ac-9233-fbdace9d7bf4'
+const mailboxNS = '9d035f2b-81d0-420e-90e2-bb16e950497b'
+const accountPub = await hpke.publicFromPrivate(accountKey)
+assert.equal(new TextDecoder().decode(mailie.accountWrapAAD('password', sealID, accountPub)), '["mailie/account-wrap",1,"password","' + sealID + '","' + bytes.toBase64URL(accountPub) + '"]')
+const recoveryWrapKey = await account.recoveryKey(mailie.mailieAccount, 'o1234 56789 abcde fghjk mnpqr stvwx')
+const accountWrap = await mailie.sealAccountWrap('recovery', recoveryWrapKey, accountKey, sealID)
+mailie.checkAccountWrapShape(accountWrap)
+assert.deepEqual([accountWrap.length, accountWrap[0]], [61, 2])
+assert.deepEqual(await mailie.openAccountWrap('recovery', recoveryWrapKey, accountWrap, sealID, accountPub), accountKey)
+await assert.rejects(mailie.openAccountWrap('password', recoveryWrapKey, accountWrap, sealID, accountPub), (err) => err instanceof mailie.AccountError && err.reason === 'wrong_key')
+const mailboxKey = new Uint8Array(32).fill(8)
+const grant = await mailie.sealGrant(accountPub, mailboxNS, sealID, 1, mailboxKey)
+mailie.checkGrantShape(grant, 1)
+assert.deepEqual([grant.length, String.fromCharCode(grant[0], grant[1])], [88, 'ML'])
+assert.deepEqual(await mailie.openGrant(await hpke.importPrivateKey(accountKey), mailboxNS, sealID, 1, await hpke.publicFromPrivate(mailboxKey), grant), mailboxKey)
+assert.equal(new TextDecoder().decode(mailie.grantInfo(mailboxNS, 1)), 'mlv1/mailbox_grant/' + mailboxNS + '/1')
+assert.throws(() => mailie.platformWrapBinding(sub, sub, 1, accountPub), (err) => mailie.isMailieError(err, 'binding') && err instanceof errors.MailieError)
+const mailieSealBinding = mailie.platformWrapBinding(sealID, sub, 1, accountPub)
+assert.deepEqual(await mailie.openMailiePlatformWrap(mailieKey.sk, await mailie.sealMailiePlatformWrap(mailieKey.sk, accountKey, mailieSealBinding), mailieSealBinding), accountKey)
+assert.ok(new TextDecoder().decode(mailie.browserVaultAAD(sealID, accountPub)).startsWith('["mailie/browser-account-key",1,"' + sealID + '","'))
+assert.equal(mailie.kindName(mailie.Kind.MailboxGrant), 'mailbox_grant')
 assert.equal(rp.sameOriginPath('//x', 'https://app.wappie.thehappie.co'), null)
 const logout = new URL(rp.logoutURL({ issuer: 'https://id.thehappie.co', clientId: 'wappie-app', postLogoutRedirectUri: 'https://app.wappie.thehappie.co/' }))
 assert.deepEqual([logout.origin + logout.pathname, logout.searchParams.get('client_id'), logout.searchParams.get('post_logout_redirect_uri'), logout.searchParams.get('state').length], ['https://id.thehappie.co/oauth2/logout', 'wappie-app', 'https://app.wappie.thehappie.co/', 43])
@@ -117,6 +140,32 @@ await import('@thehappieco/kit/kdf.worker').catch(err => assert.match(String(err
 console.log('smoke: every export loads and works from the installed tarball')
 `)
   execFileSync('node', ['smoke.mjs'], { cwd: dir, stdio: 'inherit' })
+
+  // The Mailie build rule: Mailie's open console fails on any output that
+  // names the platform, and derives through @thehappieco/kit/account with a
+  // worker of its own. Every export of @thehappieco/kit/profiles/mailie,
+  // bundled from the installed tarball with tree-shaking, must name neither
+  // the platform nor a KDF worker. The entry's module graph does reach
+  // internal modules that hold the platform's labels, which tree-shaking
+  // drops, so a bundle without it would not pass. Whitespace is minified,
+  // which drops comments, among them the path comments that name the
+  // package's scope; identifiers and strings are kept as written.
+  const bundled = await build({
+    stdin: { contents: "export * from '@thehappieco/kit/profiles/mailie'", resolveDir: dir, loader: 'js' },
+    absWorkingDir: dir,
+    bundle: true,
+    write: false,
+    format: 'esm',
+    platform: 'browser',
+    treeShaking: true,
+    minifyWhitespace: true,
+    logLevel: 'silent',
+  })
+  const text = bundled.outputFiles[0].text
+  for (const [what, pattern] of [["the platform's name", /happie/i], ['a KDF worker', /kdf\.worker|new Worker\b/]]) {
+    if (pattern.test(text)) throw new Error(`smoke: the bundle of @thehappieco/kit/profiles/mailie names ${what}`)
+  }
+  console.log(`smoke: @thehappieco/kit/profiles/mailie bundles (${text.length} bytes) naming neither the platform nor a KDF worker`)
 } finally {
   rmSync(dir, { recursive: true, force: true })
 }

@@ -63,7 +63,8 @@ jobs:
       # requests (addresses, base64url, recovery codes, relying party ids,
       # client extension results), what a relying party is sent, the
       # platform wrap an export carries (Wappie's, and the generic one under
-      # every product's profile), and THCSEAL's decoder and opener.
+      # every product's profile), THCSEAL's decoder and opener, and Mailie's
+      # checks of the wraps, grants, ids and public keys its server stores.
       - name: fuzz the parsers
         run: |
           go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./seal
@@ -82,6 +83,7 @@ jobs:
           go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./platformwrap
           go test -run '^$' -fuzz '^FuzzDecodeAcceptsOnlyTheLayoutItDocuments$' -fuzztime 30s ./thcseal
           go test -run '^$' -fuzz '^FuzzOpenNeverOpensAnAlteredEnvelope$' -fuzztime 30s ./thcseal
+          go test -run '^$' -fuzz '^FuzzServerChecks$' -fuzztime 30s ./profiles/mailie
 
   # What only the toolchain that wrote the vectors can check. The seeded
   # replays of Wappie's Go vectors run only on the toolchain a file records,
@@ -114,6 +116,16 @@ jobs:
       # random and records go1.26.7, must write it byte for byte.
       - name: Mailie's golden file reproduces from the kit's generator
         run: make vectors-mailie-regen
+      # Mailie's key-scheme files (SPEC Appendix D), from Mailie at c9c79cf:
+      # every case runs, and profiles/mailie writes all four again byte for
+      # byte. The seeded seals of two of them are replayed only on the
+      # toolchains the test lists (vectors/PROVENANCE.md), go1.26.7 and
+      # go1.26.9 among them; on any other, which stable may become, they skip
+      # and say so, so here they must run.
+      - name: Mailie's key-scheme files reproduce from the kit
+        run: |
+          out=$(go test -count=1 -v -run '^(TestMailieKeySchemeVectors|TestTheKitWritesMailiesKeySchemeVectorsAgain)$' ./profiles/mailie)
+          if echo "$out" | grep -q 'replay needs'; then echo "Mailie's seeded replays skipped on go1.26.7"; exit 1; fi
 
   go-current:
     name: go stable

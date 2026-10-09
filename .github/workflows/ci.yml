@@ -20,14 +20,17 @@ env:
   NPM_VERSION: '11.9.0'
 
 jobs:
-  # Decision 0017 of the platform: the kit's Go compiles and passes with Go
-  # 1.26.7, the version Wappie uses. GOTOOLCHAIN=local stops go from switching
-  # toolchains; go vet's stdversion analyzer flags any newer standard-library
-  # API. The seeded replays of Wappie's Go vectors run only here. The tag
+  # Decision 0017 of the platform: the kit's Go compiles and passes on the Go
+  # 1.26 line Wappie uses, here at 1.26.9, the first 1.26 release without the
+  # net/http (HTTP/1 and HTTP/2), net/textproto and crypto/tls advisories that
+  # govulncheck reports for 1.26.7. go.mod's go directive stays 1.26.7, the
+  # oldest toolchain the kit supports (the job go-1-26-7 below compiles it
+  # there). GOTOOLCHAIN=local stops go from switching toolchains; go vet's
+  # stdversion analyzer flags any newer standard-library API. The tag
   # kitdevkek compiles kms/localkek, under which the tests of thcseal and
   # kms/awskms seal (SPEC section 14.3).
-  go-1-26-7:
-    name: go 1.26.7 (race, vet, gofmt, replays, fuzz)
+  go-1-26-9:
+    name: go 1.26.9 (race, vet, gofmt, fuzz)
     runs-on: ubuntu-24.04
     env:
       GOTOOLCHAIN: local
@@ -38,18 +41,14 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.7'
+          go-version: '1.26.9'
           cache: false
-      - run: go version | grep -q 'go1.26.7 '
+      - run: go version | grep -q 'go1.26.9 '
       - run: go mod verify
       - name: gofmt
         run: test -z "$(gofmt -l $(find . -name '*.go' -not -path './js/*'))"
       - run: go vet ./...
       - run: go test -race -count=1 ./...
-      - name: the replays ran rather than skipped
-        run: |
-          out=$(go test -count=1 -v -run 'TestWappieSealVectors|TestWappieRequestHMACVectors' ./seal ./reqhmac)
-          if echo "$out" | grep -q 'replay needs'; then echo "replays skipped on go1.26.7"; exit 1; fi
       # Only tests link the local KEK, only kms/awskms links the AWS SDK,
       # under any build constraint, and every package builds without the
       # tag, as a consumer's release does.
@@ -59,10 +58,6 @@ jobs:
       # own profile: it must write all fourteen platform files byte for byte.
       - name: the platform's files reproduce from the kit's copy of its generator
         run: make vectors-platform-regen
-      # The kit's generator of Mailie's golden file, which draws nothing
-      # random and records go1.26.7, must write it byte for byte.
-      - name: Mailie's golden file reproduces from the kit's generator
-        run: make vectors-mailie-regen
       # The parsers a server runs on untrusted input: the envelope, the
       # request signature, the key bundle, every field of the platform's
       # requests (addresses, base64url, recovery codes, relying party ids,
@@ -88,6 +83,38 @@ jobs:
           go test -run '^$' -fuzz '^FuzzDecodeAcceptsOnlyTheLayoutItDocuments$' -fuzztime 30s ./thcseal
           go test -run '^$' -fuzz '^FuzzOpenNeverOpensAnAlteredEnvelope$' -fuzztime 30s ./thcseal
 
+  # What only the toolchain that wrote the vectors can check. The seeded
+  # replays of Wappie's Go vectors run only on the toolchain a file records,
+  # go1.26.7 (on any other they skip and say so), and the kit's generator of
+  # Mailie's golden file records the toolchain it runs on; the files of a
+  # tagged release never change, so both stay on go1.26.7, which also holds
+  # every package and test to go.mod's go directive. Nothing built here is
+  # shipped.
+  go-1-26-7:
+    name: go 1.26.7 (vet, replays, Mailie's golden file)
+    runs-on: ubuntu-24.04
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly -tags=kitdevkek
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.7'
+          cache: false
+      - run: go version | grep -q 'go1.26.7 '
+      - run: go vet ./...
+      - name: the replays ran rather than skipped
+        run: |
+          out=$(go test -count=1 -v -run 'TestWappieSealVectors|TestWappieRequestHMACVectors' ./seal ./reqhmac)
+          if echo "$out" | grep -q 'replay needs'; then echo "replays skipped on go1.26.7"; exit 1; fi
+      # The kit's generator of Mailie's golden file, which draws nothing
+      # random and records go1.26.7, must write it byte for byte.
+      - name: Mailie's golden file reproduces from the kit's generator
+        run: make vectors-mailie-regen
+
   go-current:
     name: go stable
     runs-on: ubuntu-24.04
@@ -103,7 +130,7 @@ jobs:
           cache: false
       - run: go vet ./...
       - run: go test -race -count=1 ./...
-      # Go 1.27 builds encoding/json on its json/v2 engine, and Go 1.26.7 on
+      # Go 1.27 builds encoding/json on its json/v2 engine, and Go 1.26 on
       # the classic one; the strict readers of the key bundle and of the
       # client-extension allowlist walk its token stream, so they are fuzzed
       # on this toolchain too.
@@ -112,19 +139,34 @@ jobs:
           go test -run '^$' -fuzz '^FuzzCheckClientExtensions$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzParseKeyBundle$' -fuzztime 30s ./profiles/platform
 
+  # On the toolchain Wappie builds what it ships with, 1.26.9, and on the
+  # newest one; one job, so the check keeps its name. GOTOOLCHAIN=local, so
+  # each scan sees the standard library of the toolchain just set up.
   govulncheck:
     runs-on: ubuntu-24.04
+    env:
+      GOTOOLCHAIN: local
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: stable
+          go-version: '1.26.9'
           cache: false
+      - run: go version | grep -q 'go1.26.9 '
       # With the tag, so the local KEK is scanned too; kms/awskms, and the
       # AWS SDK it calls, build either way.
-      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -tags kitdevkek ./...
+      - name: govulncheck on go1.26.9
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -tags kitdevkek ./...
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache: false
+      - name: govulncheck on go stable
+        run: |
+          go version
+          go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -tags kitdevkek ./...
 
   js:
     name: typescript (node ${{ matrix.node }})
@@ -180,7 +222,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.7'
+          go-version: '1.26.9'
           cache: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:

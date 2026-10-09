@@ -192,7 +192,7 @@ vectors-platform-check:
 # module takes the platform's module path only so that the generator's own
 # import resolves, and the kit's go.sum, so every dependency is checked
 # against the kit's hashes. Needs neither the platform's repository nor its
-# toolchain, so CI runs it on go1.26.7: since 75b6b94 the generator is a pure
+# toolchain, so CI runs it on go1.26.9: since 75b6b94 the generator is a pure
 # function of the kit's code, and a file that comes out differently is a
 # regression of the kit.
 vectors-platform-regen:

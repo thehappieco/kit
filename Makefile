@@ -21,7 +21,7 @@ WAPPIE_CLOUD ?= ../whatserver2/commercial
 WAPPIE_CLOUD_COMMIT ?= 3bfee279581ad15f6d2d2db3d3a9794c8eac50ca
 WAPPIE_CLOUD_PATCH ?= vectors/wappie/_generators/cloud/header-0x03.patch
 
-.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go imports-check identifiers-check cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check vectors-thcseal-check vectors-mailie-regen pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go imports-check identifiers-check cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check vectors-thcseal-check vectors-mailie-regen vectors-mailie-check pack reproduce clean
 
 all: lint-go imports-check identifiers-check test-go test-js vectors-check cross
 
@@ -241,6 +241,35 @@ vectors-thcseal-check:
 	(cd $$tmp && GOFLAGS=-mod=readonly go test -count=1 -run '^TestTheGoldenVectorsOpenAndTheBadOnesFailAsRecorded$$' ./internal/seal -args -update) && \
 	{ cmp -s $$tmp/internal/seal/testdata/thcseal-v1.json vectors/platform/thcseal-v1/thcseal-v1.json || { echo "thcseal-v1.json differs from what $(THCSEAL_COMMIT) writes"; exit 1; }; } && \
 	echo "vectors/platform/thcseal-v1/thcseal-v1.json reproduces from $(THCSEAL_COMMIT)" && \
+	rm -rf "$${tmp:?}"
+
+# Regenerates Mailie's key-scheme vectors (SPEC Appendix D,
+# vectors/mailie/key-scheme-v1) with Mailie's own generator at MAILIE_COMMIT
+# (github.com/thehappieco/mailie, checked out at MAILIE): git archive of its
+# go.mod, go.sum and internal/ into a temporary directory (Mailie's
+# repository is only read), the four files deleted there, Mailie's test
+# writing them again with -update on the toolchain they record
+# (MAILIE_TOOLCHAIN), and each compared with the kit's copy byte for byte.
+# Twice: over the kit version Mailie's go.mod requires (v0.6.0), and over
+# this working tree (a replace), so Mailie's own code over this tree writes
+# the same bytes. The kit's own re-derivation of the four files,
+# TestTheKitWritesMailiesKeySchemeVectorsAgain of profiles/mailie, runs in
+# every go test, in CI too. Not in CI: Mailie's repository is private.
+MAILIE ?= ../mailserver
+MAILIE_COMMIT ?= c9c79cf346f61c45cac558263f27438ac5500f4c
+MAILIE_TOOLCHAIN ?= go1.27.2
+MAILIE_FILES = account-go.json grant-go.json platform-wrap-go.json browser-vault-go.json
+vectors-mailie-check:
+	tmp=$$(mktemp -d) && kit=$$(pwd) && \
+	for pass in kit-v0.6.0 this-tree; do \
+		mkdir $$tmp/$$pass && \
+		git -C $(MAILIE) archive $(MAILIE_COMMIT) go.mod go.sum internal | tar -x -C $$tmp/$$pass && \
+		for f in $(MAILIE_FILES); do rm $$tmp/$$pass/internal/keyscheme/testdata/$$f || exit 1; done && \
+		if [ $$pass = this-tree ]; then (cd $$tmp/$$pass && go mod edit -replace github.com/thehappieco/kit=$$kit) || exit 1; fi && \
+		(cd $$tmp/$$pass && GOTOOLCHAIN=$(MAILIE_TOOLCHAIN) GOFLAGS=-mod=readonly go test -count=1 -run '^TestTheVectorsAreWhatTheProfileWrites$$' ./internal/keyscheme -args -update) && \
+		for f in $(MAILIE_FILES); do cmp -s $$tmp/$$pass/internal/keyscheme/testdata/$$f vectors/mailie/key-scheme-v1/$$f || { echo "$$f differs from what $(MAILIE_COMMIT) writes ($$pass)"; exit 1; }; done || exit 1; \
+	done && \
+	echo "the four files of vectors/mailie/key-scheme-v1 reproduce from $(MAILIE_COMMIT), over kit v0.6.0 and over this tree" && \
 	rm -rf "$${tmp:?}"
 
 pack:

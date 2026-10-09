@@ -81,8 +81,9 @@ func TestManifest(t *testing.T) {
 }
 
 // Every case SPEC.md cites as `file#case-id` exists: a bare file name is
-// under wappie/golden/, a file under mailie/golden/ is named with its
-// directory, and an id ending in * names at least one case. The
+// under wappie/golden/, a file under mailie/golden/ or
+// mailie/key-scheme-v1/ is named with its directory, and an id ending in *
+// names at least one case. The
 // platform's files name their cases instead (`platform/id-v1/kdf.json#the
 // floor parameters`), and a case of theirs that carries an op is cited by op
 // and name (`platform/id-v1/key-delivery.json#open/a sub in upper case`).
@@ -93,7 +94,7 @@ func TestSpecCitations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cite := regexp.MustCompile("`((?:kit/|wappie/golden/|mailie/golden/|platform/id-v1/|platform/thcseal-v1/)?[a-z0-9-]+\\.json)#([^`]+)`")
+	cite := regexp.MustCompile("`((?:kit/|wappie/golden/|mailie/golden/|mailie/key-scheme-v1/|platform/id-v1/|platform/thcseal-v1/)?[a-z0-9-]+\\.json)#([^`]+)`")
 	matches := cite.FindAllStringSubmatch(string(spec), -1)
 	if len(matches) < 10 {
 		t.Fatalf("only %d citations found", len(matches))
@@ -487,5 +488,91 @@ func TestMailiePlatformWrapFile(t *testing.T) {
 	}
 	if f.Format != "thehappieco-kit-vectors/1" || f.Module != "mailie.platform_wrap" || f.Profile != "mailie" || len(f.Cases) != 60 || bad != 36 || cross != 7 {
 		t.Errorf("%s: %q %q %q, %d cases, %d must fail, %d across products; want 60, 36 and 7", path, f.Format, f.Module, f.Profile, len(f.Cases), bad, cross)
+	}
+}
+
+// Mailie's key-scheme files (SPEC Appendix D) are Mailie's own, captured at
+// github.com/thehappieco/mailie c9c79cf (PROVENANCE.md): each has the sha256
+// recorded there, so an edit or a capture from another commit fails here
+// even after `make manifest` has recorded it; profiles/mailie writes them
+// again byte for byte (TestTheKitWritesMailiesKeySchemeVectorsAgain) and make
+// vectors-mailie-check has Mailie's own generator write them. Their
+// directory holds exactly these four; each ends with exactly one newline and
+// is in the kit's format, under Mailie's profile and the module named, with
+// its counts of cases and of must-fail cases under unique ids: 248 and 150
+// in all. Only account-go.json holds bytes outside ASCII, the addresses its
+// normalisation cases spell in UTF-8.
+func TestMailieKeySchemeFiles(t *testing.T) {
+	want := []struct {
+		name, module    string
+		cases, mustFail int
+		ascii           bool
+		sha256          string
+	}{
+		{"account-go.json", "account", 104, 60, false, "2e75516cb5246a0e30db3e940a0c5dff53a449e83b003ed8bb33a1fefdacf6be"},
+		{"grant-go.json", "seal", 107, 69, true, "fd6ce1d1ef9d415b756517e939328e56ee819c549e452818453ed6cca8362844"},
+		{"platform-wrap-go.json", "platformwrap", 31, 18, true, "f8bd4a8fa6f74697e93ec19d1dba41f38915953319964076a603333808801a68"},
+		{"browser-vault-go.json", "browser_account", 6, 3, true, "1988b3bcb61161ace08ee99caa23267f16c692b68cfd02f40f472942b88b7ee3"},
+	}
+	entries, err := fs.ReadDir(vectors.FS, "mailie/key-scheme-v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != len(want) {
+		t.Errorf("mailie/key-scheme-v1 holds %d files, want %d", len(entries), len(want))
+	}
+	total, failing := 0, 0
+	for _, w := range want {
+		path := "mailie/key-scheme-v1/" + w.name
+		raw, err := fs.ReadFile(vectors.FS, path)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != w.sha256 {
+			t.Errorf("%s is not the file captured at Mailie c9c79cf (PROVENANCE.md)", path)
+		}
+		if ascii := !bytes.ContainsFunc(raw, func(r rune) bool { return r >= 0x80 }); ascii != w.ascii {
+			t.Errorf("%s: ASCII only is %v, want %v", path, ascii, w.ascii)
+		}
+		if !bytes.HasSuffix(raw, []byte("}\n")) || bytes.HasSuffix(raw, []byte("\n\n")) {
+			t.Errorf("%s does not end with exactly one newline", path)
+		}
+		var f struct {
+			Format      string `json:"format"`
+			Module      string `json:"module"`
+			Profile     string `json:"profile"`
+			GeneratedBy struct {
+				Source    string `json:"source"`
+				Toolchain string `json:"toolchain"`
+			} `json:"generated_by"`
+			Cases []struct {
+				ID    string `json:"id"`
+				Error string `json:"error"`
+			} `json:"cases"`
+		}
+		if err := json.Unmarshal(raw, &f); err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		ids, bad := map[string]bool{}, 0
+		for _, c := range f.Cases {
+			if c.ID == "" || ids[c.ID] {
+				t.Errorf("%s: an empty or repeated id %q", path, c.ID)
+			}
+			ids[c.ID] = true
+			if c.Error != "" {
+				bad++
+			}
+		}
+		if f.Format != "thehappieco-kit-vectors/1" || f.Module != w.module || f.Profile != "mailie" ||
+			f.GeneratedBy.Source != "github.com/thehappieco/mailie internal/keyscheme" || f.GeneratedBy.Toolchain != "go1.27.2" ||
+			len(f.Cases) != w.cases || bad != w.mustFail {
+			t.Errorf("%s: %q %q %q %+v, %d cases, %d must fail; want %d and %d", path, f.Format, f.Module, f.Profile, f.GeneratedBy, len(f.Cases), bad, w.cases, w.mustFail)
+		}
+		total += len(f.Cases)
+		failing += bad
+	}
+	if total != 248 || failing != 150 {
+		t.Errorf("%d cases, %d must fail; want 248 and 150", total, failing)
 	}
 }

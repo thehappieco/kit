@@ -300,6 +300,42 @@ The file is in the kit's format (`"module": "mailie.platform_wrap"`, `"profile":
 |---|---|
 | `mailie/_generators/kitgen_test.go` | `434d274210138231f53d6750d6d5947d4e3f8f05d7db693bdecae28d0d8f8348` |
 
+## Mailie's key scheme, at c9c79cf
+
+- **Source:** `github.com/thehappieco/mailie` (Mailie's open core) at `c9c79cf346f61c45cac558263f27438ac5500f4c` (2026-10-09T08:31:57-03:00), `internal/keyscheme/testdata/{account,grant,platform-wrap,browser-vault}-go.json`: the golden vectors of Mailie's key scheme, version 1 (its `docs/key-scheme.md`, section 14), which Mailie handed to the kit on 2026-10-09 with its specification, its threat model (`docs/key-scheme-threat-model.md`) and its code (`internal/keyscheme`, `web/src/crypto/mailie.ts`). The files were added by `c0f5897` (2026-10-09T08:30:17-03:00 committed, "Fix every byte of Mailie's key scheme before any code uses it"); `c9c79cf` changes only Mailie's `.gitleaks.toml`.
+- **Generator:** Mailie's `internal/keyscheme/vectors_test.go` (`go test ./internal/keyscheme -run TestTheVectorsAreWhatTheProfileWrites -update`), over Mailie's `internal/keyscheme` and kit v0.6.0's generic packages. Every key, salt, root and nonce is SHA-256 of a fixed label (`mailie key scheme vectors/<label>`); each seal that draws randomness (an account wrap's nonce, a grant's ephemeral key, and the two envelopes two grant refusals open) ran under `testing/cryptotest.SetGlobalRandom` with the seed its case records, and an account wrap records the nonce it drew too. Before writing, the generator runs every case through its dispatcher, so a refusal is recorded only if the code refuses it.
+- **The kit writes them again:** `TestTheKitWritesMailiesKeySchemeVectorsAgain` of `profiles/mailie` is that generator ported to the kit's names (`profiles/mailie` for `internal/keyscheme`; Mailie's server's address normalisation and salt as test code, since the kit exports neither), with the header the files record, and compares what it writes with these files byte for byte, the seeded seals included, in every Go test run. On 2026-10-09 it wrote all four on go1.26.7, go1.26.9 and go1.27.2 (darwin/arm64).
+- **Mailie's generator writes them again:** `make vectors-mailie-check MAILIE=../mailserver` takes `git archive` of Mailie's `go.mod`, `go.sum` and `internal/` at the commit into a temporary directory, deletes the four files there, has Mailie's test write them with `-update` on go1.27.2, and compares each with the kit's copy, twice: over kit v0.6.0, which Mailie's `go.mod` requires, and over the kit's working tree. On 2026-10-09 both passes wrote the four files byte for byte. Not in CI: Mailie's repository is private.
+- **Captured:** 2026-10-09, byte for byte with `git show c9c79cf:<path>` (the blob ids are Mailie's: `f1b5c8a`, `d37bc33`, `39af7db`, `4ac9ad4` for account, grant, platform-wrap and browser-vault); Mailie's repository was only read.
+- **Toolchain:** go1.27.2, which the files record.
+- **Format:** the kit's (`thehappieco-kit-vectors/1`, `"profile": "mailie"`), with a named key pair per person and mailbox under `keys` in `grant-go.json`. The kit reads them strictly (`profiles/mailie/keyscheme_vectors_test.go`, `js/test/mailie-keyscheme.spec.ts`): a member no runner reads fails the case. Never rewritten.
+
+| File | Module | Cases | Must fail | Go only | sha256 |
+|---|---|---|---|---|---|
+| `mailie/key-scheme-v1/account-go.json` | `account` | 104 | 60 | 10 (the server's salts; a wrap key of 31 bytes) | `2e75516cb5246a0e30db3e940a0c5dff53a449e83b003ed8bb33a1fefdacf6be` |
+| `mailie/key-scheme-v1/grant-go.json` | `seal` | 107 | 69 | 14 (the server's check of a public key) | `fd6ce1d1ef9d415b756517e939328e56ee819c549e452818453ed6cca8362844` |
+| `mailie/key-scheme-v1/platform-wrap-go.json` | `platformwrap` | 31 | 18 | 0 | `f8bd4a8fa6f74697e93ec19d1dba41f38915953319964076a603333808801a68` |
+| `mailie/key-scheme-v1/browser-vault-go.json` | `browser_account` | 6 | 3 | 0 | `1988b3bcb61161ace08ee99caa23267f16c692b68cfd02f40f472942b88b7ee3` |
+
+248 cases, 150 of which must fail; TypeScript runs 224 of them, 137 must fail. Each file ends with one newline; `account-go.json` (42088 bytes) holds the UTF-8 of the addresses its normalisation cases spell, the other three (44871, 18631 and 2786 bytes) are ASCII. Go runs every case (`TestMailieKeySchemeVectors`); TypeScript, in Node and in Chromium, Firefox and WebKit, runs every case marked for it, replaying the account and platform wraps byte for byte from their recorded nonces and opening Go's grants beside fresh ones of its own; `vectors/vectors_test.go` checks the files' sha256 and counts.
+
+### The Mailie sources the kit's profile was taken from
+
+sha256 at `c9c79cf`. The kit's `profiles/mailie` (Go, beside v0.6.0's platform wrap) and `@thehappieco/kit/profiles/mailie` (TypeScript) are Mailie's `internal/keyscheme` and `web/src/crypto/mailie.ts` with the kit's names and wording: errors `mailie.ErrBinding`, `ErrShape`, `ErrPublicKey` (messages starting `mailie:`) and TypeScript's `MailieError` (Mailie's `KeySchemeError`), and without Mailie's server-side and drawing functions (`NormaliseAddress`, `DecoySalt`, `NewSealID`, `normaliseAddress`, `newNamespace`). Every byte they produce is Mailie's.
+
+| Mailie file | sha256 | In the kit |
+|---|---|---|
+| `docs/key-scheme.md` | `a926c94113436cfdb8e331246705c23365b2cb58c0b9b7f2b7973f7cd5e915b7` | SPEC Appendix D |
+| `docs/key-scheme-threat-model.md` | `43e41a804add74af3774f2473262674d40a20ca9613fe472a90ff39ea59acd22` | cited by SPEC Appendix D and section 13 |
+| `internal/keyscheme/keyscheme.go` | `87ecbffc53feaa3c5ffffb111359c88cf9f36d926091f06f0c3fdf982d94cc4b` | `profiles/mailie/keyscheme.go` |
+| `internal/keyscheme/account.go` | `08e5cb9460e6ec5f1b25bef681d186953bd8d0ac85c22b8dd42938568c945429` | `profiles/mailie/account.go` |
+| `internal/keyscheme/grant.go` | `a3501c55ed94548e4c4ac8d85ba3844bfd632744183abbadcad1a544bd7c1e6e` | `profiles/mailie/grant.go` |
+| `internal/keyscheme/platform.go` | `88e7f456f89c4eafb49227cf9c73199991303496ac5decc3ceeb43038bd83581` | `profiles/mailie/mailie.go` (`PlatformWrapBinding`), `browservault.go` |
+| `internal/keyscheme/keyscheme_test.go` | `cd47c402bbf1b063bb3804e87ec615b12b322bd4ff58bdac5cb5630ce7a23b68` | `profiles/mailie/keyscheme_test.go` |
+| `internal/keyscheme/vectors_test.go` | `c41761931fb79f033a9e9ae6ad970333f41254b8666cfada0cef2808cccbf91f` | `profiles/mailie/keyscheme_vectors_test.go` |
+| `web/src/crypto/mailie.ts` | `46a61fd2f6386780b8ecf8c4139e5ae80a3369e8ad149589c7f6468a076fcc74` | `js/src/profiles/mailie.ts` |
+| `web/test/keyscheme.spec.ts` | `215e968353a252b38cb0a28c1813f69950d2b7ed9f2750eb980a71f2723a7e2c` | `js/test/mailie-keyscheme.spec.ts` |
+
 ## The kit's own vectors
 
 `kit/*-go.json` were written by `internal/cross/write_test.go` and `kit/*-ts.json` by `js/test/cross.spec.ts`, each at the kit commit recorded in its `generated_by.source`, with fresh randomness (`make vectors-kit`). They are the golden vectors of the kit's own implementations from v0.1.0 on.

@@ -118,9 +118,14 @@ jobs:
         run: make vectors-mailie-regen
       # Mailie's key-scheme files (SPEC Appendix D), from Mailie at c9c79cf:
       # every case runs, and profiles/mailie writes all four again byte for
-      # byte, their seeded seals included, here as on go1.26.9 and stable.
+      # byte. The seeded seals of two of them are replayed only on the
+      # toolchains the test lists (vectors/PROVENANCE.md), go1.26.7 and
+      # go1.26.9 among them; on any other, which stable may become, they skip
+      # and say so, so here they must run.
       - name: Mailie's key-scheme files reproduce from the kit
-        run: go test -count=1 -v -run '^(TestMailieKeySchemeVectors|TestTheKitWritesMailiesKeySchemeVectorsAgain)$' ./profiles/mailie
+        run: |
+          out=$(go test -count=1 -v -run '^(TestMailieKeySchemeVectors|TestTheKitWritesMailiesKeySchemeVectorsAgain)$' ./profiles/mailie)
+          if echo "$out" | grep -q 'replay needs'; then echo "Mailie's seeded replays skipped on go1.26.7"; exit 1; fi
 
   go-current:
     name: go stable

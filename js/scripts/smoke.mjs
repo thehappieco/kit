@@ -1,5 +1,6 @@
 // Installs the packed tarball into an empty directory, as a consumer would,
-// and exercises every subpath export from there.
+// and exercises every subpath export from there; then bundles Mailie's
+// profile from there, as Mailie's console does.
 //
 //   node scripts/pack.mjs && node scripts/smoke.mjs
 
@@ -8,6 +9,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { build } from 'esbuild'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
@@ -138,6 +140,32 @@ await import('@thehappieco/kit/kdf.worker').catch(err => assert.match(String(err
 console.log('smoke: every export loads and works from the installed tarball')
 `)
   execFileSync('node', ['smoke.mjs'], { cwd: dir, stdio: 'inherit' })
+
+  // The Mailie build rule: Mailie's open console fails on any output that
+  // names the platform, and derives through @thehappieco/kit/account with a
+  // worker of its own. Every export of @thehappieco/kit/profiles/mailie,
+  // bundled from the installed tarball with tree-shaking, must name neither
+  // the platform nor a KDF worker. The entry's module graph does reach
+  // internal modules that hold the platform's labels, which tree-shaking
+  // drops, so a bundle without it would not pass. Whitespace is minified,
+  // which drops comments, among them the path comments that name the
+  // package's scope; identifiers and strings are kept as written.
+  const bundled = await build({
+    stdin: { contents: "export * from '@thehappieco/kit/profiles/mailie'", resolveDir: dir, loader: 'js' },
+    absWorkingDir: dir,
+    bundle: true,
+    write: false,
+    format: 'esm',
+    platform: 'browser',
+    treeShaking: true,
+    minifyWhitespace: true,
+    logLevel: 'silent',
+  })
+  const text = bundled.outputFiles[0].text
+  for (const [what, pattern] of [["the platform's name", /happie/i], ['a KDF worker', /kdf\.worker|new Worker\b/]]) {
+    if (pattern.test(text)) throw new Error(`smoke: the bundle of @thehappieco/kit/profiles/mailie names ${what}`)
+  }
+  console.log(`smoke: @thehappieco/kit/profiles/mailie bundles (${text.length} bytes) naming neither the platform nor a KDF worker`)
 } finally {
   rmSync(dir, { recursive: true, force: true })
 }

@@ -10,8 +10,10 @@ package mailie_test
 //   - TestTheKitWritesMailiesKeySchemeVectorsAgain re-derives the four files
 //     from this package with Mailie's generator (its
 //     internal/keyscheme/vectors_test.go at c9c79cf, ported to the kit's
-//     names below) and compares them with the frozen ones byte for byte, the
-//     seeded seals included.
+//     names below) and compares them with the frozen ones byte for byte: the
+//     two that draw nothing random on any toolchain, and the two whose seals
+//     ran under a seed, account-go.json and grant-go.json, only on the
+//     toolchains ksReplayToolchains lists.
 //
 // Two of the scheme's values are Mailie's server's, not the kit's: how it
 // normalises an address and the salt it hands out (Mailie's spec, sections 2
@@ -36,6 +38,7 @@ import (
 	"iter"
 	"maps"
 	"reflect"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -56,17 +59,30 @@ import (
 // ksDir is where the kit carries Mailie's files.
 const ksDir = "mailie/key-scheme-v1/"
 
-// The files, with the module each names and its counts of cases and of
-// must-fail cases (Mailie's spec, section 14).
+// The files, with the module each names, its counts of cases and of
+// must-fail cases (Mailie's spec, section 14), and whether any of its seals
+// ran under a seed (testing/cryptotest.SetGlobalRandom).
 var ksFiles = []struct {
 	name, module    string
 	cases, mustFail int
+	seeded          bool
 }{
-	{"account-go.json", "account", 104, 60},
-	{"grant-go.json", "seal", 107, 69},
-	{"platform-wrap-go.json", "platformwrap", 31, 18},
-	{"browser-vault-go.json", "browser_account", 6, 3},
+	{"account-go.json", "account", 104, 60, true},
+	{"grant-go.json", "seal", 107, 69, true},
+	{"platform-wrap-go.json", "platformwrap", 31, 18, false},
+	{"browser-vault-go.json", "browser_account", 6, 3, false},
 }
+
+// ksReplayToolchains are the toolchains on which the kit replays the seeded
+// seals of Mailie's files byte for byte: the one that wrote them, go1.27.2,
+// and those the kit checked the replay on (vectors/PROVENANCE.md), CI's
+// go1.26.7 and go1.26.9 among them. How the standard library consumes
+// randomness may change between Go versions (testing/cryptotest), so on any
+// other toolchain the replay skips and says so, as Wappie's seeded replays
+// do, and Mailie's own generator: TestMailieKeySchemeVectors still opens
+// every seeded seal there. A toolchain joins the list only once the replay
+// has passed on it.
+var ksReplayToolchains = []string{"go1.26.7", "go1.26.9", "go1.27.1", "go1.27.2"}
 
 // The header every file records: Mailie's generator, on Mailie's toolchain.
 // The kit's re-derivation writes it as recorded.
@@ -188,16 +204,28 @@ func TestMailieKeySchemeVectors(t *testing.T) {
 // Every random draw of the files is either recorded (a nonce) or ran under
 // testing/cryptotest.SetGlobalRandom with the seed its case records (an
 // account wrap's nonce, a grant's ephemeral key), so the files are a pure
-// function of the kit's code and of cryptotest's stream.
+// function of the kit's code and of cryptotest's stream on a given
+// toolchain. The two files without a seed are compared on every toolchain;
+// the two with one only on ksReplayToolchains, and on any other their
+// subtests skip with "replay needs".
 func TestTheKitWritesMailiesKeySchemeVectorsAgain(t *testing.T) {
-	for name, f := range ksBuildAll(t) {
-		frozen, err := fs.ReadFile(vectors.FS, ksDir+name)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got := ksEncode(t, f); !bytes.Equal(got, frozen) {
-			t.Errorf("%s: the kit writes other bytes than Mailie's file at c9c79cf (%d bytes, want %d)", name, len(got), len(frozen))
-		}
+	built := ksBuildAll(t)
+	for _, want := range ksFiles {
+		t.Run(want.name, func(t *testing.T) {
+			if want.seeded && !slices.Contains(ksReplayToolchains, runtime.Version()) {
+				t.Skipf("replay needs one of %s (this is %s): TestMailieKeySchemeVectors opens its seeded seals rather than replaying them", strings.Join(ksReplayToolchains, ", "), runtime.Version())
+			}
+			frozen, err := fs.ReadFile(vectors.FS, ksDir+want.name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := ksEncode(t, built[want.name]); !bytes.Equal(got, frozen) {
+				t.Errorf("%s: the kit writes other bytes than Mailie's file at c9c79cf (%d bytes, want %d)", want.name, len(got), len(frozen))
+			}
+		})
+	}
+	if len(built) != len(ksFiles) {
+		t.Errorf("the generator builds %d files, want %d", len(built), len(ksFiles))
 	}
 }
 
@@ -337,8 +365,8 @@ const (
 	// passwordNFC and passwordNFD are one password, typed two ways: NFC with
 	// spaces, and NFD with no-break spaces, which the preparation turns into
 	// NFC with spaces.
-	passwordNFC = "Pão de açúcar à noite"
-	passwordNFD = "Pão de açúcar à noite"
+	passwordNFC = "P\u00e3o de a\u00e7\u00facar \u00e0 noite"
+	passwordNFD = "Pa\u0303o\u00a0de\u00a0ac\u0327u\u0301car\u00a0a\u0300\u00a0noite"
 	// recoveryCode is the code of bytes 0 to 29, written as it is shown.
 	recoveryCode = "01234-56789-ABCDE-FGHJK-MNPQR-STVWX"
 	// recoveryTyped is the same code as somebody types it back.
@@ -519,9 +547,9 @@ func buildAccount(t *testing.T) *ksFile {
 		"a-u":               "01234-56789-ABCDE-FGHJK-MNPQR-STVWU",
 		"29-characters":     recoveryCode[:34],
 		"31-characters":     recoveryCode + "0",
-		"a-full-width-a":    "01234-56789-ＡBCDE-FGHJK-MNPQR-STVWX",
-		"a-no-break-space":  "01234 56789-ABCDE-FGHJK-MNPQR-STVWX",
-		"a-dotless-i":       "0ı234-56789-ABCDE-FGHJK-MNPQR-STVWX",
+		"a-full-width-a":    "01234-56789-\uff21BCDE-FGHJK-MNPQR-STVWX",
+		"a-no-break-space":  "01234\u00a056789-ABCDE-FGHJK-MNPQR-STVWX",
+		"a-dotless-i":       "0\u0131234-56789-ABCDE-FGHJK-MNPQR-STVWX",
 		"an-empty-string":   "",
 		"a-vertical-tab":    "01234\v56789-ABCDE-FGHJK-MNPQR-STVWX",
 		"a-plus-separator":  "01234+56789-ABCDE-FGHJK-MNPQR-STVWX",
@@ -1063,7 +1091,8 @@ func (a args) params(k string) account.KDFParams {
 	return params
 }
 
-// seed reads a seal's recorded seed: Go's re-derivation replays it
+// seed reads a seal's recorded seed: Go's re-derivation replays it on the
+// toolchains ksReplayToolchains lists
 // (TestTheKitWritesMailiesKeySchemeVectorsAgain).
 func (a args) seed() {
 	if n := a.num("seed"); n < 1 {
@@ -1357,7 +1386,8 @@ func accountUnwrap(a args, p account.Profile) (map[string]any, error) {
 // grantSeal opens the case's recorded grant with its recipient's private key
 // and checks its shape, then seals a fresh one and opens that; a refusal is
 // asked of SealGrant. The recorded bytes come from a seeded ephemeral key:
-// TestTheKitWritesMailiesKeySchemeVectorsAgain replays it.
+// TestTheKitWritesMailiesKeySchemeVectorsAgain replays it on the toolchains
+// ksReplayToolchains lists.
 func grantSeal(a args) (map[string]any, error) {
 	pub, ns, sealID, epoch, key := a.b64("recipient_public_key_b64"), a.str("namespace"), a.str("seal_id"), a.num("epoch"), a.b64("mailbox_key_b64")
 	if !a.has("recipient") {

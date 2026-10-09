@@ -254,7 +254,10 @@ vectors-thcseal-check:
 # this working tree (a replace), so Mailie's own code over this tree writes
 # the same bytes. The kit's own re-derivation of the four files,
 # TestTheKitWritesMailiesKeySchemeVectorsAgain of profiles/mailie, runs in
-# every go test, in CI too. Not in CI: Mailie's repository is private.
+# every go test, in CI too, and replays the seeded seals of two of them only
+# on the toolchains it lists (go1.26.7, on which CI must replay them,
+# go1.26.9, go1.27.1 and go1.27.2). Not in CI: Mailie's repository is
+# private.
 MAILIE ?= ../mailserver
 MAILIE_COMMIT ?= c9c79cf346f61c45cac558263f27438ac5500f4c
 MAILIE_TOOLCHAIN ?= go1.27.2

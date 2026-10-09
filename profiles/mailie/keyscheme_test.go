@@ -16,6 +16,7 @@ import (
 	"github.com/thehappieco/kit/profiles/platform"
 	"github.com/thehappieco/kit/profiles/wappie"
 	"github.com/thehappieco/kit/seal"
+	"github.com/thehappieco/kit/thcseal"
 )
 
 // Mailie's kinds pass ValidateKinds (SPEC section 3.3) and name the core
@@ -39,12 +40,20 @@ func TestTheKindsAreAProfileTheKitAccepts(t *testing.T) {
 	}
 }
 
-// Every label of Mailie's profile is distinct from every label of the
-// kit's other profiles (Appendices A and C) and from each other (SPEC
-// section 3.3), and the first bytes of Mailie's three envelopes of a
-// person's keys differ, so a blob in the wrong column fails at its first
-// byte. The platform profile's labels are spelled out as Appendix C lists
-// them, since package platform does not export them all.
+// Every label of Mailie's profile (Appendix D) is distinct from each other
+// and from every label of the kit's other profiles (Appendices A and C;
+// SPEC section 3.3), and its seal magic from Wappie's, the kit's other seal
+// domain. The first bytes of Mailie's three envelopes of a person's keys
+// differ, so a blob in the wrong column fails at its first byte, and each
+// is distinct from the first byte of every other header of the kit (Wappie's
+// legacy v1 wraps have none) but two, which are shared on purpose: the account wrap's 0x02 with Wappie's
+// password and recovery wraps (section 6.8 asks only that a product's other
+// envelopes of its account key not start with 0x03), and the platform
+// wrap's 0x03 with Wappie's, the construction's for every product. A blob of
+// those two in Mailie's column fails at its tag. The platform profile's
+// labels are spelled out as Appendix C lists them, since package platform
+// does not export them all; the kinds are checked by
+// TestTheKindsAreAProfileTheKitAccepts.
 func TestNoLabelOrHeaderIsAnotherProfiles(t *testing.T) {
 	ours := []string{
 		mailie.PasswordAuthLabel, mailie.PasswordWrapLabel, mailie.RecoveryWrapLabel, mailie.RecoveryAuthLabel,
@@ -80,6 +89,36 @@ func TestNoLabelOrHeaderIsAnotherProfiles(t *testing.T) {
 	first := map[byte]string{mailie.AccountWrapHeader: "account wrap", platformwrap.Header: "platform wrap", mailie.SealMagic[0]: "grant"}
 	if len(first) != 3 {
 		t.Errorf("two envelopes of the scheme start with the same byte: %v", first)
+	}
+	others := []struct {
+		name  string
+		first byte
+	}{
+		{"Wappie's password and recovery wraps", wappie.Account().WrapHeader[0]},
+		{"Wappie's passkey envelope", pk.Header[0]},
+		{"Wappie's platform wrap", wappie.PlatformWrapHeader},
+		{"Wappie's seal envelopes", wappie.SealDomain().Magic[0]},
+		{"the platform's password root wrap", platform.RootWrapProfile(platform.WrapPassword).WrapHeader[0]},
+		{"the platform's recovery root wrap", platform.RootWrapProfile(platform.WrapRecovery).WrapHeader[0]},
+		{"the platform's passkey root wrap", platform.PasskeyProfile().Header[0]},
+		{"THCSEAL's envelope", thcseal.Magic[0]},
+	}
+	shared := map[string]string{
+		"account wrap":  "Wappie's password and recovery wraps",
+		"platform wrap": "Wappie's platform wrap",
+	}
+	for b, ours := range first {
+		for _, o := range others {
+			if b != o.first {
+				if shared[ours] == o.name {
+					t.Errorf("Mailie's %s no longer shares 0x%02x with %s, as SPEC Appendix D and the CHANGELOG say", ours, b, o.name)
+				}
+				continue
+			}
+			if shared[ours] != o.name {
+				t.Errorf("Mailie's %s starts with 0x%02x, as %s does", ours, b, o.name)
+			}
+		}
 	}
 }
 

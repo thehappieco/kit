@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { build } from 'esbuild'
 import { describe, expect, it } from 'vitest'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
@@ -38,5 +39,28 @@ describe('the package', () => {
       const imports = [...text.matchAll(/from '([^']+)'|import\('([^']+)'\)/g)].map((m) => m[1] ?? m[2])
       for (const spec of imports) expect(spec.startsWith('.') || spec.startsWith('@noble/hashes/'), `${file}: ${spec}`).toBe(true)
     }
+  })
+
+  it("bundles Mailie's profile naming neither the platform nor a KDF worker", async () => {
+    // The Mailie build rule, on the sources: every export of the entry,
+    // bundled with tree-shaking as Mailie's console bundles it. Its module
+    // graph reaches internal modules that hold the platform's labels, which
+    // tree-shaking must drop. scripts/smoke.mjs checks the packed tarball.
+    // Whitespace is minified, which drops comments; identifiers and strings
+    // are kept as written.
+    const bundled = await build({
+      entryPoints: [join(root, 'src', 'profiles', 'mailie.ts')],
+      bundle: true,
+      write: false,
+      format: 'esm',
+      platform: 'browser',
+      treeShaking: true,
+      minifyWhitespace: true,
+      logLevel: 'silent',
+    })
+    const text = bundled.outputFiles[0].text
+    expect(text.length).toBeGreaterThan(10_000)
+    expect(text).not.toMatch(/happie/i)
+    expect(text).not.toMatch(/kdf\.worker|new Worker\b/)
   })
 })

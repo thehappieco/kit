@@ -14,7 +14,7 @@ There are three file formats: the kit's own (below), used by everything under `w
 | `kit/` | Vectors written by the kit itself: `*-go.json` by the Go code for TypeScript to open, `*-ts.json` the reverse. |
 | `mailie/golden/` | Mailie's golden vectors: `platform-wrap-go.json`, its platform wrap (SPEC section 6.8 under Mailie's labels, Appendix D), written by the kit's Go code with nothing random, by the generator in `mailie/_generators/` (`PROVENANCE.md`). TypeScript opens every case. |
 | `mailie/_generators/` | The generator of `mailie/golden/platform-wrap-go.json`, for `make vectors-mailie-regen`, which CI runs. Not built by the go tool, not embedded. |
-| `mailie/key-scheme-v1/` | Mailie's own vectors of its key scheme, version 1 (SPEC Appendix D): `account-go.json`, `grant-go.json`, `platform-wrap-go.json` and `browser-vault-go.json`, byte for byte as Mailie's Go code wrote them at Mailie `c9c79cf` (`PROVENANCE.md`), in the kit's format. Both languages run every case marked for them; `profiles/mailie` writes all four again byte for byte, and `make vectors-mailie-check` has Mailie's own generator write them. |
+| `mailie/key-scheme-v1/` | Mailie's own vectors of its key scheme, version 1 (SPEC Appendix D): `account-go.json`, `grant-go.json`, `platform-wrap-go.json` and `browser-vault-go.json`, byte for byte as Mailie's Go code wrote them at Mailie `c9c79cf` (`PROVENANCE.md`), in the kit's format. Go runs all 248 cases and TypeScript the 224 marked for it; `profiles/mailie` writes all four again byte for byte (the seeded seals of `account-go.json` and `grant-go.json` on the toolchains `PROVENANCE.md` lists), and `make vectors-mailie-check` has Mailie's own generator write them. |
 | `platform/id-v1/` | The platform's golden vectors of its protocol `id-v1`, byte for byte as the platform's Go code wrote them at the commits in `PROVENANCE.md`, in the platform's format: part 1 (SPEC sections 11.1 to 11.11) at `5e66d84`, part 2 (sections 11.12 to 11.15) at `4476bf4`, part 3 (section 11.16) at `b5d9f69`, and the relying party rule of section 11.16 at `75b6b94`. |
 | `platform/_generators/` | The platform's generator at `5e66d84`, kept for provenance. Not built, not embedded. |
 | `platform/_generators-4476bf4/` | The platform's generator at `4476bf4`, which wrote part 2 and writes the part-1 files unchanged. Not built, not embedded. |
@@ -45,7 +45,7 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 - Bytes are in fields ending `_b64` (standard base64 with padding), hashes in `_hex`, UUIDs as text, integers as JSON numbers up to 2^53, wire text as JSON strings.
 - Each case has exactly one of `out` and `error`. Account errors also carry a `reason`.
 - `langs`, when present, narrows which languages run a case; absent means every language that implements the op.
-- Seals record the randomness they consumed: `seed` (Go, `testing/cryptotest.SetGlobalRandom`, replayed only on the recorded toolchain), `ephemeral_private_key_b64` or `nonce_b64` (replayed by injecting exactly those bytes). The fresh key deliveries of `kit/platform-delivery-{go,ts}.json` record nothing they drew, as their `generated_by.randomness` says: they are checked by opening.
+- Seals record the randomness they consumed: `seed` (Go, `testing/cryptotest.SetGlobalRandom`, replayed only on the recorded toolchain, or, for the files of `mailie/key-scheme-v1/`, on the toolchains `PROVENANCE.md` lists as checked, which the recorded one is among; on any other the replay skips and says so), `ephemeral_private_key_b64` or `nonce_b64` (replayed by injecting exactly those bytes). The fresh key deliveries of `kit/platform-delivery-{go,ts}.json` record nothing they drew, as their `generated_by.randomness` says: they are checked by opening.
 - Ids are stable and unique within a file.
 - A file may name key pairs under `keys` (`private_key_b64`, `public_key_b64`), which its cases refer to by name: `mailie/key-scheme-v1/grant-go.json`'s `key` and `recipient`.
 - Refusals that need an input no profile function produces carry it directly: `public_key_b64` (a key of low order, on `hpke.seal` and `seal.seal_direct`), `aad_b64` (an AAD given as is, empty included, on `passkey.wrap` and `passkey.unwrap`), and `<field>_wtf8_b64` in place of a string field: a string that is not Unicode, as WTF-8 bytes, which Go takes as the (invalid UTF-8) string itself and TypeScript decodes to a string with a lone surrogate.
@@ -111,12 +111,13 @@ Files are append-only once a release is tagged: a changed case is a new id, and 
 | `mailie.platform_wrap_open` | compute; refuse | compute; refuse |
 | `platform.passkey_wrap` (`k_pk_b64` from Go only: TypeScript's K_pk is not extractable) | compute; replay (nonce); open | compute; replay (nonce); open |
 | Mailie's key scheme: `mailie.account_profile`, `mailie.seal_profile`, `mailie.browser_vault_profile` | compute | compute |
-| `mailie.normalise_address`, `mailie.decoy_salt` (Go only): Mailie's server's, not the kit's | reference implementation in the tests | reference implementation in the tests |
+| `mailie.normalise_address`: Mailie's server's, not the kit's | reference implementation in the tests | reference implementation in the tests |
+| `mailie.decoy_salt`: Mailie's server's, not the kit's | reference implementation in the tests | |
 | `account.derive`, `account.normalise_recovery_code`, `account.recovery_key`, `account.recovery_proof`, `mailie.recovery_code` (Mailie's profile) | compute | compute |
 | `mailie.account_wrap_aad`, `mailie.account_unwrap`, `mailie.account_wrap_shape` | compute; refuse | compute; refuse |
-| `mailie.account_wrap` | replay (nonce, which the case's `seed` drew); refuse | replay (nonce); refuse |
+| `mailie.account_wrap` | replay (nonce, which the case's `seed` drew); replay the file (seed, on the toolchains `PROVENANCE.md` lists); refuse | replay (nonce); refuse |
 | `seal.kind_name`, `mailie.grant_row`, `mailie.grant_info`, `mailie.grant_aad`, `mailie.grant_open`, `mailie.grant_shape` | compute; refuse | compute; refuse |
-| `mailie.grant_seal` | open, and seal and open a fresh one; replay the file (seed); refuse | open, and seal and open a fresh one; refuse |
+| `mailie.grant_seal` | open, and seal and open a fresh one; replay the file (seed, on the toolchains `PROVENANCE.md` lists); refuse | open, and seal and open a fresh one; refuse |
 | `mailie.public_key_check` (a server's) | compute; refuse | |
 | `mailie.product_key`, `mailie.platform_wrap_binding`, `mailie.platform_wrap_info`, `mailie.platform_wrap_aad`, `mailie.platform_wrap_open` | compute; refuse | compute; refuse |
 | `mailie.platform_wrap_seal` (`k_pw_b64` checked by Go) | replay (nonce); refuse | replay (nonce); refuse |

@@ -27,6 +27,15 @@ import (
 // *Refusal with the platform's code. Every call is bounded in time, whatever
 // its context (CallTimeout, FeedGrace), and an error never carries the
 // request's URL, which names an account or a workspace.
+//
+// An app holds a *Client, as contracttest's Platform.Client returns one.
+// String, GoString and LogValue hide the secrets, and Secret and Accept
+// are no JSON members, but fmt calls String only where it can: a Client
+// held by value in an unexported field of the app's own struct prints raw,
+// its secrets among them, while a *Client there prints as its address
+// under %v, %+v and %#v. A verb a pointer does not take, such as %s, still
+// prints what it points to, so an app prints such a struct with %v or not
+// at all.
 type Client struct {
 	// App is the app's id; Secret the secret it signs with; Accept, when
 	// not empty, the secrets an answer may be signed with (during a
@@ -85,8 +94,8 @@ func (c Client) LogValue() slog.Value {
 	return slog.GroupValue(slog.String("app", c.App), slog.String("base", c.Base))
 }
 
-// MaxAnswer is the largest answer a Client reads: a feed of MaxFeedItems
-// documents fits well under it.
+// MaxAnswer is the largest answer a Client reads: the platform ends a feed
+// page early, with more, before its documents reach half of it.
 const MaxAnswer = 8 << 20
 
 // ErrUnverified means an answer's signature did not hold, or the answer it

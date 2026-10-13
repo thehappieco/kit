@@ -88,6 +88,30 @@ func TestTheClientNeverPrintsItsSecrets(t *testing.T) {
 	}
 }
 
+// An app holds a *Client, as the Client's comment asks: in an unexported
+// field of the app's own struct, where fmt cannot call String, a pointer
+// prints as its address, while a Client held by value there prints its
+// secrets, which is why the comment asks for the pointer.
+func TestAnAppHoldsItsClientByPointer(t *testing.T) {
+	type server struct {
+		name   string
+		client *contract.Client
+	}
+	s := server{name: "wappie", client: &contract.Client{App: "wappie", Secret: clientSecret, Accept: []string{clientSecret}, Base: "http://contract"}}
+	var logged strings.Builder
+	slog.New(slog.NewTextHandler(&logged, nil)).Info("server", "s", s)
+	slog.New(slog.NewJSONHandler(&logged, nil)).Info("server", "s", s)
+	for _, printed := range []string{fmt.Sprintf("%v %+v %#v", s, s, s), fmt.Sprintf("%v %+v %#v", &s, &s, &s), logged.String()} {
+		if strings.Contains(printed, clientSecret[:10]) {
+			t.Fatalf("the secret printed: %s", printed)
+		}
+	}
+	type byValue struct{ client contract.Client }
+	if !strings.Contains(fmt.Sprintf("%v", byValue{*s.client}), clientSecret[:10]) {
+		t.Fatal("a Client held by value in an unexported field no longer prints raw: the Client's comment can say less")
+	}
+}
+
 // A signed answer that is not valid moves nothing: the call returns the
 // zero value, and the error is ErrUnverified, and ErrInvalid where a rule
 // failed.

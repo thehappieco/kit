@@ -13,7 +13,12 @@
 // a passkey's PRF output gives (PasskeyWrapKey) and the kind-3 root wrap
 // under it (NewPasskeyWrap, OpenPasskeyWrap), and the allowlist of WebAuthn
 // client extension results the id. server applies (CheckClientExtensions).
-// The WebAuthn ceremony itself stays in the platform.
+// The WebAuthn ceremony itself stays in the platform. The product
+// contract's signature (section 11.17) is named here as the profile names
+// every other value (ContractHMAC, ContractToPlatform, ContractToApp,
+// ContractSecretLen, CheckContractSecrets, SignAnswer, VerifyAnswer); it is
+// package contract's, which also holds the contract's wire, its label mask
+// and an app's client, on the standard library and reqhmac alone.
 //
 // The rule it enforces: the account root opens only for the account, epoch
 // and kind it was wrapped for, and only with a key derived from the
@@ -48,7 +53,10 @@
 //   - CheckPublicKey again for akd_pub, and PKCEChallenge, in the
 //     authorization and token endpoints;
 //   - PRFSalt, for the WebAuthn options it sends, and CheckClientExtensions,
-//     on every credential it receives, before any WebAuthn library reads it.
+//     on every credential it receives, before any WebAuthn library reads it;
+//   - on the contract socket, ContractHMAC, CheckContractSecrets and
+//     SignAnswer. An app's server signs its requests with ContractHMAC and
+//     checks every answer with VerifyAnswer.
 //
 // What stays in the platform: the product registry, the account ceremonies
 // built from these pieces, page rules such as refusing a password equal to

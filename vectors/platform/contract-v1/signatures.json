@@ -1,0 +1,335 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "signatures",
+  "description": "Requests to the platform (to-platform) and answers to the app (to-app), signed with the kit's reqhmac under the platform's label; the key is the secret's 43 characters as written. An app checks an answer with contract.VerifyAnswer: answer_checks gives the result for each case, 'ok' or the refusal's code.",
+  "label": "thehappie-platform-hmac/v1",
+  "headers": [
+    "X-Happie-App",
+    "X-Happie-Timestamp",
+    "X-Happie-Nonce",
+    "X-Happie-Signature"
+  ],
+  "skew_seconds": 60,
+  "requests": [
+    {
+      "name": "subscribe at a sign-in",
+      "secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "direction": "to-platform",
+      "app": "wappie",
+      "method": "PUT",
+      "target": "/contract/v1/accounts/0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+      "timestamp": "1760356800",
+      "nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "",
+      "canonical": "thehappie-platform-hmac/v1\nto-platform\nwappie\nPUT\n/contract/v1/accounts/0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\n1760356800\nAAECAwQFBgcICQoLDA0ODw\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "signature": "v1=76dc354f2da04d8fd1afd67f46f8e941e5e4f9ca325909e7dd92020a4e1249d8"
+    },
+    {
+      "name": "the feed, a target with a query",
+      "secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "direction": "to-platform",
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "timestamp": "1760356800",
+      "nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "",
+      "canonical": "thehappie-platform-hmac/v1\nto-platform\nwappie\nGET\n/contract/v1/feed?after=41&wait=25\n1760356800\nAAECAwQFBgcICQoLDA0ODw\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "signature": "v1=88a77d114c37fb5f1ec6269dac7484f25d010fe0aaaf1ba5afe9a150033362e7"
+    },
+    {
+      "name": "a snapshot, from mailie",
+      "secret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+      "direction": "to-platform",
+      "app": "mailie",
+      "method": "PUT",
+      "target": "/contract/v1/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/access",
+      "timestamp": "1760356800",
+      "nonce": "EBESExQVFhcYGRobHB0eHw",
+      "body": "{\"v\":1,\"snapshot_seq\":1760356800000,\"items\":[]}",
+      "canonical": "thehappie-platform-hmac/v1\nto-platform\nmailie\nPUT\n/contract/v1/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/access\n1760356800\nEBESExQVFhcYGRobHB0eHw\n0a856694201382cde2b3948b56ace81f4764bc4fcd923684e06e40b1164be759",
+      "signature": "v1=60de5f654acd9b38e91c1130061eac8717b79be0538cac0e4fc00e65234422ce"
+    },
+    {
+      "name": "a lowercase method is signed in upper case",
+      "secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "direction": "to-platform",
+      "app": "wappie",
+      "method": "post",
+      "target": "/contract/v1/events",
+      "timestamp": "1760356800",
+      "nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"events\":[]}",
+      "canonical": "thehappie-platform-hmac/v1\nto-platform\nwappie\nPOST\n/contract/v1/events\n1760356800\nAAECAwQFBgcICQoLDA0ODw\n24de1c4a19c43ad41b013f13dcd858c17b0daa7f33a53f19913e5b11366d1c2e",
+      "signature": "v1=543ff3b77baecd180c0fc28b26726de5bcea06c3972806712f58d2d097728bc3"
+    }
+  ],
+  "answers": [
+    {
+      "name": "the answer to a subscription",
+      "secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "direction": "to-app",
+      "app": "wappie",
+      "method": "PUT",
+      "target": "/contract/v1/accounts/0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+      "timestamp": "1760356800",
+      "nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"v\":1}",
+      "canonical": "thehappie-platform-hmac/v1\nto-app\nwappie\nPUT\n/contract/v1/accounts/0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\n1760356800\nAAECAwQFBgcICQoLDA0ODw\nafbf9d0f3560b0fd7795e81c42a0a79ee6b6fc67e064f77826aee642cad28d91",
+      "signature": "v1=adc36b809d467ad056eac1c920066e522c8a8208eefb9223ab4215949d8bb8a9"
+    },
+    {
+      "name": "the answer to the feed",
+      "secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "direction": "to-app",
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "timestamp": "1760356800",
+      "nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":[]}",
+      "canonical": "thehappie-platform-hmac/v1\nto-app\nwappie\nGET\n/contract/v1/feed?after=41&wait=25\n1760356800\nAAECAwQFBgcICQoLDA0ODw\neef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1",
+      "signature": "v1=d8bfa46e12ad800fd6fde7784c73386ecc67e19d8d5b34e6bc28c68e95729847"
+    },
+    {
+      "name": "a signed refusal",
+      "secret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+      "direction": "to-app",
+      "app": "mailie",
+      "method": "PUT",
+      "target": "/contract/v1/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/access",
+      "timestamp": "1760356800",
+      "nonce": "EBESExQVFhcYGRobHB0eHw",
+      "body": "{\"code\":\"not_found\",\"message\":\"no such workspace\"}",
+      "canonical": "thehappie-platform-hmac/v1\nto-app\nmailie\nPUT\n/contract/v1/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/access\n1760356800\nEBESExQVFhcYGRobHB0eHw\nbc1aa5da86f3b97267665251846e9e2b85ad3e5e4dc8887fd2d07f583c72ff34",
+      "signature": "v1=377a3a91d68b10a780e808ca4b6e914a106f9361b2bb123fb8a3fc12d2db6878"
+    }
+  ],
+  "answer_checks": [
+    {
+      "name": "the answer to the app's own request",
+      "headers": {
+        "X-Happie-Nonce": "AAECAwQFBgcICQoLDA0ODw",
+        "X-Happie-Signature": "v1=d9c1ee71e1ea9f42a647a364d8626cb65cd522a58c51bd3f8b6d1c0b66ebeab1",
+        "X-Happie-Timestamp": "1791892800"
+      },
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "sent_nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":[]}",
+      "now": 1791892800,
+      "result": "ok"
+    },
+    {
+      "name": "during a rotation, the next secret first",
+      "headers": {
+        "X-Happie-Nonce": "AAECAwQFBgcICQoLDA0ODw",
+        "X-Happie-Signature": "v1=d9c1ee71e1ea9f42a647a364d8626cb65cd522a58c51bd3f8b6d1c0b66ebeab1",
+        "X-Happie-Timestamp": "1791892800"
+      },
+      "secrets": [
+        "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "sent_nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":[]}",
+      "now": 1791892800,
+      "result": "ok"
+    },
+    {
+      "name": "a swapped nonce: the answer to another request",
+      "headers": {
+        "X-Happie-Nonce": "EBESExQVFhcYGRobHB0eHw",
+        "X-Happie-Signature": "v1=18c311a815c836a6c009baa21d23cc80340b0c35791d9622d2d2c2da2a521dba",
+        "X-Happie-Timestamp": "1791892800"
+      },
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "sent_nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":[]}",
+      "now": 1791892800,
+      "result": "answer_nonce"
+    },
+    {
+      "name": "a request's signature presented as an answer",
+      "headers": {
+        "X-Happie-Nonce": "AAECAwQFBgcICQoLDA0ODw",
+        "X-Happie-Signature": "v1=4f2ea6072738f779513eb0d5eaaf4e7d2bee23525620af80a309082582170d7f",
+        "X-Happie-Timestamp": "1791892800"
+      },
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "sent_nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":[]}",
+      "now": 1791892800,
+      "result": "hmac_bad"
+    },
+    {
+      "name": "an answer signed for the other app",
+      "headers": {
+        "X-Happie-Nonce": "AAECAwQFBgcICQoLDA0ODw",
+        "X-Happie-Signature": "v1=3e0e3f6be0f95ea8366a61c23ea0bffb1de6afc6b09dede6d4cb647822741132",
+        "X-Happie-Timestamp": "1791892800"
+      },
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "sent_nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":[]}",
+      "now": 1791892800,
+      "result": "hmac_bad"
+    },
+    {
+      "name": "another body",
+      "headers": {
+        "X-Happie-Nonce": "AAECAwQFBgcICQoLDA0ODw",
+        "X-Happie-Signature": "v1=d9c1ee71e1ea9f42a647a364d8626cb65cd522a58c51bd3f8b6d1c0b66ebeab1",
+        "X-Happie-Timestamp": "1791892800"
+      },
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "sent_nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":null}",
+      "now": 1791892800,
+      "result": "hmac_bad"
+    },
+    {
+      "name": "the key taken as the 32 decoded bytes",
+      "headers": {
+        "X-Happie-Nonce": "AAECAwQFBgcICQoLDA0ODw",
+        "X-Happie-Signature": "v1=d9c1ee71e1ea9f42a647a364d8626cb65cd522a58c51bd3f8b6d1c0b66ebeab1",
+        "X-Happie-Timestamp": "1791892800"
+      },
+      "secrets": [
+        "\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\t\n\u000b\f\r\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f"
+      ],
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "sent_nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":[]}",
+      "now": 1791892800,
+      "result": "hmac_bad"
+    },
+    {
+      "name": "another app's secret",
+      "headers": {
+        "X-Happie-Nonce": "AAECAwQFBgcICQoLDA0ODw",
+        "X-Happie-Signature": "v1=d9c1ee71e1ea9f42a647a364d8626cb65cd522a58c51bd3f8b6d1c0b66ebeab1",
+        "X-Happie-Timestamp": "1791892800"
+      },
+      "secrets": [
+        "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+      ],
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "sent_nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":[]}",
+      "now": 1791892800,
+      "result": "hmac_bad"
+    },
+    {
+      "name": "a minute and a second late",
+      "headers": {
+        "X-Happie-Nonce": "AAECAwQFBgcICQoLDA0ODw",
+        "X-Happie-Signature": "v1=8b0e5214febd64e80d0e159eadd6e1189e68400d9ef80081032e037e030cb319",
+        "X-Happie-Timestamp": "1791892739"
+      },
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "sent_nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":[]}",
+      "now": 1791892800,
+      "result": "hmac_stale"
+    },
+    {
+      "name": "unsigned",
+      "headers": {
+        "X-Happie-Nonce": "AAECAwQFBgcICQoLDA0ODw",
+        "X-Happie-Timestamp": "1791892800"
+      },
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "app": "wappie",
+      "method": "GET",
+      "target": "/contract/v1/feed?after=41&wait=25",
+      "sent_nonce": "AAECAwQFBgcICQoLDA0ODw",
+      "body": "{\"items\":[]}",
+      "now": 1791892800,
+      "result": "hmac_missing"
+    }
+  ],
+  "secrets": [
+    {
+      "name": "a secret",
+      "current": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "next": "",
+      "valid": true
+    },
+    {
+      "name": "a rotation",
+      "current": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "next": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+      "valid": true
+    },
+    {
+      "name": "empty",
+      "current": "",
+      "next": "",
+      "valid": false
+    },
+    {
+      "name": "the next equal to the current",
+      "current": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "next": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "valid": false
+    },
+    {
+      "name": "42 characters",
+      "current": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh",
+      "next": "",
+      "valid": false
+    },
+    {
+      "name": "padded",
+      "current": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh=",
+      "next": "",
+      "valid": false
+    },
+    {
+      "name": "not the canonical encoding of 32 bytes",
+      "current": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHhB",
+      "next": "",
+      "valid": false
+    }
+  ]
+}

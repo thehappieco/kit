@@ -6,11 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"regexp"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/thehappieco/kit/vectors"
 )
@@ -88,13 +90,17 @@ func TestManifest(t *testing.T) {
 // floor parameters`), and a case of theirs that carries an op is cited by op
 // and name (`platform/id-v1/key-delivery.json#open/a sub in upper case`).
 // THCSEAL's file holds two lists, and a case of it is cited by its list and
-// name (`platform/thcseal-v1/thcseal-v1.json#invalid/version 2`).
+// name (`platform/thcseal-v1/thcseal-v1.json#invalid/version 2`), as is a
+// case of the contract's files: by its list and its name
+// (`platform/contract-v1/wire.json#events/a mailbox moved`), and in
+// labels.json, whose cases have no name, by its list and its raw label or
+// its hint (`platform/contract-v1/labels.json#clean/Loja 11912345678`).
 func TestSpecCitations(t *testing.T) {
 	spec, err := os.ReadFile("../SPEC.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	cite := regexp.MustCompile("`((?:kit/|wappie/golden/|mailie/golden/|mailie/key-scheme-v1/|platform/id-v1/|platform/thcseal-v1/)?[a-z0-9-]+\\.json)#([^`]+)`")
+	cite := regexp.MustCompile("`((?:kit/|wappie/golden/|mailie/golden/|mailie/key-scheme-v1/|platform/id-v1/|platform/thcseal-v1/|platform/contract-v1/)?[a-z0-9-]+\\.json)#([^`]+)`")
 	matches := cite.FindAllStringSubmatch(string(spec), -1)
 	if len(matches) < 10 {
 		t.Fatalf("only %d citations found", len(matches))
@@ -120,6 +126,20 @@ func TestSpecCitations(t *testing.T) {
 			} `json:"cases"`
 			Valid   []named `json:"valid"`
 			Invalid []named `json:"invalid"`
+			// The contract's lists.
+			Requests  []named `json:"requests"`
+			Answers   []named `json:"answers"`
+			Checks    []named `json:"answer_checks"`
+			Secrets   []named `json:"secrets"`
+			Documents []named `json:"documents"`
+			Snapshots []named `json:"snapshots"`
+			Events    []named `json:"events"`
+			Clean     []struct {
+				Raw string `json:"raw"`
+			} `json:"clean"`
+			Hints []struct {
+				Hint string `json:"hint"`
+			} `json:"hints"`
 		}
 		if err := json.Unmarshal(raw, &f); err != nil {
 			t.Fatal(err)
@@ -136,6 +156,20 @@ func TestSpecCitations(t *testing.T) {
 		}
 		for _, c := range f.Invalid {
 			ids = append(ids, "invalid/"+c.Name)
+		}
+		for list, cases := range map[string][]named{
+			"requests": f.Requests, "answers": f.Answers, "answer_checks": f.Checks, "secrets": f.Secrets,
+			"documents": f.Documents, "snapshots": f.Snapshots, "events": f.Events,
+		} {
+			for _, c := range cases {
+				ids = append(ids, list+"/"+c.Name)
+			}
+		}
+		for _, c := range f.Clean {
+			ids = append(ids, "clean/"+c.Raw)
+		}
+		for _, c := range f.Hints {
+			ids = append(ids, "hints/"+c.Hint)
 		}
 		found := false
 		for _, have := range ids {
@@ -574,5 +608,140 @@ func TestMailieKeySchemeFiles(t *testing.T) {
 	}
 	if total != 248 || failing != 150 {
 		t.Errorf("%d cases, %d must fail; want 248 and 150", total, failing)
+	}
+}
+
+// The contract's files (SPEC section 11.17) are the platform's, captured at
+// the commit PROVENANCE.md records: each has the sha256 recorded there, so a
+// copy from another commit or an edit fails here even after `make manifest`
+// has recorded it. Their directory holds exactly these three; each is valid
+// UTF-8 ending with exactly one newline, signatures.json ASCII only, in the
+// platform's contract format with its kind, and with its counts of cases,
+// of each answer check's result and of the cases that must be refused,
+// under unique names. contract's own tests run every case and write the
+// three files again byte for byte.
+func TestPlatformContractVectorFiles(t *testing.T) {
+	type named struct {
+		Name   string `json:"name"`
+		Valid  *bool  `json:"valid"`
+		Result string `json:"result"`
+	}
+	type file struct {
+		Format    string  `json:"format"`
+		Version   int     `json:"version"`
+		Kind      string  `json:"kind"`
+		Label     string  `json:"label"`
+		Requests  []named `json:"requests"`
+		Answers   []named `json:"answers"`
+		Checks    []named `json:"answer_checks"`
+		Secrets   []named `json:"secrets"`
+		Documents []named `json:"documents"`
+		Snapshots []named `json:"snapshots"`
+		Events    []named `json:"events"`
+		Clean     []struct {
+			Raw   string `json:"raw"`
+			Clean string `json:"clean"`
+		} `json:"clean"`
+		Hints []struct {
+			Hint  string `json:"hint"`
+			Valid bool   `json:"valid"`
+		} `json:"hints"`
+	}
+	want := []struct {
+		kind   string
+		ascii  bool
+		sha256 string
+		counts string
+	}{
+		{"signatures", true, "4ae124ea7560bcdc07dc430d5a3e6d2b16f826fd073770c1c28ca5614abb4128",
+			"requests 4, answers 3, answer_checks 10 (ok 2, answer_nonce 1, hmac_bad 5, hmac_stale 1, hmac_missing 1), secrets 7 (2 valid)"},
+		{"wire", false, "71b26142b83441799eff34b2ee7d0d4d65e3c659c2f92bea65f60eedba55cd99",
+			"documents 13 (5 valid), snapshots 9 (4 valid), events 17 (8 valid)"},
+		{"labels", false, "ab82c6b835cf7c02a4ab9febadc285787311f4b39d8873050b6c754f04029988",
+			"clean 34, hints 14 (3 valid)"},
+	}
+	entries, err := fs.ReadDir(vectors.FS, "platform/contract-v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != len(want) {
+		t.Errorf("platform/contract-v1 holds %d files, want %d", len(entries), len(want))
+	}
+	for _, w := range want {
+		path := "platform/contract-v1/" + w.kind + ".json"
+		raw, err := fs.ReadFile(vectors.FS, path)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != w.sha256 {
+			t.Errorf("%s is not the file captured at platform a78bf16 (PROVENANCE.md)", path)
+		}
+		if ascii := !bytes.ContainsFunc(raw, func(r rune) bool { return r >= 0x80 }); ascii != w.ascii || !utf8.Valid(raw) {
+			t.Errorf("%s: ASCII only is %v, want %v, or not UTF-8", path, ascii, w.ascii)
+		}
+		if !bytes.HasSuffix(raw, []byte("}\n")) || bytes.HasSuffix(raw, []byte("\n\n")) {
+			t.Errorf("%s does not end with exactly one newline", path)
+		}
+		var f file
+		dec := json.NewDecoder(bytes.NewReader(raw))
+		if err := dec.Decode(&f); err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		if f.Format != "thehappie-contract/vectors" || f.Version != 1 || f.Kind != w.kind {
+			t.Errorf("%s: header %q %d %q", path, f.Format, f.Version, f.Kind)
+		}
+		var counts []string
+		list := func(name string, cases []named) {
+			if len(cases) == 0 {
+				return
+			}
+			names, valid, results := map[string]bool{}, 0, map[string]int{}
+			for _, c := range cases {
+				if c.Name == "" || names[c.Name] {
+					t.Errorf("%s: an empty or repeated %s case %q", path, name, c.Name)
+				}
+				names[c.Name] = true
+				if c.Valid != nil && *c.Valid {
+					valid++
+				}
+				results[c.Result]++
+			}
+			switch {
+			case cases[0].Result != "":
+				counts = append(counts, fmt.Sprintf("%s %d (ok %d, answer_nonce %d, hmac_bad %d, hmac_stale %d, hmac_missing %d)", name, len(cases),
+					results["ok"], results["answer_nonce"], results["hmac_bad"], results["hmac_stale"], results["hmac_missing"]))
+			case cases[0].Valid != nil:
+				counts = append(counts, fmt.Sprintf("%s %d (%d valid)", name, len(cases), valid))
+			default:
+				counts = append(counts, fmt.Sprintf("%s %d", name, len(cases)))
+			}
+		}
+		list("requests", f.Requests)
+		list("answers", f.Answers)
+		list("answer_checks", f.Checks)
+		list("secrets", f.Secrets)
+		list("documents", f.Documents)
+		list("snapshots", f.Snapshots)
+		list("events", f.Events)
+		if len(f.Clean) > 0 {
+			raws := map[string]bool{}
+			for _, c := range f.Clean {
+				if raws[c.Raw] {
+					t.Errorf("%s: a repeated raw label", path)
+				}
+				raws[c.Raw] = true
+			}
+			valid := 0
+			for _, h := range f.Hints {
+				if h.Valid {
+					valid++
+				}
+			}
+			counts = append(counts, fmt.Sprintf("clean %d, hints %d (%d valid)", len(f.Clean), len(f.Hints), valid))
+		}
+		if got := strings.Join(counts, ", "); got != w.counts {
+			t.Errorf("%s: %s; want %s", path, got, w.counts)
+		}
 	}
 }

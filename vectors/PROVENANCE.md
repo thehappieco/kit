@@ -282,6 +282,45 @@ sha256 of the platform files the kit's packages were taken from, and the kit's e
 
 New in the kit: `thcseal/tag_test.go` and `kms/awskms/tag_test.go`, built only without the tag, which fail and say that the package's tests need `-tags kitdevkek`; and `kms/links_test.go`, which reads the imports of every non-test file of the kit under every build constraint and fails if a package but `kms/localkek` reaches it, if a package but `kms/awskms` reaches the AWS SDK, or if a file of `kms/localkek` does not require the tag (`make imports-check`).
 
+### The product contract, at a78bf16
+
+- **Source:** commit `a78bf16b554b612cc2aa1da7b582df05b3780602` (2026-10-13T15:06:57-03:00) of the platform's `main`, `docs/contract/v1/vectors/{signatures,wire,labels}.json`: the golden vectors of the contract's membership part (the platform's decision 0040, amended by 0041; its spec `docs/contract/v1/README.md`), handed to the kit with the code that wrote them by the platform's `docs/handoff/2026-10-13-kit-contract.md` (decisions 0017 and 0040; its sha256 `8f4e94426184c7e5a978ddb11bbc02cb5cb08b3a6dfe40a4e2989dbfccf65024`). The files, `internal/contract` and the spec last changed in `463f3209bc074a20987d3e6e465401fcf5c8fb1b` (2026-10-13T14:29:42-03:00, "Mask number runs joined by the minus sign, read wire times by RFC 3339's grammar, ..., and freeze the contract's vectors in CI"), and are byte for byte the same at `02342ce`, `main` when they were captured.
+- **Generator:** the platform's `internal/contract/contractvec` (`go run ./tools/contractvectors`), a pure function of `internal/contract`: made-up secrets (`SecretA`, `SecretB`) and nonces that protect nothing, every check at `2026-10-13T12:00:00Z`, nothing random; each case's outcome is what the code returns, and the secrets' cases are checked against `CheckSecrets` before anything is written; 2-space indented JSON with no HTML escaping and one final newline. The kit's `contract/contractvec_test.go` carries it as test code over the kit's `contract`, and `TestTheKitWritesTheContractVectorsAgain` compares what it writes with these files byte for byte in every Go test run, so no copy of it is kept under `_generators`.
+- **Captured:** 2026-10-13, byte for byte with `git show <commit>:<path>`; the platform's repository was only read.
+- **Toolchains:** the platform builds with go1.27.2 (its `go.mod`), and its generator wrote these bytes there. On 2026-10-13 the kit's test wrote all three again on go1.26.7, go1.26.9, go1.27.1 and go1.27.2 (darwin/arm64), and `make vectors-contract-check PLATFORM=../platform` had the platform's own generator at `a78bf16` check them (`-check`) on go1.27.2, over the kit v0.6.0 its `go.mod` requires and over the kit's working tree. `CleanLabel` reads the Unicode tables of the Go it is built with; every raw label of `labels.json` is in Unicode 15.0, the tables of Go 1.26, so the files hold on both lines.
+- **Format:** the contract's own (`"format": "thehappie-contract/vectors", "version": 1`), described in `README.md` and SPEC section 11.17. The kit reads it with strict runners and never rewrites it.
+
+| File | Kind | Cases | sha256 |
+|---|---|---|---|
+| `platform/contract-v1/signatures.json` | signatures | 4 requests, 3 answers, 10 answer checks (2 `ok`, 1 `answer_nonce`, 5 `hmac_bad`, 1 `hmac_stale`, 1 `hmac_missing`), 7 pairs of secrets (2 valid) | `4ae124ea7560bcdc07dc430d5a3e6d2b16f826fd073770c1c28ca5614abb4128` |
+| `platform/contract-v1/wire.json` | wire | 13 documents (5 valid), 9 snapshots (4 valid), 17 events (8 valid) | `71b26142b83441799eff34b2ee7d0d4d65e3c659c2f92bea65f60eedba55cd99` |
+| `platform/contract-v1/labels.json` | labels | 34 raw labels and what `CleanLabel` makes of them, 14 hints (3 valid) | `ab82c6b835cf7c02a4ab9febadc285787311f4b39d8873050b6c754f04029988` |
+
+`signatures.json` (12669 bytes) is ASCII; `wire.json` (35878) and `labels.json` (4002) hold UTF-8. Each ends with one newline. The kit's `contract` runs every case (`contract/vectors_test.go`), and `profiles/platform` the signatures and secrets under the profile's names (`profiles/platform/contract_test.go`); `vectors/vectors_test.go` checks the files' sha256 and counts.
+
+### The sources of the contract
+
+sha256 at `a78bf16`. The kit's `contract` is the platform's `internal/contract` with its tests: every file lost its `//go:build go1.26` line, which the platform needs because its module declares Go 1.27 (the kit's `go.mod` declares `go 1.26.7`, so go vet's stdversion check already holds every file to Go 1.26.7, as v0.6.0 did for THCSEAL), and the tests import `github.com/thehappieco/kit/contract`. No line of code changed; the edits below are to comments. `contracttest` is new: a fake platform whose transport follows `internal/contractapi`, the reference for its refusals' order, and whose tests are that package's, run against it.
+
+| Platform file | sha256 | Kit file | Edits beyond the above |
+|---|---|---|---|
+| `internal/contract/contract.go` | `2f6363bced76ba708ab0ef2bad4cb2bdc0798f844a36044753032c20badf9e6e` | `contract/contract.go` | the package comment names SPEC section 11.17, `contracttest` and `profiles/platform`, the kit's Go version and the source commit; `fakeproduct` is called the platform's reference app |
+| `internal/contract/answer.go` | `0c750437977c137dd234ad0da38cff6635eb042865bb3a8ced60b849702cdccc` | `contract/answer.go` | none |
+| `internal/contract/label.go` | `2ffd0eef7c060502d03ba0b1609961a4d3bfc61f639676f00fa95d2205510eaa` | `contract/label.go` | "the platform database's floor (its migration 0013)" |
+| `internal/contract/wire.go` | `e00b46870e342cf75001e59844125e9a8ca16074ace3cb52a37e3126bf3d0248` | `contract/wire.go` | "the platform's decision 0037"; the error codes cite SPEC section 11.17 |
+| `internal/contract/client.go` | `cb9046a0a9abe460c103e61bd0bb3501a8349d096b6f501b685f2805a82c7e6d` | `contract/client.go` | "its tools/fakeproduct and its end-to-end tests" |
+| `internal/contract/contract_test.go` | `c9c6b80062719b23fe5ee7845bf7969d0b799dfc6bbad27d2f4e9d810fed5824` | `contract/contract_test.go` | none (the fuzz target `FuzzCleaningALabelTwiceChangesNothing` included) |
+| `internal/contract/client_test.go` | `1585762c805feb4c99a90cff5f6135701c4a9c42f43086d17b4163dff8274962` | `contract/client_test.go` | none |
+| `internal/contract/contractvec/vectors.go` | `8b22ae3b4d601cffd2e4030af32914aee6576146221ad029229c4d3df9e968ab` | `contract/contractvec_test.go` | package `contract_test`, a comment of its own in place of the package comment, and no `Dir`: the files are read from `vectors.FS` |
+| `internal/contract/contractvec/vectors_test.go` | `d2bb761261230e5cdd5e590e8d22c6e339d5752dead31602cb22bf570b36296c` | `contract/vectors_test.go` | the files are read from `vectors.FS`, with nothing after the value; the first test compares the generator's output with them and also checks that the directory holds only its three files |
+| `docs/contract/v1/vectors/signatures.json` | `4ae124ea7560bcdc07dc430d5a3e6d2b16f826fd073770c1c28ca5614abb4128` | `vectors/platform/contract-v1/signatures.json` | none |
+| `docs/contract/v1/vectors/wire.json` | `71b26142b83441799eff34b2ee7d0d4d65e3c659c2f92bea65f60eedba55cd99` | `vectors/platform/contract-v1/wire.json` | none |
+| `docs/contract/v1/vectors/labels.json` | `ab82c6b835cf7c02a4ab9febadc285787311f4b39d8873050b6c754f04029988` | `vectors/platform/contract-v1/labels.json` | none |
+| `docs/contract/v1/README.md` | `8cd54ca0ea77a9be3cf82e76f8332ce4f8b68a277586e23c0113e9e0e8626a50` | SPEC section 11.17 | the wire, as the kit carries it; decision 0040 decides where the two differ |
+| `internal/contractapi/contractapi.go` | `ebd498667d88641ff68c1b8f53cad0aa7aa677b030902125bda9c6b2ac67b7b8` | `contract/contracttest/contracttest.go` | the reference for the order of the checks, the body limits, the strict decoding and the feed's query; no peer uid (the development transport); encoding/json with a strict token walk in place of json/v2, which Go 1.26 does not build by default |
+| `internal/contractapi/contractapi_test.go` | `e115ca16e9cb0be45783cc93982a32fa4669e6c3087720c67878f68a03b3c66c` | `contract/contracttest/transport_test.go` | its tests against the fake over loopback TCP, less those of the unix socket's uid and of the console's errors |
+| `tools/fakeproduct/contract.go` | `63923a632d4e155dd54c5e1a16a3183c7bfc1df8e6bfefeb76fa6962d535990f` | none | the reference client, read for the shape of an app's follower |
+
 ## Mailie's platform wrap, written by the kit
 
 - **Source:** the kit itself, v0.6.0: package `platformwrap` under `profiles/mailie.PlatformWrap()`, Mailie's labels (SPEC section 6.8 and Appendix D: salt `mailie/platform-wrap/v1`, label `mailie/platform-wrap`), at `5b2021640b8fbd72a255b574b61d1cddb6567f2a` ("Mailie's platform wrap"), the commit that added the file. Mailie asked for the construction under its labels and for these vectors (2026-10-08); Mailie's own code is not their source, and its repositories were only read. The file's `generated_by.source` names the kit's version and packages rather than a commit, because later trees must write the same bytes.

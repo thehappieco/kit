@@ -57,17 +57,30 @@ func TestTheProfileVerifiesEveryContractAnswerAsTheVectorsSay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	type signed struct {
+		Name      string `json:"name"`
+		Secret    string `json:"secret"`
+		Direction string `json:"direction"`
+		App       string `json:"app"`
+		Method    string `json:"method"`
+		Target    string `json:"target"`
+		Timestamp string `json:"timestamp"`
+		Nonce     string `json:"nonce"`
+		Body      string `json:"body"`
+		Canonical string `json:"canonical"`
+		Signature string `json:"signature"`
+	}
 	var f struct {
-		Label    string   `json:"label"`
-		Headers  []string `json:"headers"`
-		Skew     int      `json:"skew_seconds"`
-		Requests []struct {
-			Name, Secret, Direction, App, Method, Target, Timestamp, Nonce, Body, Canonical, Signature string
-		} `json:"requests"`
-		Answers []struct {
-			Name, Secret, Direction, App, Method, Target, Timestamp, Nonce, Body, Canonical, Signature string
-		} `json:"answers"`
-		Checks []struct {
+		Format      string   `json:"format"`
+		Version     int      `json:"version"`
+		Kind        string   `json:"kind"`
+		Description string   `json:"description"`
+		Label       string   `json:"label"`
+		Headers     []string `json:"headers"`
+		Skew        int      `json:"skew_seconds"`
+		Requests    []signed `json:"requests"`
+		Answers     []signed `json:"answers"`
+		Checks      []struct {
 			Name      string            `json:"name"`
 			Headers   map[string]string `json:"headers"`
 			Secrets   []string          `json:"secrets"`
@@ -86,8 +99,18 @@ func TestTheProfileVerifiesEveryContractAnswerAsTheVectorsSay(t *testing.T) {
 			Valid   bool   `json:"valid"`
 		} `json:"secrets"`
 	}
-	if err := json.NewDecoder(bytes.NewReader(raw)).Decode(&f); err != nil {
+	// Strictly, as the kit's runners read: a member this test does not read
+	// fails it, and so does anything after the value.
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&f); err != nil {
 		t.Fatal(err)
+	}
+	if dec.More() {
+		t.Fatal("more than one value")
+	}
+	if f.Format != "thehappie-contract/vectors" || f.Version != 1 || f.Kind != "signatures" || f.Description == "" {
+		t.Fatalf("the file is %q version %d, kind %q", f.Format, f.Version, f.Kind)
 	}
 	s := platform.ContractHMAC()
 	if f.Label != s.Label || strings.Join(f.Headers, ",") != strings.Join([]string{s.Headers.Sender, s.Headers.Timestamp, s.Headers.Nonce, s.Headers.Signature}, ",") ||
@@ -95,6 +118,9 @@ func TestTheProfileVerifiesEveryContractAnswerAsTheVectorsSay(t *testing.T) {
 		t.Fatalf("the file's scheme is %q %v %d s", f.Label, f.Headers, f.Skew)
 	}
 	for _, r := range append(f.Requests, f.Answers...) {
+		if got := s.Canonical(r.Direction, r.App, r.Method, r.Target, r.Timestamp, r.Nonce, []byte(r.Body)); got != r.Canonical {
+			t.Errorf("%s: another canonical string", r.Name)
+		}
 		if got := s.Signature(r.Secret, r.Direction, r.App, r.Method, r.Target, r.Timestamp, r.Nonce, []byte(r.Body)); got != r.Signature {
 			t.Errorf("%s: another signature", r.Name)
 		}
@@ -118,8 +144,8 @@ func TestTheProfileVerifiesEveryContractAnswerAsTheVectorsSay(t *testing.T) {
 			t.Errorf("secrets %s: %v, valid should be %v", c.Name, err, c.Valid)
 		}
 	}
-	if len(f.Checks) != 10 || len(f.Secrets) != 7 {
-		t.Fatalf("%d answer checks and %d secret cases", len(f.Checks), len(f.Secrets))
+	if len(f.Requests) != 4 || len(f.Answers) != 3 || len(f.Checks) != 10 || len(f.Secrets) != 7 {
+		t.Fatalf("%d requests, %d answers, %d answer checks and %d secret cases", len(f.Requests), len(f.Answers), len(f.Checks), len(f.Secrets))
 	}
 }
 

@@ -19,7 +19,7 @@ import (
 )
 
 // The transport's tests are the platform's internal/contractapi tests at
-// a78bf16, run against the fake over loopback TCP, the platform's
+// ee45e3a, run against the fake over loopback TCP, the platform's
 // development transport: no peer uid is read, so the tests of the unix
 // socket's uid check stay in the platform.
 
@@ -700,6 +700,9 @@ func TestNewRefusesAppsThatCouldBeMistakenForOneAnother(t *testing.T) {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
+}
+
+func TestAnAppNeverPrintsItsSecrets(t *testing.T) {
 	a := contracttest.App{ID: "wappie", Current: secretA, Other: secretB}
 	var logged strings.Builder
 	slog.New(slog.NewJSONHandler(&logged, nil)).Info("app", "app", a)
@@ -708,7 +711,7 @@ func TestNewRefusesAppsThatCouldBeMistakenForOneAnother(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, s := range []string{fmt.Sprintf("%v %+v %#v", a, a, a), logged.String(), string(encoded)} {
+	for _, s := range []string{fmt.Sprintf("%v %+v %#v %s", a, a, a, a), fmt.Sprintf("%v", &a), logged.String(), string(encoded)} {
 		if strings.Contains(s, secretA[:10]) || strings.Contains(s, secretB[:10]) {
 			t.Fatalf("an app prints its secret: %s", s)
 		}

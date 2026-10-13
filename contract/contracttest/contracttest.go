@@ -40,13 +40,28 @@
 // SetRole, ...), each app's subscriptions, its feed and the workspaces
 // named to it, the snapshots and events it sent (Snapshot, Events), and
 // the generation (NewGeneration, Restore). A change to the directory
-// publishes the documents it changes at once, so published_through is
-// always now. Refuse and Corrupt make the next answer to a call a refusal,
-// signed as the platform signs it, or one an app must ignore.
+// publishes the documents it changes at once, so published_through is now,
+// unless HoldPublishing stops the publisher for an app, as a stuck one,
+// until Release. A feed page ends, with more, after 200 documents or
+// before its documents reach half of contract.MaxAnswer, as the platform's
+// does, and a long-poll answers early only for a new document. Refuse and
+// Corrupt make the next answer to a call a refusal, signed as the platform
+// signs it, or one an app must ignore.
 //
 // What it does not do: read a peer's uid, apply NFC to a label before
 // cleaning it (the platform does; an app applies NFC itself, SPEC section
-// 11.17), mail anyone, or keep anything beyond the test.
+// 11.17), mail anyone, or keep anything beyond the test. And where the
+// platform's directory does more, the fake's is simpler:
+//   - CloseAccount refuses to close the last owner of an open team
+//     (ErrLastOwner), where the platform hands the team, open or closed, on
+//     to its longest-standing admin, else its longest-standing member, as
+//     owner, published with the closing, and closes a team left with
+//     nobody; a test that needs the hand-over plays it with SetRole first;
+//   - a closed team may be left with no owner, by RemoveMember, SetRole or
+//     CloseAccount, and ReopenTeam then refuses it;
+//   - a closed account's subscription never expires: its closed document
+//     stays in the app's feed until the app unsubscribes, where the
+//     platform drops it after 30 days.
 package contracttest
 
 import (
@@ -108,7 +123,8 @@ type App struct {
 	ID string
 	// Current signs the answers and is accepted on requests; Other, when
 	// not empty, is accepted too, during a rotation.
-	Current, Other string `json:"-"`
+	Current string `json:"-"`
+	Other   string `json:"-"`
 }
 
 // String hides the secrets.
@@ -205,6 +221,11 @@ type appState struct {
 	wake      chan struct{}
 	refuse    map[string]string
 	corrupt   map[string]Corruption
+
+	// held is HoldPublishing's: the changes not yet published, by sub, at
+	// the time of the oldest.
+	held  bool
+	marks map[string]time.Time
 }
 
 type keptEvent struct {
@@ -264,7 +285,7 @@ func New(opts Options) (*Platform, error) {
 			tokens: p.perSecond, metered: p.now(),
 			follows: map[string]bool{}, docs: map[string]contract.AccountDoc{}, named: map[string]bool{},
 			snapshots: map[string]contract.Snapshot{}, kept: map[string]keptEvent{}, wake: make(chan struct{}),
-			refuse: map[string]string{}, corrupt: map[string]Corruption{},
+			refuse: map[string]string{}, corrupt: map[string]Corruption{}, marks: map[string]time.Time{},
 		}
 	}
 	return p, nil
@@ -824,6 +845,7 @@ func (p *Platform) unsubscribe(rq *request) answer {
 	defer p.mu.Unlock()
 	delete(rq.app.follows, rq.arg)
 	delete(rq.app.docs, rq.arg)
+	delete(rq.app.marks, rq.arg)
 	return answer{status: http.StatusOK, body: struct {
 		Subscribed bool `json:"subscribed"`
 	}{false}}
@@ -922,9 +944,16 @@ func (p *Platform) readFeed(app *appState, after int64) (contract.Feed, <-chan s
 	if after > app.head {
 		return contract.Feed{}, woken, refusal(contract.CodeGone, "the cursor is past the feed's head: take every document again"), false
 	}
+	// published_through is the oldest change not yet published, or now.
+	through := p.now()
+	for _, at := range app.marks {
+		if at.Before(through) {
+			through = at
+		}
+	}
 	f := contract.Feed{
 		Generation: p.generation, GenerationConfirmed: p.confirmed, Head: app.head,
-		PublishedThrough: contract.T(p.now()), Items: []contract.FeedItem{},
+		PublishedThrough: contract.T(through), Items: []contract.FeedItem{},
 	}
 	var docs []contract.AccountDoc
 	for _, d := range app.docs {
@@ -933,10 +962,20 @@ func (p *Platform) readFeed(app *appState, after int64) (contract.Feed, <-chan s
 		}
 	}
 	slices.SortFunc(docs, func(a, b contract.AccountDoc) int { return cmp.Compare(a.Version, b.Version) })
-	f.More = len(docs) > contract.MaxFeedItems
-	if f.More {
-		docs = docs[:contract.MaxFeedItems]
+	// At most MaxFeedItems documents, and no more bytes than
+	// maxFeedPageBytes once there is one, measured as the platform stores
+	// them (json.Marshal, with no generation).
+	kept, size := 0, 0
+	for kept < len(docs) && kept < contract.MaxFeedItems {
+		stored, _ := json.Marshal(docs[kept])
+		if kept > 0 && size+len(stored) > maxFeedPageBytes {
+			break
+		}
+		size += len(stored)
+		kept++
 	}
+	f.More = kept < len(docs)
+	docs = docs[:kept]
 	for _, d := range docs {
 		d.Generation = p.generation
 		f.Items = append(f.Items, contract.FeedItem{Seq: d.Version, Doc: d})
@@ -1072,8 +1111,8 @@ func (p *Platform) postEvent(app *appState, ev contract.Event) contract.EventRes
 // Documents and the feed
 // ---------------------------------------------------------------------------
 
-// documentLocked computes the document of sub for app, and names its
-// workspaces to app. Generation and Version are the caller's.
+// documentLocked computes the document of sub for app. Generation and
+// Version are the caller's, and so is naming its workspaces to app.
 func (p *Platform) documentLocked(app *appState, sub string) (contract.AccountDoc, bool) {
 	doc := contract.AccountDoc{V: contract.DocV, Type: contract.DocType, App: app.id, Sub: sub, Workspaces: []contract.Workspace{}}
 	a := p.accounts[sub]
@@ -1122,7 +1161,6 @@ func (p *Platform) documentLocked(app *appState, sub string) (contract.AccountDo
 			out.Name, out.Owners = &name, &owners
 		}
 		doc.Workspaces = append(doc.Workspaces, out)
-		app.named[id] = true
 	}
 	return doc, true
 }
@@ -1136,10 +1174,16 @@ func wireTime(t *time.Time) *contract.Time {
 }
 
 // publishLocked computes the document of sub for app, which follows it,
-// and stores it with the next seq of app's feed when its content changed.
-// It returns the document with its version and the generation.
+// names its workspaces to app, and stores it with the next seq of app's
+// feed when its content changed, which wakes app's long-polls; the same
+// document again wakes none. It returns the document with its version and
+// the generation. The changes held for sub are published with it.
 func (p *Platform) publishLocked(app *appState, sub string) contract.AccountDoc {
 	doc, _ := p.documentLocked(app, sub)
+	for _, w := range doc.Workspaces {
+		app.named[w.ID] = true
+	}
+	delete(app.marks, sub)
 	stored, ok := app.docs[sub]
 	if !ok || !sameContent(stored, doc) {
 		app.head++
@@ -1162,13 +1206,64 @@ func sameContent(a, b contract.AccountDoc) bool {
 }
 
 // republishLocked publishes, for every app, the document of every account
-// it follows: what a change to the directory marks.
+// it follows: what a change to the directory marks. For an app whose
+// publishing is held, it marks the accounts whose document changed instead,
+// each at the time of its oldest change not yet published.
 func (p *Platform) republishLocked() {
 	for _, app := range p.apps {
 		for sub := range app.follows {
-			p.publishLocked(app, sub)
+			if !app.held {
+				p.publishLocked(app, sub)
+				continue
+			}
+			if _, marked := app.marks[sub]; marked {
+				continue
+			}
+			doc, _ := p.documentLocked(app, sub)
+			if stored, ok := app.docs[sub]; !ok || !sameContent(stored, doc) {
+				app.marks[sub] = p.now()
+			}
 		}
 	}
+}
+
+// maxFeedPageBytes bounds the documents of a feed page, as the platform's
+// does: half of what a client reads at most (contract.MaxAnswer). A first
+// document over it still comes alone. The package's tests shorten it.
+var maxFeedPageBytes = contract.MaxAnswer / 2
+
+// HoldPublishing stops the publisher for app, as a stuck one on the
+// platform: a change to the directory reaches app's feed no more, and the
+// feed's published_through stays at the time of the oldest change not yet
+// published, so an app's freshness grows old while the feed still answers
+// (SPEC section 11.17). PUT and GET still compute an account's document now
+// and publish it, the account's held changes with it, as the platform's
+// do. Release starts the publisher again.
+func (p *Platform) HoldPublishing(app string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	st := p.apps[app]
+	if st == nil {
+		return ErrUnknown
+	}
+	st.held = true
+	return nil
+}
+
+// Release starts app's publisher again: every change held is published at
+// once, and published_through is now again.
+func (p *Platform) Release(app string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	st := p.apps[app]
+	if st == nil {
+		return ErrUnknown
+	}
+	st.held = false
+	for sub := range st.marks {
+		p.publishLocked(st, sub)
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -1199,10 +1294,17 @@ func (p *Platform) newWorkspaceLocked(kind, name, owner string) string {
 	return id
 }
 
-// Disable suspends an account, as the operator does, at at; Enable lifts
-// it. disabled_at keeps the latest disable.
+// Disable suspends an account, as the operator does, at at, and so ends
+// every session of it: disabled_at and sessions_revoked_at each rise to
+// at, unless it holds a later time already. Disabling an account that is
+// disabled already changes nothing, as on the platform; Enable lifts it.
 func (p *Platform) Disable(sub string, at time.Time) error {
-	return p.updateAccount(sub, func(a *account) { a.disabled, a.disabledAt = true, later(a.disabledAt, at) })
+	return p.updateAccount(sub, func(a *account) {
+		if a.disabled {
+			return
+		}
+		a.disabled, a.disabledAt, a.revokedAt = true, later(a.disabledAt, at), later(a.revokedAt, at)
+	})
 }
 
 // Enable lifts an account's disable.
@@ -1432,14 +1534,19 @@ func (p *Platform) ConfirmGeneration() {
 // Restore plays a restore from a backup taken before any document was
 // published: every app's feed starts again from 0 with no document in it,
 // so a cursor above 0 is gone, and a new generation begins, not yet
-// confirmed. Subscriptions, the directory and the workspaces named to each
-// app stay.
+// confirmed. The directory stays, but such a backup holds no subscription
+// and names no workspace to an app, so it holds no snapshot or event of
+// one either: they all go. An app gets documents again only for the
+// accounts it subscribes to again (PUT), and a snapshot or an event of a
+// workspace not named to it again is not_found.
 func (p *Platform) Restore() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for _, app := range p.apps {
 		app.head = 0
 		app.docs = map[string]contract.AccountDoc{}
+		app.follows, app.marks, app.named = map[string]bool{}, map[string]time.Time{}, map[string]bool{}
+		app.snapshots, app.events, app.kept = map[string]contract.Snapshot{}, nil, map[string]keptEvent{}
 	}
 	p.generation, p.confirmed = newUUID(), false
 	return p.generation

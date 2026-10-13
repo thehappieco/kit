@@ -65,8 +65,9 @@ jobs:
       # platform wrap an export carries (Wappie's, and the generic one under
       # every product's profile), THCSEAL's decoder and opener, Mailie's
       # checks of the wraps, grants, ids and public keys its server stores,
-      # and the contract's label mask, which the platform applies again to
-      # every label an app sends.
+      # and, of the contract, the label mask, which the platform applies
+      # again to every label an app sends, the hint, the wire's times and an
+      # app's check of an answer.
       - name: fuzz the parsers
         run: |
           go test -run '^$' -fuzz '^FuzzOpen$' -fuzztime 30s ./seal
@@ -87,6 +88,9 @@ jobs:
           go test -run '^$' -fuzz '^FuzzOpenNeverOpensAnAlteredEnvelope$' -fuzztime 30s ./thcseal
           go test -run '^$' -fuzz '^FuzzServerChecks$' -fuzztime 30s ./profiles/mailie
           go test -run '^$' -fuzz '^FuzzCleaningALabelTwiceChangesNothing$' -fuzztime 30s ./contract
+          go test -run '^$' -fuzz '^FuzzAValidHintHoldsNoNumberOrAddress$' -fuzztime 30s ./contract
+          go test -run '^$' -fuzz '^FuzzReadingATimeTakesOnlyRFC3339InUTC$' -fuzztime 30s ./contract
+          go test -run '^$' -fuzz '^FuzzAnAnswerVerifiesOnlyUnderTheSecret$' -fuzztime 30s ./contract
 
   # What only the toolchain that wrote the vectors can check. The seeded
   # replays of Wappie's Go vectors run only on the toolchain a file records,
@@ -150,12 +154,16 @@ jobs:
       # client-extension allowlist walk its token stream, so they are fuzzed
       # on this toolchain too. The contract's label mask reads the Unicode
       # tables of the toolchain it is built with, which a new Go may extend,
-      # so it is fuzzed here as well.
-      - name: fuzz the strict JSON readers and the label mask
+      # and its other parsers lean on the standard library's regexp, time
+      # and HMAC, so they are fuzzed here as well.
+      - name: fuzz the strict JSON readers and the contract's parsers
         run: |
           go test -run '^$' -fuzz '^FuzzCheckClientExtensions$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzParseKeyBundle$' -fuzztime 30s ./profiles/platform
           go test -run '^$' -fuzz '^FuzzCleaningALabelTwiceChangesNothing$' -fuzztime 30s ./contract
+          go test -run '^$' -fuzz '^FuzzAValidHintHoldsNoNumberOrAddress$' -fuzztime 30s ./contract
+          go test -run '^$' -fuzz '^FuzzReadingATimeTakesOnlyRFC3339InUTC$' -fuzztime 30s ./contract
+          go test -run '^$' -fuzz '^FuzzAnAnswerVerifiesOnlyUnderTheSecret$' -fuzztime 30s ./contract
 
   # On the toolchain Wappie builds what it ships with, 1.26.9, and on the
   # newest one; one job, so the check keeps its name. GOTOOLCHAIN=local, so

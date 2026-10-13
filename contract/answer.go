@@ -16,7 +16,9 @@ var ErrAnswerNonce = errors.New("answer_nonce")
 // SignAnswer signs the answer to a request that verified: it sets the
 // timestamp, the request's own nonce, echoed, and a to-app signature over the
 // request's method and target and the answer's body. secret is the app's
-// current secret. The platform signs nothing for a request that did not
+// current secret, which the caller checked where it loaded it
+// (CheckSecrets): SignAnswer does not, and under an empty key anyone could
+// sign the same. The platform signs nothing for a request that did not
 // verify; such an answer reaches the app unsigned, and the app treats it as a
 // failure.
 func SignAnswer(h http.Header, secret, app, method, target, requestNonce string, body []byte, now time.Time) {
@@ -34,6 +36,11 @@ func SignAnswer(h http.Header, secret, app, method, target, requestNonce string,
 // (reqhmac.ErrBad). An app ignores an answer that fails: no cursor moves and
 // no outbox row is marked delivered. The outcome is in the signed body; the
 // HTTP status is never trusted.
+//
+// No answer verifies under a list that holds a key that is not a secret
+// (CheckSecrets), an empty one above all, which would verify what anyone
+// signs with it: that is reqhmac.ErrBad too. The caller still checks its
+// secrets where it loads them (CheckSecrets), which says what is wrong.
 func VerifyAnswer(h http.Header, secrets []string, app, method, target, sentNonce string, body []byte, now time.Time) error {
 	scheme := Scheme()
 	got, err := scheme.Read(h, now)
@@ -42,6 +49,11 @@ func VerifyAnswer(h http.Header, secrets []string, app, method, target, sentNonc
 	}
 	if got.Nonce != sentNonce {
 		return ErrAnswerNonce
+	}
+	for _, s := range secrets {
+		if !validSecret(s) {
+			return reqhmac.ErrBad
+		}
 	}
 	if !scheme.SignedBy(secrets, got, ToApp, app, method, target, body) {
 		return reqhmac.ErrBad

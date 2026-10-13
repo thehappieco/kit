@@ -34,8 +34,12 @@
 // does not know (SPEC section 11.17).
 //
 // Taken from the platform's internal/contract at commit a78bf16, with its
-// tests; the names and signatures are the platform's, so that the platform
-// imports this package in place of its own.
+// tests; the names are the platform's, so that the platform imports this
+// package in place of its own. Where the kit departs from that code (SPEC
+// section 11.17), no byte on the wire changes: Client bounds every call and
+// returns nothing of an answer it refuses, VerifyAnswer verifies nothing
+// under a key that is not a secret, and PauseReasons and StrandedCauses are
+// functions that return copies of the closed sets Validate checks.
 package contract
 
 import (

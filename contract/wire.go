@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -261,8 +262,12 @@ const (
 	CanManage = "manage"
 )
 
-// PauseReasons are why an item's sync is off.
-var PauseReasons = []string{"by_person", "team_closed", "no_reader", "needs_reauth", "quota", "error"}
+// pauseReasons are why an item's sync is off.
+var pauseReasons = []string{"by_person", "team_closed", "no_reader", "needs_reauth", "quota", "error"}
+
+// PauseReasons are why an item's sync is off. It returns a copy: the set
+// Validate checks is closed, and no caller can widen or narrow it.
+func PauseReasons() []string { return slices.Clone(pauseReasons) }
 
 // MaxItems is the most items one snapshot carries, and MaxPeople the most
 // people one item lists.
@@ -351,7 +356,7 @@ func (it Item) validate() error {
 			return invalid("items[].reason is for a paused item")
 		}
 	case StateSyncPaused:
-		if it.Reason == nil || !oneOf(*it.Reason, PauseReasons) {
+		if it.Reason == nil || !oneOf(*it.Reason, pauseReasons) {
 			return invalid("items[].reason")
 		}
 	default:
@@ -425,10 +430,14 @@ const (
 	MovedToPersonal = "personal"
 )
 
+// strandedCauses are why an item lost the last person who could read it.
+var strandedCauses = []string{"disabled", "revoked", "removed", "left", "closed"}
+
 // StrandedCauses are why an item lost the last person who could read it. An
 // app sends disabled or revoked when it knows; the platform fills removed,
-// left or closed when a membership ended.
-var StrandedCauses = []string{"disabled", "revoked", "removed", "left", "closed"}
+// left or closed when a membership ended. It returns a copy: the set
+// Validate checks is closed, and no caller can widen or narrow it.
+func StrandedCauses() []string { return slices.Clone(strandedCauses) }
 
 // MaxEvents is the most events one batch carries, and MaxReaders the most
 // readers one event names; above it an app sends readers: null.
@@ -552,7 +561,7 @@ func (ev Event) Validate() error {
 		if ev.Person != nil && !ValidUUID(*ev.Person) {
 			return invalid("person")
 		}
-		if ev.Cause != nil && !oneOf(*ev.Cause, StrandedCauses) {
+		if ev.Cause != nil && !oneOf(*ev.Cause, strandedCauses) {
 			return invalid("cause")
 		}
 		return extra(false, true, true, false)

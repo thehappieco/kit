@@ -185,7 +185,7 @@ func FuzzCleaningALabelTwiceChangesNothing(f *testing.F) {
 		if once != "" && !ValidLabel(once) {
 			t.Fatalf("CleanLabel(%q) = %q is not valid", raw, once)
 		}
-		if strings.Contains(once, "@") || utf8.RuneCountInString(once) > MaxLabel || strings.ContainsFunc(once, hidden) {
+		if strings.ContainsAny(once, "@\uff20\ufe6b") || utf8.RuneCountInString(once) > MaxLabel || strings.ContainsFunc(once, hidden) {
 			t.Fatalf("CleanLabel(%q) = %q", raw, once)
 		}
 		digits := 0

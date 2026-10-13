@@ -52,8 +52,9 @@ func CheckContractSecrets(current, next string) error {
 // SignAnswer signs the platform's answer to a request whose signature held:
 // it sets the answer's timestamp, the request's own nonce, echoed, and a
 // to-app signature over the request's method and target, the timestamp,
-// the nonce and the answer's body, with the app's current secret. The
-// platform signs nothing for a request that did not verify.
+// the nonce and the answer's body, with the app's current secret, which the
+// caller checked where it loaded it (CheckContractSecrets): SignAnswer does
+// not. The platform signs nothing for a request that did not verify.
 func SignAnswer(h http.Header, secret, app, method, target, requestNonce string, body []byte, now time.Time) {
 	contract.SignAnswer(h, secret, app, method, target, requestNonce, body, now)
 }
@@ -63,7 +64,10 @@ func SignAnswer(h http.Header, secret, app, method, target, requestNonce string,
 // timestamp within the skew (reqhmac.ErrMissing, reqhmac.ErrStale); the
 // echoed nonce is the one the app sent, never a value taken from the answer
 // (ErrAnswerNonce); and one of the app's secrets signed it, direction
-// to-app (reqhmac.ErrBad). An app ignores an answer that fails.
+// to-app (reqhmac.ErrBad). An app ignores an answer that fails. A list of
+// secrets that holds a key that is not one, an empty one above all,
+// verifies nothing (reqhmac.ErrBad); the caller checks its secrets where it
+// loads them (CheckContractSecrets).
 func VerifyAnswer(h http.Header, secrets []string, app, method, target, sentNonce string, body []byte, now time.Time) error {
 	return contract.VerifyAnswer(h, secrets, app, method, target, sentNonce, body, now)
 }

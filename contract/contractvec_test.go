@@ -2,7 +2,7 @@ package contract_test
 
 // The generator of the contract's vectors (SPEC section 11.17,
 // vectors/platform/contract-v1): the platform's
-// internal/contract/contractvec at a78bf16, which writes them, as test code
+// internal/contract/contractvec at ee45e3a, which writes them, as test code
 // over this package. TestTheKitWritesTheContractVectorsAgain compares what
 // it writes with the frozen files byte for byte in every test run: they are
 // a pure function of this package, so a file that comes out differently is
@@ -53,6 +53,7 @@ func Generate() ([]File, error) {
 		{"signatures.json", signatures},
 		{"labels.json", labels},
 		{"wire.json", wire},
+		{"wire-item-ids.json", wireItemIDs},
 	} {
 		v, err := gen.make()
 		if err != nil {
@@ -434,6 +435,45 @@ func wire() (any, error) {
 		var e contract.Event
 		valid := json.Unmarshal(raw, &e) == nil && e.Validate() == nil
 		out.Events = append(out.Events, WireCase{Name: c.name, Value: raw, Valid: valid})
+	}
+	return out, nil
+}
+
+// wireItemIDs is wire-item-ids.json, the cases added once wire.json was
+// frozen: a snapshot lists each item id once, whatever its kind, since the
+// platform keeps an app's items of a workspace by id.
+func wireItemIDs() (any, error) {
+	out := Wire{
+		Format: Format, Version: 1, Kind: "wire",
+		Description: "Access snapshots whose items share an id, each with whether contract.Snapshot's Validate accepts it: an id appears once in a snapshot, whatever its kind. Added after wire.json was frozen.",
+		Documents:   []WireCase{}, Events: []WireCase{},
+	}
+	str := func(s string) *string { return &s }
+	sub := "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+	item := func(id, kind string) contract.Item {
+		return contract.Item{
+			ID: id, Kind: kind, Label: str("Vendas"), State: contract.StateActive,
+			People:    []contract.Person{{Sub: sub, Can: []string{contract.CanRead}, Reads: true, Enrolled: true, HoldsKey: true}},
+			Protected: []string{sub},
+		}
+	}
+	snap := func(items ...contract.Item) contract.Snapshot {
+		return contract.Snapshot{V: contract.SnapshotV, SnapshotSeq: Now.UnixMilli(), Items: items}
+	}
+	const id = "0199e000-0000-7000-8000-000000000004"
+	for _, c := range []struct {
+		name string
+		s    contract.Snapshot
+	}{
+		{"a number and a mailbox with their own ids", snap(item(id, contract.ItemNumber), item("acc_7f3a", contract.ItemMailbox))},
+		{"one id for a number and a mailbox", snap(item(id, contract.ItemNumber), item(id, contract.ItemMailbox))},
+		{"one number listed twice", snap(item(id, contract.ItemNumber), item(id, contract.ItemNumber))},
+	} {
+		raw, err := json.Marshal(c.s)
+		if err != nil {
+			return nil, err
+		}
+		out.Snapshots = append(out.Snapshots, WireCase{Name: c.name, Value: raw, Valid: c.s.Validate() == nil})
 	}
 	return out, nil
 }

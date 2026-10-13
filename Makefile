@@ -280,13 +280,13 @@ vectors-mailie-check:
 # CONTRACT_COMMIT: git archive of the platform's go.mod, go.sum,
 # internal/contract and tools/contractvectors into a temporary directory
 # (the platform's repository is only read), and its tools/contractvectors
-# -check against the kit's three files, on the toolchain the platform's
+# -check against the kit's four files, on the toolchain the platform's
 # go.mod names. Twice: over the kit version the platform's go.mod requires,
 # and over this working tree (a replace), whose reqhmac the platform's code
 # then signs with. The kit's own tests write the files again byte for byte
 # in every run (TestTheKitWritesTheContractVectorsAgain). Not in CI: the
 # platform's repository is private.
-CONTRACT_COMMIT ?= a78bf16b554b612cc2aa1da7b582df05b3780602
+CONTRACT_COMMIT ?= ee45e3a30190cf10cab1755ceea92ea7e8f815a9
 vectors-contract-check:
 	tmp=$$(mktemp -d) && kit=$$(pwd) && \
 	for pass in platform-kit this-tree; do \
@@ -295,7 +295,7 @@ vectors-contract-check:
 		if [ $$pass = this-tree ]; then (cd $$tmp/$$pass && go mod edit -replace github.com/thehappieco/kit=$$kit) || exit 1; fi && \
 		(cd $$tmp/$$pass && GOFLAGS=-mod=readonly go run ./tools/contractvectors -check -out $$kit/vectors/platform/contract-v1) || { echo "the contract's files differ from what $(CONTRACT_COMMIT) writes ($$pass)"; exit 1; }; \
 	done && \
-	echo "the three files of vectors/platform/contract-v1 reproduce from $(CONTRACT_COMMIT), over the platform's kit and over this tree" && \
+	echo "the four files of vectors/platform/contract-v1 reproduce from $(CONTRACT_COMMIT), over the platform's kit and over this tree" && \
 	rm -rf "$${tmp:?}"
 
 pack:

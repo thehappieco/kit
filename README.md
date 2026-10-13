@@ -87,7 +87,7 @@ make vectors-cloud-regen-check WAPPIE_CLOUD=../whatserver2/commercial   # the pl
 make vectors-thcseal-check PLATFORM=../platform   # THCSEAL's vectors from the platform's own generator at d32b663
 make vectors-mailie-regen   # Mailie's golden file from the kit's own generator, on go1.26.7, against this tree (CI runs it)
 make vectors-mailie-check MAILIE=../mailserver   # Mailie's key-scheme files from Mailie's own generator at c9c79cf, over kit v0.6.0 and over this tree
-make vectors-contract-check PLATFORM=../platform   # the contract's three files from the platform's own generator at a78bf16, over its kit and over this tree
+make vectors-contract-check PLATFORM=../platform   # the contract's four files from the platform's own generator at ee45e3a, over its kit and over this tree
 make imports-check     # only tests link kms/localkek, only kms/awskms links the AWS SDK, under any build constraint, and everything builds without the tag
 make identifiers-check   # no identifier of a real AWS account in HEAD's history (KIT_IDENTIFIERS="$(cat <the owner's list>)" make identifiers-check; IDENTIFIERS_REVS=--all for every branch, as CI)
 ```

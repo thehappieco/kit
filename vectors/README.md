@@ -20,7 +20,7 @@ There are four file formats: the kit's own (below), used by everything under `wa
 | `platform/_generators-4476bf4/` | The platform's generator at `4476bf4`, which wrote part 2 and writes the part-1 files unchanged. Not built, not embedded. |
 | `platform/_generators-b5d9f69/` | The platform's generator at `b5d9f69`, which wrote part 3 and writes the files of parts 1 and 2 unchanged. Not built, not embedded. |
 | `platform/thcseal-v1/` | The platform's golden vectors of THCSEAL v1 (SPEC section 14), `thcseal-v1.json`, byte for byte as the platform's Go code wrote them, captured at `d32b663` (`PROVENANCE.md`), in THCSEAL's own format. No copy of its generator is kept here: it is a function of the platform's test, which the kit's `thcseal` tests carry and run, writing the file again byte for byte. |
-| `platform/contract-v1/` | The platform's golden vectors of the product contract's membership part (SPEC section 11.17): `signatures.json`, `wire.json` and `labels.json`, byte for byte as the platform's Go code wrote them, captured at `a78bf16` (`PROVENANCE.md`), in the contract's own format. No copy of its generator is kept here: it is a function of the contract's code, and `contract`'s tests carry it and write the three files again byte for byte in every run. |
+| `platform/contract-v1/` | The platform's golden vectors of the product contract's membership part (SPEC section 11.17): `signatures.json`, `wire.json` and `labels.json`, byte for byte as the platform's Go code wrote them, captured at `a78bf16`, and `wire-item-ids.json`, added at `ee45e3a` once `wire.json` was frozen (`PROVENANCE.md`), in the contract's own format. No copy of its generator is kept here: it is a function of the contract's code, and `contract`'s tests carry it and write the four files again byte for byte in every run. |
 | `platform/_generators-75b6b94/` | The platform's generator at `75b6b94`, which wrote `rp-id-ends-in-number.json` and writes the thirteen earlier files unchanged. It imports only the standard library and the kit's `profiles/platform`, so `make vectors-platform-regen` builds it against the kit's own tree; not built by the go tool, not embedded. |
 | `MANIFEST.sha256` | The sha256 of every file above. `make vectors-check`. |
 
@@ -202,13 +202,13 @@ Every dispatcher fails on a case for its language whose op it does not handle.
 | `signatures` | also `label`, `headers` and `skew_seconds`, the scheme's; `requests` (direction `to-platform`) and `answers` (`to-app`) | `name`, `secret`, `direction`, `app`, `method`, `target`, `timestamp`, `nonce`, `body`; `canonical`, `signature` |
 | | `answer_checks` | `name`, `headers` (the answer's), `secrets` (those the app accepts), `app`, `method`, `target`, `sent_nonce`, `body`, `now` (Unix seconds); `result`: `ok`, or the code `contract.VerifyAnswer` refuses with (`answer_nonce`, `hmac_bad`, `hmac_stale`, `hmac_missing`) |
 | | `secrets` | `name`, `current`, `next`; `valid` (whether `contract.CheckSecrets` accepts the pair) |
-| `wire` | `documents`, `snapshots`, `events` | `name`, `value` (a JSON value); `valid`: whether it decodes (a time with a comma does not) and its `Validate` accepts it |
+| `wire` (`wire.json`, and `wire-item-ids.json` with snapshots only) | `documents`, `snapshots`, `events` | `name`, `value` (a JSON value); `valid`: whether it decodes (a time with a comma does not) and its `Validate` accepts it |
 | `labels` | `clean` | `raw`; `clean`, what `contract.CleanLabel` makes of it (`""`: no label) |
 | | `hints` | `hint`; `valid` (`contract.ValidHint`) |
 
-- Texts are JSON strings, bodies the exact bytes signed; the made-up secrets protect nothing. Every check runs at `2026-10-13T12:00:00Z` (`now`, timestamp `1760356800`).
+- Texts are JSON strings, bodies the exact bytes signed; the made-up secrets protect nothing. The answer checks run at `2026-10-13T12:00:00Z` (`now`, `1791892800`), and their answers' `X-Happie-Timestamp` is that time or, for the stale one, 61 s before it. `1760356800` (2025-10-13T12:00:00Z) is the `timestamp` of the requests and answers of `requests` and `answers`, which enters only their canonical strings: they are checked against no clock.
 - A case is identified by its list and its name, and in `labels.json`, whose cases have none, by its list and its `raw` or `hint`, all unique; cited as `platform/contract-v1/wire.json#events/<name>` or `platform/contract-v1/labels.json#clean/<raw>`.
-- `signatures.json` is ASCII; `wire.json` and `labels.json` hold the UTF-8 of `…` and of the characters their cases spell. Each ends with one newline. The runners (`contract/vectors_test.go`, and `profiles/platform/contract_test.go` for the signatures under the profile's names) decode strictly: a member they do not read fails the run.
+- `signatures.json` and `wire-item-ids.json` are ASCII; `wire.json` and `labels.json` hold the UTF-8 of `…` and of the characters their cases spell. Each ends with one newline. The runners (`contract/vectors_test.go`, and `profiles/platform/contract_test.go` for the signatures under the profile's names) decode strictly: a member they do not read fails the run.
 
 ## Running
 
@@ -225,7 +225,7 @@ make vectors-platform-regen      # regenerate the platform's files from the kit'
 make vectors-thcseal-check PLATFORM=../platform   # regenerate THCSEAL's file from the platform's own generator at d32b663 and compare
 make vectors-mailie-regen        # regenerate Mailie's golden file from the kit's generator, on go1.26.7, and compare
 make vectors-mailie-check MAILIE=../mailserver   # regenerate Mailie's key-scheme files from Mailie's own generator at c9c79cf, over kit v0.6.0 and over this tree, and compare
-make vectors-contract-check PLATFORM=../platform   # check the contract's files with the platform's own generator at a78bf16, over its kit and over this tree
+make vectors-contract-check PLATFORM=../platform   # check the contract's files with the platform's own generator at ee45e3a, over its kit and over this tree
 ```
 
 The Go targets pass `-tags kitdevkek` (`GO_TAGS`), which THCSEAL's runner needs; a plain `go test ./...` fails in `thcseal` and `kms/awskms` with a test that says so.

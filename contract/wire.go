@@ -328,11 +328,12 @@ func (s Snapshot) Validate() error {
 		if err := it.validate(); err != nil {
 			return err
 		}
-		key := it.Kind + "\x00" + it.ID
-		if seen[key] {
+		// An id is the item's whatever its kind: the platform keeps an
+		// app's items of a workspace by id.
+		if seen[it.ID] {
 			return invalid("an item appears twice")
 		}
-		seen[key] = true
+		seen[it.ID] = true
 	}
 	return nil
 }

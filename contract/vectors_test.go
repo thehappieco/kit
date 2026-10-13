@@ -109,30 +109,39 @@ func TestEveryLabelAndHintVectorHolds(t *testing.T) {
 }
 
 func TestEveryWireVectorValidatesAsItSays(t *testing.T) {
-	var w Wire
-	read(t, "wire.json", &w)
-	check := func(kind, name string, raw json.RawMessage, valid bool, into interface{ Validate() error }) {
-		// A value that does not decode is invalid too (a time with a comma).
-		if err := json.Unmarshal(raw, into); err != nil {
-			if valid {
-				t.Errorf("%s %q: %v", kind, name, err)
+	for _, file := range []string{"wire.json", "wire-item-ids.json"} {
+		var w Wire
+		read(t, file, &w)
+		// Both files are of the wire's kind; the second holds snapshots only.
+		if w.Format != Format || w.Version != 1 || w.Kind != "wire" {
+			t.Errorf("%s: header %q %d %q", file, w.Format, w.Version, w.Kind)
+		}
+		if file == "wire-item-ids.json" && (len(w.Documents) != 0 || len(w.Events) != 0 || len(w.Snapshots) == 0) {
+			t.Errorf("%s: %d documents, %d snapshots, %d events; want snapshots only", file, len(w.Documents), len(w.Snapshots), len(w.Events))
+		}
+		check := func(kind, name string, raw json.RawMessage, valid bool, into interface{ Validate() error }) {
+			// A value that does not decode is invalid too (a time with a comma).
+			if err := json.Unmarshal(raw, into); err != nil {
+				if valid {
+					t.Errorf("%s: %s %q: %v", file, kind, name, err)
+				}
+				return
 			}
-			return
+			if (into.Validate() == nil) != valid {
+				t.Errorf("%s: %s %q: valid should be %v", file, kind, name, valid)
+			}
 		}
-		if (into.Validate() == nil) != valid {
-			t.Errorf("%s %q: valid should be %v", kind, name, valid)
+		for _, c := range w.Documents {
+			var d contract.AccountDoc
+			check("document", c.Name, c.Value, c.Valid, &d)
 		}
-	}
-	for _, c := range w.Documents {
-		var d contract.AccountDoc
-		check("document", c.Name, c.Value, c.Valid, &d)
-	}
-	for _, c := range w.Snapshots {
-		var s contract.Snapshot
-		check("snapshot", c.Name, c.Value, c.Valid, &s)
-	}
-	for _, c := range w.Events {
-		var e contract.Event
-		check("event", c.Name, c.Value, c.Valid, &e)
+		for _, c := range w.Snapshots {
+			var s contract.Snapshot
+			check("snapshot", c.Name, c.Value, c.Valid, &s)
+		}
+		for _, c := range w.Events {
+			var e contract.Event
+			check("event", c.Name, c.Value, c.Valid, &e)
+		}
 	}
 }

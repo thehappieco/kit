@@ -33,7 +33,7 @@
 // caller's: the platform decodes strictly, an app may ignore members it
 // does not know (SPEC section 11.17).
 //
-// Taken from the platform's internal/contract at commit a78bf16, with its
+// Taken from the platform's internal/contract at commit ee45e3a, with its
 // tests; the names are the platform's, so that the platform imports this
 // package in place of its own. Where the kit departs from that code (SPEC
 // section 11.17), no byte on the wire changes: Client bounds every call and

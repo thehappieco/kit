@@ -76,12 +76,13 @@ were produced by Mailie's code at that commit.
 
 The membership part of the platform's product contract (contract, with its
 tests, and the signature's values in profiles/platform/contract.go) was
-taken from the platform at commit a78bf16b554b612cc2aa1da7b582df05b3780602:
+taken from the platform at commit a78bf16b554b612cc2aa1da7b582df05b3780602
+and brought to commit ee45e3a30190cf10cab1755ceea92ea7e8f815a9:
 internal/contract and internal/contract/contractvec, with their tests;
 contract/contracttest follows the order of internal/contractapi, whose tests
 it runs. The platform's handoff of 2026-10-13 hands them to the kit. The
 vector files under vectors/platform/contract-v1 were produced by the
-platform's code at that commit.
+platform's code at those commits.
 
 This project includes dependencies distributed under their own licenses. Go
 dependencies and versions are recorded in go.mod/go.sum (golang.org/x/crypto,

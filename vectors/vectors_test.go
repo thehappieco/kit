@@ -612,14 +612,14 @@ func TestMailieKeySchemeFiles(t *testing.T) {
 }
 
 // The contract's files (SPEC section 11.17) are the platform's, captured at
-// the commit PROVENANCE.md records: each has the sha256 recorded there, so a
-// copy from another commit or an edit fails here even after `make manifest`
-// has recorded it. Their directory holds exactly these three; each is valid
-// UTF-8 ending with exactly one newline, signatures.json ASCII only, in the
-// platform's contract format with its kind, and with its counts of cases,
-// of each answer check's result and of the cases that must be refused,
-// under unique names. contract's own tests run every case and write the
-// three files again byte for byte.
+// the commits PROVENANCE.md records: each has the sha256 recorded there, so
+// a copy from another commit or an edit fails here even after `make
+// manifest` has recorded it. Their directory holds exactly these four; each
+// is valid UTF-8 ending with exactly one newline, signatures.json and
+// wire-item-ids.json ASCII only, in the platform's contract format with its
+// kind, and with its counts of cases, of each answer check's result and of
+// the cases that must be refused, under unique names. contract's own tests
+// run every case and write the four files again byte for byte.
 func TestPlatformContractVectorFiles(t *testing.T) {
 	type named struct {
 		Name   string `json:"name"`
@@ -648,17 +648,20 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		} `json:"hints"`
 	}
 	want := []struct {
-		kind   string
-		ascii  bool
-		sha256 string
-		counts string
+		name, kind, commit string
+		ascii              bool
+		sha256             string
+		counts             string
 	}{
-		{"signatures", true, "4ae124ea7560bcdc07dc430d5a3e6d2b16f826fd073770c1c28ca5614abb4128",
+		{"signatures.json", "signatures", "a78bf16", true, "4ae124ea7560bcdc07dc430d5a3e6d2b16f826fd073770c1c28ca5614abb4128",
 			"requests 4, answers 3, answer_checks 10 (ok 2, answer_nonce 1, hmac_bad 5, hmac_stale 1, hmac_missing 1), secrets 7 (2 valid)"},
-		{"wire", false, "71b26142b83441799eff34b2ee7d0d4d65e3c659c2f92bea65f60eedba55cd99",
+		{"wire.json", "wire", "a78bf16", false, "71b26142b83441799eff34b2ee7d0d4d65e3c659c2f92bea65f60eedba55cd99",
 			"documents 13 (5 valid), snapshots 9 (4 valid), events 17 (8 valid)"},
-		{"labels", false, "ab82c6b835cf7c02a4ab9febadc285787311f4b39d8873050b6c754f04029988",
+		{"labels.json", "labels", "a78bf16", false, "ab82c6b835cf7c02a4ab9febadc285787311f4b39d8873050b6c754f04029988",
 			"clean 34, hints 14 (3 valid)"},
+		// Added once wire.json was frozen: snapshots whose items share an id.
+		{"wire-item-ids.json", "wire", "ee45e3a", true, "f932691c571b7b595bbde70bb3f01d31d2476c566b72f31db0581420fbcfb5ad",
+			"snapshots 3 (1 valid)"},
 	}
 	entries, err := fs.ReadDir(vectors.FS, "platform/contract-v1")
 	if err != nil {
@@ -668,14 +671,14 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		t.Errorf("platform/contract-v1 holds %d files, want %d", len(entries), len(want))
 	}
 	for _, w := range want {
-		path := "platform/contract-v1/" + w.kind + ".json"
+		path := "platform/contract-v1/" + w.name
 		raw, err := fs.ReadFile(vectors.FS, path)
 		if err != nil {
 			t.Error(err)
 			continue
 		}
 		if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != w.sha256 {
-			t.Errorf("%s is not the file captured at platform a78bf16 (PROVENANCE.md)", path)
+			t.Errorf("%s is not the file captured at platform %s (PROVENANCE.md)", path, w.commit)
 		}
 		if ascii := !bytes.ContainsFunc(raw, func(r rune) bool { return r >= 0x80 }); ascii != w.ascii || !utf8.Valid(raw) {
 			t.Errorf("%s: ASCII only is %v, want %v, or not UTF-8", path, ascii, w.ascii)

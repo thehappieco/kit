@@ -327,6 +327,18 @@ func TestRefuseAndCorruptMakeTheClientSeeARefusalOrIgnoreTheAnswer(t *testing.T)
 	if _, err := c.Feed(ctx, 0, 0); err != nil {
 		t.Fatalf("only the next request is refused: %v", err)
 	}
+	// The codes the platform never signs go unsigned: the client cannot
+	// trust them, as with the platform.
+	for _, code := range []string{contract.CodeUnauthenticated, contract.CodeStale, contract.CodeTooLarge} {
+		if err := p.Refuse("wappie", contracttest.CallFeed, code); err != nil {
+			t.Fatal(err)
+		}
+		_, err := c.Feed(ctx, 0, 0)
+		var r *contract.Refusal
+		if !errors.Is(err, contract.ErrUnverified) || !errors.Is(err, reqhmac.ErrMissing) || errors.As(err, &r) {
+			t.Errorf("Refuse %s: %v, want an unsigned answer", code, err)
+		}
+	}
 	for how, want := range map[contracttest.Corruption]error{
 		contracttest.Unsigned:      reqhmac.ErrMissing,
 		contracttest.AnotherNonce:  contract.ErrAnswerNonce,

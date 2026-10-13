@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -588,9 +589,20 @@ func TestASnapshotIsDecodedStrictly(t *testing.T) {
 		``, `null`, `[]`, `{"v":1,"snapshot_seq":5,"items":[],"extra":1}`, `{"v":1,"v":1,"snapshot_seq":5,"items":[]}`,
 		good + good, `{"v":1,"snapshot_seq":"5","items":[]}`, `{"V":1,"snapshot_seq":5,"items":[]}`,
 		"{\"v\":1,\"snapshot_seq\":5,\"items\":[{\"id\":\"n\xff\"}]}", `{"v":2,"snapshot_seq":5,"items":[]}`,
+		// Half a surrogate pair, escaped: the platform's json/v2 refuses
+		// it, where encoding/json would read U+FFFD.
+		labelled(`Vendas \ud800`), labelled(`\udc00x`), labelled(`\ud800\u0041`), labelled(`\ud83d`),
+		`{"v":1,"snapshot_seq":5,"items":[],"\udc00":1}`,
 	} {
 		c := call{method: http.MethodPut, target: target, app: "wappie", body: body}
 		h.wantSigned(t, h.send(t, c), c, http.StatusBadRequest, contract.CodeInvalid)
+	}
+	// A whole pair, and an escaped backslash before a "u", are text.
+	for _, label := range []string{`Vendas`, `Vendas \ud83d\ude00`, `Vendas \\ud800`} {
+		c := call{method: http.MethodPut, target: target, app: "wappie", body: labelled(label)}
+		if a := h.send(t, c); a.status != http.StatusOK {
+			t.Fatalf("the label %s: %d %s", label, a.status, a.body)
+		}
 	}
 	// An older snapshot is accepted and ignored; one more than a day ahead
 	// of the platform's clock is refused.
@@ -604,6 +616,13 @@ func TestASnapshotIsDecodedStrictly(t *testing.T) {
 	ahead := h.clock.Now().Add(contracttest.MaxSnapshotAhead + time.Minute).UnixMilli()
 	c = call{method: http.MethodPut, target: target, app: "wappie", body: fmt.Sprintf(`{"v":1,"snapshot_seq":%d,"items":[]}`, ahead)}
 	h.wantSigned(t, h.send(t, c), c, http.StatusBadRequest, contract.CodeInvalid)
+}
+
+// labelled is a snapshot of one valid number whose label is the JSON text
+// label, unquoted.
+func labelled(label string) string {
+	return `{"v":1,"snapshot_seq":5,"items":[{"id":"n1","kind":"number","label":"` + label + `","hint":null,"state":"active",` +
+		`"reason":null,"purge_at":null,"other_backups":0,"people":[],"protected":[]}]}`
 }
 
 func TestAnEventThatDoesNotDecodeIsRejectedAloneAndTheBatchGoesOn(t *testing.T) {
@@ -659,6 +678,9 @@ func TestAnEventThatDoesNotDecodeIsRejectedAloneAndTheBatchGoesOn(t *testing.T) 
 		`{"events":[]}`, `{"events":null}`, `{}`, `{"Events":[` + ev(eventA, personal) + `]}`,
 		`{"events":[` + strings.Repeat(ev(eventA, personal)+",", 100) + ev(eventA, personal) + `]}`,
 		`{"events":[` + strings.Replace(ev(eventA, personal), `"type"`, `"type":"item.purged","type"`, 1) + `]}`,
+		// Half a surrogate pair anywhere in the batch: the platform's json/v2
+		// refuses the batch's text, so the whole batch.
+		`{"events":[` + ev(eventA, personal) + `,` + strings.Replace(ev(eventB, personal), `"label":null`, `"label":"\udc00x"`, 1) + `]}`,
 	} {
 		c := call{method: http.MethodPost, target: "/contract/v1/events", app: "wappie", body: body}
 		h.wantSigned(t, h.send(t, c), c, http.StatusBadRequest, contract.CodeInvalid)
@@ -679,7 +701,16 @@ func TestNewRefusesAppsThatCouldBeMistakenForOneAnother(t *testing.T) {
 		}
 	}
 	a := contracttest.App{ID: "wappie", Current: secretA, Other: secretB}
-	if s := fmt.Sprintf("%v %+v %#v", a, a, a); strings.Contains(s, secretA[:10]) || strings.Contains(s, secretB[:10]) {
-		t.Fatalf("an app prints its secret: %s", s)
+	var logged strings.Builder
+	slog.New(slog.NewJSONHandler(&logged, nil)).Info("app", "app", a)
+	slog.New(slog.NewTextHandler(&logged, nil)).Info("app", "app", a)
+	encoded, err := json.Marshal(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{fmt.Sprintf("%v %+v %#v", a, a, a), logged.String(), string(encoded)} {
+		if strings.Contains(s, secretA[:10]) || strings.Contains(s, secretB[:10]) {
+			t.Fatalf("an app prints its secret: %s", s)
+		}
 	}
 }

@@ -29,8 +29,11 @@
 //     call itself, whose every answer is signed.
 //
 // Bodies are decoded as strictly as the platform decodes them: one JSON
-// object of valid UTF-8, no unknown member, no member twice, names compared
-// exactly; an event in a batch that does not decode is rejected alone.
+// object of valid UTF-8, with no escape of half a UTF-16 surrogate pair
+// (the platform's encoding/json/v2 refuses one, where encoding/json would
+// read U+FFFD), no unknown member, no member twice, names compared exactly;
+// an event in a batch that does not decode is rejected alone, and a batch
+// whose text is not valid is refused whole.
 //
 // Behind the transport is a small, in-memory platform: accounts and their
 // personal workspaces, teams and their members (AddAccount, AddTeam,
@@ -38,8 +41,8 @@
 // named to it, the snapshots and events it sent (Snapshot, Events), and
 // the generation (NewGeneration, Restore). A change to the directory
 // publishes the documents it changes at once, so published_through is
-// always now. Refuse and Corrupt make the next answer to a call a signed
-// refusal, or one an app must ignore.
+// always now. Refuse and Corrupt make the next answer to a call a refusal,
+// signed as the platform signs it, or one an app must ignore.
 //
 // What it does not do: read a peer's uid, apply NFC to a label before
 // cleaning it (the platform does; an app applies NFC itself, SPEC section
@@ -56,6 +59,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -104,7 +108,7 @@ type App struct {
 	ID string
 	// Current signs the answers and is accepted on requests; Other, when
 	// not empty, is accepted too, during a rotation.
-	Current, Other string
+	Current, Other string `json:"-"`
 }
 
 // String hides the secrets.
@@ -112,6 +116,9 @@ func (a App) String() string { return fmt.Sprintf("contracttest.App{ID: %q}", a.
 
 // GoString is String, for %#v.
 func (a App) GoString() string { return a.String() }
+
+// LogValue hides the secrets from a structured log.
+func (a App) LogValue() slog.Value { return slog.GroupValue(slog.String("id", a.ID)) }
 
 // Options configure a Platform.
 type Options struct {
@@ -326,8 +333,12 @@ func (p *Platform) SetSecrets(app, current, other string) error {
 }
 
 // Refuse makes the next request of app to call (CallFeed, ...) that passes
-// the transport's checks get the signed refusal code (contract.CodeGone,
-// ...), with the status the contract sends it with, instead of its answer.
+// the transport's checks get the refusal code (contract.CodeGone, ...),
+// with the status the contract sends it with, instead of its answer:
+// signed, except the codes the platform only ever sends before a signature
+// holds (contract.CodeUnauthenticated, CodeStale and CodeTooLarge), which
+// go unsigned, as the platform sends them, so the client sees
+// contract.ErrUnverified, never a *contract.Refusal.
 func (p *Platform) Refuse(app, call, code string) error {
 	if _, ok := statusOf[code]; !ok || !calls[call] {
 		return ErrInvalid
@@ -358,6 +369,10 @@ func (p *Platform) Corrupt(app, call string, how Corruption) error {
 }
 
 var calls = map[string]bool{CallSubscribe: true, CallAccount: true, CallUnsubscribe: true, CallFeed: true, CallAccess: true, CallEvents: true}
+
+// unsignedOnly are the codes the platform sends only before a request's
+// signature holds, so never signed.
+var unsignedOnly = map[string]bool{contract.CodeUnauthenticated: true, contract.CodeStale: true, contract.CodeTooLarge: true}
 
 // statusOf is the HTTP status the platform sends with a code.
 var statusOf = map[string]int{
@@ -510,6 +525,10 @@ func (p *Platform) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	delete(app.refuse, rt.name)
 	p.mu.Unlock()
 	if refused {
+		if unsignedOnly[code] {
+			unsigned(w, code, "refused by the test")
+			return
+		}
 		sign(refusal(code, "refused by the test"))
 		return
 	}
@@ -633,11 +652,12 @@ var errNotStrict = errors.New("contracttest: not one JSON object of the contract
 // in case alone.
 var memberName = regexp.MustCompile(`^[a-z_]+$`)
 
-// checkJSON reads raw as one JSON object of valid UTF-8 with no member
-// twice in any object, and nothing after it; the names of the objects
-// nested at most namesDepth deep must be member names.
+// checkJSON reads raw as one JSON object of valid UTF-8, with no escape of
+// half a surrogate pair, no member twice in any object, and nothing after
+// it; the names of the objects nested at most namesDepth deep must be
+// member names.
 func checkJSON(raw []byte, namesDepth int) error {
-	if !utf8.Valid(raw) {
+	if !utf8.Valid(raw) || loneSurrogate(raw) {
 		return errNotStrict
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
@@ -653,6 +673,64 @@ func checkJSON(raw []byte, namesDepth int) error {
 		return errNotStrict
 	}
 	return nil
+}
+
+// loneSurrogate reports whether a string of the JSON text raw escapes half
+// a UTF-16 surrogate pair: a \uD800 to \uDBFF not followed at once by a
+// \uDC00 to \uDFFF, or a \uDC00 to \uDFFF on its own. The platform's
+// encoding/json/v2 refuses such text; encoding/json reads U+FFFD. Only the
+// strings are read, and in them a backslash always starts an escape, so an
+// escaped backslash before a "u" is never taken for one. Text that is not
+// JSON is the decoder's to refuse.
+func loneSurrogate(raw []byte) bool {
+	inString := false
+	for i := 0; i < len(raw); i++ {
+		switch c := raw[i]; {
+		case !inString:
+			inString = c == '"'
+		case c == '"':
+			inString = false
+		case c == '\\':
+			r, ok := escapedUnit(raw[i:])
+			if !ok {
+				i++ // a two-character escape, or one the decoder refuses
+				continue
+			}
+			i += 5
+			switch {
+			case r >= 0xdc00 && r <= 0xdfff:
+				return true
+			case r >= 0xd800 && r <= 0xdbff:
+				low, ok := escapedUnit(raw[i+1:])
+				if !ok || low < 0xdc00 || low > 0xdfff {
+					return true
+				}
+				i += 6
+			}
+		}
+	}
+	return false
+}
+
+// escapedUnit reads the \uXXXX escape b starts with.
+func escapedUnit(b []byte) (rune, bool) {
+	if len(b) < 6 || b[0] != '\\' || b[1] != 'u' {
+		return 0, false
+	}
+	var r rune
+	for _, c := range b[2:6] {
+		switch {
+		case c >= '0' && c <= '9':
+			r = r<<4 | rune(c-'0')
+		case c >= 'a' && c <= 'f':
+			r = r<<4 | rune(c-'a'+10)
+		case c >= 'A' && c <= 'F':
+			r = r<<4 | rune(c-'A'+10)
+		default:
+			return 0, false
+		}
+	}
+	return r, true
 }
 
 // walkObject reads the members of an object whose '{' was read.

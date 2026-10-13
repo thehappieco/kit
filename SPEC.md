@@ -1,8 +1,8 @@
 # The Happie Co kit: specification
 
-- Spec version: 7 (kit v0.7.0)
-- Status: normative for the Wappie profile, which is frozen but for the addition of its platform wrap (section 6.8), for the Mailie profile (Appendix D: its account scheme, seal domain and grants, browser vault and platform wrap), for parts 1 to 3 of the platform profile (section 11), and for THCSEAL v1 and its key wrappers (section 14). Section 11.17 is reserved.
-- Vectors: every byte below is pinned by a case in `vectors/`. A case is cited as `file#case-id`, the file by its bare name under `vectors/wappie/golden/` and by its path under `vectors/` otherwise (Mailie's as `mailie/golden/platform-wrap-go.json` and `mailie/key-scheme-v1/grant-go.json`), or for the platform's files as `platform/id-v1/<kind>.json#<case name>`, and `#<op>/<case name>` for a case that carries an op; a case of THCSEAL's file, `platform/thcseal-v1/thcseal-v1.json`, is cited by its list and name, `#valid/<case name>` or `#invalid/<case name>`.
+- Spec version: 8 (kit v0.8.0)
+- Status: normative for the Wappie profile, which is frozen but for the addition of its platform wrap (section 6.8), for the Mailie profile (Appendix D: its account scheme, seal domain and grants, browser vault and platform wrap), for parts 1 to 3 of the platform profile (section 11), for the membership part of the platform's product contract (section 11.17), and for THCSEAL v1 and its key wrappers (section 14).
+- Vectors: every byte below is pinned by a case in `vectors/`. A case is cited as `file#case-id`, the file by its bare name under `vectors/wappie/golden/` and by its path under `vectors/` otherwise (Mailie's as `mailie/golden/platform-wrap-go.json` and `mailie/key-scheme-v1/grant-go.json`), or for the platform's files as `platform/id-v1/<kind>.json#<case name>`, and `#<op>/<case name>` for a case that carries an op; a case of THCSEAL's file, `platform/thcseal-v1/thcseal-v1.json`, is cited by its list and name, `#valid/<case name>` or `#invalid/<case name>`, and so is a case of the contract's files, `platform/contract-v1/<kind>.json#<list>/<case name>`, or in `labels.json`, whose cases have no name, by its list and its raw label or hint (`#clean/<raw>`, `#hints/<hint>`).
 
 ## 1. Status and scope
 
@@ -18,11 +18,12 @@ The kit standardises the client-side cryptography The Happie Co's products share
 - the platform's account core: its password profile, KDF policy, root wraps, recovery code, per-product keys, server verifiers, email normalisation and key bundle (section 11);
 - the platform's sealed key delivery, PKCE and the relying party of its OpenID Connect provider, page and server (sections 11.12 to 11.15);
 - the platform's passkeys with PRF: the key a passkey's PRF output gives for the root wrap, and the allowlist of the client extension results the id. server accepts (section 11.16);
+- the membership part of the platform's product contract, Go only: the signature of its requests and answers, the types that cross it and their rules, the mask of an item's label, an app's client and a fake platform for an app's tests (section 11.17);
 - the envelope of a server's tier-2 secrets, THCSEAL v1, and its key wrappers, AWS KMS and a local key-encryption key for development and tests (section 14).
 
 What a product chooses is a **profile** (section 3): labels, prefixes, magic bytes, kind names, AAD builders and bounds. Everything else is fixed, and changing it is a new format version, never a profile.
 
-**Conformance.** An implementation conforms to a profile when it reproduces every case of that profile's vector files that is marked for its language (section 12). The Go module and the TypeScript package in this repository conform to the Wappie profile, to the Mailie profile (its account scheme, seal domain and grants, browser vault and platform wrap) and to parts 1 to 3 of the platform profile. An implementation of THCSEAL v1 conforms when it opens every valid envelope of its vector file and refuses every invalid one with its error (sections 12.3 and 14); the Go module does, and there is no TypeScript, since only servers seal tier-2 secrets.
+**Conformance.** An implementation conforms to a profile when it reproduces every case of that profile's vector files that is marked for its language (section 12). The Go module and the TypeScript package in this repository conform to the Wappie profile, to the Mailie profile (its account scheme, seal domain and grants, browser vault and platform wrap) and to parts 1 to 3 of the platform profile. An implementation of THCSEAL v1 conforms when it opens every valid envelope of its vector file and refuses every invalid one with its error (sections 12.3 and 14); the Go module does, and there is no TypeScript, since only servers seal tier-2 secrets. An implementation of the contract conforms when it reproduces every canonical string and signature of its vector files, ends every answer check as they record, and accepts and refuses every secret, document, snapshot, event, label and hint as they say (section 11.17); the Go module does, and there is no TypeScript, since both apps' contract clients are servers.
 
 **Versioning.** The spec changes only additively within a major kit version: new sections, new profiles, new ops and new cases. A byte that changes is a new format version byte or a new profile, with new vectors, and the old vectors keep passing.
 
@@ -301,6 +302,8 @@ A receiver:
 
 Note: Wappie's Node guard also accepts the timestamp `"0"` and caps timestamps at 16 digits. Both are observable only as which refusal is logged, since such timestamps are always stale.
 
+The platform's product contract uses this scheme under its own label and headers, signs its answers too, with the other direction, and binds each answer to its request by echoing the request's nonce (section 11.17).
+
 ## 10. JCS (RFC 8785)
 
 Both implementations write RFC 8785 text: object keys sorted by UTF-16 code units, strings with the minimal escapes (`\"`, `\\`, `\b`, `\f`, `\n`, `\r`, `\t`, other controls as `\u00xx` in lowercase hex, everything else as itself, U+2028, U+2029, `<`, `>` and `&` included).
@@ -315,9 +318,9 @@ Both implementations write RFC 8785 text: object keys sorted by UTF-16 code unit
 
 ## 11. The platform profile
 
-- Status: **parts 1 to 3 are normative**: the account core of the platform's protocol `id-v1` (`thehappie-id/v1`, sections 11.1 to 11.11), from the platform's `docs/protocol/id-v1.md` sections 1, 2 and 6 at platform commit `5e66d84`, with one change: the run rule of the password profile (section 11.2, step 2) counts more, so that Go and ICU never prepare one password two ways; key delivery, PKCE and the relying party (sections 11.12 to 11.15), from its sections 7.5, 7.6, 7.8, 7.10 and 7.14 at platform commit `4476bf4`; and passkeys with PRF (section 11.16), from its sections 8.2 and 8.5 at platform commit `b5d9f69`, with the relying party rule of its section 8.1 at platform commit `75b6b94`. Section 11.17 is reserved.
-- Implementations: Go `profiles/platform`, TypeScript `@thehappieco/kit/profiles/platform`; for the relying party, Go `oidcrp` (its server) and TypeScript `@thehappieco/kit/oidc-rp` (its page). Unlike the other modules, their functions take no profile argument: they are the platform's protocol. Where a generic module does the work, they hand it the platform's values (Appendix C): sections 6.3, 6.5 and 6.7 with the platform's labels, header and canonical form, section 10 for the AAD, and section 4.4's suite for product keys and their delivery.
-- Vectors: `vectors/platform/id-v1/*.json`, written by the platform's Go code and carried byte for byte (section 12.2). An implementation conforms when it reproduces every case and refuses every must-fail case with the error name the case records.
+- Status: **parts 1 to 3 are normative**: the account core of the platform's protocol `id-v1` (`thehappie-id/v1`, sections 11.1 to 11.11), from the platform's `docs/protocol/id-v1.md` sections 1, 2 and 6 at platform commit `5e66d84`, with one change: the run rule of the password profile (section 11.2, step 2) counts more, so that Go and ICU never prepare one password two ways; key delivery, PKCE and the relying party (sections 11.12 to 11.15), from its sections 7.5, 7.6, 7.8, 7.10 and 7.14 at platform commit `4476bf4`; and passkeys with PRF (section 11.16), from its sections 8.2 and 8.5 at platform commit `b5d9f69`, with the relying party rule of its section 8.1 at platform commit `75b6b94`; and, Go only, the membership part of the platform's product contract (section 11.17), from its `docs/contract/v1/README.md` and `internal/contract` at platform commit `a78bf16`.
+- Implementations: Go `profiles/platform`, TypeScript `@thehappieco/kit/profiles/platform`; for the relying party, Go `oidcrp` (its server) and TypeScript `@thehappieco/kit/oidc-rp` (its page); for the contract, Go `contract` and `contract/contracttest`, with the signature's values named in `profiles/platform` too. Unlike the other modules, their functions take no profile argument: they are the platform's protocol. Where a generic module does the work, they hand it the platform's values (Appendix C): sections 6.3, 6.5 and 6.7 with the platform's labels, header and canonical form, section 10 for the AAD, and section 4.4's suite for product keys and their delivery.
+- Vectors: `vectors/platform/id-v1/*.json`, written by the platform's Go code and carried byte for byte (section 12.2), and the contract's, `vectors/platform/contract-v1/*.json` (section 12.4). An implementation conforms when it reproduces every case and refuses every must-fail case with the error name the case records.
 
 ### 11.1 Values and conventions
 
@@ -649,13 +652,156 @@ The check reads the exact JSON text of that one member: UTF-8; one JSON value, w
 
 Vectors: `passkey.json` (44 cases, 35 must fail, all `wrap`: 16 at the salt, 6 at the key and 13 at the open) and `client-extensions.json` (46 cases, 37 must fail, all `client_extensions`), from platform commit `b5d9f69`, and `rp-id-ends-in-number.json` (29 cases, 17 must fail, all `wrap`, 8 of them the hex forms v0.4.0 accepted; every case also records the checker's answer, `ends_in_a_number`), from platform commit `75b6b94`.
 
-### 11.17 Reserved: the product contract
+### 11.17 The product contract: its membership part
 
-Its types, and its HMAC as section 9 with the platform's label (the platform's decision 0005, Phase 3).
+The contract (the platform's decision 0005) is what the platform and each app's server exchange, server to server. Its first part, the membership part (decision 0040, amended by 0041), is the one built: the platform tells an app which workspaces each of its people belongs to and with which role; the app reports who can do what with each of its numbers and mailboxes, and sends the events from which the platform mails a team's owners and readers. This section is the platform's `docs/contract/v1/README.md` at platform commit `a78bf16`, for what crosses the wire; where that file and decision 0040 differ, the decision wins (at `a78bf16` they agree on everything below). Implementations: Go `contract`, on the standard library and `reqhmac` alone, with `contract/contracttest`, a fake platform for an app's tests; `profiles/platform` names the signature's values as the profile names every other (`ContractHMAC`, `ContractToPlatform`, `ContractToApp`, `ContractSecretLen`, `CheckContractSecrets`, `SignAnswer`, `VerifyAnswer`), the same functions. There is no TypeScript: both apps' contract clients are server-side Go. Vectors: `vectors/platform/contract-v1/` (the end of this section).
+
+**The transport is the platform's.** In production the platform serves the contract on a unix socket that only the apps' service users can reach, and checks the peer's uid before anything else; in development, on loopback TCP, the signature alone authenticates. Nothing reads a client address. Every byte below is the same on both.
+
+**The signature** is section 9 under these values (`contract.Scheme()`, `profiles/platform.ContractHMAC()`):
+
+| | |
+|---|---|
+| Label | `thehappie-platform-hmac/v1` |
+| Headers | `X-Happie-App` (the sender), `X-Happie-Timestamp`, `X-Happie-Nonce`, `X-Happie-Signature` |
+| Sender | the app's id, in both directions: `^[a-z][a-z0-9]{1,31}$` (`wappie`, `mailie`; `fakeproduct` in development) |
+| Directions | `to-platform` (requests), `to-app` (answers) |
+| Skew | 60 s; the platform's replay cache keeps a nonce 61 s, at most 100 000 per app, and fails closed when full |
+| Nonce | 16 random bytes, unpadded base64url, fresh for every request, retries included |
+
+`platform/contract-v1/signatures.json#requests/subscribe at a sign-in` signs `PUT /contract/v1/accounts/0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20` with no body to `v1=76dc354f2da04d8fd1afd67f46f8e941e5e4f9ca325909e7dd92020a4e1249d8`; the target is the raw path and query (`platform/contract-v1/signatures.json#requests/the feed, a target with a query`), and the method is signed in upper case (`platform/contract-v1/signatures.json#requests/a lowercase method is signed in upper case`).
+
+- **The secret** is the 43-character unpadded base64url text of 32 random bytes, one per app, and it is keyed as written: the HMAC key is the text's bytes, never the 32 decoded ones (`platform/contract-v1/signatures.json#answer_checks/the key taken as the 32 decoded bytes`). Both sides refuse, before they sign or verify anything, an empty secret, one of another length, a padded one, one whose last character is not the canonical encoding of 32 bytes, and a next secret equal to the current one (`contract.CheckSecrets`, `profiles/platform.CheckContractSecrets`; `platform/contract-v1/signatures.json#secrets/empty`, `platform/contract-v1/signatures.json#secrets/42 characters`, `platform/contract-v1/signatures.json#secrets/padded`, `platform/contract-v1/signatures.json#secrets/not the canonical encoding of 32 bytes`, `platform/contract-v1/signatures.json#secrets/the next equal to the current`). An empty key is a valid HMAC key, so this check is the only guard against one; a client checks every secret it accepts, too.
+- **A rotation** has two secrets: the platform accepts a request signed with either and signs its answers with its current one; an app accepts answers signed with either of its own (`platform/contract-v1/signatures.json#answer_checks/during a rotation, the next secret first`). The steps and the commands that take them are the platform's.
+
+**The platform's order.** Each check refuses before the next one runs, and everything before step 6 is refused unsigned, an answer that tells the app nothing it can trust:
+
+1. the peer: on the socket, a uid mapped to an app, else `404 not_found`;
+2. `X-Happie-App` exactly once, naming that uid's app (over TCP, a configured app), else `404 not_found`;
+3. the app's rate, 50 requests a second, else `429 rate_limited`;
+4. the timestamp, nonce and signature headers, each present once and well formed, and the timestamp within 60 s (section 9, steps 2 and 3), else `401 unauthenticated` or `401 stale_timestamp`;
+5. the call, by method and raw path, else `404 not_found`; then the body, up to the call's limit, else `413 too_large`;
+6. the signature, by the app's current or other secret, direction `to-platform`, over the raw request-target, else `401 unauthenticated`;
+7. the nonce, admitted once in the app's replay cache, else `401 replay`, signed (`503 unavailable`, signed, when the cache is full); then a query on any call but the feed, `400 invalid_request`, signed; then the call.
+
+**Signed answers.** Every answer to a request whose signature held is signed, refusals included (`contract.SignAnswer`): `X-Happie-Timestamp` is the answer's own time, `X-Happie-Nonce` the request's nonce, echoed, and `X-Happie-Signature` the signature with direction `to-app` over the request's method and target, the answer's timestamp, the echoed nonce and the answer's body (`platform/contract-v1/signatures.json#answers/the answer to a subscription`, `platform/contract-v1/signatures.json#answers/a signed refusal`). The app checks an answer to its own request (`contract.VerifyAnswer`), in this order:
+
+1. the three headers present once each and well formed, and the timestamp within 60 s [`hmac_missing`, `hmac_stale`] (`platform/contract-v1/signatures.json#answer_checks/unsigned`, `platform/contract-v1/signatures.json#answer_checks/a minute and a second late`);
+2. the echoed nonce equal to the one the app sent, never a value taken from the answer [`answer_nonce`] (`platform/contract-v1/signatures.json#answer_checks/a swapped nonce: the answer to another request`);
+3. the signature, by one of the secrets the app accepts, direction `to-app`, for this app [`hmac_bad`] (`platform/contract-v1/signatures.json#answer_checks/a request's signature presented as an answer`, `platform/contract-v1/signatures.json#answer_checks/an answer signed for the other app`, `platform/contract-v1/signatures.json#answer_checks/another body`, `platform/contract-v1/signatures.json#answer_checks/another app's secret`).
+
+An answer that fails any check is ignored: no cursor moves and no outbox row is marked delivered. The outcome is in the signed body; the HTTP status is never trusted alone, and an unsigned answer is a failure. The nonce binds an answer to its request, so an app needs no replay cache. `contract.Client` signs with the app's secret, verifies every answer before it reads it, reports a signed refusal as a `*contract.Refusal` with its code, and anything else that fails as `contract.ErrUnverified`; it also refuses a document of another app or account, a feed that does not validate for the app, and a batch of results that does not match the events sent.
+
+**Wire rules.**
+
+- **JSON, UTF-8.** The platform decodes strictly: one object, no unknown member, no member twice, names compared exactly. An app ignores members it does not know, and refuses an unknown `v` or enum value. Every enum is closed (`Validate` on each type).
+- **Times** are RFC 3339 in UTC with `Z`, from 1970, with at most nine fractional digits after a `.`, never a `,` (`contract.Time`; `platform/contract-v1/wire.json#events/a time with a comma before its fraction`, `platform/contract-v1/wire.json#events/a time with ten fractional digits`, `platform/contract-v1/wire.json#events/a time in another zone`). The platform keeps microseconds.
+- **Ids.** Accounts (subs) and workspaces are canonical lowercase UUIDs, never the nil UUID (`platform/contract-v1/wire.json#documents/an uppercase sub`). An item's id is the app's own opaque id: 1 to 64 characters of `[A-Za-z0-9_.-]`.
+- **Body limits:** `POST /contract/v1/events` 256 KiB; `PUT /contract/v1/workspaces/{id}/access` 1 MiB; every other call 4 KiB, and those calls take no body: a non-empty one is `invalid_request`.
+- **Errors.** An error body is `{"code": "...", "message": "..."}`; the message is for logs, never parsed (`contract.Error`). The codes:
+
+| Code | Status | Signed | When |
+|---|---|---|---|
+| `not_found` | 404 | no | an unknown peer, app or call (before the signature) |
+| `unauthenticated` | 401 | no | missing or malformed signature headers, or a signature that does not hold |
+| `stale_timestamp` | 401 | no | the timestamp is more than 60 s away |
+| `too_large` | 413 | no | the body exceeds the call's limit |
+| `rate_limited` | 429 | no, or yes | over 50 requests a second for the app (unsigned); a fifth feed request waiting at once (signed) |
+| `replay` | 401 | yes | the nonce was admitted already |
+| `invalid_request` | 400 | yes | the body, the query or a value is not valid |
+| `not_found` | 404 | yes | an account the platform does not have; one the app does not follow; a workspace never named to the app |
+| `gone` | 410 | yes | the feed's cursor is past its head: the platform's database was restored |
+| `conflict` | 409 | yes | in an event's result: its `event_id` is kept with other content |
+| `unavailable` | 503 | yes | the platform could not answer, or its replay cache is full; retried with a fresh nonce |
+
+**The calls** (`contract.Client`; every body and answer is one JSON object):
+
+| Call | Body | Answer |
+|---|---|---|
+| `PUT /contract/v1/accounts/{sub}` (`Subscribe`) | none | The account's document, computed now; the app follows the account from now on. `not_found` for an account the platform has neither in its directory nor in its closing records, which is a platform fault, never a closing. |
+| `GET /contract/v1/accounts/{sub}` (`Account`) | none | The document of an account the app follows, computed now; `not_found` for one it does not follow. |
+| `DELETE /contract/v1/accounts/{sub}` (`Unsubscribe`) | none | `{"subscribed": false}`; not following the account is no error. |
+| `GET /contract/v1/feed?after={seq}&wait={0..25}` (`Feed`) | none | The documents published after the cursor (below). |
+| `PUT /contract/v1/workspaces/{id}/access` (`PutAccess`) | a snapshot | `{"accepted": true}` |
+| `POST /contract/v1/events` (`PostEvents`) | `{"events": [...]}`, 1 to 100 | `{"results": [...]}`, one per event, in order |
+
+An app subscribes at every sign-in through id., before its own sign-in transaction, and once for every person it holds when it connects; it asks again (`GET`) before an act that widens access when what it holds is over an hour old; it unsubscribes once it has forgotten a closed account.
+
+**The document** (`contract.AccountDoc`, one per app and account; `platform/contract-v1/wire.json#documents/an account with a personal workspace and a team`):
+
+| Member | Rule |
+|---|---|
+| `v`, `type`, `app` | `1`, `"account"`, and the app it was published for; an app refuses a document of another app or account (`platform/contract-v1/wire.json#documents/version 2 of the format`) |
+| `generation` | the platform database's identity, a UUID |
+| `sub` | the account |
+| `version` | at least 1; the document's place in the app's feed: it only rises and never repeats, even across an unsubscribe and a new subscription. An app applies a document only of the current generation and of a higher version than the one it applied. |
+| `status` | `active`, `disabled` (suspended by the operator) or `closed`, whose `workspaces` is `[]` (`platform/contract-v1/wire.json#documents/a suspended account`, `platform/contract-v1/wire.json#documents/a closed account`, `platform/contract-v1/wire.json#documents/a closed account with workspaces`, `platform/contract-v1/wire.json#documents/an unknown status`). `closed` comes from a record of the closing, never from an absence. |
+| `disabled_at`, `sessions_revoked_at`, `credentials_revoked_at` | times or `null`: the latest disable (whenever it rises, the app suspends the person, even if `status` is `active` again), the latest revocation of every session (the app ends every session begun before it), and the latest recovery (the app also stops the integrations the person made before it) (`platform/contract-v1/wire.json#documents/sessions and integrations revoked by a recovery`) |
+| `workspaces` | an array, every workspace the account belongs to, each id once, the personal one first (`platform/contract-v1/wire.json#documents/the personal workspace not first`) |
+| `workspaces[].kind`, `name`, `owners` | `personal`, with `name` and `owners` `null`, role `owner` and status `open`; or `team`, with a `name` of 1 to 80 characters with no control, format or bidirectional character and no space at either end (`platform/contract-v1/wire.json#documents/a team name with a bidirectional control`), and `owners`, its count of owners, at least 1 while it is open (`platform/contract-v1/wire.json#documents/an open team with no owner`) |
+| `workspaces[].role` | `owner`, `admin` or `member` (`platform/contract-v1/wire.json#documents/the role of a service account`) |
+| `workspaces[].status` | `open` or `closed`; a closed team keeps its members (`platform/contract-v1/wire.json#documents/a closed team keeps its members`) |
+| `workspaces[].wversion` | at least 1; rises whenever the workspace's name or status changes, and an app applies a name or status only with a higher one |
+
+A document never lists another member, an email address or a name a person chose for themselves.
+
+**The feed** (`contract.Feed`). `after` is required and `wait` optional (default 0, at most 25 seconds), each once, as a decimal with no sign or leading zero, read as written and never percent-decoded; anything else is `invalid_request`. The answer has `generation`, `generation_confirmed`, `head` (the app's last seq), `published_through` (the oldest change not yet published to the app, or now: an app measures its freshness from it, and only when `more` is false), `items` (`{"seq", "doc"}`, the documents published after `after`, the latest of each account only, oldest first, at most 200), `next_after` (the last item's seq when `more` is true, else `max(after, head)`) and `more`. `Feed.Validate(app)` refuses a generation that is no UUID, a `next_after` outside 0 to `head`, items that are `null` or more than 200, seqs that do not rise or pass `head`, and a document that is not valid, not the app's or not of the feed's generation. With no new document, the request waits up to `wait` seconds and answers when the platform publishes for the app, or empty when the time is up or the platform shuts down; at most four requests of one app wait at once.
+
+**A new generation.** On `gone`, or a feed whose generation is not the one the app holds, the app forgets its cursor and its stored versions (keeping the memberships it applied), subscribes again for every person it holds, follows the feed from 0, never lets an older document undo a disable or a revocation it applied, holds any removal that would strand an item until the feed says `generation_confirmed: true`, and sends a snapshot again for every workspace. Without the platform, an app keeps its last applied documents and never deletes on them.
+
+**Access snapshots** (`contract.Snapshot`, `PUT /contract/v1/workspaces/{id}/access`): what an app reports of one platform workspace, absolute (`platform/contract-v1/wire.json#snapshots/a number with its reader and a person waiting for the key`):
+
+| Member | Rule |
+|---|---|
+| `v` | `1` |
+| `snapshot_seq` | the app's clock in milliseconds when it measured, at least 1, rising across an app's restore; the platform ignores one at or below the one it holds and refuses one more than a day ahead of its own clock |
+| `items` | an array of at most 1000, each `(kind, id)` once; a deleted item stays listed until its purge |
+| `items[].kind` | `number` or `mailbox` |
+| `items[].label`, `hint` | a label and a hint as below, or `null` (`platform/contract-v1/wire.json#snapshots/a mailbox with no name, its hint only`, `platform/contract-v1/wire.json#snapshots/a label that is a phone number`) |
+| `items[].state`, `reason` | `active`, `deleted`, or `sync_paused` with a `reason`: `by_person`, `team_closed`, `no_reader`, `needs_reauth`, `quota` or `error`; any other state has `null` (`platform/contract-v1/wire.json#snapshots/a paused item says why`, `platform/contract-v1/wire.json#snapshots/a pause with no reason`) |
+| `items[].purge_at` | when a deleted item goes for good: only, and always, on a deleted item (`platform/contract-v1/wire.json#snapshots/a deleted item until its purge`, `platform/contract-v1/wire.json#snapshots/a deleted item with no purge date`) |
+| `items[].other_backups` | how many key holders without a sub the app's rule counts as a backup, 0 to 2^20 |
+| `items[].people` | an array of at most 5000, each sub once: everyone with a flag, a permission or a key at an epoch not retired, by platform sub only |
+| `items[].people[].can` | an array of the stored flags, each once: `read`, `send`, `act`, `manage` (`platform/contract-v1/wire.json#snapshots/an unknown flag`) |
+| `items[].people[].reads`, `waiting`, `enrolled`, `holds_key` | they read it now; they may read it and wait for the key; they set up their key in the app, so a key can be shared with them; they hold a key to it at an epoch not retired, with or without Read |
+| `items[].protected` | an array of the subs the app's own rule says the item cannot lose, each listed in `people` and once (`platform/contract-v1/wire.json#snapshots/protecting someone the item does not list`) |
+
+The answer is `{"accepted": true}`, also for a snapshot older than the one kept, which is ignored, and for one of a closed personal workspace, which is not kept. A workspace never named to the app, in a document of one of its people, is `not_found`; once named, it stays named.
+
+**Labels and hints.** A label is a name a person gave the item, never its number or its address. The app sets aside placeholders, opaque ids and the number or address itself, applies NFC, and then `contract.CleanLabel`, which returns `""` (no label) when nothing is left:
+
+- any text with `@`, or a character that reads as one (U+FF20, U+FE6B), is dropped (`platform/contract-v1/labels.json#clean/vendas@loja.com`, `platform/contract-v1/labels.json#clean/joao＠gmail.com`);
+- C0 and C1 controls, every format character (bidirectional controls, zero-width characters, the soft hyphen, the word joiner) and the combining grapheme joiner go (the file's cases with U+202E, U+200B, U+00AD and U+034F, which this text does not spell);
+- whitespace collapses to single spaces, and the ends are trimmed (`platform/contract-v1/labels.json#clean/Suporte   24h`);
+- each run of 7 or more decimal digits of any script, with spaces, `.`, `,`, `/`, `_`, `(`, `)`, `+`, `-`, `·`, `•`, `*`, `#`, any dash or the minus sign U+2212 between them, becomes `…` (U+2026) and its last four digits, and a `+` or `(` just before it goes with it (`platform/contract-v1/labels.json#clean/+55 (11) 91234-5678`, `platform/contract-v1/labels.json#clean/Loja 11912345678`, `platform/contract-v1/labels.json#clean/Loja 1 - 12345`, `platform/contract-v1/labels.json#clean/Safra 2024−2025`, `platform/contract-v1/labels.json#clean/１１９１２３４５６７８`);
+- it is cut at 80 code points, never leaving half a flag.
+
+A label is valid when it is not empty and `CleanLabel` leaves it unchanged (`contract.ValidLabel`); cleaning twice changes nothing. The platform applies NFC and `CleanLabel` again on intake, as a backstop, and drops a hint that is not one. A hint (`contract.ValidHint`) is `…` and the last four ASCII digits of a number (never of a WhatsApp LID), or a lowercase letter or digit, `…@` and the domain of an address, of lowercase labels with a dot, no empty label and fewer than 7 digits (`platform/contract-v1/labels.json#hints/…5678`, `platform/contract-v1/labels.json#hints/j…@gmail.com`, `platform/contract-v1/labels.json#hints/j…@localhost`, `platform/contract-v1/labels.json#hints/a…@5511912345678.com`); nothing else. The console names an item by its label, else its hint; a mail names a mailbox by its label only.
+
+**Events** (`contract.Events`, `contract.Event`): a batch of 1 to 100 from an outbox written in the same transaction as the change, each workspace's in its order (`platform/contract-v1/wire.json#events/an owner deleted a number`):
+
+| Type | When | `actor_kind` | Only on this type |
+|---|---|---|---|
+| `item.deleted` | an owner deleted it | `person` | `purge_at`, required (`platform/contract-v1/wire.json#events/a deletion with no purge date`, `platform/contract-v1/wire.json#events/a deletion by an API key`) |
+| `item.recovered` | an owner recovered it | `person` | |
+| `item.sync_paused` | a person, or an API key, turned off a mailbox's sync or a number's capture | any | |
+| `item.purged` | the app deleted it for good | `app` | |
+| `item.stranded` | it lost the last person who could read it | any | `person` (the sub it lost, or `null`) and `cause` (`disabled` or `revoked` when the app knows; `null`, and the platform fills `removed`, `left` or `closed`) |
+| `item.moved_out` | a number moved out of a team into a person's personal workspace | `person` | `to: "personal"`, required; `item.kind` is `number` (`platform/contract-v1/wire.json#events/a mailbox moved`) |
+
+- `event_id` is the idempotency key, a UUID (version 7); `workspace_id` a workspace named to the app; `occurred_at` the app's time of it; `item` its `id`, `kind`, `label` and `hint`, under the rules above (`platform/contract-v1/wire.json#events/a label that is an address`).
+- `actor` is the sub of the person who acted, an API key's creator's for an API key, and `null` when no person did; always `null` with `actor_kind: app` (`platform/contract-v1/wire.json#events/the app's own act with an actor`). A person with no sub goes as `actor: null`, `actor_kind: person`.
+- `readers` are the item's readers just before, the actor included, each once, at most 5000; above that, `null` (`platform/contract-v1/wire.json#events/more readers than an event carries`).
+- A member of another type of event is refused (`platform/contract-v1/wire.json#events/a cause on a pause`).
+- **The results** (`contract.EventResults`), one per event, in order, `{"event_id", "outcome", "code"}`: `accepted` (kept); `duplicate` (an event with this `event_id`, workspace, type, item and time, at microseconds, is kept already: the app marks it delivered); or `rejected` with `invalid_request` (the event alone, which includes one that does not decode: the rest of the batch goes on), `not_found` (a workspace never named to the app) or `conflict` (the `event_id` is kept with other content). A row is delivered only on a signed `accepted` or `duplicate`.
+
+**What stays in the platform:** the socket and its peer check; the console's service behind the calls (the documents computed from its database, the publisher, the inbox and its retention, the mails of decision 0039 and their caps, the protection verdicts of the console's Access section); the secrets' storage, tier 2, and the rotation's commands; and in each app, its follower, its outbox and what it does with a document (the platform's design of the membership part). `contracttest` plays the platform's development transport, in the order above, before an in-memory directory a test sets; it reads no uid, mails no one and is for tests only.
+
+Vectors: `signatures.json` (4 requests and 3 answers with their canonical strings and signatures; 10 answer checks, 2 `ok`, 1 `answer_nonce`, 5 `hmac_bad`, 1 `hmac_stale`, 1 `hmac_missing`; 7 pairs of secrets, 2 valid), `wire.json` (13 documents, 9 snapshots and 17 events, of which 5, 4 and 8 validate) and `labels.json` (34 labels before and after `CleanLabel`, 14 hints, 3 valid), from platform commit `a78bf16`, in the contract's format (section 12.4). An implementation conforms when it reproduces every canonical string and signature, ends every answer check as it records, and accepts and refuses every secret, document, snapshot, event, label and hint as they say.
 
 ## 12. Vectors
 
-The layout, the op catalogue and the provenance of every file are in `vectors/README.md` and `vectors/PROVENANCE.md`. Mailie's golden file of its platform wrap is under `vectors/mailie/golden/`, in the kit's format, written by the kit's own generator, which `make vectors-mailie-regen` runs again; Mailie's own files of its key scheme are under `vectors/mailie/key-scheme-v1/`, in the kit's format, carried byte for byte from Mailie (`vectors/PROVENANCE.md`): the kit's Go code writes them again byte for byte in every test run, the seeded seals of two of them on the toolchains `vectors/PROVENANCE.md` lists (on any other those skip and say so, and the seals are opened), and `make vectors-mailie-check` has Mailie's own generator write them. Run the conformance suites with `make test` (both languages), `make test-go-1.26.7` (adds the byte-for-byte replays of Wappie's Go vectors), and `make cross` (fresh round trips in both directions); the Go targets pass the build tag `kitdevkek`, which THCSEAL's runner needs (section 14.3). Files are append-only once a release is tagged.
+The layout, the op catalogue and the provenance of every file are in `vectors/README.md` and `vectors/PROVENANCE.md`. Mailie's golden file of its platform wrap is under `vectors/mailie/golden/`, in the kit's format, written by the kit's own generator, which `make vectors-mailie-regen` runs again; Mailie's own files of its key scheme are under `vectors/mailie/key-scheme-v1/`, in the kit's format, carried byte for byte from Mailie (`vectors/PROVENANCE.md`): the kit's Go code writes them again byte for byte in every test run, the seeded seals of two of them on the toolchains `vectors/PROVENANCE.md` lists (on any other those skip and say so, and the seals are opened), and `make vectors-mailie-check` has Mailie's own generator write them. The platform's contract's files are under `vectors/platform/contract-v1/`, in their own format (section 12.4), carried byte for byte from the platform: the kit's Go code writes them again byte for byte in every test run, and `make vectors-contract-check` has the platform's own generator check them. Run the conformance suites with `make test` (both languages), `make test-go-1.26.7` (adds the byte-for-byte replays of Wappie's Go vectors), and `make cross` (fresh round trips in both directions); the Go targets pass the build tag `kitdevkek`, which THCSEAL's runner needs (section 14.3). Files are append-only once a release is tagged.
 
 ### 12.1 The kit's format
 
@@ -668,6 +814,10 @@ Everything under `vectors/wappie/`, `vectors/kit/` and `vectors/mailie/` is in t
 ### 12.3 THCSEAL's format
 
 `vectors/platform/thcseal-v1/thcseal-v1.json` is the platform's own file, carried byte for byte (provenance in `vectors/PROVENANCE.md`): `{"comment": [...], "provider": "localkek (0x7f)", "kek_hex": "<32 bytes>", "valid": [...], "invalid": [...]}`. Every envelope in it is sealed with the local provider (section 14.3) under `kek_hex`, the published test key `000102…1f`. A valid case has a `name`, a `context` (`service`, `env`, `purpose` and `ref`, written even when empty), `plaintext_hex`, `envelope_hex`, and the intermediate values `data_key_hex` and `aad_hex`; an invalid case has a `name`, a `context`, `envelope_hex` and an `error`, one of `malformed`, `provider_mismatch` and `decrypt` (section 14.2), which an opener reaches in that order. Bytes are lowercase hex. Names are unique within each list, and a case is identified and cited by its list and its name (`platform/thcseal-v1/thcseal-v1.json#invalid/version 2`). The file is ASCII and ends with one newline. A runner decodes strictly: a member it does not read fails it.
+
+### 12.4 The contract's format
+
+`vectors/platform/contract-v1/*.json` are the platform's own files, carried byte for byte (provenance in `vectors/PROVENANCE.md`). Each is `{"format": "thehappie-contract/vectors", "version": 1, "kind": "<kind>", "description": "...", ...}` with the lists of its kind. `signatures` also holds the scheme (`label`, `headers`, `skew_seconds`) and the lists `requests` and `answers` (`name`, `secret`, `direction`, `app`, `method`, `target`, `timestamp`, `nonce`, `body`; `canonical`, `signature`), `answer_checks` (`name`, `headers`, the answer's; `secrets`, those the app accepts; `app`, `method`, `target`, `sent_nonce`, `body`, `now` in Unix seconds; `result`, `ok` or the refusal's code) and `secrets` (`name`, `current`, `next`; `valid`). `wire` holds `documents`, `snapshots` and `events` (`name`, `value`, a JSON value; `valid`: whether it decodes and its `Validate` accepts it). `labels` holds `clean` (`raw`; `clean`, `""` for no label) and `hints` (`hint`; `valid`). Texts are JSON strings and bodies the exact bytes signed. A case is identified and cited by its list and its name, and in `labels.json` by its list and its `raw` or `hint`, all unique (`platform/contract-v1/wire.json#events/a mailbox moved`, `platform/contract-v1/labels.json#clean/Loja 11912345678`). `signatures.json` is ASCII, `wire.json` and `labels.json` UTF-8; each ends with one newline. A runner decodes strictly: a member it does not read fails it.
 
 ## 13. Security considerations
 
@@ -710,6 +860,10 @@ Everything under `vectors/wappie/`, `vectors/kit/` and `vectors/mailie/` is in t
 - **A passkey wrap is as strong as the passkey.** Whoever holds the authenticator (or, for a synced passkey, any device it syncs to) and a copy of the wrap opens the root. Recovery revokes every passkey on the platform's server, but the root does not change, so a wrap copied before keeps opening with that passkey's PRF: the honest limit of the key bundle (11.9), for passkeys.
 - **An all-zero PRF output** is a valid input here; refusing one read out of a credential is the ceremony's rule (11.16).
 - **Error codes, not messages.** Direct-mode failures are one code, so a reader is not an oracle for which binding failed.
+- **A contract answer is its request's** (section 11.17). The platform signs every answer to a request whose signature held over the request's method, target and nonce, which the answer echoes, with the other direction: an answer cannot be replayed to another request nor presented as a request, and an app needs no replay cache to check one. An app compares the echoed nonce with the one it sent, never one read from the answer, and never acts on an HTTP status alone or on an unsigned answer: a refusal sent before a signature held tells it nothing. The platform's own replay cache lives in memory, so every write is idempotent by its own key (the subscription, `snapshot_seq`, `event_id`) and correctness never rests on the cache.
+- **The contract's secret is checked, and keyed as written** (section 11.17). An empty key is a valid HMAC key, so both sides check a secret's length and alphabet wherever they load it, and `contract.Client` refuses an empty or malformed secret among those it accepts before it sends anything. The key is the secret's 43 characters, never the 32 bytes they encode: an implementation that decodes them signs differently and every answer it checks fails.
+- **No number or address in a label** (section 11.17). An app sets them aside before it masks, and both sides apply the mask: the platform cleans every label again on intake and drops a hint that is not one, and its mails never name a mailbox by its hint, whose domain a sender could choose. The mask reads the Unicode tables of the Go it is built with (Unicode 15.0 below Go 1.27), so a digit or a format character assigned after one side's tables may be masked on one side only; the platform's backstop is what holds.
+- **`contracttest` is no platform** (section 11.17). It reads no peer uid, keeps everything in memory and mails no one; an app's tests use it, never its production configuration.
 - **Tier-2 secrets** (section 14). The context is in the envelope's AAD, so a wrapper that ignored it would still not open an envelope moved to another row; an unwrap that fails and a tag that fails are one error, `decrypt`, while a wrapper that cannot be reached (an outage, a refused permission, a cancelled request) is reported as itself and never as tampering. The context is written to KMS's audit log in clear, so it never carries personal data, which its alphabet makes hard to do by accident. The local KEK cannot be linked into a build without the tag `kitdevkek`, and its envelopes carry a provider byte that every other wrapper refuses. The AWS wrapper takes its credentials from the instance role alone, so anything on the machine that reaches the instance metadata service acts with the whole role: the honest limit of the platform's decision 0003, which the machine narrows (IMDSv2 required and a hop limit of 1, so containers on it cannot reach the role: the platform's decision 0020).
 
 ## 14. Tier-2 secrets: THCSEAL v1 and the key wrappers
@@ -790,6 +944,7 @@ Vectors: `platform/thcseal-v1/thcseal-v1.json`, 26 cases: 5 envelopes that open 
 - Spec 5 (kit v0.5.0): section 6.8, Wappie's platform wrap, replaces its reservation, an addition to the Wappie profile, with vectors written by Wappie's console; section 11.16 refuses a relying party id that ends in a number, with the platform's vectors at `75b6b94`, a refusal of ids no browser serves; sections 1, 7, 11, 11.4, 11.10, 11.11, 12.2 and 13 and Appendix A extended. No byte of the Wappie profile or of parts 1 to 3 changed.
 - Spec 6 (kit v0.6.0): section 6.8 generalised to any product's labels, Wappie's wrap an instance of it, with the Mailie profile (Appendix D) and its vectors, written by the kit; section 14, THCSEAL v1 and its key wrappers, from the platform at `d32b663` with its vectors, and section 12.3, their file's format; sections 1, 3.1, 3.2, 3.3, 11.4, 12, 12.1 and 13 and Appendix A extended. No byte of the Wappie profile or of the platform profile changed.
 - Spec 7 (kit v0.7.0): Appendix D holds the whole Mailie profile, from Mailie's specification at Mailie commit `c9c79cf`: its account scheme, seal domain and kinds, grants, browser vault, and the platform wrap's user id, the seal id, never the sub, a departure from the wording of section 6.8; with Mailie's vectors, carried byte for byte. Sections 1, 3.1, 6.8, 12 and 13 extended. No byte of the Wappie profile, of the platform profile or of Mailie's platform wrap changed.
+- Spec 8 (kit v0.8.0): section 11.17, the membership part of the platform's product contract, replaces its reservation, Go only: the signature of its requests and answers, the wire's types and rules, the label mask and an app's client, from the platform's `docs/contract/v1/README.md` and `internal/contract` at platform commit `a78bf16`, with the platform's vectors and their format (section 12.4, new); sections 1, 9, 11, 12 and 13 and Appendix C extended. Section 9 and every value and byte of the Wappie, Mailie and platform profiles are unchanged.
 
 ## Appendix C. The platform profile
 
@@ -811,6 +966,9 @@ Vectors: `platform/thcseal-v1/thcseal-v1.json`, 26 cases: 5 envelopes that open 
 | Pin verdicts | `new`, `same`, `account_key_changed` (section 11.15) |
 | Passkeys | PRF salt SHA-256(`thehappie-id/v1/passkey-prf\|` + rp_id); `K_pk` HKDF info `thehappie-id/v1/passkey/wrap`, salt rp_id; the kind-3 root wrap (section 11.16) |
 | Client extensions | `{}` or a subset of `credProps {rk: boolean}` and `prf {enabled: boolean}`, read on the exact text (section 11.16) |
+| Contract signature | section 9 under `thehappie-platform-hmac/v1`; `X-Happie-App`, `-Timestamp`, `-Nonce`, `-Signature`; `to-platform`, `to-app`; skew 60 s; replay lifetime 61 s, capacity 100,000 per app; an answer signed over its request's method, target and nonce, which it echoes (section 11.17) |
+| Contract secret | 43 characters of unpadded base64url, the text of 32 random bytes, keyed as written; a next secret differs from the current one (section 11.17) |
+| Contract labels and hints | a label cleaned by the mask of section 11.17 (`…` and the last four of a run of 7 or more digits, at most 80 code points); a hint `…` and four ASCII digits, or a first character, `…@` and a domain |
 
 ## Appendix D. The Mailie profile
 

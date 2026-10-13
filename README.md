@@ -24,7 +24,7 @@ It was extracted from [Wappie](https://github.com/thehappieco/wappie) at commit 
 | The relying party's server: the userinfo call and its checks, the client check, the insert-only pin | `oidcrp` | |
 | THCSEAL v1, the envelope of a server's tier-2 secrets (SPEC 14): one data key per envelope, AES-256-GCM, the header and the context `{service, env, purpose, ref}` as additional data | `thcseal` | |
 | Its key wrappers: the `Wrapper` interface and the context; AWS KMS with one pinned key and the instance role's credentials only; a local key-encryption key for development and tests, which compiles only with the build tag `kitdevkek` | `kms`, `kms/awskms`, `kms/localkek` | |
-| The platform's product contract, its membership part (SPEC 11.17): the signature of its requests and of its answers, bound to the request's nonce; the wire's types, each with `Validate`; the mask of an item's label and the hint; an app's client | `contract` | |
+| The platform's product contract, its membership part (SPEC 11.17): the signature of its requests and of its answers, bound to the request's nonce; the wire's types, every enum closed, with `Validate` on each document, feed, snapshot and event; the mask of an item's label and the hint; an app's client, every call bounded in time | `contract` | |
 | A fake platform for an app's tests of the contract: the six calls, refused in the platform's order and signed, before an in-memory directory the test sets | `contract/contracttest` | |
 | The vectors, embedded for consumers' tests | `vectors` | |
 

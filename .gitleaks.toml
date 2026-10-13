@@ -6,3 +6,20 @@ description = "Test vectors and their generators: every key in them was generate
 paths = [
  '''^vectors/''',
 ]
+
+# The contract's made-up test secrets (SPEC section 11.17): the bytes 0 to 31
+# and 32 to 63 in base64url, which no platform ever issued and which protect
+# nothing; vectors/platform/contract-v1 carries them too, and the platform
+# allowlists the same values in its own tests. Both: those values, in the
+# contract's test files only. The history is scanned too, so the entry stays.
+[[allowlists]]
+description = "The contract's made-up test secrets, as the platform allowlists them"
+condition = "AND"
+regexTarget = "match"
+regexes = [
+ '''AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8''',
+ '''ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8''',
+]
+paths = [
+ '''^contract/.*_test\.go$''',
+]

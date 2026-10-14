@@ -686,6 +686,11 @@ func TestAnEventThatDoesNotDecodeIsRejectedAloneAndTheBatchGoesOn(t *testing.T) 
 		// Half a surrogate pair anywhere in the batch: the platform's json/v2
 		// refuses the batch's text, so the whole batch.
 		`{"events":[` + ev(eventA, personal) + `,` + strings.Replace(ev(eventB, personal), `"label":null`, `"label":"\udc00x"`, 1) + `]}`,
+		// A body that is not valid UTF-8 or not JSON, though its first event
+		// is good: the whole call (SPEC section 11.17's wire rules).
+		`{"events":[` + ev(eventA, personal) + `,` + strings.Replace(ev(eventB, personal), `"label":null`, "\"label\":\"a\xffb\"", 1) + `]}`,
+		`{"events":[` + ev(eventA, personal) + `,{"event_id":}]}`,
+		`{"events":[` + ev(eventA, personal) + `]}{}`,
 	} {
 		c := call{method: http.MethodPost, target: "/contract/v1/events", app: "wappie", body: body}
 		h.wantSigned(t, h.send(t, c), c, http.StatusBadRequest, contract.CodeInvalid)

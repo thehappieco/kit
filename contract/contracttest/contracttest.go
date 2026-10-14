@@ -42,12 +42,16 @@
 // the generation (NewGeneration, Restore). A change to the directory
 // publishes the documents it changes at once, so published_through is now,
 // unless HoldPublishing stops the publisher for an app, as a stuck one,
-// until Release. A feed page ends, with more, after 200 documents or
-// before its documents reach half of contract.MaxAnswer, counted as the
-// platform's are, by the text Postgres returns for them, and a long-poll
-// answers early only for a new document. Refuse and Corrupt make the next
-// answer to a call a refusal, signed as the platform signs it, or one an
-// app must ignore.
+// until Release. The times it keeps are at microseconds, as the platform's
+// database keeps them: disabled_at, sessions_revoked_at and
+// credentials_revoked_at, the oldest change a held publisher has not
+// published, and an event's time for the duplicate rule (Snapshot and
+// Events return what an app sent as it sent it). A feed page ends, with
+// more, after 200 documents or before its documents reach half of
+// contract.MaxAnswer, counted as the platform's are, by the text Postgres
+// returns for them, and a long-poll answers early only for a new document.
+// Refuse and Corrupt make the next answer to a call a refusal, signed as
+// the platform signs it, or one an app must ignore.
 //
 // What it does not do: read a peer's uid, apply NFC to a label before
 // cleaning it (the platform does; an app applies NFC itself, SPEC section
@@ -1091,7 +1095,7 @@ func (p *Platform) postEvent(app *appState, ev contract.Event) contract.EventRes
 	}
 	// The platform keeps microseconds: a retry of the same event, with the
 	// wire's nanoseconds, is the duplicate it is.
-	at := ev.OccurredAt.Truncate(time.Microsecond)
+	at := atMicroseconds(ev.OccurredAt.Time)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if !app.named[ev.WorkspaceID] {
@@ -1222,7 +1226,7 @@ func (p *Platform) republishLocked() {
 			}
 			doc, _ := p.documentLocked(app, sub)
 			if stored, ok := app.docs[sub]; !ok || !sameContent(stored, doc) {
-				app.marks[sub] = p.now()
+				app.marks[sub] = atMicroseconds(p.now())
 			}
 		}
 	}
@@ -1341,7 +1345,8 @@ func (p *Platform) newWorkspaceLocked(kind, name, owner string) string {
 
 // Disable suspends an account, as the operator does, at at, and so ends
 // every session of it: disabled_at and sessions_revoked_at each rise to
-// at, unless it holds a later time already. Disabling an account that is
+// at, kept at microseconds as the platform keeps it, unless it holds that
+// time or a later one already. Disabling an account that is
 // disabled already changes nothing, as on the platform; Enable lifts it.
 func (p *Platform) Disable(sub string, at time.Time) error {
 	return p.updateAccount(sub, func(a *account) {
@@ -1357,8 +1362,9 @@ func (p *Platform) Enable(sub string) error {
 	return p.updateAccount(sub, func(a *account) { a.disabled = false })
 }
 
-// RevokeSessions ends every session of an account at at; a recovery also
-// stops the integrations the person created (credentials_revoked_at).
+// RevokeSessions ends every session of an account at at, kept at
+// microseconds as the platform keeps it; a recovery also stops the
+// integrations the person created (credentials_revoked_at).
 func (p *Platform) RevokeSessions(sub string, at time.Time, recovery bool) error {
 	return p.updateAccount(sub, func(a *account) {
 		a.revokedAt = later(a.revokedAt, at)
@@ -1368,12 +1374,20 @@ func (p *Platform) RevokeSessions(sub string, at time.Time, recovery bool) error
 	})
 }
 
+// later is the later of held and at, kept at microseconds.
 func later(held *time.Time, at time.Time) *time.Time {
-	at = at.UTC()
+	at = atMicroseconds(at)
 	if held != nil && held.After(at) {
 		return held
 	}
 	return &at
+}
+
+// atMicroseconds is t as the platform keeps a time, in a timestamptz: in
+// UTC, at microseconds. An app that stores microseconds of a time the fake
+// sends then sees it rise only when it rose.
+func atMicroseconds(t time.Time) time.Time {
+	return t.UTC().Truncate(time.Microsecond)
 }
 
 func (p *Platform) updateAccount(sub string, f func(*account)) error {

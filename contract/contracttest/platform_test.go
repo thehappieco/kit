@@ -332,6 +332,69 @@ func TestADisableRevokesTheSessionsOnce(t *testing.T) {
 	}
 }
 
+// The platform keeps its times at microseconds, and so does the fake: a
+// disable at a time with nanoseconds, an enable, and a disable again in the
+// same microsecond never show an app that stores microseconds a
+// disabled_at or a sessions_revoked_at that rose, which would suspend the
+// person again and end their sessions for nothing.
+func TestTheFakeKeepsItsTimesAtMicroseconds(t *testing.T) {
+	clk := &clock{t: time.Date(2026, 10, 13, 12, 0, 0, 987654321, time.UTC)}
+	p, c := start(t, contracttest.Options{Now: clk.Now})
+	ctx := t.Context()
+	if _, err := p.AddAccount(anaSub); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Subscribe(ctx, anaSub); err != nil {
+		t.Fatal(err)
+	}
+	at := time.Date(2026, 10, 13, 9, 0, 0, 123456789, time.UTC)
+	want := time.Date(2026, 10, 13, 9, 0, 0, 123456000, time.UTC)
+	if err := p.Disable(anaSub, at); err != nil {
+		t.Fatal(err)
+	}
+	d, err := c.Account(ctx, anaSub)
+	if err != nil || d.Status != contract.AccountDisabled || !d.DisabledAt.Equal(want) || !d.SessionsRevokedAt.Equal(want) {
+		t.Fatalf("disabled at nanoseconds: %+v %v", d, err)
+	}
+	// What an app that stores microseconds keeps of them.
+	disabled, revoked := d.DisabledAt.Truncate(time.Microsecond), d.SessionsRevokedAt.Truncate(time.Microsecond)
+	for _, again := range []time.Time{at, at.Add(210 * time.Nanosecond)} {
+		if err := p.Enable(anaSub); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Disable(anaSub, again); err != nil {
+			t.Fatal(err)
+		}
+		d, err := c.Account(ctx, anaSub)
+		if err != nil || d.Status != contract.AccountDisabled {
+			t.Fatalf("disabled again: %+v %v", d, err)
+		}
+		if d.DisabledAt.After(disabled) || d.SessionsRevokedAt.After(revoked) {
+			t.Fatalf("disabled again at %s: disabled_at %s and sessions_revoked_at %s rose past %s", again.Format(time.RFC3339Nano),
+				d.DisabledAt.Format(time.RFC3339Nano), d.SessionsRevokedAt.Format(time.RFC3339Nano), disabled.Format(time.RFC3339Nano))
+		}
+	}
+	if err := p.RevokeSessions(anaSub, at.Add(100*time.Nanosecond), true); err != nil {
+		t.Fatal(err)
+	}
+	if d, err := c.Account(ctx, anaSub); err != nil || !d.SessionsRevokedAt.Equal(want) || !d.CredentialsRevokedAt.Equal(want) {
+		t.Fatalf("a recovery at nanoseconds: %+v %v", d, err)
+	}
+	// A change a held publisher has not published: published_through is
+	// its time at microseconds.
+	if err := p.HoldPublishing("wappie"); err != nil {
+		t.Fatal(err)
+	}
+	changed := clk.Now()
+	if _, err := p.AddTeam("TBFG", anaSub); err != nil {
+		t.Fatal(err)
+	}
+	clk.Add(time.Minute)
+	if f, err := c.Feed(ctx, 0, 0); err != nil || !f.PublishedThrough.Equal(changed.Truncate(time.Microsecond)) {
+		t.Fatalf("held: %+v %v", f, err)
+	}
+}
+
 // A stuck publisher: the feed answers, but published_through stays at the
 // oldest change not yet published, so an app's freshness grows old, until
 // the publisher runs again. A sign-in's PUT still computes the document

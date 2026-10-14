@@ -68,9 +68,11 @@
 //     account's subscription never does, and its closed document stays in
 //     the app's feed until the app unsubscribes, where the platform drops
 //     it after 30 days; its record of closing stays, where the platform
-//     keeps one 13 months; and so does every event it kept, where the
+//     keeps one 13 months; so does every event it kept, where the
 //     platform's inbox keeps one 30 days and takes an event sent again
-//     after that as a new one.
+//     after that as a new one; and the snapshot it keeps still lists an
+//     item after its item.purged, until the app's next snapshot, where the
+//     platform drops the item's rows with the event.
 package contracttest
 
 import (

@@ -167,7 +167,11 @@ func TestTheProfileSignsAnAnswerBoundToItsRequest(t *testing.T) {
 	if err := platform.VerifyAnswer(req, []string{secret}, "wappie", http.MethodGet, "/contract/v1/feed?after=0", sent, body, now); !errors.Is(err, reqhmac.ErrBad) {
 		t.Fatalf("the request's own signature taken as an answer: %v", err)
 	}
-	other := "B" + sent[1:]
+	// Another one always: the random nonce may start with any character.
+	other := "A" + sent[1:]
+	if sent[0] == 'A' {
+		other = "B" + sent[1:]
+	}
 	if err := platform.VerifyAnswer(h, []string{secret}, "wappie", http.MethodGet, "/contract/v1/feed?after=0", other, body, now); !errors.Is(err, platform.ErrAnswerNonce) {
 		t.Fatalf("another request's answer: %v", err)
 	}

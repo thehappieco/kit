@@ -188,7 +188,12 @@ func TestASignedRequestGetsASignedAnswerBoundToItsNonce(t *testing.T) {
 		t.Fatal("the answer does not echo the request's nonce")
 	}
 	// The answer is the request's only: another request's nonce refuses it.
-	if err := contract.VerifyAnswer(a.header, []string{secretA}, "wappie", http.MethodPut, target, "x"+a.nonce[1:], a.body, h.clock.Now()); !errors.Is(err, contract.ErrAnswerNonce) {
+	// Another one always: the random nonce may start with any character.
+	other := "A" + a.nonce[1:]
+	if a.nonce[0] == 'A' {
+		other = "B" + a.nonce[1:]
+	}
+	if err := contract.VerifyAnswer(a.header, []string{secretA}, "wappie", http.MethodPut, target, other, a.body, h.clock.Now()); !errors.Is(err, contract.ErrAnswerNonce) {
 		t.Fatalf("an answer verified against another request's nonce: %v", err)
 	}
 	var got contract.AccountDoc

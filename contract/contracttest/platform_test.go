@@ -1,7 +1,6 @@
 package contracttest_test
 
 import (
-	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -469,19 +468,17 @@ func TestAFeedPageEndsBeforeItsDocumentsReachItsBytes(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// The three documents are of one size, measured as the platform stores
-	// them, with no generation: two fit in two and a half, not three.
+	// The three documents are of one size, counted as the platform counts
+	// them stored, with no generation: two fit in two and a half, not
+	// three.
 	f, err := c.Feed(ctx, 0, 0)
 	if err != nil || len(f.Items) != 3 {
 		t.Fatalf("the whole feed: %+v %v", f, err)
 	}
 	stored := f.Items[0].Doc
 	stored.Generation = ""
-	one, err := json.Marshal(stored)
-	if err != nil {
-		t.Fatal(err)
-	}
-	restore := contracttest.ShortenFeedPages(len(one) * 5 / 2)
+	one := contracttest.StoredLen(stored)
+	restore := contracttest.ShortenFeedPages(one * 5 / 2)
 	defer restore()
 	f, err = c.Feed(ctx, 0, 0)
 	if err != nil || len(f.Items) != 2 || !f.More || f.NextAfter != 2 {

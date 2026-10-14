@@ -43,10 +43,11 @@
 // publishes the documents it changes at once, so published_through is now,
 // unless HoldPublishing stops the publisher for an app, as a stuck one,
 // until Release. A feed page ends, with more, after 200 documents or
-// before its documents reach half of contract.MaxAnswer, as the platform's
-// does, and a long-poll answers early only for a new document. Refuse and
-// Corrupt make the next answer to a call a refusal, signed as the platform
-// signs it, or one an app must ignore.
+// before its documents reach half of contract.MaxAnswer, counted as the
+// platform's are, by the text Postgres returns for them, and a long-poll
+// answers early only for a new document. Refuse and Corrupt make the next
+// answer to a call a refusal, signed as the platform signs it, or one an
+// app must ignore.
 //
 // What it does not do: read a peer's uid, apply NFC to a label before
 // cleaning it (the platform does; an app applies NFC itself, SPEC section
@@ -963,15 +964,15 @@ func (p *Platform) readFeed(app *appState, after int64) (contract.Feed, <-chan s
 	}
 	slices.SortFunc(docs, func(a, b contract.AccountDoc) int { return cmp.Compare(a.Version, b.Version) })
 	// At most MaxFeedItems documents, and no more bytes than
-	// maxFeedPageBytes once there is one, measured as the platform stores
-	// them (json.Marshal, with no generation).
+	// maxFeedPageBytes once there is one, each measured as the platform
+	// measures what it stores (storedLen, with no generation).
 	kept, size := 0, 0
 	for kept < len(docs) && kept < contract.MaxFeedItems {
-		stored, _ := json.Marshal(docs[kept])
-		if kept > 0 && size+len(stored) > maxFeedPageBytes {
+		stored := storedLen(docs[kept])
+		if kept > 0 && size+stored > maxFeedPageBytes {
 			break
 		}
-		size += len(stored)
+		size += stored
 		kept++
 	}
 	f.More = kept < len(docs)
@@ -1228,9 +1229,53 @@ func (p *Platform) republishLocked() {
 }
 
 // maxFeedPageBytes bounds the documents of a feed page, as the platform's
-// does: half of what a client reads at most (contract.MaxAnswer). A first
-// document over it still comes alone. The package's tests shorten it.
+// does: half of what a client reads at most (contract.MaxAnswer), counted
+// by storedLen. A first document over it still comes alone. The package's
+// tests shorten it.
 var maxFeedPageBytes = contract.MaxAnswer / 2
+
+// storedLen is what the platform counts of d against a page's bound: the
+// length of the text Postgres returns for the jsonb column that holds it,
+// not of the json.Marshal the platform stored. That text has a space after
+// every ':' and ',' between values, about a tenth more than compact JSON,
+// and writes as itself each character json.Marshal escapes and jsonb does
+// not: '<', '>' and '&', U+2028 and U+2029, and the U+FFFD json.Marshal
+// writes for a byte that is not UTF-8. Both escape '"', '\' and the
+// control characters alike, and the keys jsonb sorts change no length.
+func storedLen(d contract.AccountDoc) int {
+	b, err := json.Marshal(d)
+	if err != nil {
+		return 0
+	}
+	n, inString := 0, false
+	for i := 0; i < len(b); i++ {
+		switch c := b[i]; {
+		case !inString:
+			n++
+			if c == ':' || c == ',' {
+				n++
+			}
+			inString = c == '"'
+		case c == '"':
+			n++
+			inString = false
+		case c == '\\' && b[i+1] == 'u':
+			r, _ := strconv.ParseUint(string(b[i+2:i+6]), 16, 32)
+			if r < 0x20 {
+				n += 6
+			} else {
+				n += utf8.RuneLen(rune(r))
+			}
+			i += 5
+		case c == '\\':
+			n += 2
+			i++
+		default:
+			n++
+		}
+	}
+	return n
+}
 
 // HoldPublishing stops the publisher for app, as a stuck one on the
 // platform: a change to the directory reaches app's feed no more, and the

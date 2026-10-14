@@ -8,3 +8,7 @@ func ShortenFeedPages(bytes int) (restore func()) {
 	maxFeedPageBytes = bytes
 	return func() { maxFeedPageBytes = old }
 }
+
+// StoredLen is what the platform counts of a document against a feed
+// page's bound.
+var StoredLen = storedLen

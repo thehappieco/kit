@@ -110,6 +110,13 @@ func TestAnAppHoldsItsClientByPointer(t *testing.T) {
 	if !strings.Contains(fmt.Sprintf("%v", byValue{*s.client}), clientSecret[:10]) {
 		t.Fatal("a Client held by value in an unexported field no longer prints raw: the Client's comment can say less")
 	}
+	// A verb a pointer does not take prints what it points to, so an app
+	// prints such a struct with %v or not at all.
+	for _, verb := range []string{"%s", "%q"} {
+		if !strings.Contains(fmt.Sprintf(verb, s), clientSecret[:10]) || !strings.Contains(fmt.Sprintf(verb, &s), clientSecret[:10]) {
+			t.Fatalf("%s no longer prints the secret of a *Client in an unexported field: the Client's comment, SECURITY.md and SPEC 11.17 can say less", verb)
+		}
+	}
 }
 
 // A signed answer that is not valid moves nothing: the call returns the

@@ -1,0 +1,1252 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "wire",
+  "description": "Account documents, access snapshots and events, each with whether its Validate accepts it (documents: contract.AccountDoc; snapshots: contract.Snapshot; events: contract.Event).",
+  "documents": [
+    {
+      "name": "an account with a personal workspace and a team",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "active",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "owner",
+            "status": "open",
+            "wversion": 3,
+            "owners": 1
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "sessions and integrations revoked by a recovery",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "active",
+        "disabled_at": null,
+        "sessions_revoked_at": "2026-10-13T11:00:00Z",
+        "credentials_revoked_at": "2026-10-13T11:00:00Z",
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "owner",
+            "status": "open",
+            "wversion": 3,
+            "owners": 1
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a suspended account",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "disabled",
+        "disabled_at": "2026-10-13T11:00:00Z",
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "owner",
+            "status": "open",
+            "wversion": 3,
+            "owners": 1
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a closed account",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "closed",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": []
+      },
+      "valid": true
+    },
+    {
+      "name": "a closed team keeps its members",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "active",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "owner",
+            "status": "closed",
+            "wversion": 3,
+            "owners": 1
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "version 2 of the format",
+      "value": {
+        "v": 2,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "active",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "owner",
+            "status": "open",
+            "wversion": 3,
+            "owners": 1
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "an unknown status",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "suspended",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "owner",
+            "status": "open",
+            "wversion": 3,
+            "owners": 1
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "an uppercase sub",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199A0C2-7D3E-7B51-9F0A-2C4E6B8D1F20",
+        "version": 7,
+        "status": "active",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "owner",
+            "status": "open",
+            "wversion": 3,
+            "owners": 1
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a closed account with workspaces",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "closed",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "owner",
+            "status": "open",
+            "wversion": 3,
+            "owners": 1
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "the personal workspace not first",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "active",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "owner",
+            "status": "open",
+            "wversion": 3,
+            "owners": 1
+          },
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "an open team with no owner",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "active",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "owner",
+            "status": "open",
+            "wversion": 3,
+            "owners": 0
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a team name with a bidirectional control",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "active",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TB‮FG",
+            "role": "owner",
+            "status": "open",
+            "wversion": 3,
+            "owners": 1
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "the role of a service account",
+      "value": {
+        "v": 1,
+        "type": "account",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "version": 7,
+        "status": "active",
+        "disabled_at": null,
+        "sessions_revoked_at": null,
+        "credentials_revoked_at": null,
+        "workspaces": [
+          {
+            "id": "01a08e0e-c546-7db3-9c44-e6352636d330",
+            "kind": "personal",
+            "name": null,
+            "role": "owner",
+            "status": "open",
+            "wversion": 1,
+            "owners": null
+          },
+          {
+            "id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+            "kind": "team",
+            "name": "TBFG",
+            "role": "service",
+            "status": "open",
+            "wversion": 3,
+            "owners": 1
+          }
+        ]
+      },
+      "valid": false
+    }
+  ],
+  "snapshots": [
+    {
+      "name": "a number with its reader and a person waiting for the key",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              },
+              {
+                "sub": "0199c3d4-0000-7000-8000-000000000002",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true,
+                "enrolled": true,
+                "holds_key": false
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a mailbox with no name, its hint only",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              },
+              {
+                "sub": "0199c3d4-0000-7000-8000-000000000002",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true,
+                "enrolled": true,
+                "holds_key": false
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a paused item says why",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "sync_paused",
+            "reason": "by_person",
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              },
+              {
+                "sub": "0199c3d4-0000-7000-8000-000000000002",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true,
+                "enrolled": true,
+                "holds_key": false
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a deleted item until its purge",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "deleted",
+            "reason": null,
+            "purge_at": "2026-11-12T12:00:00Z",
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              },
+              {
+                "sub": "0199c3d4-0000-7000-8000-000000000002",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true,
+                "enrolled": true,
+                "holds_key": false
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a label that is a phone number",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "+55 11 91234-5678",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              },
+              {
+                "sub": "0199c3d4-0000-7000-8000-000000000002",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true,
+                "enrolled": true,
+                "holds_key": false
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a pause with no reason",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "sync_paused",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              },
+              {
+                "sub": "0199c3d4-0000-7000-8000-000000000002",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true,
+                "enrolled": true,
+                "holds_key": false
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a deleted item with no purge date",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "deleted",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              },
+              {
+                "sub": "0199c3d4-0000-7000-8000-000000000002",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true,
+                "enrolled": true,
+                "holds_key": false
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "protecting someone the item does not list",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              },
+              {
+                "sub": "0199c3d4-0000-7000-8000-000000000002",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true,
+                "enrolled": true,
+                "holds_key": false
+              }
+            ],
+            "protected": [
+              "0199f000-0000-7000-8000-000000000009"
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "an unknown flag",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "delete"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              },
+              {
+                "sub": "0199c3d4-0000-7000-8000-000000000002",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true,
+                "enrolled": true,
+                "holds_key": false
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": false
+    }
+  ],
+  "events": [
+    {
+      "name": "an owner deleted a number",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.deleted",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "purge_at": "2026-11-12T12:00:00Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "an API key turned off a number's sync; the actor is its creator",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "key",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "an owner recovered it",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.recovered",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "the app purged it",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.purged",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": null,
+        "actor_kind": "app",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a membership ended and stranded it; the platform fills the cause",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.stranded",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": null,
+        "actor_kind": "app",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "person": "0199c3d4-0000-7000-8000-000000000002"
+      },
+      "valid": true
+    },
+    {
+      "name": "a holder with no sub was lost",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.stranded",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": null,
+        "actor_kind": "app",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "cause": "revoked"
+      },
+      "valid": true
+    },
+    {
+      "name": "a number moved to its owner's personal workspace",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.moved_out",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "to": "personal"
+      },
+      "valid": true
+    },
+    {
+      "name": "more readers than an event carries",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": null
+      },
+      "valid": true
+    },
+    {
+      "name": "a deletion with no purge date",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.deleted",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a deletion by an API key",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.deleted",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "key",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "purge_at": "2026-11-12T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "a mailbox moved",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.moved_out",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "mailbox",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "to": "personal"
+      },
+      "valid": false
+    },
+    {
+      "name": "a cause on a pause",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "cause": "removed"
+      },
+      "valid": false
+    },
+    {
+      "name": "the app's own act with an actor",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.purged",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "app",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a label that is an address",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "vendas@loja.com",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a time with a comma before its fraction",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00,5Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a time with ten fractional digits",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00.1234567890Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a time in another zone",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00+01:00",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": false
+    }
+  ]
+}

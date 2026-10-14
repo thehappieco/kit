@@ -1,0 +1,190 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "wire",
+  "description": "Access snapshots whose items share an id, each with whether contract.Snapshot's Validate accepts it: an id appears once in a snapshot, whatever its kind. Added after wire.json was frozen.",
+  "documents": [],
+  "snapshots": [
+    {
+      "name": "a number and a mailbox with their own ids",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": null,
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          },
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": "Vendas",
+            "hint": null,
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "one id for a number and a mailbox",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": null,
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          },
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "mailbox",
+            "label": "Vendas",
+            "hint": null,
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "one number listed twice",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": null,
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          },
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": null,
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": false
+    }
+  ],
+  "events": []
+}

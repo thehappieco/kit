@@ -21,7 +21,7 @@ WAPPIE_CLOUD ?= ../whatserver2/commercial
 WAPPIE_CLOUD_COMMIT ?= 3bfee279581ad15f6d2d2db3d3a9794c8eac50ca
 WAPPIE_CLOUD_PATCH ?= vectors/wappie/_generators/cloud/header-0x03.patch
 
-.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go imports-check identifiers-check cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check vectors-thcseal-check vectors-mailie-regen vectors-mailie-check pack reproduce clean
+.PHONY: all test test-go test-go-1.26.7 test-js test-browser test-browser-linux lint-go imports-check identifiers-check cross vectors-check manifest vectors-kit vectors-regen-check vectors-platform-check vectors-platform-regen vectors-cloud-regen-check vectors-thcseal-check vectors-mailie-regen vectors-mailie-check vectors-contract-check pack reproduce clean
 
 all: lint-go imports-check identifiers-check test-go test-js vectors-check cross
 
@@ -273,6 +273,29 @@ vectors-mailie-check:
 		for f in $(MAILIE_FILES); do cmp -s $$tmp/$$pass/internal/keyscheme/testdata/$$f vectors/mailie/key-scheme-v1/$$f || { echo "$$f differs from what $(MAILIE_COMMIT) writes ($$pass)"; exit 1; }; done || exit 1; \
 	done && \
 	echo "the four files of vectors/mailie/key-scheme-v1 reproduce from $(MAILIE_COMMIT), over kit v0.6.0 and over this tree" && \
+	rm -rf "$${tmp:?}"
+
+# Checks the contract's vector files (SPEC section 11.17,
+# vectors/platform/contract-v1) with the platform's own generator at
+# CONTRACT_COMMIT: git archive of the platform's go.mod, go.sum,
+# internal/contract and tools/contractvectors into a temporary directory
+# (the platform's repository is only read), and its tools/contractvectors
+# -check against the kit's four files, on the toolchain the platform's
+# go.mod names. Twice: over the kit version the platform's go.mod requires,
+# and over this working tree (a replace), whose reqhmac the platform's code
+# then signs with. The kit's own tests write the files again byte for byte
+# in every run (TestTheKitWritesTheContractVectorsAgain). Not in CI: the
+# platform's repository is private.
+CONTRACT_COMMIT ?= ee45e3a30190cf10cab1755ceea92ea7e8f815a9
+vectors-contract-check:
+	tmp=$$(mktemp -d) && kit=$$(pwd) && \
+	for pass in platform-kit this-tree; do \
+		mkdir $$tmp/$$pass && \
+		git -C $(PLATFORM) archive $(CONTRACT_COMMIT) go.mod go.sum internal/contract tools/contractvectors | tar -x -C $$tmp/$$pass && \
+		if [ $$pass = this-tree ]; then (cd $$tmp/$$pass && go mod edit -replace github.com/thehappieco/kit=$$kit) || exit 1; fi && \
+		(cd $$tmp/$$pass && GOFLAGS=-mod=readonly go run ./tools/contractvectors -check -out $$kit/vectors/platform/contract-v1) || { echo "the contract's files differ from what $(CONTRACT_COMMIT) writes ($$pass)"; exit 1; }; \
+	done && \
+	echo "the four files of vectors/platform/contract-v1 reproduce from $(CONTRACT_COMMIT), over the platform's kit and over this tree" && \
 	rm -rf "$${tmp:?}"
 
 pack:

@@ -395,6 +395,73 @@ func TestTheFakeKeepsItsTimesAtMicroseconds(t *testing.T) {
 	}
 }
 
+// A rotation of the app's secret, the platform's steps played with
+// SetSecrets and the app's half with its client's Secret and Accept (SPEC
+// section 11.17): no request fails at any step, an app that drops the old
+// secret before the platform's promote cannot verify the answers, and a
+// rotation abandoned before its promote leaves the app signing with the
+// old secret again once it drops the next one.
+func TestARotationFailsNoRequestAtAnyStep(t *testing.T) {
+	p, c := start(t, contracttest.Options{})
+	ctx := t.Context()
+	if _, err := p.AddAccount(anaSub); err != nil {
+		t.Fatal(err)
+	}
+	ok := func(step string) {
+		t.Helper()
+		if _, err := c.Subscribe(ctx, anaSub); err != nil {
+			t.Fatalf("%s: %v", step, err)
+		}
+	}
+	fails := func(step string) {
+		t.Helper()
+		if _, err := c.Subscribe(ctx, anaSub); !errors.Is(err, contract.ErrUnverified) {
+			t.Fatalf("%s: %v, want ErrUnverified", step, err)
+		}
+	}
+	old, next := secretA, secretB
+	ok("before the rotation")
+	if err := p.SetSecrets("wappie", old, next); err != nil {
+		t.Fatal(err)
+	}
+	ok("1, secret-next")
+	if err := contract.CheckSecrets(old, next); err != nil {
+		t.Fatal(err)
+	}
+	c.Accept = contract.Secrets(old, next)
+	ok("2, the next secret installed as accepted")
+	c.Secret = next
+	ok("3, the app signs with the next secret")
+	c.Accept = []string{next}
+	fails("the old secret dropped before the platform's promote")
+	c.Accept = contract.Secrets(old, next)
+	if err := p.SetSecrets("wappie", next, old); err != nil {
+		t.Fatal(err)
+	}
+	ok("4, secret-promote")
+	c.Accept = []string{next}
+	ok("5, the app drops the old secret")
+	if err := p.SetSecrets("wappie", next, ""); err != nil {
+		t.Fatal(err)
+	}
+	ok("6, secret-drop")
+
+	// Abandoned before its promote: the platform accepts the next secret
+	// no more, so the app drops it and signs with the old one again.
+	old, next = secretB, secretC
+	if err := p.SetSecrets("wappie", old, next); err != nil {
+		t.Fatal(err)
+	}
+	c.Secret, c.Accept = next, contract.Secrets(old, next)
+	ok("signing with the next secret")
+	if err := p.SetSecrets("wappie", old, ""); err != nil {
+		t.Fatal(err)
+	}
+	fails("secret-cancel, the app still signing with the next secret")
+	c.Secret, c.Accept = old, []string{old}
+	ok("secret-cancel, the next secret dropped")
+}
+
 // A stuck publisher: the feed answers, but published_through stays at the
 // oldest change not yet published, so an app's freshness grows old, until
 // the publisher runs again. A sign-in's PUT still computes the document

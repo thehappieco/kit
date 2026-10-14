@@ -64,9 +64,13 @@
 //     nobody; a test that needs the hand-over plays it with SetRole first;
 //   - a closed team may be left with no owner, by RemoveMember, SetRole or
 //     CloseAccount, and ReopenTeam then refuses it;
-//   - a closed account's subscription never expires: its closed document
-//     stays in the app's feed until the app unsubscribes, where the
-//     platform drops it after 30 days.
+//   - nothing it keeps expires (SPEC section 11.17's retention): a closed
+//     account's subscription never does, and its closed document stays in
+//     the app's feed until the app unsubscribes, where the platform drops
+//     it after 30 days; its record of closing stays, where the platform
+//     keeps one 13 months; and so does every event it kept, where the
+//     platform's inbox keeps one 30 days and takes an event sent again
+//     after that as a new one.
 package contracttest
 
 import (

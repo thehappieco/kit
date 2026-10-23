@@ -165,9 +165,13 @@ jobs:
           go test -run '^$' -fuzz '^FuzzReadingATimeTakesOnlyRFC3339InUTC$' -fuzztime 30s ./contract
           go test -run '^$' -fuzz '^FuzzAnAnswerVerifiesOnlyUnderTheSecret$' -fuzztime 30s ./contract
 
-  # On the toolchain Wappie builds what it ships with, 1.26.9, and on the
-  # newest one; one job, so the check keeps its name. GOTOOLCHAIN=local, so
-  # each scan sees the standard library of the toolchain just set up.
+  # On the toolchain Wappie builds what it ships with, 1.26.10 (the first
+  # 1.26 release without GO-2026-6809, crypto/x509, which govulncheck
+  # reports for 1.26.9 since the 2026-10-21 database), and on the newest
+  # one; one job, so the check keeps its name. GOTOOLCHAIN=local, so each
+  # scan sees the standard library of the toolchain just set up. The other
+  # jobs stay on 1.26.9: they scan nothing, and the seeded replays list
+  # their toolchains (vectors/PROVENANCE.md).
   govulncheck:
     runs-on: ubuntu-24.04
     env:
@@ -178,12 +182,12 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.9'
+          go-version: '1.26.10'
           cache: false
-      - run: go version | grep -q 'go1.26.9 '
+      - run: go version | grep -q 'go1.26.10 '
       # With the tag, so the local KEK is scanned too; kms/awskms, and the
       # AWS SDK it calls, build either way.
-      - name: govulncheck on go1.26.9
+      - name: govulncheck on go1.26.10
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -tags kitdevkek ./...
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:

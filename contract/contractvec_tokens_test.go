@@ -148,8 +148,6 @@ func tokensFile() (any, error) {
 		{"a zero-width space inside", good[:30] + "​" + good[30:]},
 		{"a zero-width space in place of three characters, 64 bytes", good[:30] + "​" + good[33:]},
 		{"a non-ASCII character in place of two, 64 bytes", good[:5] + "é" + good[7:]},
-		{"a secret of 42 characters", "thc_" + sel + "." + secret[:42]},
-		{"a secret of 44 characters", "thc_" + sel + "." + secret + "A"},
 		{"a selector of 15 characters", "thc_" + sel[:15] + "." + secret},
 		{"a selector of 17 characters", "thc_" + sel + "a." + secret},
 		{"no dot", "thc_" + sel + secret},
@@ -272,13 +270,14 @@ func readingKeysFile() (any, error) {
 	// The value p - 2 is canonical and of no low order.
 	own("p - 2, the highest canonical value of no low order", le("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeb"))
 	own("9, the base point", le("0000000000000000000000000000000000000000000000000000000000000009"))
-	// RFC 7748's low-order points, canonical (section 7; the blocklist of
-	// libsodium's has_small_order).
+	// The canonical points of low order, from the list of libsodium's
+	// has_small_order: 0 (order 2), 1 (order 4), the two of order 8, and
+	// p - 1 (order 4, on the twist).
 	own("0, of low order", make([]byte, 32))
 	own("1, of low order", le("0000000000000000000000000000000000000000000000000000000000000001"))
 	own("a point of order 8", le("00b8495f16056286fdb1329ceb8d09da6ac49ff1fae35616aeb8413b7c7aebe0"))
 	own("the other point of order 8", le("57119fd0dd4e22d8868e1c58c45c44045bef839c55b1d0b1248c50a3bc959c5f"))
-	own("p - 1, of order 2", le("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec"))
+	own("p - 1, of order 4, on the twist", le("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec"))
 	// Not canonical: at or above p, or the top bit set.
 	own("p, which reads as 0", le("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed"))
 	own("p + 1, which reads as 1", le("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffee"))
@@ -407,7 +406,7 @@ func replaceOnce(raw json.RawMessage, old, new string) (json.RawMessage, error) 
 func wireTokens() (any, error) {
 	out := WireTokens{
 		Format: Format, Version: 1, Kind: "wire-tokens",
-		Description: "The token part's wire (SPEC section 11.18), each value with whether it is valid. records: contract.TokenRecord, decoded as an app decodes what the platform sends (a member it does not know is ignored), then its Validate. feeds: contract.TokenFeed, decoded the same way, then its Validate, which checks the page and not its records: a bad record never stalls the feed. applied: contract.TokenApplied, decoded as the platform decodes what an app sends (strictly: no member it does not know), then its Validate. usage: bodies of POST /contract/v1/tokens/usage as the app sends them: valid when the body is within the call's 256 KiB, decodes strictly as contract.TokenUsage and validates. actions: a record an app holding the generation receives, and what it does: apply; reset (another generation: it resets its token state and follows the feed from 0, never widening); revoke (code: the reason; app_removed and app_held revoke that app's record only); narrow (a bad record, code reading_key_changed when its fingerprint is not its key's, else invalid_record: the app applies only what it narrows, a revocation, an earlier expires_at, an item or permission no longer listed, refuses its grants with that code, and advances through). The app decides in that order: Validate, then the generation, then the reading key's fingerprint, then the revocation.",
+		Description: "The token part's wire (SPEC section 11.18), each value with whether it is valid. records: contract.TokenRecord, decoded as an app decodes what the platform sends (a member it does not know is ignored), then its Validate. feeds: contract.TokenFeed, decoded the same way, then its Validate, which checks the page and not its records, each of which stays as it came until the app decodes it on its own: a bad record, one that does not decode included, never stalls the feed. applied: contract.TokenApplied, decoded as the platform decodes what an app sends (strictly: no member it does not know, every name exactly as written and once), then its Validate. usage: bodies of POST /contract/v1/tokens/usage as the app sends them: valid when the body is within the call's 256 KiB, decodes strictly as contract.TokenUsage and validates. actions: a record an app holding the generation receives, decoded on its own (contract.TokenFeedItem.Record), and what it does: refuse (another app's record: it logs it, applies nothing of it and advances, so one app's revocation never reaches another); reset (another generation: it resets its token state and follows the feed from 0, never widening); narrow (a record that does not decode or fails Validate, code invalid_record, or whose fingerprint is not its key's, code reading_key_changed: the app applies only what it narrows, a revocation, an earlier expires_at, an item or permission no longer listed, refuses its grants with that code, and advances through); revoke (code: the reason; app_removed and app_held revoke that app's record only); apply. The app decides in that order.",
 	}
 	str := func(s string) *string { return &s }
 	add := func(list *[]WireCase, name string, v any, valid func() bool) error {
@@ -511,12 +510,26 @@ func wireTokens() (any, error) {
 	}
 
 	// Feeds.
+	item := func(seq int64, r contract.TokenRecord) contract.TokenFeedItem {
+		it, err := contract.NewTokenFeedItem(seq, r)
+		if err != nil {
+			panic(err)
+		}
+		return it
+	}
+	// A record whose revoked_at is the zero time, as a zero Time marshals,
+	// does not decode: Time takes no year before 1970.
+	undecodable := vecRecord(func(r *contract.TokenRecord) {
+		r.Version = 90
+		revoke(contract.RevokedInConsole)(r)
+		r.RevokedAt = &contract.Time{}
+	})
 	feed := func(mut func(*contract.TokenFeed)) contract.TokenFeed {
 		f := contract.TokenFeed{
 			Generation: vecGeneration, GenerationConfirmed: true, Head: 90, PublishedThrough: contract.T(Now.Add(4 * time.Second)),
 			Items: []contract.TokenFeedItem{
-				{Seq: 89, Token: vecRecord(func(r *contract.TokenRecord) { r.ID, r.Version, r.Selector = vecToken2, 89, "0123456789abcdef" })},
-				{Seq: 90, Token: vecRecord(func(r *contract.TokenRecord) { r.Version = 90 })},
+				item(89, vecRecord(func(r *contract.TokenRecord) { r.ID, r.Version, r.Selector = vecToken2, 89, "0123456789abcdef" })),
+				item(90, vecRecord(func(r *contract.TokenRecord) { r.Version = 90 })),
 			},
 			NextAfter: 90,
 		}
@@ -534,8 +547,11 @@ func wireTokens() (any, error) {
 		{"a page with more to come", feed(func(f *contract.TokenFeed) { f.Head, f.More, f.NextAfter = 120, true, 90 })},
 		{"a page of a generation not yet confirmed", feed(func(f *contract.TokenFeed) { f.GenerationConfirmed = false })},
 		{"a page that holds a bad record still stands", feed(func(f *contract.TokenFeed) {
-			f.Items[1].Token.ExpiresAt = contract.T(Now.Add(contract.MaxTokenLifetime + time.Hour))
+			f.Items[1] = item(90, vecRecord(func(r *contract.TokenRecord) {
+				r.Version, r.ExpiresAt = 90, contract.T(Now.Add(contract.MaxTokenLifetime+time.Hour))
+			}))
 		})},
+		{"a page that holds a record that does not decode still stands", feed(func(f *contract.TokenFeed) { f.Items[1] = item(90, undecodable) })},
 		{"records out of order", feed(func(f *contract.TokenFeed) { f.Items[0], f.Items[1] = f.Items[1], f.Items[0] })},
 		{"a seq above the head", feed(func(f *contract.TokenFeed) { f.Items[1].Seq = 91 })},
 		{"next_after above the head", feed(func(f *contract.TokenFeed) { f.NextAfter = 91 })},
@@ -609,12 +625,12 @@ func wireTokens() (any, error) {
 		{"a refusal of version 0", ack(func(a *contract.TokenApplied) { a.Refused[0].Version = 0 })},
 		{"an unknown stop cause", ack(func(a *contract.TokenApplied) { a.Suspended[0].Cause = "leaked" })},
 		{"a stop twice", ack(func(a *contract.TokenApplied) { a.Suspended = append(a.Suspended, a.Suspended[0]) })},
-		{"a waiting permission without granted_by", ack(func(a *contract.TokenApplied) {
+		{"an empty granted_by on a waiting permission", ack(func(a *contract.TokenApplied) {
 			w := waiting
 			w.GrantedBy = ""
 			a.Waiting = contract.WaitingPerms{w}
 		})},
-		{"a waiting permission without granted_at", ack(func(a *contract.TokenApplied) {
+		{"a granted_at before 1970 on a waiting permission", ack(func(a *contract.TokenApplied) {
 			w := waiting
 			w.GrantedAt = contract.Time{}
 			a.Waiting = contract.WaitingPerms{w}
@@ -627,6 +643,20 @@ func wireTokens() (any, error) {
 			a.Held = []contract.TokenHeld{{Token: vecToken, Removed: []contract.HeldPerm{}, ReadingKey: &bad}}
 		})},
 		{"refused null", ack(func(a *contract.TokenApplied) { a.Refused = nil })},
+		{"held null", ack(func(a *contract.TokenApplied) { a.Held = nil })},
+		{"a waiting permission twice", ack(func(a *contract.TokenApplied) { a.Waiting = contract.WaitingPerms{waiting, waiting} })},
+		{"a waiting permission twice, given apart", ack(func(a *contract.TokenApplied) {
+			again := waiting
+			again.GrantedBy = vecSub
+			a.Waiting = contract.WaitingPerms{waiting, again}
+		})},
+		{"a token held twice", ack(func(a *contract.TokenApplied) {
+			a.Held = []contract.TokenHeld{{Token: vecToken, Revoked: true, Removed: []contract.HeldPerm{}}, {Token: vecToken, Removed: []contract.HeldPerm{}}}
+		})},
+		{"a permission kept off twice", ack(func(a *contract.TokenApplied) {
+			off := contract.HeldPerm{Item: vecNumber, Perm: contract.CanSend}
+			a.Held = []contract.TokenHeld{{Token: vecToken, Removed: []contract.HeldPerm{off, off}}}
+		})},
 		{"1001 waiting", ack(func(a *contract.TokenApplied) {
 			a.Refused, a.Suspended, a.Waiting = []contract.TokenRefusal{}, nil, manyWaiting
 		})},
@@ -645,14 +675,35 @@ func wireTokens() (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, c := range []struct{ name, old, new string }{
-		{"waiting null", `"waiting":[]`, `"waiting":null`},
-		{"suspended null", `"suspended":[]`, `"suspended":null`},
-		{"a member the platform does not know", `"through":90,`, `"through":90,"note":"x",`},
+	wbase, err := encode(ack(func(a *contract.TokenApplied) {
+		a.Waiting, a.WaitingMore, a.Suspended, a.SuspendedMore = contract.WaitingPerms{waiting}, true, contract.Suspensions{}, true
+	}))
+	if err != nil {
+		return nil, err
+	}
+	wentry := `{"token":"` + vecToken + `","item":"` + vecNumber + `","perm":"send",`
+	for _, c := range []struct {
+		name     string
+		base     json.RawMessage
+		old, new string
+	}{
+		{"waiting null", abase, `"waiting":[]`, `"waiting":null`},
+		{"suspended null", abase, `"suspended":[]`, `"suspended":null`},
+		{"a member the platform does not know", abase, `"through":90,`, `"through":90,"note":"x",`},
+		{"waiting_more and suspended_more true", wbase, ``, ``},
+		{"waiting_more false", wbase, `"waiting_more":true`, `"waiting_more":false`},
+		{"waiting_more null", wbase, `"waiting_more":true`, `"waiting_more":null`},
+		{"suspended_more false", wbase, `"suspended_more":true`, `"suspended_more":false`},
+		{"a waiting permission without granted_by", wbase, `"granted_by":"` + vecOther + `",`, ``},
+		{"a waiting permission without granted_at", wbase, `,"granted_at":"2026-10-13T12:00:00Z"`, ``},
+		{"a waiting permission's token written Token", wbase, wentry, `{"Token":"` + vecToken + `","item":"` + vecNumber + `","perm":"send",`},
+		{"a waiting permission's token twice, once written Token", wbase, wentry, wentry + `"Token":"` + vecToken2 + `",`},
 	} {
-		raw, err := replaceOnce(abase, c.old, c.new)
-		if err != nil {
-			return nil, err
+		raw := c.base
+		if c.old != "" {
+			if raw, err = replaceOnce(c.base, c.old, c.new); err != nil {
+				return nil, err
+			}
 		}
 		var a contract.TokenApplied
 		valid := strictDecode(raw, &a) == nil && a.Validate() == nil
@@ -745,6 +796,7 @@ func wireTokens() (any, error) {
 			r.Name = "Export 1234567"
 		})},
 		{"a record that fails Validate and narrows: Mailie's act without read", vecMailieRecord(func(r *contract.TokenRecord) { r.Items[0].Perms = r.Items[0].Perms[1:] })},
+		{"a record that does not decode: its revocation still applies", undecodable},
 	} {
 		raw, err := encode(c.r)
 		if err != nil {
@@ -753,19 +805,33 @@ func wireTokens() (any, error) {
 		action, code := recordAction(c.r.App, vecGeneration, raw)
 		out.Actions = append(out.Actions, ActionCase{Name: c.name, App: c.r.App, Generation: vecGeneration, Value: raw, Action: action, Code: code})
 	}
+	// Another app's record, as Wappie receives it: refused whole, so that
+	// Mailie's app_removed never revokes the token in Wappie.
+	other, err := encode(vecMailieRecord(revoke(contract.RevokedAppRemoved)))
+	if err != nil {
+		return nil, err
+	}
+	action, code := recordAction("wappie", vecGeneration, other)
+	out.Actions = append(out.Actions, ActionCase{Name: "another app's record, revoked there: refused, nothing applied", App: "wappie", Generation: vecGeneration, Value: other, Action: action, Code: code})
 	return out, nil
 }
 
 // recordAction is what an app holding generation does with a record it
-// receives (wire-tokens.json's actions).
+// receives (wire-tokens.json's actions), in TokenFeed.Validate's order:
+// another app's record is refused; another generation is a reset; a record
+// that does not decode or fails Validate, or whose fingerprint is not its
+// key's, is narrowed; then the revocation; else the record applies.
 func recordAction(app, generation string, raw json.RawMessage) (string, *string) {
 	code := func(s string) *string { return &s }
-	var r contract.TokenRecord
-	if json.Unmarshal(raw, &r) != nil || r.Validate() != nil || r.App != app {
-		return "narrow", code(contract.RefusedInvalidRecord)
+	r, err := contract.TokenFeedItem{Token: raw}.Record()
+	if r.App != app {
+		return "refuse", nil
 	}
-	if r.Generation != generation {
+	if contract.ValidUUID(r.Generation) && r.Generation != generation {
 		return "reset", nil
+	}
+	if err != nil || r.Validate() != nil {
+		return "narrow", code(contract.RefusedInvalidRecord)
 	}
 	if r.ReadingKey != nil && r.ReadingKey.Check() != nil {
 		return "narrow", code(contract.RefusedReadingKeyChanged)
@@ -801,7 +867,7 @@ func strictDecode(raw []byte, dst any) error {
 func wireSnapshotTokens() (any, error) {
 	out := Wire{
 		Format: Format, Version: 1, Kind: "wire",
-		Description: "Access snapshots with the optional members items[].ordinal and items[].tokens (SPEC sections 11.17 and 11.18), each with whether it decodes and contract.Snapshot's Validate accepts it. An ordinal is 1 to 9999, unique among the snapshot's items; tokens list each token by its id once, with the permissions the app applied by the item's kind, and waiting is a number's only. An optional member is absent, never null. Added after wire.json was frozen.",
+		Description: "Access snapshots with the optional members items[].ordinal and items[].tokens (SPEC sections 11.17 and 11.18), each with whether it decodes and contract.Snapshot's Validate accepts it. An ordinal is 1 to 9999, unique among the snapshot's items; tokens list each token by its id once, with the permissions the app applied by the item's kind, and waiting is a number's only. An optional member is absent, never null, and a token's members are named exactly as written, once. Added after wire.json was frozen.",
 		Documents:   []WireCase{}, Events: []WireCase{},
 	}
 	str := func(s string) *string { return &s }
@@ -871,13 +937,23 @@ func wireSnapshotTokens() (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, c := range []struct{ name, old, new string }{
-		{"an ordinal of 0", `"ordinal":1,`, `"ordinal":0,`},
-		{"an ordinal null", `"ordinal":1,`, `"ordinal":null,`},
-		{"an ordinal of 1.5", `"ordinal":1,`, `"ordinal":1.5,`},
-		{"tokens null", `"tokens":[]`, `"tokens":null`},
+	withToken, err := encode(snap(number(nil)))
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range []struct {
+		name     string
+		base     json.RawMessage
+		old, new string
+	}{
+		{"an ordinal of 0", base, `"ordinal":1,`, `"ordinal":0,`},
+		{"an ordinal null", base, `"ordinal":1,`, `"ordinal":null,`},
+		{"an ordinal of 1.5", base, `"ordinal":1,`, `"ordinal":1.5,`},
+		{"tokens null", base, `"tokens":[]`, `"tokens":null`},
+		{"a token's id written ID", withToken, `"tokens":[{"id":`, `"tokens":[{"ID":`},
+		{"a token's id twice, once written ID", withToken, `"tokens":[{"id":"` + vecToken + `",`, `"tokens":[{"id":"` + vecToken + `","ID":"` + vecToken2 + `",`},
 	} {
-		raw, err := replaceOnce(base, c.old, c.new)
+		raw, err := replaceOnce(c.base, c.old, c.new)
 		if err != nil {
 			return nil, err
 		}

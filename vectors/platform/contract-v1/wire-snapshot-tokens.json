@@ -2,7 +2,7 @@
   "format": "thehappie-contract/vectors",
   "version": 1,
   "kind": "wire",
-  "description": "Access snapshots with the optional members items[].ordinal and items[].tokens (SPEC sections 11.17 and 11.18), each with whether it decodes and contract.Snapshot's Validate accepts it. An ordinal is 1 to 9999, unique among the snapshot's items; tokens list each token by its id once, with the permissions the app applied by the item's kind, and waiting is a number's only. An optional member is absent, never null. Added after wire.json was frozen.",
+  "description": "Access snapshots with the optional members items[].ordinal and items[].tokens (SPEC sections 11.17 and 11.18), each with whether it decodes and contract.Snapshot's Validate accepts it. An ordinal is 1 to 9999, unique among the snapshot's items; tokens list each token by its id once, with the permissions the app applied by the item's kind, and waiting is a number's only. An optional member is absent, never null, and a token's members are named exactly as written, once. Added after wire.json was frozen.",
   "documents": [],
   "snapshots": [
     {
@@ -911,6 +911,101 @@
             ],
             "ordinal": 1,
             "tokens": null
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a token's id written ID",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": [
+              {
+                "ID": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a token's id twice, once written ID",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "ID": "0199f2a1-0000-7000-8000-000000000012",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
           }
         ]
       },

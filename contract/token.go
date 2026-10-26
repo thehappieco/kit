@@ -39,8 +39,10 @@ var ErrToken = errors.New("contract: not a valid token")
 
 // TokenError is a refusal of ParseToken or BearerToken: the step of the
 // check that refused the text (SPEC section 11.18), and the rule of that
-// step. Step 0 is the Authorization header around the token (BearerToken);
-// steps 1 to 6 are the token's own:
+// step. Step 0 is the Authorization header's own (BearerToken: not exactly
+// one value, or no "Bearer" and one space before the rest); steps 1 to 6
+// are the token's, which BearerToken reaches for whatever follows that
+// space, a space more included:
 //  1. exactly 64 bytes, every one ASCII;
 //  2. it starts with "thc_";
 //  3. bytes 4 to 19 are [0-9a-f];
@@ -65,16 +67,17 @@ func (e *TokenError) Unwrap() error { return ErrToken }
 func tokenStep(step int, rule string) error { return &TokenError{Step: step, Rule: rule} }
 
 // ParsedToken is a token that passed ParseToken: its selector, which is not
-// secret and which a log may name, and its secret's 32 bytes, which never
-// leave it but through Hash. String, GoString and LogValue name the
-// selector alone.
+// secret and which a log may name, and its hash (TokenHash), which a
+// record carries. It keeps no byte of the secret, so nothing that prints
+// it, in any verb or field, can rebuild the token. String, GoString and
+// LogValue name the selector alone.
 type ParsedToken struct {
 	Selector string
-	secret   [TokenSecretBytes]byte
+	sum      [sha256.Size]byte
 }
 
 // Hash is the token's hash (TokenHash of its secret).
-func (t ParsedToken) Hash() string { return TokenHash(t.secret) }
+func (t ParsedToken) Hash() string { return hex.EncodeToString(t.sum[:]) }
 
 // String names the token by its selector alone.
 func (t ParsedToken) String() string { return TokenPrefix + t.Selector + "." + Ellipsis }
@@ -121,8 +124,11 @@ func ParseToken(s string) (ParsedToken, error) {
 	if err != nil || len(raw) != TokenSecretBytes {
 		return ParsedToken{}, tokenStep(5, "a secret of 43 base64url characters")
 	}
-	t := ParsedToken{Selector: selector}
-	copy(t.secret[:], raw)
+	var b [TokenSecretBytes]byte
+	copy(b[:], raw)
+	clear(raw)
+	t := ParsedToken{Selector: selector, sum: tokenSum(b)}
+	clear(b[:])
 	return t, nil
 }
 
@@ -190,9 +196,11 @@ var (
 // BearerToken reads the token of an HTTP request from its Authorization
 // header's values, as the server hands them (http.Header's Values): exactly
 // one value, "Bearer" in any case, one space and the token, with nothing
-// before or after. A second header, a tab or a space more is a refusal
-// (*TokenError, step 0), and so is a token that ParseToken refuses (its
-// step). Note that Go's net/http, as RFC 9110 has it, drops the spaces and
+// before or after. A second header, no header, or no "Bearer" and one space
+// at the value's start (a tab in its place, say) is refused at step 0;
+// whatever follows that space goes to ParseToken, so a space more before or
+// after the token, or anything else around it, is refused there, at step 1
+// for its length (*TokenError either way). Note that Go's net/http, as RFC 9110 has it, drops the spaces and
 // tabs that start or end a field's value before an app reads it, so a
 // trailing space the client sent may never reach this check; one that
 // reaches it is refused. Another transport of the app's own carries the
@@ -232,7 +240,7 @@ func BearerToken(values []string) (string, error) {
 // its own stops (SPEC section 11.18), each of them invalid_token too.
 func VerifyToken(rec *TokenRecord, token string) error {
 	t, perr := ParseToken(token)
-	sum := tokenSum(t.secret)
+	sum := t.sum // a token that did not parse compares its zero sum
 	want, selector := dummyHash, dummySelector
 	ok := perr == nil && rec != nil
 	if rec != nil {
@@ -361,7 +369,8 @@ func ValidReadingKey(key string) error {
 	if err != nil {
 		return ErrReadingKeyLowOrder
 	}
-	// crypto/ecdh refuses an all-zero result, as RFC 7748 section 6.1 asks.
+	// crypto/ecdh refuses an all-zero result, the check RFC 7748 section
+	// 6.1 suggests.
 	if _, err := priv.ECDH(pub); err != nil {
 		return ErrReadingKeyLowOrder
 	}

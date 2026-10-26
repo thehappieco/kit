@@ -15,8 +15,8 @@
 //     authenticates: a test that needs the production socket's uid check
 //     runs against the platform itself;
 //  2. the app's rate, PerSecond requests a second, else 429 rate_limited,
-//     unsigned; a selector GET, told by its method and path, spends a
-//     bucket of its own, SelectorPerSecond;
+//     unsigned; a selector GET, told by its method and path, spends none
+//     of it, and its own bucket, SelectorPerSecond, comes at step 7;
 //  3. the timestamp, nonce and signature headers once each, well formed,
 //     and the timestamp within 60 s (reqhmac's Read), else 401
 //     unauthenticated or stale_timestamp, unsigned;
@@ -27,8 +27,9 @@
 //     unsigned;
 //  6. the nonce, admitted once in the app's replay cache, else 401 replay,
 //     signed (503 unavailable when the cache is full);
-//  7. no query but on the two feeds, else 400 invalid_request, signed;
-//     then the call itself, whose every answer is signed.
+//  7. no query but on the two feeds, else 400 invalid_request, signed; a
+//     selector GET's own bucket, else 429 rate_limited, signed (SPEC
+//     section 11.18); then the call itself, whose every answer is signed.
 //
 // Bodies are decoded as strictly as the platform decodes them: one JSON
 // object of valid UTF-8, with no escape of half a UTF-16 surrogate pair
@@ -547,8 +548,10 @@ func (p *Platform) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		unsigned(w, contract.CodeNotFound, "not found")
 		return
 	}
-	// 2: the app's rate; a selector GET spends a bucket of its own.
-	if !p.allow(app, now, isSelectorGET(r)) {
+	// 2: the app's rate, which a selector GET does not spend: its own
+	// bucket is checked once its signature holds, step 7.
+	selector := isSelectorGET(r)
+	if !selector && !p.allow(app, now, false) {
 		unsigned(w, contract.CodeRateLimited, "too many requests")
 		return
 	}
@@ -600,9 +603,14 @@ func (p *Platform) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sign(refusal(contract.CodeReplay, "the nonce was used"))
 		return
 	}
-	// 7: no query but the feeds', then the call.
+	// 7: no query but the feeds'; a selector GET's own bucket, a signed
+	// rate_limited; then the call.
 	if !feeds[rt.name] && strings.Contains(target, "?") {
 		sign(refusal(contract.CodeInvalid, "this call takes no query"))
+		return
+	}
+	if selector && !p.allow(app, now, true) {
+		sign(refusal(contract.CodeRateLimited, "too many selector requests"))
 		return
 	}
 	p.mu.Lock()

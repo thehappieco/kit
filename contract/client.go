@@ -328,9 +328,10 @@ func (c *Client) PostEvents(ctx context.Context, events []Event) ([]EventResult,
 // Tokens returns the token records after the cursor after, waiting up to
 // wait seconds when there are none: GET /contract/v1/tokens?after=&wait=
 // (SPEC section 11.18). It gives up after wait seconds and FeedGrace. It
-// checks the page (TokenFeed.Validate), not its records: a bad record never
-// stalls the feed, so the app checks each record itself and applies one
-// that fails only for what it narrows.
+// checks the page (TokenFeed.Validate), not its records, which it leaves as
+// they came: a bad record never stalls the feed, so the app decodes each
+// one on its own (TokenFeedItem.Record) and decides as TokenFeed.Validate
+// says.
 func (c *Client) Tokens(ctx context.Context, after int64, wait int) (TokenFeed, error) {
 	var f TokenFeed
 	target := "/contract/v1/tokens?after=" + strconv.FormatInt(after, 10) + "&wait=" + strconv.Itoa(wait)
@@ -402,16 +403,30 @@ func (c *Client) checkRecord(r TokenRecord) error {
 }
 
 // TokensApplied acknowledges the token feed: POST
-// /contract/v1/tokens/applied. Another generation, or a through above the
-// feed's head, is a *Refusal gone.
+// /contract/v1/tokens/applied. Refused and Held are always sent, [] when
+// nil. Another generation, or a through above the feed's head, is a
+// *Refusal gone.
 func (c *Client) TokensApplied(ctx context.Context, ack TokenApplied) error {
+	if ack.Refused == nil {
+		ack.Refused = []TokenRefusal{}
+	}
+	if ack.Held == nil {
+		ack.Held = []TokenHeld{}
+	}
 	return c.accepted(ctx, "/contract/v1/tokens/applied", ack, "the acknowledgement")
 }
 
 // TokenUsage reports the tokens' last use and refused uses: POST
-// /contract/v1/tokens/usage. Both lists are absolute, so it is sent again
-// freely, at most once a minute.
+// /contract/v1/tokens/usage. Used and Refusals are always sent, [] when
+// nil. Both lists are absolute, so it is sent again freely, at most once a
+// minute, and split as the app likes to stay within UsageBodyLimit.
 func (c *Client) TokenUsage(ctx context.Context, u TokenUsage) error {
+	if u.Used == nil {
+		u.Used = []TokenUsed{}
+	}
+	if u.Refusals == nil {
+		u.Refusals = []UsageRefusal{}
+	}
 	return c.accepted(ctx, "/contract/v1/tokens/usage", u, "the usage")
 }
 

@@ -336,7 +336,7 @@ func TestEveryTokenWireVectorValidatesAsItSays(t *testing.T) {
 		}
 		actions[action] = true
 	}
-	for _, want := range []string{"apply", "reset", "revoke", "narrow"} {
+	for _, want := range []string{"apply", "reset", "revoke", "narrow", "refuse"} {
 		if !actions[want] {
 			t.Errorf("no record ends in %s", want)
 		}

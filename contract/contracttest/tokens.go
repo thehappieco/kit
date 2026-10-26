@@ -84,12 +84,14 @@ func (a *tokenApp) resetTokens() {
 	a.acks, a.usage = nil, nil
 }
 
-// isSelectorGET reports whether r is a selector GET, which spends a bucket
-// of its own: told by its method and raw path alone, before anything else
-// of it is read, as the platform tells it at the rate's step.
+// isSelectorGET reports whether r is a selector GET, which spends none of
+// the app's rate and a bucket of its own once its signature holds: told by
+// its method and raw path alone, a selector of 16 lowercase hex digits, so
+// that any other path spends the app's rate as every call does.
 func isSelectorGET(r *http.Request) bool {
 	path, _, _ := strings.Cut(r.RequestURI, "?")
-	return r.Method == http.MethodGet && strings.HasPrefix(path, "/contract/v1/token-selectors/")
+	sel, ok := strings.CutPrefix(path, "/contract/v1/token-selectors/")
+	return r.Method == http.MethodGet && ok && contract.ValidSelector(sel)
 }
 
 // ---------------------------------------------------------------------------
@@ -584,7 +586,11 @@ func (p *Platform) readTokenFeed(app *appState, after int64) (contract.TokenFeed
 	recs = recs[:kept]
 	for _, r := range recs {
 		r.Generation = p.generation
-		f.Items = append(f.Items, contract.TokenFeedItem{Seq: r.Version, Token: r})
+		it, err := contract.NewTokenFeedItem(r.Version, r)
+		if err != nil {
+			return contract.TokenFeed{}, woken, refusal(contract.CodeUnavailable, "try again"), false
+		}
+		f.Items = append(f.Items, it)
 	}
 	f.NextAfter = max(after, f.Head)
 	if f.More {

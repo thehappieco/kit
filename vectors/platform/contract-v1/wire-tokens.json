@@ -2,7 +2,7 @@
   "format": "thehappie-contract/vectors",
   "version": 1,
   "kind": "wire-tokens",
-  "description": "The token part's wire (SPEC section 11.18), each value with whether it is valid. records: contract.TokenRecord, decoded as an app decodes what the platform sends (a member it does not know is ignored), then its Validate. feeds: contract.TokenFeed, decoded the same way, then its Validate, which checks the page and not its records: a bad record never stalls the feed. applied: contract.TokenApplied, decoded as the platform decodes what an app sends (strictly: no member it does not know), then its Validate. usage: bodies of POST /contract/v1/tokens/usage as the app sends them: valid when the body is within the call's 256 KiB, decodes strictly as contract.TokenUsage and validates. actions: a record an app holding the generation receives, and what it does: apply; reset (another generation: it resets its token state and follows the feed from 0, never widening); revoke (code: the reason; app_removed and app_held revoke that app's record only); narrow (a bad record, code reading_key_changed when its fingerprint is not its key's, else invalid_record: the app applies only what it narrows, a revocation, an earlier expires_at, an item or permission no longer listed, refuses its grants with that code, and advances through). The app decides in that order: Validate, then the generation, then the reading key's fingerprint, then the revocation.",
+  "description": "The token part's wire (SPEC section 11.18), each value with whether it is valid. records: contract.TokenRecord, decoded as an app decodes what the platform sends (a member it does not know is ignored), then its Validate. feeds: contract.TokenFeed, decoded the same way, then its Validate, which checks the page and not its records, each of which stays as it came until the app decodes it on its own: a bad record, one that does not decode included, never stalls the feed. applied: contract.TokenApplied, decoded as the platform decodes what an app sends (strictly: no member it does not know, every name exactly as written and once), then its Validate. usage: bodies of POST /contract/v1/tokens/usage as the app sends them: valid when the body is within the call's 256 KiB, decodes strictly as contract.TokenUsage and validates. actions: a record an app holding the generation receives, decoded on its own (contract.TokenFeedItem.Record), and what it does: refuse (another app's record: it logs it, applies nothing of it and advances, so one app's revocation never reaches another); reset (another generation: it resets its token state and follows the feed from 0, never widening); narrow (a record that does not decode or fails Validate, code invalid_record, or whose fingerprint is not its key's, code reading_key_changed: the app applies only what it narrows, a revocation, an earlier expires_at, an item or permission no longer listed, refuses its grants with that code, and advances through); revoke (code: the reason; app_removed and app_held revoke that app's record only); apply. The app decides in that order.",
   "records": [
     {
       "name": "a live record with a reading key",
@@ -13145,6 +13145,93 @@
       "valid": true
     },
     {
+      "name": "a page that holds a record that does not decode still stands",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 90,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 89,
+            "token": {
+              "v": 1,
+              "type": "token",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "id": "0199f2a1-0000-7000-8000-000000000012",
+              "version": 89,
+              "selector": "0123456789abcdef",
+              "hash": "7fbeaba3be098c5c5c27c61c8ca1ba44499ce7a56936fcc2c2ea9c61adf26fe6",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "name": "Nightly export",
+              "created_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "created_at": "2026-10-13T12:00:00Z",
+              "expires_at": "2027-10-13T12:00:00Z",
+              "revoked_at": null,
+              "revoked_reason": null,
+              "terms": null,
+              "reading_key": {
+                "suite": "x25519",
+                "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+                "fingerprint": "84bf23bd7ffb2df919c7e4e5a7867702",
+                "registered_at": "2026-10-13T12:03:00Z"
+              },
+              "items": [
+                {
+                  "id": "0199e000-0000-7000-8000-000000000004",
+                  "kind": "number",
+                  "perms": [
+                    {
+                      "perm": "read",
+                      "granted_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                      "granted_at": "2026-10-13T12:00:00Z"
+                    },
+                    {
+                      "perm": "send",
+                      "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+                      "granted_at": "2026-10-14T12:00:00Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "seq": 90,
+            "token": {
+              "v": 1,
+              "type": "token",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "id": "0199f2a1-0000-7000-8000-000000000011",
+              "version": 90,
+              "selector": "9f3c0a7be41d2c58",
+              "hash": "7fbeaba3be098c5c5c27c61c8ca1ba44499ce7a56936fcc2c2ea9c61adf26fe6",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "name": "Nightly export",
+              "created_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "created_at": "2026-10-13T12:00:00Z",
+              "expires_at": "2027-10-13T12:00:00Z",
+              "revoked_at": "0001-01-01T00:00:00Z",
+              "revoked_reason": "revoked",
+              "terms": null,
+              "reading_key": {
+                "suite": "x25519",
+                "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+                "fingerprint": "84bf23bd7ffb2df919c7e4e5a7867702",
+                "registered_at": "2026-10-13T12:03:00Z"
+              },
+              "items": []
+            }
+          }
+        ],
+        "next_after": 90,
+        "more": false
+      },
+      "valid": true
+    },
+    {
       "name": "records out of order",
       "value": {
         "generation": "0199b1e0-0000-7000-8000-000000000001",
@@ -14057,7 +14144,7 @@
       "valid": false
     },
     {
-      "name": "a waiting permission without granted_by",
+      "name": "an empty granted_by on a waiting permission",
       "value": {
         "generation": "0199b1e0-0000-7000-8000-000000000001",
         "through": 90,
@@ -14091,7 +14178,7 @@
       "valid": false
     },
     {
-      "name": "a waiting permission without granted_at",
+      "name": "a granted_at before 1970 on a waiting permission",
       "value": {
         "generation": "0199b1e0-0000-7000-8000-000000000001",
         "through": 90,
@@ -14254,6 +14341,198 @@
           }
         ],
         "held": []
+      },
+      "valid": false
+    },
+    {
+      "name": "held null",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [],
+        "suspended": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "cause": "operator"
+          }
+        ],
+        "held": null
+      },
+      "valid": false
+    },
+    {
+      "name": "a waiting permission twice",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+            "granted_at": "2026-10-13T12:00:00Z"
+          },
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+            "granted_at": "2026-10-13T12:00:00Z"
+          }
+        ],
+        "suspended": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "cause": "operator"
+          }
+        ],
+        "held": []
+      },
+      "valid": false
+    },
+    {
+      "name": "a waiting permission twice, given apart",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+            "granted_at": "2026-10-13T12:00:00Z"
+          },
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+            "granted_at": "2026-10-13T12:00:00Z"
+          }
+        ],
+        "suspended": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "cause": "operator"
+          }
+        ],
+        "held": []
+      },
+      "valid": false
+    },
+    {
+      "name": "a token held twice",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [],
+        "suspended": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "cause": "operator"
+          }
+        ],
+        "held": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "revoked": true,
+            "expires_at": null,
+            "removed": [],
+            "reading_key": null
+          },
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "revoked": false,
+            "expires_at": null,
+            "removed": [],
+            "reading_key": null
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a permission kept off twice",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [],
+        "suspended": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "cause": "operator"
+          }
+        ],
+        "held": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "revoked": false,
+            "expires_at": null,
+            "removed": [
+              {
+                "item": "0199e000-0000-7000-8000-000000000004",
+                "perm": "send"
+              },
+              {
+                "item": "0199e000-0000-7000-8000-000000000004",
+                "perm": "send"
+              }
+            ],
+            "reading_key": null
+          }
+        ]
       },
       "valid": false
     },
@@ -29380,6 +29659,253 @@
         "held": []
       },
       "valid": false
+    },
+    {
+      "name": "waiting_more and suspended_more true",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+            "granted_at": "2026-10-13T12:00:00Z"
+          }
+        ],
+        "waiting_more": true,
+        "suspended": [],
+        "suspended_more": true,
+        "held": []
+      },
+      "valid": true
+    },
+    {
+      "name": "waiting_more false",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+            "granted_at": "2026-10-13T12:00:00Z"
+          }
+        ],
+        "waiting_more": false,
+        "suspended": [],
+        "suspended_more": true,
+        "held": []
+      },
+      "valid": false
+    },
+    {
+      "name": "waiting_more null",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+            "granted_at": "2026-10-13T12:00:00Z"
+          }
+        ],
+        "waiting_more": null,
+        "suspended": [],
+        "suspended_more": true,
+        "held": []
+      },
+      "valid": false
+    },
+    {
+      "name": "suspended_more false",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+            "granted_at": "2026-10-13T12:00:00Z"
+          }
+        ],
+        "waiting_more": true,
+        "suspended": [],
+        "suspended_more": false,
+        "held": []
+      },
+      "valid": false
+    },
+    {
+      "name": "a waiting permission without granted_by",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_at": "2026-10-13T12:00:00Z"
+          }
+        ],
+        "waiting_more": true,
+        "suspended": [],
+        "suspended_more": true,
+        "held": []
+      },
+      "valid": false
+    },
+    {
+      "name": "a waiting permission without granted_at",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_by": "0199c3d4-0000-7000-8000-000000000002"
+          }
+        ],
+        "waiting_more": true,
+        "suspended": [],
+        "suspended_more": true,
+        "held": []
+      },
+      "valid": false
+    },
+    {
+      "name": "a waiting permission's token written Token",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [
+          {
+            "Token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+            "granted_at": "2026-10-13T12:00:00Z"
+          }
+        ],
+        "waiting_more": true,
+        "suspended": [],
+        "suspended_more": true,
+        "held": []
+      },
+      "valid": false
+    },
+    {
+      "name": "a waiting permission's token twice, once written Token",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "through": 90,
+        "applied_at": "2026-10-13T12:00:05Z",
+        "refused": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "version": 4,
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "read",
+            "code": "giver_not_reader"
+          }
+        ],
+        "waiting": [
+          {
+            "token": "0199f2a1-0000-7000-8000-000000000011",
+            "item": "0199e000-0000-7000-8000-000000000004",
+            "perm": "send",
+            "Token": "0199f2a1-0000-7000-8000-000000000012",
+            "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+            "granted_at": "2026-10-13T12:00:00Z"
+          }
+        ],
+        "waiting_more": true,
+        "suspended": [],
+        "suspended_more": true,
+        "held": []
+      },
+      "valid": false
     }
   ],
   "usage": [
@@ -29896,6 +30422,68 @@
       },
       "action": "narrow",
       "code": "invalid_record"
+    },
+    {
+      "name": "a record that does not decode: its revocation still applies",
+      "app": "wappie",
+      "generation": "0199b1e0-0000-7000-8000-000000000001",
+      "value": {
+        "v": 1,
+        "type": "token",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f2a1-0000-7000-8000-000000000011",
+        "version": 90,
+        "selector": "9f3c0a7be41d2c58",
+        "hash": "7fbeaba3be098c5c5c27c61c8ca1ba44499ce7a56936fcc2c2ea9c61adf26fe6",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "name": "Nightly export",
+        "created_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "created_at": "2026-10-13T12:00:00Z",
+        "expires_at": "2027-10-13T12:00:00Z",
+        "revoked_at": "0001-01-01T00:00:00Z",
+        "revoked_reason": "revoked",
+        "terms": null,
+        "reading_key": {
+          "suite": "x25519",
+          "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+          "fingerprint": "84bf23bd7ffb2df919c7e4e5a7867702",
+          "registered_at": "2026-10-13T12:03:00Z"
+        },
+        "items": []
+      },
+      "action": "narrow",
+      "code": "invalid_record"
+    },
+    {
+      "name": "another app's record, revoked there: refused, nothing applied",
+      "app": "wappie",
+      "generation": "0199b1e0-0000-7000-8000-000000000001",
+      "value": {
+        "v": 1,
+        "type": "token",
+        "app": "mailie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f2a1-0000-7000-8000-000000000011",
+        "version": 4,
+        "selector": "9f3c0a7be41d2c58",
+        "hash": "7fbeaba3be098c5c5c27c61c8ca1ba44499ce7a56936fcc2c2ea9c61adf26fe6",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "name": "Nightly export",
+        "created_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "created_at": "2026-10-13T12:00:00Z",
+        "expires_at": "2027-10-13T12:00:00Z",
+        "revoked_at": "2026-10-15T12:00:00Z",
+        "revoked_reason": "app_removed",
+        "terms": {
+          "version": "2026-10-api-keys-2",
+          "agreed_at": "2026-10-13T12:00:00Z"
+        },
+        "reading_key": null,
+        "items": []
+      },
+      "action": "refuse",
+      "code": null
     }
   ]
 }

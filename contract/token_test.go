@@ -100,17 +100,40 @@ func TestNoTokenRefusalNamesAByteOfTheToken(t *testing.T) {
 		}
 	}
 	p, _ := contract.ParseToken(good)
+	// Held in an unexported field, fmt prints the struct's fields as they
+	// are, and slog's text handler too: the parsed token keeps no byte of
+	// the secret to print.
+	type session struct {
+		user  string
+		token contract.ParsedToken
+	}
+	held := session{user: "ana", token: p}
 	var buf bytes.Buffer
-	slog.New(slog.NewTextHandler(&buf, nil)).Info("token", "token", p)
-	for _, printed := range []string{fmt.Sprint(p), fmt.Sprintf("%v %+v %#v %s", p, p, p, p), buf.String()} {
-		if strings.Contains(printed, secretText[:8]) || !strings.Contains(printed, vecSelector) {
-			t.Errorf("a parsed token prints %q", printed)
+	log := slog.New(slog.NewTextHandler(&buf, nil))
+	log.Info("token", "token", p)
+	log.Info("session", "session", held)
+	secretDec := strings.Trim(fmt.Sprint(secret[:8]), "[]")
+	secretHex := hex.EncodeToString(secret[:8])
+	printed := []string{fmt.Sprint(p), buf.String()}
+	for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%d", "%x"} {
+		// Every verb, those vet would refuse for the type included: a
+		// program may still print a struct that holds one with them.
+		printed = append(printed, fmt.Sprintf(verb, p), fmt.Sprintf(verb, held))
+	}
+	for _, printed := range printed {
+		if strings.Contains(printed, secretText[:8]) || strings.Contains(printed, secretDec) || strings.Contains(printed, secretHex) {
+			t.Errorf("a parsed token prints its secret: %q", printed)
 		}
+	}
+	if !strings.Contains(fmt.Sprint(p), vecSelector) {
+		t.Error("a parsed token does not print its selector")
 	}
 }
 
-// RFC 7748's points of low order, as libsodium's has_small_order lists them,
-// canonical, and each with the top bit set, which X25519 ignores.
+// The points of low order of libsodium's has_small_order list: 0 (order 2),
+// 1 (order 4), the two of order 8, p - 1 (order 4, on the twist), and p and
+// p + 1, which are 0 and 1 spelled again; each also with the top bit set,
+// which X25519 ignores.
 var lowOrder = []string{
 	"0000000000000000000000000000000000000000000000000000000000000000",
 	"0100000000000000000000000000000000000000000000000000000000000000",
@@ -320,4 +343,168 @@ func FuzzAValidReadingKeyIsCanonicalAndOfFullOrder(f *testing.F) {
 			t.Fatalf("%q has no fingerprint", key)
 		}
 	})
+}
+
+// A record that does not decode comes with what of it could be read, and
+// a revoked_at that is set, whatever its value, revokes.
+func TestARecordThatDoesNotDecodeStillNarrows(t *testing.T) {
+	bad := vecRecord(func(r *contract.TokenRecord) {
+		revoke(contract.RevokedInConsole)(r)
+		r.RevokedAt = &contract.Time{}
+	})
+	raw, err := json.Marshal(bad)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := contract.TokenFeedItem{Token: raw}.Record()
+	if !errors.Is(err, contract.ErrInvalid) || r.ID != vecToken || r.App != "wappie" || r.RevokedAt == nil || !r.RevokedAt.IsZero() {
+		t.Fatalf("%+v %v", r, err)
+	}
+	// An expires_at that does not decode is the earliest.
+	raw = []byte(strings.Replace(string(mustJSON(t, vecRecord(nil))), `"expires_at":"`, `"expires_at":"x`, 1))
+	if r, err = (contract.TokenFeedItem{Token: raw}).Record(); err == nil || !r.ExpiresAt.IsZero() || r.RevokedAt != nil || len(r.Items) != 1 {
+		t.Fatalf("%+v %v", r, err)
+	}
+	for _, junk := range []string{`null`, `5`, `[]`, `"x"`} {
+		if r, err := (contract.TokenFeedItem{Token: json.RawMessage(junk)}).Record(); err == nil || r.App != "" {
+			t.Errorf("%s: %+v %v", junk, r, err)
+		}
+	}
+	// One that decodes comes whole, ready for Validate.
+	if r, err := (contract.TokenFeedItem{Token: mustJSON(t, vecRecord(nil))}).Record(); err != nil || r.Validate() != nil {
+		t.Fatalf("%v %v", err, r.Validate())
+	}
+}
+
+func mustJSON(t *testing.T, v any) json.RawMessage {
+	t.Helper()
+	raw, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
+// A flag present only as true: false and null are refused, and false is
+// written as nothing.
+func TestAFlagIsAbsentOrTrue(t *testing.T) {
+	var a contract.TokenApplied
+	for _, raw := range []string{`{"waiting_more":false}`, `{"waiting_more":null}`, `{"suspended_more":1}`, `{"suspended_more":"true"}`} {
+		if json.Unmarshal([]byte(raw), &a) == nil {
+			t.Errorf("%s decodes", raw)
+		}
+	}
+	if err := json.Unmarshal([]byte(`{"waiting_more":true,"suspended_more":true}`), &a); err != nil || !a.WaitingMore || !a.SuspendedMore {
+		t.Fatalf("%+v %v", a, err)
+	}
+	if b := mustJSON(t, contract.TokenApplied{WaitingMore: false}); bytes.Contains(b, []byte("_more")) {
+		t.Fatalf("false is written: %s", b)
+	}
+}
+
+// Each limit holds at its count and refuses one more (the vectors carry the
+// ones over; these are the ones at).
+func TestEveryCountLimitHoldsAtItsCount(t *testing.T) {
+	ids := func(n int) []string {
+		out := make([]string, n)
+		for i := range out {
+			out[i] = fmt.Sprintf("0199f2a1-0000-7000-8000-%012d", i+1)
+		}
+		return out
+	}
+	check := func(name string, at, over error) {
+		t.Helper()
+		if at != nil || over == nil {
+			t.Errorf("%s: at the limit %v, over it %v", name, at, over)
+		}
+	}
+	// A token feed page: 200 records.
+	page := func(n int) contract.TokenFeed {
+		f := contract.TokenFeed{Generation: vecGeneration, Head: int64(n), NextAfter: int64(n), PublishedThrough: contract.T(Now), Items: []contract.TokenFeedItem{}}
+		for i := 1; i <= n; i++ {
+			f.Items = append(f.Items, contract.TokenFeedItem{Seq: int64(i), Token: json.RawMessage(`{}`)})
+		}
+		return f
+	}
+	check("feed items", page(contract.MaxTokenFeedItems).Validate(), page(contract.MaxTokenFeedItems+1).Validate())
+	// A record: 1000 items.
+	items := func(n int) contract.TokenRecord {
+		return vecRecord(func(r *contract.TokenRecord) {
+			r.Items = nil
+			for i := 0; i < n; i++ {
+				r.Items = append(r.Items, contract.TokenItem{ID: fmt.Sprintf("n%04d", i), Kind: contract.ItemNumber, Perms: []contract.TokenPerm{{Perm: contract.CanRead, GrantedBy: vecSub, GrantedAt: contract.T(Now)}}})
+			}
+		})
+	}
+	check("record items", items(contract.MaxTokenItems).Validate(), items(contract.MaxTokenItems+1).Validate())
+	// An acknowledgement: 1000 waiting, 1000 suspended, 1000 together, 1000 removed.
+	base := contract.TokenApplied{Generation: vecGeneration, AppliedAt: contract.T(Now), Refused: []contract.TokenRefusal{}, Held: []contract.TokenHeld{}}
+	waiting := func(n int) contract.TokenApplied {
+		a := base
+		for i, id := range ids(n) {
+			a.Waiting = append(a.Waiting, contract.WaitingPerm{Token: id, Item: fmt.Sprintf("n%d", i), Perm: contract.CanRead, GrantedBy: vecSub, GrantedAt: contract.T(Now)})
+		}
+		return a
+	}
+	check("waiting", waiting(contract.MaxAppliedEntries).Validate(), waiting(contract.MaxAppliedEntries+1).Validate())
+	suspended := func(n int) contract.TokenApplied {
+		a := base
+		for _, id := range ids(n) {
+			a.Suspended = append(a.Suspended, contract.Suspension{Token: id, Cause: contract.SuspendedOperator})
+		}
+		return a
+	}
+	check("suspended", suspended(contract.MaxAppliedEntries).Validate(), suspended(contract.MaxAppliedEntries+1).Validate())
+	together := func(n int) contract.TokenApplied {
+		a := suspended(contract.MaxAppliedEntries - 1)
+		for _, id := range ids(n) {
+			a.Held = append(a.Held, contract.TokenHeld{Token: id, Removed: []contract.HeldPerm{}})
+		}
+		return a
+	}
+	check("the four lists together", together(1).Validate(), together(2).Validate())
+	removed := func(n int) contract.TokenApplied {
+		a := base
+		h := contract.TokenHeld{Token: vecToken, Removed: []contract.HeldPerm{}}
+		for i := 0; i < n; i++ {
+			h.Removed = append(h.Removed, contract.HeldPerm{Item: fmt.Sprintf("n%d", i), Perm: contract.CanRead})
+		}
+		a.Held = []contract.TokenHeld{h}
+		return a
+	}
+	check("held removed", removed(contract.MaxHeldRemoved).Validate(), removed(contract.MaxHeldRemoved+1).Validate())
+	// Usage: 1000 used, 1000 refusals; the body limit is the transport's,
+	// at most UsageBodyLimit bytes.
+	used := func(n int) contract.TokenUsage {
+		u := contract.TokenUsage{Refusals: []contract.UsageRefusal{}}
+		for _, id := range ids(n) {
+			u.Used = append(u.Used, contract.TokenUsed{Token: id, Day: "2026-10-13"})
+		}
+		return u
+	}
+	check("used", used(contract.MaxUsageEntries).Validate(), used(contract.MaxUsageEntries+1).Validate())
+	refusals := func(n int) contract.TokenUsage {
+		u := contract.TokenUsage{Used: []contract.TokenUsed{}}
+		for _, id := range ids(n) {
+			u.Refusals = append(u.Refusals, contract.UsageRefusal{Token: id, Day: "2026-10-13", Code: contract.UseRevoked, Count: 1})
+		}
+		return u
+	}
+	check("refusals", refusals(contract.MaxUsageEntries).Validate(), refusals(contract.MaxUsageEntries+1).Validate())
+	// A snapshot item: 1000 tokens; the ordinal 9999.
+	tokens := func(n int) contract.Snapshot {
+		it := contract.Item{ID: "n1", Kind: contract.ItemNumber, State: contract.StateActive, People: []contract.Person{}, Protected: []string{}, Ordinal: contract.MaxOrdinal, Tokens: contract.ItemTokens{}}
+		for _, id := range ids(n) {
+			it.Tokens = append(it.Tokens, contract.ItemToken{ID: id, Can: []string{contract.CanRead}, Reads: true})
+		}
+		return contract.Snapshot{V: 1, SnapshotSeq: 1, Items: []contract.Item{it}}
+	}
+	check("item tokens", tokens(contract.MaxItemTokens).Validate(), tokens(contract.MaxItemTokens+1).Validate())
+	if contract.UsageBodyLimit != 256<<10 {
+		t.Fatal("the usage body limit")
+	}
+	if !usageValid(append(bytes.Repeat([]byte(" "), contract.UsageBodyLimit-len(`{"used":[],"refusals":[]}`)), `{"used":[],"refusals":[]}`...)) ||
+		usageValid(append(bytes.Repeat([]byte(" "), contract.UsageBodyLimit+1-len(`{"used":[],"refusals":[]}`)), `{"used":[],"refusals":[]}`...)) {
+		t.Fatal("a usage body of exactly 256 KiB is within the limit, and one byte more is not")
+	}
 }

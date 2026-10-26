@@ -689,14 +689,14 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 			"snapshots 3 (1 valid)"},
 		// Kit v0.9.0's, from the platform's design at 509cc65: the token
 		// part, an item's ordinal and tokens, and an event's stop.
-		{"tokens.json", "tokens", "kit v0.9.0", false, "aaff002f460776760bd3a07564f0e0f3cd791cec63af7fe593298d6d264367cc",
-			"tokens 5, refused 30 (step 1 16, step 2 3, step 3 3, step 4 3, step 5 4, step 6 1), authorization 16 (4 valid)"},
-		{"reading-keys.json", "reading-keys", "kit v0.9.0", true, "e13c2e530d3f71b446a4a179edee969ba2a49f87bcd3cc81899cf39f8e0b70e5",
+		{"tokens.json", "tokens", "kit v0.9.0", false, "3a1532f466fe62764e730c179dac7fafb6c5d299bcca37628699f879ab6f4145",
+			"tokens 5, refused 28 (step 1 14, step 2 3, step 3 3, step 4 3, step 5 4, step 6 1), authorization 16 (4 valid)"},
+		{"reading-keys.json", "reading-keys", "kit v0.9.0", true, "e36e48edb298a7094687be177ce1bcbd51c43b2e244e03aea8ed7e62f9a4eb45",
 			"reading_keys 27 (ok 5, encoding 7, not_canonical 5, low_order 5, fingerprint 5)"},
-		{"wire-tokens.json", "wire-tokens", "kit v0.9.0", true, "739bcf21aef5a979e30d5e942a56f66512a000343cdc29a281bb51705cb1ac42",
-			"records 40 (11 valid), feeds 10 (5 valid), applied 29 (11 valid), usage 14 (4 valid), actions 11 (apply 2, reset 1, revoke 4, narrow 4)"},
-		{"wire-snapshot-tokens.json", "wire", "kit v0.9.0", false, "170172ec975b888d3511b1c80880e7503f3624c3f13292bc31b95feababcc91b",
-			"snapshots 19 (8 valid)"},
+		{"wire-tokens.json", "wire-tokens", "kit v0.9.0", true, "d7ace5ad3f9e8bd7046ed65198d8d6ac8131d43d57b2de221a729b25fd8f5dbb",
+			"records 40 (11 valid), feeds 11 (6 valid), applied 42 (12 valid), usage 14 (4 valid), actions 13 (apply 2, reset 1, revoke 4, narrow 5, refuse 1)"},
+		{"wire-snapshot-tokens.json", "wire", "kit v0.9.0", false, "191bbd8c43f32121d9eedab6accfae2989eee6877b4cd8e2db6ba2b0d91bd14a",
+			"snapshots 21 (8 valid)"},
 		{"wire-events-stop.json", "wire", "kit v0.9.0", false, "a9e91def4a6beff52e5ffc0f3dbaaf8ef733882ba89e89d13b3a544836387156",
 			"events 14 (6 valid)"},
 	}
@@ -763,8 +763,8 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 				for _, c := range cases {
 					actions[c.Action]++
 				}
-				counts = append(counts, fmt.Sprintf("%s %d (apply %d, reset %d, revoke %d, narrow %d)", name, len(cases),
-					actions["apply"], actions["reset"], actions["revoke"], actions["narrow"]))
+				counts = append(counts, fmt.Sprintf("%s %d (apply %d, reset %d, revoke %d, narrow %d, refuse %d)", name, len(cases),
+					actions["apply"], actions["reset"], actions["revoke"], actions["narrow"], actions["refuse"]))
 			case cases[0].Result != "":
 				counts = append(counts, fmt.Sprintf("%s %d (ok %d, answer_nonce %d, hmac_bad %d, hmac_stale %d, hmac_missing %d)", name, len(cases),
 					results["ok"], results["answer_nonce"], results["hmac_bad"], results["hmac_stale"], results["hmac_missing"]))

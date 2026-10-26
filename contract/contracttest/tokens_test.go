@@ -66,6 +66,16 @@ func readingKey(t *testing.T) string {
 	return base64.RawURLEncoding.EncodeToString(priv.PublicKey().Bytes())
 }
 
+// record is a feed item's record, decoded on its own as an app does.
+func record(t *testing.T, it contract.TokenFeedItem) contract.TokenRecord {
+	t.Helper()
+	r, err := it.Record()
+	if err != nil {
+		t.Fatalf("item %d: %v", it.Seq, err)
+	}
+	return r
+}
+
 func tokenFeed(t *testing.T, c *contract.Client, after int64) contract.TokenFeed {
 	t.Helper()
 	f, err := c.Tokens(t.Context(), after, 0)
@@ -90,7 +100,7 @@ func TestATokensRecordReachesAnAppOnceItNamesTheAppAndItsWorkspaceIsNamed(t *tes
 	if len(f.Items) != 1 || f.Head != 2 || f.Items[0].Seq != 2 || f.NextAfter != 2 {
 		t.Fatalf("the feed: %+v", f)
 	}
-	rec := f.Items[0].Token
+	rec := record(t, f.Items[0])
 	gen, _ := h.p.Generation()
 	if err := rec.Validate(); err != nil || rec.Generation != gen || rec.App != "wappie" || rec.WorkspaceID != team || rec.CreatedBy != bobSub {
 		t.Fatalf("the record: %+v, %v", rec, err)
@@ -122,7 +132,7 @@ func TestATokensRecordReachesAnAppOnceItNamesTheAppAndItsWorkspaceIsNamed(t *tes
 	if _, err := c.Subscribe(t.Context(), bobSub); err != nil {
 		t.Fatal(err)
 	}
-	if f := tokenFeed(t, c, 2); len(f.Items) != 1 || f.Items[0].Token.ID != hidden {
+	if f := tokenFeed(t, c, 2); len(f.Items) != 1 || record(t, f.Items[0]).ID != hidden {
 		t.Fatalf("once named: %+v", f)
 	}
 }
@@ -182,9 +192,14 @@ func TestTheSelectorGETSpendsABucketOfItsOwn(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		mustRefusal(t, func() error { _, err := c.TokenBySelector(t.Context(), p.Selector); return err }(), contract.CodeNotFound)
 	}
-	// The third within the second is refused unsigned, before the call.
-	h.send(t, call{method: http.MethodGet, target: "/contract/v1/token-selectors/" + p.Selector, app: "wappie"}).
-		wantUnsigned(t, http.StatusTooManyRequests, contract.CodeRateLimited)
+	// The third within the second is refused, signed once its signature
+	// holds, as the design's 3.4 says: the app sees a *Refusal.
+	c3 := call{method: http.MethodGet, target: "/contract/v1/token-selectors/" + p.Selector, app: "wappie"}
+	h.wantSigned(t, h.send(t, c3), c3, http.StatusTooManyRequests, contract.CodeRateLimited)
+	mustRefusal(t, func() error { _, err := c.TokenBySelector(t.Context(), p.Selector); return err }(), contract.CodeRateLimited)
+	// One that does not sign spends nothing of either bucket.
+	h.send(t, call{method: http.MethodGet, target: "/contract/v1/token-selectors/" + p.Selector, app: "wappie", secret: secretC}).
+		wantUnsigned(t, http.StatusUnauthorized, contract.CodeUnauthenticated)
 	// The app's own bucket is untouched.
 	if _, err := c.Tokens(t.Context(), 0, 0); err != nil {
 		t.Fatal(err)
@@ -216,7 +231,7 @@ func TestACreatorsRevocationReachesTheTokenFeedBeforeTheDocument(t *testing.T) {
 		t.Fatalf("the document: %+v %v", docs, err)
 	}
 	f := tokenFeed(t, c, before)
-	if len(f.Items) != 1 || f.Items[0].Token.RevokedReason == nil || *f.Items[0].Token.RevokedReason != contract.RevokedCreatorLeft || len(f.Items[0].Token.Items) != 0 {
+	if len(f.Items) != 1 || record(t, f.Items[0]).RevokedReason == nil || *record(t, f.Items[0]).RevokedReason != contract.RevokedCreatorLeft || len(record(t, f.Items[0]).Items) != 0 {
 		t.Fatalf("the revocation: %+v", f)
 	}
 	// It is never cleared.
@@ -438,7 +453,7 @@ func TestARestoreStartsTheTokenFeedAgainFromZero(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := tokenFeed(t, c, 0)
-	if len(f.Items) != 1 || f.Generation != gen || f.Items[0].Token.Generation != gen || f.GenerationConfirmed {
+	if len(f.Items) != 1 || f.Generation != gen || record(t, f.Items[0]).Generation != gen || f.GenerationConfirmed {
 		t.Fatalf("after the restore: %+v", f)
 	}
 }

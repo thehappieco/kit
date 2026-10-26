@@ -1,0 +1,921 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "wire",
+  "description": "Access snapshots with the optional members items[].ordinal and items[].tokens (SPEC sections 11.17 and 11.18), each with whether it decodes and contract.Snapshot's Validate accepts it. An ordinal is 1 to 9999, unique among the snapshot's items; tokens list each token by its id once, with the permissions the app applied by the item's kind, and waiting is a number's only. An optional member is absent, never null. Added after wire.json was frozen.",
+  "documents": [],
+  "snapshots": [
+    {
+      "name": "a number with its ordinal and a token that reads and sends",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a token with Read waiting for its grant (Wappie)",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true
+              }
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a mailbox with a token that reads and acts",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 2,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "act"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "an unlabelled item named by its ordinal",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": null,
+            "hint": null,
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 3,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "tokens empty: no token holds the item",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": []
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "neither member: the app reports no ordinal and no token",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "the highest ordinal",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 9999,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "two items, each with its own ordinal",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          },
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 2,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "act"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a token id twice",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              },
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "waiting with Mailie's read",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 2,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read"
+                ],
+                "reads": false,
+                "waiting": true
+              }
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "an ordinal of 10000",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 10000,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "an ordinal shared by two items",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          },
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "act"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a token with manage on a mailbox",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 2,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "read",
+                  "manage"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a token with act on a number",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": [
+              {
+                "id": "0199f2a1-0000-7000-8000-000000000011",
+                "can": [
+                  "act"
+                ],
+                "reads": false,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a token named by its selector",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": [
+              {
+                "id": "9f3c0a7be41d2c58",
+                "can": [
+                  "read",
+                  "send"
+                ],
+                "reads": true,
+                "waiting": false
+              }
+            ]
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "an ordinal of 0",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 0,
+            "tokens": []
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "an ordinal null",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": null,
+            "tokens": []
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "an ordinal of 1.5",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1.5,
+            "tokens": []
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "tokens null",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "ordinal": 1,
+            "tokens": null
+          }
+        ]
+      },
+      "valid": false
+    }
+  ],
+  "events": []
+}

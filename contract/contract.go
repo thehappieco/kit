@@ -1,11 +1,16 @@
 // Package contract is the wire of the contract's membership part (SPEC
-// section 11.17; the platform's decision 0040): the scheme that signs every
-// request and answer on the contract socket, the types that cross it, and
-// the rules that keep their values honest. The platform's transport, its
-// reference client and Wappie and Mailie all use it, so a rule here is a
-// rule on both sides of the socket. Package contracttest is a fake platform
-// for the apps' tests, and profiles/platform names the signature's values
-// as the platform profile (ContractHMAC, SignAnswer, VerifyAnswer).
+// section 11.17; the platform's decision 0040) and of its token part (SPEC
+// section 11.18; decision 0053): the scheme that signs every request and
+// answer on the contract socket, the types that cross it, and the rules
+// that keep their values honest; and the platform's API tokens, thc_ and
+// 60 more characters, which an app checks on its own against the records
+// the token part sends it (ParseToken, BearerToken, VerifyToken), and their
+// reading keys (ValidReadingKey, ReadingKeyFingerprint, CheckReadingKey).
+// The platform's transport, its reference client and Wappie and Mailie all
+// use it, so a rule here is a rule on both sides of the socket. Package
+// contracttest is a fake platform for the apps' tests, and
+// profiles/platform names the signature's values as the platform profile
+// (ContractHMAC, SignAnswer, VerifyAnswer).
 //
 // The rules it enforces:
 //   - Every request is signed with the kit's reqhmac under
@@ -26,8 +31,15 @@
 //     the first character and the domain of an address.
 //   - Every enum is closed: a value the receiver does not know is refused,
 //     never guessed (Validate).
+//   - An optional member is absent, never null: the members kit v0.9.0 adds
+//     to what an app sends (an item's ordinal and tokens, an event's stop,
+//     an acknowledgement's waiting and suspended) are written only when
+//     set, and a null, or a value that would read as absent, is refused.
+//   - A token's secret never crosses the contract, only its hash; no error
+//     names a byte of a token.
 //
-// The package uses only the standard library and the kit's reqhmac, and,
+// The package uses only the standard library (crypto/ecdh for the reading
+// key's check among it) and the kit's reqhmac, and,
 // as all of the kit, nothing newer than the Go of the kit's go.mod
 // (1.26.7), which go vet's stdversion check holds it to. Decoding is the
 // caller's: the platform decodes strictly, an app may ignore members it

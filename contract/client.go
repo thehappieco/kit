@@ -117,11 +117,11 @@ func (r *Refusal) Error() string {
 
 // Do sends one signed request and returns the verified answer's status and
 // body. target is the raw path and query. It gives up after CallTimeout, or,
-// for the feed (a GET of /contract/v1/feed), after MaxWait seconds and
-// FeedGrace.
+// for a feed (a GET of /contract/v1/feed or /contract/v1/tokens), after
+// MaxWait seconds and FeedGrace.
 func (c *Client) Do(ctx context.Context, method, target string, body []byte) (int, []byte, error) {
 	timeout := callTimeout
-	if path, _, _ := strings.Cut(target, "?"); method == http.MethodGet && path == "/contract/v1/feed" {
+	if path, _, _ := strings.Cut(target, "?"); method == http.MethodGet && (path == "/contract/v1/feed" || path == "/contract/v1/tokens") {
 		timeout = MaxWait*time.Second + feedGrace
 	}
 	return c.do(ctx, timeout, method, target, body)
@@ -204,7 +204,8 @@ func route(target string) string {
 	parts := strings.Split(path, "/")
 	for i, p := range parts {
 		switch p {
-		case "", "contract", "v1", "accounts", "workspaces", "access", "feed", "events":
+		case "", "contract", "v1", "accounts", "workspaces", "access", "feed", "events",
+			"tokens", "token-selectors", "applied", "usage":
 		default:
 			parts[i] = "{id}"
 		}
@@ -322,4 +323,106 @@ func (c *Client) PostEvents(ctx context.Context, events []Event) ([]EventResult,
 		return nil, fmt.Errorf("%w: %d results for %d events", ErrUnverified, len(r.Results), len(events))
 	}
 	return r.Results, nil
+}
+
+// Tokens returns the token records after the cursor after, waiting up to
+// wait seconds when there are none: GET /contract/v1/tokens?after=&wait=
+// (SPEC section 11.18). It gives up after wait seconds and FeedGrace. It
+// checks the page (TokenFeed.Validate), not its records: a bad record never
+// stalls the feed, so the app checks each record itself and applies one
+// that fails only for what it narrows.
+func (c *Client) Tokens(ctx context.Context, after int64, wait int) (TokenFeed, error) {
+	var f TokenFeed
+	target := "/contract/v1/tokens?after=" + strconv.FormatInt(after, 10) + "&wait=" + strconv.Itoa(wait)
+	timeout := time.Duration(min(max(wait, 0), MaxWait))*time.Second + feedGrace
+	if err := c.call(ctx, timeout, http.MethodGet, target, nil, &f); err != nil {
+		return TokenFeed{}, err
+	}
+	if err := f.Validate(); err != nil {
+		return TokenFeed{}, fmt.Errorf("%w: %w", ErrUnverified, err)
+	}
+	return f, nil
+}
+
+// Token returns the record of the token id for this app, computed and
+// published now: GET /contract/v1/tokens/{id}. An app reads it before it
+// stores a grant to the token's reading key, and refuses the grant without
+// a signed answer under a minute old. A token that never named the app, or
+// one unknown, is a *Refusal not_found, which never clears a revocation the
+// app holds. A record that is not valid, not this app's or not the token
+// asked for is ErrUnverified.
+func (c *Client) Token(ctx context.Context, id string) (TokenRecord, error) {
+	if !ValidUUID(id) {
+		return TokenRecord{}, invalid("id")
+	}
+	var r TokenRecord
+	if err := c.call(ctx, callTimeout, http.MethodGet, "/contract/v1/tokens/"+id, nil, &r); err != nil {
+		return TokenRecord{}, err
+	}
+	if err := c.checkRecord(r); err != nil {
+		return TokenRecord{}, err
+	}
+	if r.ID != id {
+		return TokenRecord{}, fmt.Errorf("%w: the record is another token's", ErrUnverified)
+	}
+	return r, nil
+}
+
+// TokenBySelector returns the record of the token whose selector is
+// selector, as Token does: GET /contract/v1/token-selectors/{selector}. An
+// app may call it for a token that parses but whose selector it does not
+// hold, behind a limit of its own per client address, and keeps a
+// not_found 60 s. It still checks the token's hash itself (VerifyToken).
+func (c *Client) TokenBySelector(ctx context.Context, selector string) (TokenRecord, error) {
+	if !ValidSelector(selector) {
+		return TokenRecord{}, invalid("selector")
+	}
+	var r TokenRecord
+	if err := c.call(ctx, callTimeout, http.MethodGet, "/contract/v1/token-selectors/"+selector, nil, &r); err != nil {
+		return TokenRecord{}, err
+	}
+	if err := c.checkRecord(r); err != nil {
+		return TokenRecord{}, err
+	}
+	if r.Selector != selector {
+		return TokenRecord{}, fmt.Errorf("%w: the record is another token's", ErrUnverified)
+	}
+	return r, nil
+}
+
+// checkRecord refuses a record that is not valid or not this app's.
+func (c *Client) checkRecord(r TokenRecord) error {
+	if err := r.Validate(); err != nil {
+		return fmt.Errorf("%w: %w", ErrUnverified, err)
+	}
+	if r.App != c.App {
+		return fmt.Errorf("%w: the record is another app's", ErrUnverified)
+	}
+	return nil
+}
+
+// TokensApplied acknowledges the token feed: POST
+// /contract/v1/tokens/applied. Another generation, or a through above the
+// feed's head, is a *Refusal gone.
+func (c *Client) TokensApplied(ctx context.Context, ack TokenApplied) error {
+	return c.accepted(ctx, "/contract/v1/tokens/applied", ack, "the acknowledgement")
+}
+
+// TokenUsage reports the tokens' last use and refused uses: POST
+// /contract/v1/tokens/usage. Both lists are absolute, so it is sent again
+// freely, at most once a minute.
+func (c *Client) TokenUsage(ctx context.Context, u TokenUsage) error {
+	return c.accepted(ctx, "/contract/v1/tokens/usage", u, "the usage")
+}
+
+// accepted posts body and wants {"accepted": true}.
+func (c *Client) accepted(ctx context.Context, target string, body any, what string) error {
+	var r AccessResult
+	if err := c.call(ctx, callTimeout, http.MethodPost, target, body, &r); err != nil {
+		return err
+	}
+	if !r.Accepted {
+		return fmt.Errorf("%w: %s was not accepted", ErrUnverified, what)
+	}
+	return nil
 }

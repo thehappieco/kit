@@ -1,0 +1,172 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "reading-keys",
+  "description": "A token's reading key (SPEC section 11.18): an X25519 public key, 43 unpadded base64url characters of 32 bytes, and its fingerprint, the lowercase hex of the first 16 bytes of the SHA-256 of the label, one zero byte and the key's 32 bytes (contract.ReadingKeyFingerprint). result is what contract.CheckReadingKey makes of the pair: ok; encoding (not the one spelling of 32 bytes); not_canonical (the last byte's top bit set, or a value at or above p = 2^255 - 19); low_order (its X25519 with the check scalar, the SHA-256 of check_label, is all zeros); fingerprint (not the key's). A fingerprint is the key's own wherever the key decodes, but in the fingerprint cases; it is empty where the key does not decode.",
+  "label": "thehappie-token/v1/reading-key",
+  "check_label": "thehappie-token/v1/low-order-check",
+  "reading_keys": [
+    {
+      "name": "a key",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+      "fingerprint": "84bf23bd7ffb2df919c7e4e5a7867702",
+      "result": "ok"
+    },
+    {
+      "name": "another key",
+      "key": "7vKi3P9X9he8OcRNG-hr9C0jufrEWUQzf1ll0Qo1s3Q",
+      "fingerprint": "2c63213a4bb44f89c6c535570a8358ac",
+      "result": "ok"
+    },
+    {
+      "name": "a third key",
+      "key": "AOXL1ty5_M6_qwzbotJKaeuT-L-J_EAGQFlS_vhd0Qk",
+      "fingerprint": "05524477cd270d7f42246efa300d418d",
+      "result": "ok"
+    },
+    {
+      "name": "p - 2, the highest canonical value of no low order",
+      "key": "6________________________________________38",
+      "fingerprint": "a8b8eb821d1d66951776c1e048888523",
+      "result": "ok"
+    },
+    {
+      "name": "9, the base point",
+      "key": "CQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "fingerprint": "dbd0c2bb6cc9e9938c01de2f1944a166",
+      "result": "ok"
+    },
+    {
+      "name": "0, of low order",
+      "key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "fingerprint": "6c05be423d566d56644c58165935d062",
+      "result": "low_order"
+    },
+    {
+      "name": "1, of low order",
+      "key": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "fingerprint": "a52a421450b01a4ffe42e2ee1df98cf8",
+      "result": "low_order"
+    },
+    {
+      "name": "a point of order 8",
+      "key": "4Ot6fDtBuK4WVuP68Z_EatoJjeucMrH9hmIFFl9JuAA",
+      "fingerprint": "d3790ee62a040c9044af82985e990f7e",
+      "result": "low_order"
+    },
+    {
+      "name": "the other point of order 8",
+      "key": "X5yVvKNQjCSx0LFVnIPvWwREXMRYHI6G2CJO3dCfEVc",
+      "fingerprint": "d01a4c1520abae2c71107dc16d1cb937",
+      "result": "low_order"
+    },
+    {
+      "name": "p - 1, of order 2",
+      "key": "7P_______________________________________38",
+      "fingerprint": "a0ca00dbc140e738ed62110c7f97d434",
+      "result": "low_order"
+    },
+    {
+      "name": "p, which reads as 0",
+      "key": "7f_______________________________________38",
+      "fingerprint": "dc5f01bd398e49ade3cdaf6f509acd37",
+      "result": "not_canonical"
+    },
+    {
+      "name": "p + 1, which reads as 1",
+      "key": "7v_______________________________________38",
+      "fingerprint": "df523ea111652d3b3314ceea3c2a303e",
+      "result": "not_canonical"
+    },
+    {
+      "name": "2^255 - 1, the highest value with the top bit clear",
+      "key": "_________________________________________38",
+      "fingerprint": "4da6609caf553dc9fa31f8bf0c4f6051",
+      "result": "not_canonical"
+    },
+    {
+      "name": "a key with its last byte's top bit set",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORq0",
+      "fingerprint": "6116ec5e498f192293fd14454b1325d0",
+      "result": "not_canonical"
+    },
+    {
+      "name": "2^256 - 1, every bit set",
+      "key": "__________________________________________8",
+      "fingerprint": "d942a5ac9d32d639640ab8444697b017",
+      "result": "not_canonical"
+    },
+    {
+      "name": "31 bytes",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORg",
+      "fingerprint": "",
+      "result": "encoding"
+    },
+    {
+      "name": "33 bytes",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0A",
+      "fingerprint": "",
+      "result": "encoding"
+    },
+    {
+      "name": "padded base64url",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0=",
+      "fingerprint": "",
+      "result": "encoding"
+    },
+    {
+      "name": "the standard alphabet",
+      "key": "+/+NwurwNoq71FYL6Lbssg/37Ipn6bFKISmK1raORi0",
+      "fingerprint": "",
+      "result": "encoding"
+    },
+    {
+      "name": "a non-canonical last character",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi1",
+      "fingerprint": "",
+      "result": "encoding"
+    },
+    {
+      "name": "empty",
+      "key": "",
+      "fingerprint": "",
+      "result": "encoding"
+    },
+    {
+      "name": "a trailing space",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0 ",
+      "fingerprint": "",
+      "result": "encoding"
+    },
+    {
+      "name": "another key's fingerprint",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+      "fingerprint": "2c63213a4bb44f89c6c535570a8358ac",
+      "result": "fingerprint"
+    },
+    {
+      "name": "the fingerprint in capitals",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+      "fingerprint": "84BF23BD7FFB2DF919C7E4E5A7867702",
+      "result": "fingerprint"
+    },
+    {
+      "name": "the fingerprint grouped as the console shows it",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+      "fingerprint": "84bf 23bd 7ffb 2df9 19c7 e4e5 a786 7702",
+      "result": "fingerprint"
+    },
+    {
+      "name": "the whole SHA-256 for the fingerprint",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+      "fingerprint": "84bf23bd7ffb2df919c7e4e5a78677025e2bf7b6046e9ce6c6751a93903a5a31",
+      "result": "fingerprint"
+    },
+    {
+      "name": "no fingerprint",
+      "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+      "fingerprint": "",
+      "result": "fingerprint"
+    }
+  ]
+}

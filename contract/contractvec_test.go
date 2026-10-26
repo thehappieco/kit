@@ -1,12 +1,14 @@
 package contract_test
 
-// The generator of the contract's vectors (SPEC section 11.17,
+// The generator of the contract's vectors (SPEC sections 11.17 and 11.18,
 // vectors/platform/contract-v1): the platform's
-// internal/contract/contractvec at ee45e3a, which writes them, as test code
-// over this package. TestTheKitWritesTheContractVectorsAgain compares what
-// it writes with the frozen files byte for byte in every test run: they are
-// a pure function of this package, so a file that comes out differently is
-// a regression of the kit.
+// internal/contract/contractvec at ee45e3a, which writes the first four
+// files, as test code over this package, and the kit's own generator of
+// the five files v0.9.0 adds (contractvec_tokens_test.go).
+// TestTheKitWritesTheContractVectorsAgain compares what it writes with the
+// frozen files byte for byte in every test run: they are a pure function
+// of this package, so a file that comes out differently is a regression of
+// the kit.
 
 import (
 	"bytes"
@@ -54,6 +56,12 @@ func Generate() ([]File, error) {
 		{"labels.json", labels},
 		{"wire.json", wire},
 		{"wire-item-ids.json", wireItemIDs},
+		// Kit v0.9.0: the token part, ordinal and tokens on items, and stop.
+		{"tokens.json", tokensFile},
+		{"reading-keys.json", readingKeysFile},
+		{"wire-tokens.json", wireTokens},
+		{"wire-snapshot-tokens.json", wireSnapshotTokens},
+		{"wire-events-stop.json", wireEventsStop},
 	} {
 		v, err := gen.make()
 		if err != nil {

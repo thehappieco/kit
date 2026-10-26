@@ -212,6 +212,20 @@ func TestATransportErrorNamesNoAccountOrWorkspace(t *testing.T) {
 	if err == nil || strings.Contains(err.Error(), subB) || !strings.Contains(err.Error(), "/workspaces/{id}/access") {
 		t.Fatalf("a refused connection: %v", err)
 	}
+	// The token part's calls name their route, never a token's id or
+	// selector.
+	_, err = c.Token(t.Context(), subA)
+	if err == nil || strings.Contains(err.Error(), subA) || !strings.Contains(err.Error(), "GET /contract/v1/tokens/{id}") {
+		t.Fatalf("a refused connection: %v", err)
+	}
+	_, err = c.TokenBySelector(t.Context(), "9f3c0a7be41d2c58")
+	if err == nil || strings.Contains(err.Error(), "9f3c0a7be41d2c58") || !strings.Contains(err.Error(), "GET /contract/v1/token-selectors/{id}") {
+		t.Fatalf("a refused connection: %v", err)
+	}
+	err = c.TokenUsage(t.Context(), contract.TokenUsage{Used: []contract.TokenUsed{}, Refusals: []contract.UsageRefusal{}})
+	if err == nil || !strings.Contains(err.Error(), "POST /contract/v1/tokens/usage") {
+		t.Fatalf("a refused connection: %v", err)
+	}
 }
 
 // The default client follows no redirect: its answer is not signed for the

@@ -1,0 +1,331 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "wire",
+  "description": "Events with the optional member stop (SPEC section 11.17), each with whether it decodes and contract.Event's Validate accepts it. stop is pause or turn_off, only on item.sync_paused, and turn_off only for a mailbox; absent, the platform reads pause for a number and turn_off for a mailbox, what each app sent before the member existed. An optional member is absent, never null: \"stop\": null is refused. Added after wire.json was frozen.",
+  "documents": [],
+  "snapshots": [],
+  "events": [
+    {
+      "name": "a number's capture paused",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": "pause"
+      },
+      "valid": true
+    },
+    {
+      "name": "a mailbox's sync paused",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "acc_7f3a",
+          "kind": "mailbox",
+          "label": "Suporte",
+          "hint": "j…@gmail.com"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": "pause"
+      },
+      "valid": true
+    },
+    {
+      "name": "a team mailbox's sync turned off",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "acc_7f3a",
+          "kind": "mailbox",
+          "label": "Suporte",
+          "hint": "j…@gmail.com"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": "turn_off"
+      },
+      "valid": true
+    },
+    {
+      "name": "a token with manage paused a number; the actor is its creator",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "key",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": "pause"
+      },
+      "valid": true
+    },
+    {
+      "name": "no stop on a number: read as a pause",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "no stop on a mailbox: read as a turn-off",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "acc_7f3a",
+          "kind": "mailbox",
+          "label": "Suporte",
+          "hint": "j…@gmail.com"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "turn_off on a number",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": "turn_off"
+      },
+      "valid": false
+    },
+    {
+      "name": "stop on item.deleted",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.deleted",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "purge_at": "2026-11-12T12:00:00Z",
+        "stop": "pause"
+      },
+      "valid": false
+    },
+    {
+      "name": "stop on item.recovered",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.recovered",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": "pause"
+      },
+      "valid": false
+    },
+    {
+      "name": "an unknown stop",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": "resume"
+      },
+      "valid": false
+    },
+    {
+      "name": "stop in capitals",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": "PAUSE"
+      },
+      "valid": false
+    },
+    {
+      "name": "\"stop\": null",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": null
+      },
+      "valid": false
+    },
+    {
+      "name": "\"stop\": \"\"",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": ""
+      },
+      "valid": false
+    },
+    {
+      "name": "stop as a number",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000003",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.sync_paused",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+          "0199c3d4-0000-7000-8000-000000000002"
+        ],
+        "stop": 1
+      },
+      "valid": false
+    }
+  ]
+}

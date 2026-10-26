@@ -1,0 +1,230 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "command-macs",
+  "description": "The command's MAC (SPEC section 11.19): mac = \"v1=\" + lowercase hex(HMAC-SHA256(key = the secret's 43-character text, msg = label || \"\\n\" || app || \"\\n\" || JCS(the command as received, without mac))). command: the exact text an app receives; jcs: its canonical text without mac (RFC 8785), \"\" when it has none; mac: what a signer computes over jcs for app under the first of secrets, \"\" when jcs is; valid: whether contract.VerifyCommand takes command for app under secrets, each of which it tries.",
+  "label": "thehappie-platform-command/v1",
+  "macs": [
+    {
+      "name": "a command as served: compact JCS",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4",
+      "valid": true
+    },
+    {
+      "name": "the same indented",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\n  \"actor\": \"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\n  \"actor_role\": \"owner\",\n  \"agreement\": null,\n  \"app\": \"wappie\",\n  \"based_on\": {\n    \"docs\": {\n      \"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\": 7\n    },\n    \"state_seq\": 1791892800000\n  },\n  \"confirm\": null,\n  \"cseq\": 812,\n  \"expires_at\": \"2026-10-13T12:05:00Z\",\n  \"first_issued_at\": \"2026-10-13T12:00:00Z\",\n  \"generation\": \"0199b1e0-0000-7000-8000-000000000001\",\n  \"id\": \"0199f3c4-0000-7000-8000-000000000021\",\n  \"issued_at\": \"2026-10-13T12:00:00Z\",\n  \"kind\": \"item.rename\",\n  \"mac\": \"v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4\",\n  \"params\": {\n    \"after\": {\n      \"label\": \"Vendas SP\"\n    },\n    \"before\": {\n      \"label\": \"Vendas\"\n    }\n  },\n  \"retry_of\": null,\n  \"secret\": 2,\n  \"section\": \"numbers\",\n  \"target\": {\n    \"item\": \"0199e000-0000-7000-8000-000000000004\"\n  },\n  \"type\": \"command\",\n  \"v\": 1,\n  \"workspace_id\": \"01a034b7-d09c-7121-b7f8-41f210a9244a\",\n  \"wseq\": 41\n}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4",
+      "valid": true
+    },
+    {
+      "name": "the same with its members in another order",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"wseq\":41,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"v\":1,\"type\":\"command\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"section\":\"numbers\",\"secret\":2,\"retry_of\":null,\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"mac\":\"v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4\",\"kind\":\"item.rename\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"expires_at\":\"2026-10-13T12:05:00Z\",\"cseq\":812,\"confirm\":null,\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"app\":\"wappie\",\"agreement\":null,\"actor_role\":\"owner\",\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\"}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4",
+      "valid": true
+    },
+    {
+      "name": "an unknown member at the top and in params",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"v1=b63820a736d17dadc2b42593be22092a122bcb64c427890d04511758befbfd3d\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"},\"reason\":\"typo\"},\"priority\":\"high\",\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"},\"reason\":\"typo\"},\"priority\":\"high\",\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=b63820a736d17dadc2b42593be22092a122bcb64c427890d04511758befbfd3d",
+      "valid": true
+    },
+    {
+      "name": "times of 120 milliseconds, written .120Z",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00.120Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00.120Z\",\"kind\":\"item.rename\",\"mac\":\"v1=6521daa1542357faa70eed820785e5fb947a09b358fc953e998ab5985126a03b\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00.120Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00.120Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=6521daa1542357faa70eed820785e5fb947a09b358fc953e998ab5985126a03b",
+      "valid": true
+    },
+    {
+      "name": "a label with & and <, which JCS writes as they are",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"v1=08ca26718b44f2f438fca83fd149d8f5f9e348480dbdca1f9fbd0e1917c9ea90\",\"params\":{\"after\":{\"label\":\"P&D <SP>\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"P&D <SP>\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=08ca26718b44f2f438fca83fd149d8f5f9e348480dbdca1f9fbd0e1917c9ea90",
+      "valid": true
+    },
+    {
+      "name": "Mailie's tightening, during a rotation: the next secret",
+      "app": "mailie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":null,\"agreement\":null,\"app\":\"mailie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":null,\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"consent.withdraw\",\"mac\":\"v1=4c71521c7c9ff1a14d240aac6a19adffe5777e30fc105d19c22006e8a9caa964\",\"params\":{\"after\":{\"actions\":\"off\"},\"before\":{\"actions\":\"on\"}},\"retry_of\":null,\"secret\":2,\"section\":\"person\",\"target\":{},\"type\":\"command\",\"v\":1,\"workspace_id\":null,\"wseq\":null}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":null,\"agreement\":null,\"app\":\"mailie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":null,\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"consent.withdraw\",\"params\":{\"after\":{\"actions\":\"off\"},\"before\":{\"actions\":\"on\"}},\"retry_of\":null,\"secret\":2,\"section\":\"person\",\"target\":{},\"type\":\"command\",\"v\":1,\"workspace_id\":null,\"wseq\":null}",
+      "mac": "v1=3b107bf4b7ec047b09d27cac16488eba33daa6befea93cc01ed2f19ea92df713",
+      "valid": true
+    },
+    {
+      "name": "another app",
+      "app": "mailie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=822da0bc3c22fe5eec02eccdc01a961681995d279f17201bffcc387ceb55f402",
+      "valid": false
+    },
+    {
+      "name": "another secret",
+      "app": "wappie",
+      "secrets": [
+        "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=27f593d4bd0f22d287ebba0ec9dde82f71f6d8fedbe99b18aa7424b434b4e4c3",
+      "valid": false
+    },
+    {
+      "name": "a member changed after signing",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4\",\"params\":{\"after\":{\"label\":\"Vendas RJ\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas RJ\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=d588e5ad2863e3bc955d9902e3f8647f938062d6da2d89c6a7b9a393e8fc08d7",
+      "valid": false
+    },
+    {
+      "name": "a member added after signing",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"priority\":\"high\",\"kind\":\"item.rename\",\"mac\":\"v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"priority\":\"high\",\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=56497f44dc95293a4455995a2bc8926c4c87b7422ad9c96f450d0244397d2413",
+      "valid": false
+    },
+    {
+      "name": "the key decoded as bytes",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"v1=d896a7379685851728f95bfb33bd849d25b648a8f563f7509681e1891fc36b3c\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4",
+      "valid": false
+    },
+    {
+      "name": "a MAC over JSON that is not JCS",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"v1=3b9432265204137c258385d1e97f489fcd54cd58a6a35a686cf5c73b068b70ef\",\"params\":{\"after\":{\"label\":\"P&D <SP>\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"P&D <SP>\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=08ca26718b44f2f438fca83fd149d8f5f9e348480dbdca1f9fbd0e1917c9ea90",
+      "valid": false
+    },
+    {
+      "name": "a MAC over the received text, not its canonical form",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\n  \"actor\": \"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\n  \"actor_role\": \"owner\",\n  \"agreement\": null,\n  \"app\": \"wappie\",\n  \"based_on\": {\n    \"docs\": {\n      \"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\": 7\n    },\n    \"state_seq\": 1791892800000\n  },\n  \"confirm\": null,\n  \"cseq\": 812,\n  \"expires_at\": \"2026-10-13T12:05:00Z\",\n  \"first_issued_at\": \"2026-10-13T12:00:00Z\",\n  \"generation\": \"0199b1e0-0000-7000-8000-000000000001\",\n  \"id\": \"0199f3c4-0000-7000-8000-000000000021\",\n  \"issued_at\": \"2026-10-13T12:00:00Z\",\n  \"kind\": \"item.rename\",\n  \"mac\":\"v1=9c1d1c765022626d118e18cfce4265dadeb53ea2897c41b889d2372c0639264e\",\n  \"params\": {\n    \"after\": {\n      \"label\": \"Vendas SP\"\n    },\n    \"before\": {\n      \"label\": \"Vendas\"\n    }\n  },\n  \"retry_of\": null,\n  \"secret\": 2,\n  \"section\": \"numbers\",\n  \"target\": {\n    \"item\": \"0199e000-0000-7000-8000-000000000004\"\n  },\n  \"type\": \"command\",\n  \"v\": 1,\n  \"workspace_id\": \"01a034b7-d09c-7121-b7f8-41f210a9244a\",\n  \"wseq\": 41\n}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4",
+      "valid": false
+    },
+    {
+      "name": "a MAC over a re-encoded struct: .120Z written .12Z",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00.120Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00.120Z\",\"kind\":\"item.rename\",\"mac\":\"v1=bc33cf0bcb62f8d00afe2dee9187fd0d4074bb3b7f7a14c485adbf50ed43c0aa\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00.120Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00.120Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=6521daa1542357faa70eed820785e5fb947a09b358fc953e998ab5985126a03b",
+      "valid": false
+    },
+    {
+      "name": "a MAC over a re-encoded struct: an unknown member dropped",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"v1=5acb7d6d914d1455a2397a5dcbb22279a5663295d9b25a6c577b7c13c10a9ca9\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"},\"reason\":\"typo\"},\"priority\":\"high\",\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"},\"reason\":\"typo\"},\"priority\":\"high\",\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=b63820a736d17dadc2b42593be22092a122bcb64c427890d04511758befbfd3d",
+      "valid": false
+    },
+    {
+      "name": "no mac",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4",
+      "valid": false
+    },
+    {
+      "name": "a mac in capitals",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"v1=15FAEFC73F92F56A5EE4B23C867520A0FB1BC6622B400C744B801A32B247F0C4\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4",
+      "valid": false
+    },
+    {
+      "name": "a mac with no version",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"mac\":\"15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.rename\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "mac": "v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4",
+      "valid": false
+    },
+    {
+      "name": "a member twice",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":\"owner\",\"agreement\":null,\"app\":\"wappie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":\"2026-10-13T12:05:00Z\",\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"item.purge\",\"kind\":\"item.rename\",\"mac\":\"v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4\",\"params\":{\"after\":{\"label\":\"Vendas SP\"},\"before\":{\"label\":\"Vendas\"}},\"retry_of\":null,\"secret\":2,\"section\":\"numbers\",\"target\":{\"item\":\"0199e000-0000-7000-8000-000000000004\"},\"type\":\"command\",\"v\":1,\"workspace_id\":\"01a034b7-d09c-7121-b7f8-41f210a9244a\",\"wseq\":41}",
+      "jcs": "",
+      "mac": "",
+      "valid": false
+    }
+  ]
+}

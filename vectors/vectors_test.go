@@ -623,17 +623,18 @@ func TestMailieKeySchemeFiles(t *testing.T) {
 	}
 }
 
-// The contract's files (SPEC sections 11.17 and 11.18): the first four are
+// The contract's files (SPEC sections 11.17 to 11.19): the first four are
 // the platform's, captured at the commits PROVENANCE.md records, and the
-// five of kit v0.9.0 the kit's own, written from the platform's design at
-// 509cc65. Each has the sha256 recorded there, so a copy from another
-// commit or an edit fails here even after `make manifest` has recorded it.
-// Their directory holds exactly these nine; each is valid UTF-8 ending with
+// five of kit v0.9.0 and the three of kit v0.10.0 the kit's own, written
+// from the platform's design at 509cc65. Each has the sha256 recorded
+// there, so a copy from another commit or an edit fails here even after
+// `make manifest` has recorded it.
+// Their directory holds exactly these twelve; each is valid UTF-8 ending with
 // exactly one newline, ASCII only where it says so, in the platform's
 // contract format with its kind, and with its counts of cases, of each
 // check's result and of the cases that must be refused, under unique
-// names. contract's own tests run every case and write the nine files again
-// byte for byte.
+// names. contract's own tests run every case and write the twelve files
+// again byte for byte.
 func TestPlatformContractVectorFiles(t *testing.T) {
 	type named struct {
 		Name   string `json:"name"`
@@ -663,7 +664,18 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		Applied   []named `json:"applied"`
 		Usage     []named `json:"usage"`
 		Actions   []named `json:"actions"`
-		Clean     []struct {
+		Sections  []named `json:"sections"`
+		Persons   []named `json:"persons"`
+		Commands  []named `json:"commands"`
+		Results   []named `json:"results"`
+		Batches   []named `json:"batches"`
+		MACs      []named `json:"macs"`
+		Classes   []struct {
+			Code       string `json:"code"`
+			Tightening bool   `json:"tightening"`
+			Class      string `json:"class"`
+		} `json:"classes"`
+		Clean []struct {
 			Raw   string `json:"raw"`
 			Clean string `json:"clean"`
 		} `json:"clean"`
@@ -699,6 +711,14 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 			"snapshots 24 (9 valid)"},
 		{"wire-events-stop.json", "wire", "kit v0.9.0", false, "a9e91def4a6beff52e5ffc0f3dbaaf8ef733882ba89e89d13b3a544836387156",
 			"events 14 (6 valid)"},
+		// Kit v0.10.0's, from the platform's design at 509cc65: the
+		// settings part, its commands and their MAC.
+		{"wire-settings.json", "wire-settings", "kit v0.10.0", false, "ad7f3a6af001f2c6f3c04123dae628aaf9b3f5b100b53ecdbe9c1638c1a1e60b",
+			"sections 146 (57 valid), persons 30 (7 valid)"},
+		{"wire-commands.json", "wire-commands", "kit v0.10.0", false, "d55ed06a32359b570c71d368ed5728d2f0a10311fc51ab0ace4f94bacdabc72c",
+			"actions 13 (run 7, reset 1, expired 2, invalid_command 3), commands 115 (61 valid), results 54 (24 valid), batches 10 (2 valid), classes 76 (retry 13, final 63)"},
+		{"command-macs.json", "command-macs", "kit v0.10.0", true, "c3152ca1fbcb07ee12d7cfe4dc4e90cd68d0759e05da79e56202d685be74ef9c",
+			"macs 20 (7 valid)"},
 	}
 	entries, err := fs.ReadDir(vectors.FS, "platform/contract-v1")
 	if err != nil {
@@ -758,6 +778,13 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 				}
 				counts = append(counts, fmt.Sprintf("%s %d (step 1 %d, step 2 %d, step 3 %d, step 4 %d, step 5 %d, step 6 %d)", name, len(cases),
 					steps[1], steps[2], steps[3], steps[4], steps[5], steps[6]))
+			case name == "actions" && w.kind == "wire-commands":
+				actions := map[string]int{}
+				for _, c := range cases {
+					actions[c.Action]++
+				}
+				counts = append(counts, fmt.Sprintf("%s %d (run %d, reset %d, expired %d, invalid_command %d)", name, len(cases),
+					actions["run"], actions["reset"], actions["expired"], actions["invalid_command"]))
 			case name == "actions":
 				actions := map[string]int{}
 				for _, c := range cases {
@@ -790,6 +817,19 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		list("applied", f.Applied)
 		list("usage", f.Usage)
 		list("actions", f.Actions)
+		list("sections", f.Sections)
+		list("persons", f.Persons)
+		list("commands", f.Commands)
+		list("results", f.Results)
+		list("batches", f.Batches)
+		list("macs", f.MACs)
+		if len(f.Classes) > 0 {
+			classes := map[string]int{}
+			for _, c := range f.Classes {
+				classes[c.Class]++
+			}
+			counts = append(counts, fmt.Sprintf("classes %d (retry %d, final %d)", len(f.Classes), classes["retry"], classes["final"]))
+		}
 		if len(f.Clean) > 0 {
 			raws := map[string]bool{}
 			for _, c := range f.Clean {

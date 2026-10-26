@@ -5,7 +5,13 @@
 // that keep their values honest; and the platform's API tokens, thc_ and
 // 60 more characters, which an app checks on its own against the records
 // the token part sends it (ParseToken, BearerToken, VerifyToken), and their
-// reading keys (ValidReadingKey, ReadingKeyFingerprint, CheckReadingKey).
+// reading keys (ValidReadingKey, ReadingKeyFingerprint, CheckReadingKey);
+// and, since v0.10.0, its settings part (SPEC section 11.19; decision
+// 0054): the settings documents an app sends per workspace section and per
+// person (SettingsDoc, PersonSettingsDoc and one data type per section,
+// with the closed lists of their codes), the commands the platform issues
+// with their kinds, feed and results (Command, CommandKinds, CommandFeed,
+// CommandResults), and each command's own MAC (SignCommand, VerifyCommand).
 // The platform's transport, its reference client and Wappie and Mailie all
 // use it, so a rule here is a rule on both sides of the socket. Package
 // contracttest is a fake platform for the apps' tests, and
@@ -37,13 +43,24 @@
 //     set, and a null, or a value that would read as absent, is refused.
 //   - A token's secret never crosses the contract, only its hash; no error
 //     names a byte of a token.
+//   - A settings document never carries an address, a phone number, a
+//     profile name, content, a key, a token or its selector, or an app's
+//     raw error: names are labels, reasons and statuses are codes of closed
+//     lists, and what an app sends is read strictly, every member named
+//     exactly and present (SettingsDoc.Validate).
+//   - A command is signed on its own, over its canonical text as received
+//     (JCS), so an app keeps it with its proof, and a member a newer
+//     platform adds never breaks the MAC (VerifyCommand).
 //
 // The package uses only the standard library (crypto/ecdh for the reading
-// key's check among it) and the kit's reqhmac, and,
+// key's check among it), the kit's reqhmac and, for the command's MAC, the
+// kit's jcs, and,
 // as all of the kit, nothing newer than the Go of the kit's go.mod
 // (1.26.7), which go vet's stdversion check holds it to. Decoding is the
 // caller's: the platform decodes strictly, an app may ignore members it
-// does not know (SPEC section 11.17).
+// does not know (SPEC section 11.17); a settings document's data, which the
+// type does not hold, is decoded strictly by its Validate, and a command
+// by VerifyCommand as an app decodes it.
 //
 // Taken from the platform's internal/contract at commit ee45e3a, with its
 // tests; the names are the platform's, so that the platform imports this

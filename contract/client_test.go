@@ -226,6 +226,43 @@ func TestATransportErrorNamesNoAccountOrWorkspace(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "POST /contract/v1/tokens/usage") {
 		t.Fatalf("a refused connection: %v", err)
 	}
+	// The settings part's calls name their route, never a workspace or a
+	// person.
+	err = c.PutSettings(t.Context(), contract.SettingsDoc{WorkspaceID: subB, Section: contract.SectionNumbers})
+	if err == nil || strings.Contains(err.Error(), subB) || !strings.Contains(err.Error(), "PUT /contract/v1/workspaces/{id}/settings/{id}") {
+		t.Fatalf("a refused connection: %v", err)
+	}
+	err = c.PutPersonSettings(t.Context(), contract.PersonSettingsDoc{Sub: subA})
+	if err == nil || strings.Contains(err.Error(), subA) || !strings.Contains(err.Error(), "PUT /contract/v1/accounts/{id}/settings") {
+		t.Fatalf("a refused connection: %v", err)
+	}
+	_, _, err = c.Commands(t.Context(), 0, 0)
+	if err == nil || !strings.Contains(err.Error(), "GET /contract/v1/commands") {
+		t.Fatalf("a refused connection: %v", err)
+	}
+	_, err = c.PostResults(t.Context(), []contract.CommandResult{})
+	if err == nil || !strings.Contains(err.Error(), "POST /contract/v1/commands/results") {
+		t.Fatalf("a refused connection: %v", err)
+	}
+}
+
+// A settings call refuses, before it sends anything, a path it could not
+// build: a workspace or sub that is no UUID, or a section of another app.
+func TestASettingsCallSendsNothingItCannotRoute(t *testing.T) {
+	c := &contract.Client{App: "wappie", Secret: clientSecret, Base: "http://127.0.0.1:1"}
+	for _, doc := range []contract.SettingsDoc{
+		{WorkspaceID: "../feed", Section: contract.SectionNumbers},
+		{WorkspaceID: subB, Section: contract.SectionEmailAccounts},
+		{WorkspaceID: subB, Section: contract.SectionPerson},
+		{WorkspaceID: subB, Section: "numbers/../../feed"},
+	} {
+		if err := c.PutSettings(t.Context(), doc); !errors.Is(err, contract.ErrInvalid) {
+			t.Errorf("%q %q: %v", doc.WorkspaceID, doc.Section, err)
+		}
+	}
+	if err := c.PutPersonSettings(t.Context(), contract.PersonSettingsDoc{Sub: "x"}); !errors.Is(err, contract.ErrInvalid) {
+		t.Errorf("a sub that is no UUID: %v", err)
+	}
 }
 
 // The default client follows no redirect: its answer is not signed for the

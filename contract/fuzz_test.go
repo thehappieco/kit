@@ -5,7 +5,10 @@ package contract
 // kit adds to the platform's code (SPEC section 11.17).
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -175,4 +178,87 @@ func TestTheClosedSetsCannotBeWidened(t *testing.T) {
 	if err := (Snapshot{V: 1, SnapshotSeq: 1, Items: []Item{paused}}).Validate(); err != nil {
 		t.Fatalf("a reason of the set: %v", err)
 	}
+}
+
+// A command verifies only under the MAC SignCommand writes for it: whatever
+// the bytes, a command that SignCommand signs verifies, its mac is the
+// signature of its canonical text under that app and secret alone, and the
+// bytes as given verify only when their mac is that one.
+func FuzzACommandVerifiesOnlyUnderItsMAC(f *testing.F) {
+	const secret, other = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8", "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+	for _, s := range []string{
+		`{"v":1,"kind":"item.rename","params":{"before":{"label":"Vendas"},"after":{"label":"Vendas SP"}},"issued_at":"2026-10-13T12:00:00.120Z"}`,
+		`{"mac":"v1=00","a":[1,2,{"b":null}]}`, `{"a":" é"}`, `{"a":1,"a":2}`, `{"a":"\ud800"}`, `{}`, `[]`, `null`, `{"a":1.5}`,
+	} {
+		f.Add([]byte(s))
+	}
+	f.Fuzz(func(t *testing.T, raw []byte) {
+		signed, err := SignCommand(raw, "wappie", secret)
+		if err != nil {
+			if _, err := VerifyCommand(raw, "wappie", []string{secret}); err == nil {
+				t.Fatal("a command SignCommand refuses verifies")
+			}
+			return
+		}
+		if _, err := VerifyCommand(signed, "wappie", []string{secret}); errors.Is(err, ErrCommandMAC) {
+			t.Fatal("a signed command does not verify")
+		}
+		if _, err := VerifyCommand(signed, "wappie", []string{other}); !errors.Is(err, ErrCommandMAC) {
+			t.Fatal("a signed command verifies under another secret")
+		}
+		if _, err := VerifyCommand(signed, "mailie", []string{secret}); !errors.Is(err, ErrCommandMAC) {
+			t.Fatal("a signed command verifies for another app")
+		}
+		_, err = VerifyCommand(raw, "wappie", []string{secret})
+		canonical, mac, cerr := canonicalCommand(signed)
+		_, carried, _ := canonicalCommand(raw)
+		if cerr != nil || commandMAC(canonical, "wappie", secret) != mac {
+			t.Fatal("the mac SignCommand writes is not its canonical text's")
+		}
+		if (err == nil || !errors.Is(err, ErrCommandMAC)) != (carried == mac) {
+			t.Fatalf("the given bytes verify %v with their own mac %v", err, carried == mac)
+		}
+	})
+}
+
+// A document the strict reading takes and Validate accepts reads again
+// the same: encoded again, its data decodes into the same value and
+// validates, so no member is lost or bent between the platform and the
+// console.
+func FuzzASettingsDocumentThatValidatesReadsAgainTheSame(f *testing.F) {
+	for _, s := range []string{
+		`{"v":1,"type":"person_settings","app":"wappie","producer":"wappie","sub":"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20","state_seq":1,"measured_at":"2026-10-13T12:00:00Z","truncated":false,"accepts":[],"data":{"notices":[],"signed_out_everywhere_at":null}}`,
+		`{"v":1,"type":"settings","app":"mailie","section":"permissions","producer":"mailie","workspace_id":"01a034b7-d09c-7121-b7f8-41f210a9244a","state_seq":1,"snapshot_seq":1,"measured_at":"2026-10-13T12:00:00Z","truncated":false,"accepts":["item.flags_drop"],"data":{"members":[{"sub":"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20","status":"active","enrolled":true}]}}`,
+		`{"v":1,"type":"settings","app":"wappie","section":"installations","producer":"wappie-cloud","workspace_id":"01a034b7-d09c-7121-b7f8-41f210a9244a","state_seq":1,"snapshot_seq":null,"measured_at":"2026-10-13T12:00:00Z","truncated":false,"accepts":[],"data":{"licences":{"used":0,"capacity":null},"hosted_numbers":0,"installations":[{"id":"i","name":null,"origin":"https://8.8.8.8:1","created_at":"2026-10-13T12:00:00Z"}],"bindings":[]}}`,
+	} {
+		f.Add([]byte(s))
+	}
+	f.Fuzz(func(t *testing.T, raw []byte) {
+		var section SettingsDoc
+		if decodeExact(raw, &section, "doc") == nil && section.Validate() == nil {
+			data, err := section.DecodeData()
+			if err != nil {
+				t.Fatal(err)
+			}
+			again := section
+			again.Data, _ = json.Marshal(data)
+			data2, err := again.DecodeData()
+			if err != nil || !reflect.DeepEqual(data, data2) {
+				t.Fatalf("a valid section reads again otherwise: %v", err)
+			}
+		}
+		var person PersonSettingsDoc
+		if decodeExact(raw, &person, "doc") == nil && person.Validate() == nil {
+			data, err := person.DecodeData()
+			if err != nil {
+				t.Fatal(err)
+			}
+			again := person
+			again.Data, _ = json.Marshal(data)
+			data2, err := again.DecodeData()
+			if err != nil || !reflect.DeepEqual(data, data2) {
+				t.Fatalf("a valid person reads again otherwise: %v", err)
+			}
+		}
+	})
 }

@@ -294,10 +294,11 @@ func TestEveryReadingKeyVectorHolds(t *testing.T) {
 	}
 }
 
-// A big value of the token part's files is written compact, on one line,
-// and none is left a placeholder.
+// A big value of the token part's files, and of the settings part's, is
+// written compact, on one line, and none is left a placeholder.
 func TestEveryBigValueIsWrittenCompact(t *testing.T) {
-	for _, file := range []string{"tokens.json", "reading-keys.json", "wire-tokens.json", "wire-snapshot-tokens.json", "wire-events-stop.json"} {
+	for _, file := range []string{"tokens.json", "reading-keys.json", "wire-tokens.json", "wire-snapshot-tokens.json", "wire-events-stop.json",
+		"wire-settings.json", "wire-commands.json", "command-macs.json"} {
 		raw, err := fs.ReadFile(vectors.FS, dir+"/"+file)
 		if err != nil {
 			t.Fatal(err)
@@ -359,5 +360,218 @@ func TestEveryTokenWireVectorValidatesAsItSays(t *testing.T) {
 		if !actions[want] {
 			t.Errorf("no record ends in %s", want)
 		}
+	}
+}
+
+// settingsFile is wire-settings.json.
+func settingsFile(t *testing.T) WireSettings {
+	t.Helper()
+	var w WireSettings
+	read(t, "wire-settings.json", &w)
+	if w.Format != Format || w.Version != 1 || w.Kind != "wire-settings" {
+		t.Fatalf("header %q %d %q", w.Format, w.Version, w.Kind)
+	}
+	return w
+}
+
+func TestEverySettingsVectorValidatesAsItSays(t *testing.T) {
+	w := settingsFile(t)
+	for _, c := range w.Sections {
+		if sectionValid(c.Value) != c.Valid {
+			t.Errorf("section %q: valid should be %v", c.Name, c.Valid)
+		}
+		if c.Valid && len(c.Value) > contract.SettingsBodyLimit {
+			t.Errorf("section %q is over its call's limit", c.Name)
+		}
+	}
+	for _, c := range w.Persons {
+		if personValid(c.Value) != c.Valid {
+			t.Errorf("person %q: valid should be %v", c.Name, c.Valid)
+		}
+		if c.Valid && len(c.Value) > contract.PersonSettingsBodyLimit {
+			t.Errorf("person %q is over its call's limit", c.Name)
+		}
+	}
+}
+
+// Every code of every closed list of the settings part is in a valid case,
+// and every section of both apps.
+func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
+	w := settingsFile(t)
+	seen := map[string]bool{}
+	var walk func(v any)
+	walk = func(v any) {
+		switch v := v.(type) {
+		case string:
+			seen[v] = true
+		case []any:
+			for _, e := range v {
+				walk(e)
+			}
+		case map[string]any:
+			for k, e := range v {
+				seen["member:"+k] = true
+				walk(e)
+			}
+		}
+	}
+	sections := map[string]bool{}
+	for _, list := range [][]WireCase{w.Sections, w.Persons} {
+		for _, c := range list {
+			if !c.Valid {
+				continue
+			}
+			var doc struct {
+				App     string          `json:"app"`
+				Section string          `json:"section"`
+				Data    json.RawMessage `json:"data"`
+			}
+			if err := json.Unmarshal(c.Value, &doc); err != nil {
+				t.Fatal(err)
+			}
+			sections[doc.App+"/"+doc.Section] = true
+			var data any
+			if err := json.Unmarshal(doc.Data, &data); err != nil {
+				t.Fatal(err)
+			}
+			walk(data)
+		}
+	}
+	for _, app := range []string{"wappie", "mailie"} {
+		for _, s := range append(contract.Sections(app), "") {
+			if !sections[app+"/"+s] {
+				t.Errorf("no valid case of %s's section %q", app, s)
+			}
+		}
+		for _, code := range contract.NoticeCodes(app) {
+			if !seen[code] {
+				t.Errorf("no valid case holds %s's notice code %s", app, code)
+			}
+		}
+	}
+	for _, list := range [][]string{
+		contract.ServerAllows(), contract.AIProviders(), contract.AIFunctions(), contract.EndReasons(),
+		contract.BudgetHits(), contract.AIAlerts(),
+		{"pairing", "online", "offline", "logged_out_phone", "logged_out_deletion", "banned"},
+		{"person", "service_account", "assistant", "ai", "legacy_key", "token"},
+		{"pending", "active", "paused", "reseal", "ended"},
+		{"metadata", "content"}, {"revoked", "expired"}, {"web_tested", "local_tested", "unknown", "token"}, {"off", "draft", "direct"},
+		{"google", "microsoft", "icloud", "imap"}, {"connected", "needs_reauth", "pending_auth", "error", "removed"},
+		{"scope_missing", "mailbox_refused", "token_rejected", "unproved", "other"}, {"none", "partial", "complete"},
+		{"usable", "withheld"}, {"active", "suspended", "held", "disabled"}, {"reserved"},
+	} {
+		for _, code := range list {
+			if !seen[code] {
+				t.Errorf("no valid case holds the code %s", code)
+			}
+		}
+	}
+}
+
+func TestEveryCommandVectorHolds(t *testing.T) {
+	var w WireCommands
+	read(t, "wire-commands.json", &w)
+	if w.Format != Format || w.Version != 1 || w.Kind != "wire-commands" {
+		t.Fatalf("header %q %d %q", w.Format, w.Version, w.Kind)
+	}
+	kinds := map[string]bool{}
+	for _, c := range w.Commands {
+		if commandValid(c.App, c.WorkspaceKind, c.Value) != c.Valid {
+			t.Errorf("command %q: valid should be %v", c.Name, c.Valid)
+		}
+		cmd, err := contract.VerifyCommand(c.Value, c.App, []string{SecretA})
+		if err != nil {
+			t.Errorf("command %q is not signed with SecretA for %s", c.Name, c.App)
+		}
+		if c.Valid {
+			kinds[c.App+" "+cmd.Kind] = true
+		}
+	}
+	for _, app := range []string{"wappie", "mailie"} {
+		for _, k := range contract.CommandKinds(app) {
+			if !kinds[app+" "+k.Kind] {
+				t.Errorf("no valid command of %s's %s", app, k.Kind)
+			}
+		}
+	}
+	actions := map[string]bool{}
+	for _, a := range w.Actions {
+		if got := commandAction(a); got != a.Action {
+			t.Errorf("action %q: %s, want %s", a.Name, got, a.Action)
+		}
+		actions[a.Action] = true
+	}
+	for _, want := range []string{"run", "reset", "expired", "invalid_command"} {
+		if !actions[want] {
+			t.Errorf("no command ends in %s", want)
+		}
+	}
+	for _, c := range w.Results {
+		if resultValid(c.App, c.Kind, c.Value) != c.Valid {
+			t.Errorf("result %q: valid should be %v", c.Name, c.Valid)
+		}
+	}
+	for _, c := range w.Batches {
+		if batchValid([]byte(c.Body)) != c.Valid {
+			t.Errorf("batch %q: valid should be %v", c.Name, c.Valid)
+		}
+	}
+	codes := map[string]int{}
+	for _, c := range w.Classes {
+		if got := contract.CommandRefusalClass(c.Code, c.Tightening); got != c.Class || got == "" {
+			t.Errorf("class of %s (tightening %v): %q, want %q", c.Code, c.Tightening, got, c.Class)
+		}
+		codes[c.Code]++
+	}
+	for _, code := range contract.CommandRefusalCodes() {
+		if codes[code] != 2 {
+			t.Errorf("%s has %d classes, want one per kind that tightens or not", code, codes[code])
+		}
+	}
+}
+
+func TestEveryCommandMACVectorHolds(t *testing.T) {
+	var f CommandMACs
+	read(t, "command-macs.json", &f)
+	if f.Format != Format || f.Version != 1 || f.Kind != "command-macs" || f.Label != contract.CommandMACLabel {
+		t.Fatalf("header %q %d %q %q", f.Format, f.Version, f.Kind, f.Label)
+	}
+	pass, fail := 0, 0
+	for _, c := range f.MACs {
+		if c.JCS != "" {
+			if got, err := canonicalOf([]byte(c.Command)); err != nil || got != c.JCS {
+				t.Errorf("%q: the canonical text is not the file's", c.Name)
+			}
+			if macOver([]byte(c.Secrets[0]), c.App, []byte(c.JCS)) != c.MAC {
+				t.Errorf("%q: the MAC is not the file's", c.Name)
+			}
+		} else if c.MAC != "" || c.Valid {
+			t.Errorf("%q: a command with no canonical text has no MAC, and never verifies", c.Name)
+		}
+		_, err := contract.VerifyCommand([]byte(c.Command), c.App, c.Secrets)
+		if (err == nil) != c.Valid {
+			t.Errorf("%q: verifies %v, want %v (%v)", c.Name, err == nil, c.Valid, err)
+		}
+		if !c.Valid {
+			fail++
+			continue
+		}
+		pass++
+		// A command that verifies was signed under one of the secrets, and
+		// SignCommand under that secret writes the same mac.
+		carried := must(macOf([]byte(c.Command)))
+		signedBy := ""
+		for _, s := range c.Secrets {
+			if macOver([]byte(s), c.App, []byte(c.JCS)) == carried {
+				signedBy = s
+			}
+		}
+		again, err := contract.SignCommand([]byte(c.Command), c.App, signedBy)
+		if err != nil || must(macOf(again)) != carried {
+			t.Errorf("%q: SignCommand does not write the mac it carries", c.Name)
+		}
+	}
+	if pass == 0 || fail == 0 {
+		t.Errorf("%d commands verify and %d do not; want both", pass, fail)
 	}
 }

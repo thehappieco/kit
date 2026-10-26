@@ -117,11 +117,11 @@ func (r *Refusal) Error() string {
 
 // Do sends one signed request and returns the verified answer's status and
 // body. target is the raw path and query. It gives up after CallTimeout, or,
-// for a feed (a GET of /contract/v1/feed or /contract/v1/tokens), after
-// MaxWait seconds and FeedGrace.
+// for a feed (a GET of /contract/v1/feed, /contract/v1/tokens or
+// /contract/v1/commands), after MaxWait seconds and FeedGrace.
 func (c *Client) Do(ctx context.Context, method, target string, body []byte) (int, []byte, error) {
 	timeout := callTimeout
-	if path, _, _ := strings.Cut(target, "?"); method == http.MethodGet && (path == "/contract/v1/feed" || path == "/contract/v1/tokens") {
+	if path, _, _ := strings.Cut(target, "?"); method == http.MethodGet && (path == "/contract/v1/feed" || path == "/contract/v1/tokens" || path == "/contract/v1/commands") {
 		timeout = MaxWait*time.Second + feedGrace
 	}
 	return c.do(ctx, timeout, method, target, body)
@@ -129,6 +129,13 @@ func (c *Client) Do(ctx context.Context, method, target string, body []byte) (in
 
 // do is Do, bounded by timeout.
 func (c *Client) do(ctx context.Context, timeout time.Duration, method, target string, body []byte) (int, []byte, error) {
+	status, answer, _, err := c.doSigned(ctx, timeout, method, target, body)
+	return status, answer, err
+}
+
+// doSigned is do, and the time the platform signed the verified answer
+// (its X-Happie-Timestamp).
+func (c *Client) doSigned(ctx context.Context, timeout time.Duration, method, target string, body []byte) (int, []byte, time.Time, error) {
 	now := time.Now
 	if c.Now != nil {
 		now = c.Now
@@ -138,12 +145,12 @@ func (c *Client) do(ctx context.Context, timeout time.Duration, method, target s
 		hc = defaultHTTP
 	}
 	if err := CheckSecrets(c.Secret, ""); err != nil {
-		return 0, nil, err
+		return 0, nil, time.Time{}, err
 	}
 	// An empty or malformed key would verify what anyone signs with it.
 	for _, a := range c.Accept {
 		if err := CheckSecrets(a, ""); err != nil {
-			return 0, nil, err
+			return 0, nil, time.Time{}, err
 		}
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -154,35 +161,37 @@ func (c *Client) do(ctx context.Context, timeout time.Duration, method, target s
 	}
 	req, err := http.NewRequestWithContext(ctx, method, c.Base+target, rd)
 	if err != nil {
-		return 0, nil, transportError(method, target, err)
+		return 0, nil, time.Time{}, transportError(method, target, err)
 	}
 	if len(body) > 0 {
 		req.Header.Set("Content-Type", "application/json")
 	}
 	if err := Scheme().Sign(req.Header, c.Secret, ToPlatform, c.App, method, target, body, now()); err != nil {
-		return 0, nil, err
+		return 0, nil, time.Time{}, err
 	}
 	nonce := req.Header.Get(HeaderNonce)
 	res, err := hc.Do(req)
 	if err != nil {
-		return 0, nil, transportError(method, target, err)
+		return 0, nil, time.Time{}, transportError(method, target, err)
 	}
 	defer func() { _ = res.Body.Close() }()
 	answer, err := io.ReadAll(io.LimitReader(res.Body, MaxAnswer+1))
 	if err != nil {
-		return 0, nil, transportError(method, target, err)
+		return 0, nil, time.Time{}, transportError(method, target, err)
 	}
 	if len(answer) > MaxAnswer {
-		return 0, nil, fmt.Errorf("%w: the answer is too large", ErrUnverified)
+		return 0, nil, time.Time{}, fmt.Errorf("%w: the answer is too large", ErrUnverified)
 	}
 	accept := c.Accept
 	if len(accept) == 0 {
 		accept = []string{c.Secret}
 	}
 	if err := VerifyAnswer(res.Header, accept, c.App, method, target, nonce, answer, now()); err != nil {
-		return res.StatusCode, nil, fmt.Errorf("%w (%d): %w", ErrUnverified, res.StatusCode, err)
+		return res.StatusCode, nil, time.Time{}, fmt.Errorf("%w (%d): %w", ErrUnverified, res.StatusCode, err)
 	}
-	return res.StatusCode, answer, nil
+	// VerifyAnswer read the timestamp already, as decimal Unix seconds.
+	unix, _ := strconv.ParseInt(res.Header.Get(HeaderTimestamp), 10, 64)
+	return res.StatusCode, answer, time.Unix(unix, 0).UTC(), nil
 }
 
 // transportError is err without the request's URL, which names an account
@@ -205,7 +214,7 @@ func route(target string) string {
 	for i, p := range parts {
 		switch p {
 		case "", "contract", "v1", "accounts", "workspaces", "access", "feed", "events",
-			"tokens", "token-selectors", "applied", "usage":
+			"tokens", "token-selectors", "applied", "usage", "settings", "commands", "results":
 		default:
 			parts[i] = "{id}"
 		}
@@ -216,28 +225,34 @@ func route(target string) string {
 // call sends a request and decodes a verified answer into out, or a signed
 // refusal into a *Refusal.
 func (c *Client) call(ctx context.Context, timeout time.Duration, method, target string, in, out any) error {
+	_, err := c.callSigned(ctx, timeout, method, target, in, out)
+	return err
+}
+
+// callSigned is call, and the time the platform signed the answer.
+func (c *Client) callSigned(ctx context.Context, timeout time.Duration, method, target string, in, out any) (time.Time, error) {
 	var body []byte
 	if in != nil {
 		var err error
 		if body, err = json.Marshal(in); err != nil {
-			return err
+			return time.Time{}, err
 		}
 	}
-	status, answer, err := c.do(ctx, timeout, method, target, body)
+	status, answer, signedAt, err := c.doSigned(ctx, timeout, method, target, body)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 	var refusal Error
 	if json.Unmarshal(answer, &refusal) == nil && refusal.Code != "" {
-		return &Refusal{Status: status, Code: refusal.Code, Message: refusal.Message}
+		return time.Time{}, &Refusal{Status: status, Code: refusal.Code, Message: refusal.Message}
 	}
 	if out == nil {
-		return nil
+		return signedAt, nil
 	}
 	if err := json.Unmarshal(answer, out); err != nil {
-		return fmt.Errorf("%w: %w", ErrUnverified, err)
+		return time.Time{}, fmt.Errorf("%w: %w", ErrUnverified, err)
 	}
-	return nil
+	return signedAt, nil
 }
 
 // Subscribe follows the account sub and returns its document, computed now:
@@ -440,4 +455,90 @@ func (c *Client) accepted(ctx context.Context, target string, body any, what str
 		return fmt.Errorf("%w: %s was not accepted", ErrUnverified, what)
 	}
 	return nil
+}
+
+// PutSettings sends one section of one workspace, as one producer measured
+// it: PUT /contract/v1/workspaces/{id}/settings/{section} (SPEC section
+// 11.19). Data is always sent; a workspace that is no UUID, or a section
+// that is not one of the app's, is refused before anything is sent.
+func (c *Client) PutSettings(ctx context.Context, doc SettingsDoc) error {
+	if !ValidUUID(doc.WorkspaceID) {
+		return invalid("workspace_id")
+	}
+	if _, ok := sectionsOf(c.App)[doc.Section]; !ok || doc.Section == SectionPerson {
+		return invalid("section")
+	}
+	if doc.Accepts == nil {
+		doc.Accepts = []string{}
+	}
+	return c.put(ctx, "/contract/v1/workspaces/"+doc.WorkspaceID+"/settings/"+doc.Section, doc, "the section")
+}
+
+// PutPersonSettings sends one person's own settings in the app:
+// PUT /contract/v1/accounts/{sub}/settings. A sub that is no UUID is
+// refused before anything is sent.
+func (c *Client) PutPersonSettings(ctx context.Context, doc PersonSettingsDoc) error {
+	if !ValidUUID(doc.Sub) {
+		return invalid("sub")
+	}
+	if doc.Accepts == nil {
+		doc.Accepts = []string{}
+	}
+	return c.put(ctx, "/contract/v1/accounts/"+doc.Sub+"/settings", doc, "the person's settings")
+}
+
+// put puts body and wants {"accepted": true}.
+func (c *Client) put(ctx context.Context, target string, body any, what string) error {
+	var r AccessResult
+	if err := c.call(ctx, callTimeout, http.MethodPut, target, body, &r); err != nil {
+		return err
+	}
+	if !r.Accepted {
+		return fmt.Errorf("%w: %s was not accepted", ErrUnverified, what)
+	}
+	return nil
+}
+
+// Commands returns the commands after the cursor after, waiting up to wait
+// seconds when there are none: GET /contract/v1/commands?after=&wait=. It
+// gives up after wait seconds and FeedGrace. It checks the page
+// (CommandFeed.Validate), not its commands, which it leaves as they came,
+// and returns the time the platform signed the answer, its
+// X-Happie-Timestamp: the app stores it with each command it takes, and
+// runs a command with an expiry only if that time is at or before its
+// expires_at, whenever it runs. The app verifies each command on its own
+// (VerifyCommand, with its secrets), and acknowledges the page by asking
+// after it once it has written each command in its ledger.
+func (c *Client) Commands(ctx context.Context, after int64, wait int) (CommandFeed, time.Time, error) {
+	var f CommandFeed
+	target := "/contract/v1/commands?after=" + strconv.FormatInt(after, 10) + "&wait=" + strconv.Itoa(wait)
+	timeout := time.Duration(min(max(wait, 0), MaxWait))*time.Second + feedGrace
+	signedAt, err := c.callSigned(ctx, timeout, http.MethodGet, target, nil, &f)
+	if err != nil {
+		return CommandFeed{}, time.Time{}, err
+	}
+	if err := f.Validate(); err != nil {
+		return CommandFeed{}, time.Time{}, fmt.Errorf("%w: %w", ErrUnverified, err)
+	}
+	return f, signedAt, nil
+}
+
+// PostResults sends a batch of results and returns one answer per result,
+// in order: POST /contract/v1/commands/results. An answer that is not one
+// per result, for each result's id in order, with an outcome of the
+// contract's, is ErrUnverified.
+func (c *Client) PostResults(ctx context.Context, results []CommandResult) ([]CommandResultAnswer, error) {
+	var r CommandResultsAnswer
+	if err := c.call(ctx, callTimeout, http.MethodPost, "/contract/v1/commands/results", CommandResults{Results: results}, &r); err != nil {
+		return nil, err
+	}
+	if len(r.Results) != len(results) {
+		return nil, fmt.Errorf("%w: %d answers for %d results", ErrUnverified, len(r.Results), len(results))
+	}
+	for i, a := range r.Results {
+		if a.ID != results[i].ID || !oneOf(a.Outcome, []string{OutcomeAccepted, OutcomeDuplicate, OutcomeRejected}) {
+			return nil, fmt.Errorf("%w: the answers are not the results'", ErrUnverified)
+		}
+	}
+	return r.Results, nil
 }

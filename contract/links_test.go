@@ -12,15 +12,17 @@ import (
 
 // What the contract's packages may link (SPEC section 11.17), read from
 // their source whatever their build constraints: contract only the standard
-// library and reqhmac, contracttest also contract, and reqhmac the standard
-// library alone, so an app that imports either links nothing else of the
-// kit and no other module. Test files may import more.
-func TestTheContractLinksOnlyTheStandardLibraryAndReqhmac(t *testing.T) {
+// library, reqhmac and, since v0.10.0, jcs, for the command's MAC (SPEC
+// section 11.19); contracttest also contract; and reqhmac and jcs the
+// standard library alone, so an app that imports either links nothing else
+// of the kit and no other module. Test files may import more.
+func TestTheContractLinksOnlyTheStandardLibraryReqhmacAndJCS(t *testing.T) {
 	const kit = "github.com/thehappieco/kit/"
 	allowed := map[string]map[string]bool{
-		".":            {kit + "reqhmac": true},
-		"contracttest": {kit + "reqhmac": true, kit + "contract": true},
+		".":            {kit + "reqhmac": true, kit + "jcs": true},
+		"contracttest": {kit + "reqhmac": true, kit + "jcs": true, kit + "contract": true},
 		"../reqhmac":   {},
+		"../jcs":       {},
 	}
 	for dir, kitImports := range allowed {
 		files, err := filepath.Glob(filepath.Join(dir, "*.go"))

@@ -282,10 +282,11 @@ vectors-mailie-check:
 # (the platform's repository is only read), and its tools/contractvectors
 # -check against the kit's four files of the membership part, on the
 # toolchain the platform's go.mod names; its -check reads only the files
-# it writes, so the five the kit wrote in v0.9.0 ahead of the platform
-# (section 11.18) wait for a CONTRACT_COMMIT whose generator writes them. Twice: over the kit version the platform's go.mod requires,
-# and over this working tree (a replace), whose reqhmac the platform's code
-# then signs with. The kit's own tests write the files again byte for byte
+# it writes, so the five the kit wrote in v0.9.0 and the three of v0.10.0
+# ahead of the platform (sections 11.18 and 11.19) wait for a
+# CONTRACT_COMMIT whose generator writes them. Twice: over the kit version
+# the platform's go.mod requires, and over this working tree (a replace),
+# whose reqhmac the platform's code then signs with. The kit's own tests write the files again byte for byte
 # in every run (TestTheKitWritesTheContractVectorsAgain). Not in CI: the
 # platform's repository is private.
 CONTRACT_COMMIT ?= ee45e3a30190cf10cab1755ceea92ea7e8f815a9

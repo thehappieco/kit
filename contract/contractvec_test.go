@@ -1,22 +1,28 @@
 package contract_test
 
-// The generator of the contract's vectors (SPEC section 11.17,
+// The generator of the contract's vectors (SPEC sections 11.17 and 11.18,
 // vectors/platform/contract-v1): the platform's
-// internal/contract/contractvec at ee45e3a, which writes them, as test code
-// over this package. TestTheKitWritesTheContractVectorsAgain compares what
-// it writes with the frozen files byte for byte in every test run: they are
-// a pure function of this package, so a file that comes out differently is
-// a regression of the kit.
+// internal/contract/contractvec at ee45e3a, which writes the first four
+// files, as test code over this package, and the kit's own generator of
+// the five files v0.9.0 adds (contractvec_tokens_test.go).
+// TestTheKitWritesTheContractVectorsAgain compares what it writes with the
+// frozen files byte for byte in every test run: they are a pure function
+// of this package, so a file that comes out differently is a regression of
+// the kit.
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/thehappieco/kit/contract"
@@ -54,6 +60,12 @@ func Generate() ([]File, error) {
 		{"labels.json", labels},
 		{"wire.json", wire},
 		{"wire-item-ids.json", wireItemIDs},
+		// Kit v0.9.0: the token part, ordinal and tokens on items, and stop.
+		{"tokens.json", tokensFile},
+		{"reading-keys.json", readingKeysFile},
+		{"wire-tokens.json", wireTokens},
+		{"wire-snapshot-tokens.json", wireSnapshotTokens},
+		{"wire-events-stop.json", wireEventsStop},
 	} {
 		v, err := gen.make()
 		if err != nil {
@@ -66,7 +78,11 @@ func Generate() ([]File, error) {
 		if err := enc.Encode(v); err != nil {
 			return nil, err
 		}
-		files = append(files, File{Name: gen.name, Data: b.Bytes()})
+		data, err := inlineBig(b.Bytes())
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, File{Name: gen.name, Data: data})
 	}
 	return files, nil
 }
@@ -270,6 +286,61 @@ type WireCase struct {
 	Value json.RawMessage `json:"value"`
 	Valid bool            `json:"valid"`
 }
+
+// BigValue is the size of compact JSON over which a value of the token
+// part's files (kit v0.9.0) is written on one line, compact, rather than
+// indented with the rest of its file, which would swell it several times.
+const BigValue = 16 << 10
+
+// The big values of the files being written, by the placeholder that
+// stands for each until the file is encoded (inlineBig).
+var (
+	bigMu     sync.Mutex
+	bigValues = map[string]json.RawMessage{}
+)
+
+// wireCase is a case of the token part's files. A value over BigValue
+// bytes is held as a placeholder, which inlineBig replaces with its
+// compact text once the file is encoded.
+func wireCase(name string, raw json.RawMessage, valid bool) WireCase {
+	if len(raw) > BigValue {
+		sum := sha256.Sum256(raw)
+		key := "\u0000big:" + hex.EncodeToString(sum[:])
+		bigMu.Lock()
+		bigValues[key] = raw
+		bigMu.Unlock()
+		raw, _ = json.Marshal(key)
+	}
+	return WireCase{Name: name, Value: raw, Valid: valid}
+}
+
+// bigPlaceholder is a placeholder as an encoded file holds it.
+var bigPlaceholder = regexp.MustCompile(`"\\u0000big:[0-9a-f]{64}"`)
+
+// inlineBig writes each big value's compact text in place of its
+// placeholder.
+func inlineBig(b []byte) ([]byte, error) {
+	var missing error
+	out := bigPlaceholder.ReplaceAllFunc(b, func(m []byte) []byte {
+		var key string
+		if err := json.Unmarshal(m, &key); err != nil {
+			missing = err
+			return m
+		}
+		bigMu.Lock()
+		raw, ok := bigValues[key]
+		bigMu.Unlock()
+		if !ok {
+			missing = errors.New("contractvec: a big value's placeholder has no value")
+			return m
+		}
+		return raw
+	})
+	return out, missing
+}
+
+// caseValue is a case's value.
+func caseValue(c WireCase) json.RawMessage { return c.Value }
 
 // Wire is wire.json.
 type Wire struct {

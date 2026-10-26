@@ -81,8 +81,19 @@ and brought to commit ee45e3a30190cf10cab1755ceea92ea7e8f815a9:
 internal/contract and internal/contract/contractvec, with their tests;
 contract/contracttest follows the order of internal/contractapi, whose tests
 it runs. The platform's handoff of 2026-10-13 hands them to the kit. The
-vector files under vectors/platform/contract-v1 were produced by the
+first four vector files under vectors/platform/contract-v1 (signatures.json,
+labels.json, wire.json and wire-item-ids.json) were produced by the
 platform's code at those commits.
+
+The token part of the platform's product contract, with an item's ordinal
+and tokens and an event's stop (contract: token.go, tokenwire.go and
+wire.go, with their tests; contract/contracttest/tokens.go;
+js/src/contract.ts), was written in the kit from the platform's design of
+2026-10-26 at commit 509cc65 (docs/design/2026-10-26/contract-tokens-and-settings.md,
+under the platform's decision 0053). The five vector files kit v0.9.0 adds
+under vectors/platform/contract-v1 (tokens.json, reading-keys.json,
+wire-tokens.json, wire-snapshot-tokens.json and wire-events-stop.json) were
+produced by the kit's code (contract/contractvec_tokens_test.go).
 
 This project includes dependencies distributed under their own licenses. Go
 dependencies and versions are recorded in go.mod/go.sum (golang.org/x/crypto,

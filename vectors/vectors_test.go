@@ -134,7 +134,17 @@ func TestSpecCitations(t *testing.T) {
 			Documents []named `json:"documents"`
 			Snapshots []named `json:"snapshots"`
 			Events    []named `json:"events"`
-			Clean     []struct {
+			// The token part's lists (kit v0.9.0).
+			Tokens  []named `json:"tokens"`
+			Refused []named `json:"refused"`
+			Headers []named `json:"authorization"`
+			Keys    []named `json:"reading_keys"`
+			Records []named `json:"records"`
+			Feeds   []named `json:"feeds"`
+			Applied []named `json:"applied"`
+			Usage   []named `json:"usage"`
+			Actions []named `json:"actions"`
+			Clean   []struct {
 				Raw string `json:"raw"`
 			} `json:"clean"`
 			Hints []struct {
@@ -160,6 +170,8 @@ func TestSpecCitations(t *testing.T) {
 		for list, cases := range map[string][]named{
 			"requests": f.Requests, "answers": f.Answers, "answer_checks": f.Checks, "secrets": f.Secrets,
 			"documents": f.Documents, "snapshots": f.Snapshots, "events": f.Events,
+			"tokens": f.Tokens, "refused": f.Refused, "authorization": f.Headers, "reading_keys": f.Keys,
+			"records": f.Records, "feeds": f.Feeds, "applied": f.Applied, "usage": f.Usage, "actions": f.Actions,
 		} {
 			for _, c := range cases {
 				ids = append(ids, list+"/"+c.Name)
@@ -611,20 +623,24 @@ func TestMailieKeySchemeFiles(t *testing.T) {
 	}
 }
 
-// The contract's files (SPEC section 11.17) are the platform's, captured at
-// the commits PROVENANCE.md records: each has the sha256 recorded there, so
-// a copy from another commit or an edit fails here even after `make
-// manifest` has recorded it. Their directory holds exactly these four; each
-// is valid UTF-8 ending with exactly one newline, signatures.json and
-// wire-item-ids.json ASCII only, in the platform's contract format with its
-// kind, and with its counts of cases, of each answer check's result and of
-// the cases that must be refused, under unique names. contract's own tests
-// run every case and write the four files again byte for byte.
+// The contract's files (SPEC sections 11.17 and 11.18): the first four are
+// the platform's, captured at the commits PROVENANCE.md records, and the
+// five of kit v0.9.0 the kit's own, written from the platform's design at
+// 509cc65. Each has the sha256 recorded there, so a copy from another
+// commit or an edit fails here even after `make manifest` has recorded it.
+// Their directory holds exactly these nine; each is valid UTF-8 ending with
+// exactly one newline, ASCII only where it says so, in the platform's
+// contract format with its kind, and with its counts of cases, of each
+// check's result and of the cases that must be refused, under unique
+// names. contract's own tests run every case and write the nine files again
+// byte for byte.
 func TestPlatformContractVectorFiles(t *testing.T) {
 	type named struct {
 		Name   string `json:"name"`
 		Valid  *bool  `json:"valid"`
 		Result string `json:"result"`
+		Step   int    `json:"step"`
+		Action string `json:"action"`
 	}
 	type file struct {
 		Format    string  `json:"format"`
@@ -638,6 +654,15 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		Documents []named `json:"documents"`
 		Snapshots []named `json:"snapshots"`
 		Events    []named `json:"events"`
+		Tokens    []named `json:"tokens"`
+		Refused   []named `json:"refused"`
+		Headers   []named `json:"authorization"`
+		Keys      []named `json:"reading_keys"`
+		Records   []named `json:"records"`
+		Feeds     []named `json:"feeds"`
+		Applied   []named `json:"applied"`
+		Usage     []named `json:"usage"`
+		Actions   []named `json:"actions"`
 		Clean     []struct {
 			Raw   string `json:"raw"`
 			Clean string `json:"clean"`
@@ -662,6 +687,18 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		// Added once wire.json was frozen: snapshots whose items share an id.
 		{"wire-item-ids.json", "wire", "ee45e3a", true, "f932691c571b7b595bbde70bb3f01d31d2476c566b72f31db0581420fbcfb5ad",
 			"snapshots 3 (1 valid)"},
+		// Kit v0.9.0's, from the platform's design at 509cc65: the token
+		// part, an item's ordinal and tokens, and an event's stop.
+		{"tokens.json", "tokens", "kit v0.9.0", false, "3a1532f466fe62764e730c179dac7fafb6c5d299bcca37628699f879ab6f4145",
+			"tokens 5, refused 28 (step 1 14, step 2 3, step 3 3, step 4 3, step 5 4, step 6 1), authorization 16 (4 valid)"},
+		{"reading-keys.json", "reading-keys", "kit v0.9.0", true, "e36e48edb298a7094687be177ce1bcbd51c43b2e244e03aea8ed7e62f9a4eb45",
+			"reading_keys 27 (ok 5, encoding 7, not_canonical 5, low_order 5, fingerprint 5)"},
+		{"wire-tokens.json", "wire-tokens", "kit v0.9.0", true, "29ce40de7595e6941df77b9f54b0ec157fe0c7c72503648662d2b6f892f795ab",
+			"records 41 (12 valid), feeds 13 (7 valid), applied 50 (14 valid), usage 18 (6 valid), actions 17 (apply 2, reset 1, revoke 4, narrow 9, refuse 1)"},
+		{"wire-snapshot-tokens.json", "wire", "kit v0.9.0", false, "0bbdc9afec9847e4a9ae76e5bbead2e8cce9da641ac8ee053c1114428ec16d1a",
+			"snapshots 24 (9 valid)"},
+		{"wire-events-stop.json", "wire", "kit v0.9.0", false, "a9e91def4a6beff52e5ffc0f3dbaaf8ef733882ba89e89d13b3a544836387156",
+			"events 14 (6 valid)"},
 	}
 	entries, err := fs.ReadDir(vectors.FS, "platform/contract-v1")
 	if err != nil {
@@ -711,6 +748,23 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 				results[c.Result]++
 			}
 			switch {
+			case name == "reading_keys":
+				counts = append(counts, fmt.Sprintf("%s %d (ok %d, encoding %d, not_canonical %d, low_order %d, fingerprint %d)", name, len(cases),
+					results["ok"], results["encoding"], results["not_canonical"], results["low_order"], results["fingerprint"]))
+			case name == "refused":
+				steps := map[int]int{}
+				for _, c := range cases {
+					steps[c.Step]++
+				}
+				counts = append(counts, fmt.Sprintf("%s %d (step 1 %d, step 2 %d, step 3 %d, step 4 %d, step 5 %d, step 6 %d)", name, len(cases),
+					steps[1], steps[2], steps[3], steps[4], steps[5], steps[6]))
+			case name == "actions":
+				actions := map[string]int{}
+				for _, c := range cases {
+					actions[c.Action]++
+				}
+				counts = append(counts, fmt.Sprintf("%s %d (apply %d, reset %d, revoke %d, narrow %d, refuse %d)", name, len(cases),
+					actions["apply"], actions["reset"], actions["revoke"], actions["narrow"], actions["refuse"]))
 			case cases[0].Result != "":
 				counts = append(counts, fmt.Sprintf("%s %d (ok %d, answer_nonce %d, hmac_bad %d, hmac_stale %d, hmac_missing %d)", name, len(cases),
 					results["ok"], results["answer_nonce"], results["hmac_bad"], results["hmac_stale"], results["hmac_missing"]))
@@ -727,6 +781,15 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		list("documents", f.Documents)
 		list("snapshots", f.Snapshots)
 		list("events", f.Events)
+		list("tokens", f.Tokens)
+		list("refused", f.Refused)
+		list("authorization", f.Headers)
+		list("reading_keys", f.Keys)
+		list("records", f.Records)
+		list("feeds", f.Feeds)
+		list("applied", f.Applied)
+		list("usage", f.Usage)
+		list("actions", f.Actions)
 		if len(f.Clean) > 0 {
 			raws := map[string]bool{}
 			for _, c := range f.Clean {

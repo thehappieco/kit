@@ -1,7 +1,8 @@
 // Package contracttest is a fake platform for the apps' tests: the six calls
-// of the contract's membership part (SPEC section 11.17) over loopback
-// HTTP, each request checked in the order the platform's transport checks
-// it, and every answer to a request whose signature held signed with
+// of the contract's membership part (SPEC section 11.17) and the five of its
+// token part (SPEC section 11.18, tokens.go) over loopback HTTP, each
+// request checked in the order the platform's transport checks it, and
+// every answer to a request whose signature held signed with
 // contract.SignAnswer, refusals included. An app's own client, or a
 // contract.Client from Client, talks to it as it talks to the platform.
 //
@@ -14,7 +15,8 @@
 //     authenticates: a test that needs the production socket's uid check
 //     runs against the platform itself;
 //  2. the app's rate, PerSecond requests a second, else 429 rate_limited,
-//     unsigned;
+//     unsigned; a selector GET, told by its method and path, spends none
+//     of it, and its own bucket, SelectorPerSecond, comes at step 7;
 //  3. the timestamp, nonce and signature headers once each, well formed,
 //     and the timestamp within 60 s (reqhmac's Read), else 401
 //     unauthenticated or stale_timestamp, unsigned;
@@ -25,8 +27,9 @@
 //     unsigned;
 //  6. the nonce, admitted once in the app's replay cache, else 401 replay,
 //     signed (503 unavailable when the cache is full);
-//  7. no query but on the feed, else 400 invalid_request, signed; then the
-//     call itself, whose every answer is signed.
+//  7. no query but on the two feeds, else 400 invalid_request, signed; a
+//     selector GET's own bucket, else 429 rate_limited, signed (SPEC
+//     section 11.18); then the call itself, whose every answer is signed.
 //
 // Bodies are decoded as strictly as the platform decodes them: one JSON
 // object of valid UTF-8, with no escape of half a UTF-16 surrogate pair
@@ -109,19 +112,29 @@ const (
 	CallFeed        = "feed"        // GET /contract/v1/feed?after=&wait=
 	CallAccess      = "access"      // PUT /contract/v1/workspaces/{id}/access
 	CallEvents      = "events"      // POST /contract/v1/events
+
+	// The token part's (SPEC section 11.18).
+	CallTokens          = "tokens"         // GET /contract/v1/tokens?after=&wait=
+	CallToken           = "token"          // GET /contract/v1/tokens/{id}
+	CallTokenBySelector = "token-selector" // GET /contract/v1/token-selectors/{selector}
+	CallTokensApplied   = "tokens-applied" // POST /contract/v1/tokens/applied
+	CallTokenUsage      = "tokens-usage"   // POST /contract/v1/tokens/usage
 )
 
-// The body limits of the calls.
+// The body limits of the calls. The token part's acknowledgement and
+// usage take TokensBodyLimit.
 const (
 	SmallBodyLimit    = 4 << 10
 	EventsBodyLimit   = 256 << 10
 	SnapshotBodyLimit = 1 << 20
+	TokensBodyLimit   = 256 << 10
 )
 
 // The defaults of Options.
 const (
-	DefaultPerSecond = 50
-	DefaultLongPolls = 4
+	DefaultPerSecond         = 50
+	DefaultLongPolls         = 4
+	DefaultSelectorPerSecond = 10
 )
 
 // MaxSnapshotAhead is how far ahead of the platform's clock a snapshot_seq
@@ -155,9 +168,11 @@ type Options struct {
 	// timestamps, stamps answers and meters the rate.
 	Now func() time.Time
 	// PerSecond is each app's rate (DefaultPerSecond when 0), LongPolls the
-	// most feed requests one app may have waiting at once
-	// (DefaultLongPolls when 0).
-	PerSecond, LongPolls int
+	// most requests of one app that may wait at once on each feed
+	// (DefaultLongPolls when 0), and SelectorPerSecond the rate of its
+	// selector GETs, a bucket apart from PerSecond
+	// (DefaultSelectorPerSecond when 0).
+	PerSecond, LongPolls, SelectorPerSecond int
 	// StrictLabels refuses, as invalid_request, a snapshot or an event
 	// whose label CleanLabel would change or whose hint is not one; the
 	// platform cleans the label and drops the hint instead. For an app's
@@ -192,12 +207,14 @@ var (
 	ErrUnknown   = errors.New("contracttest: no such account, workspace, member or app")
 	ErrExists    = errors.New("contracttest: the account or member exists already")
 	ErrLastOwner = errors.New("contracttest: an open team keeps one owner")
+	ErrRevoked   = errors.New("contracttest: the token, or its record for the app, is revoked")
 )
 
 // Platform is the fake platform. Its methods are safe for concurrent use.
 type Platform struct {
 	now          func() time.Time
 	perSecond    float64
+	selectorRate float64
 	strictLabels bool
 	server       *httptest.Server
 	drain        chan struct{}
@@ -211,6 +228,8 @@ type Platform struct {
 	created    int // workspaces made, for their order
 	generation string
 	confirmed  bool
+	tokens     map[string]*token // by id
+	selectors  map[string]string // token ids, by selector
 }
 
 type appState struct {
@@ -237,6 +256,8 @@ type appState struct {
 	// the time of the oldest.
 	held  bool
 	marks map[string]time.Time
+
+	tokenApp
 }
 
 type keptEvent struct {
@@ -270,16 +291,20 @@ func New(opts Options) (*Platform, error) {
 	if opts.LongPolls == 0 {
 		opts.LongPolls = DefaultLongPolls
 	}
-	if opts.PerSecond < 1 || opts.LongPolls < 1 {
+	if opts.SelectorPerSecond == 0 {
+		opts.SelectorPerSecond = DefaultSelectorPerSecond
+	}
+	if opts.PerSecond < 1 || opts.LongPolls < 1 || opts.SelectorPerSecond < 1 {
 		return nil, fmt.Errorf("%w: the limits must be positive", ErrOptions)
 	}
 	if opts.Now == nil {
 		opts.Now = time.Now
 	}
 	p := &Platform{
-		now: opts.Now, perSecond: float64(opts.PerSecond), strictLabels: opts.StrictLabels, drain: make(chan struct{}),
+		now: opts.Now, perSecond: float64(opts.PerSecond), selectorRate: float64(opts.SelectorPerSecond),
+		strictLabels: opts.StrictLabels, drain: make(chan struct{}),
 		apps: map[string]*appState{}, accounts: map[string]*account{}, closed: map[string]bool{}, workspaces: map[string]*workspace{},
-		generation: newUUID(), confirmed: true,
+		generation: newUUID(), confirmed: true, tokens: map[string]*token{}, selectors: map[string]string{},
 	}
 	for _, a := range opts.Apps {
 		switch {
@@ -297,6 +322,7 @@ func New(opts Options) (*Platform, error) {
 			follows: map[string]bool{}, docs: map[string]contract.AccountDoc{}, named: map[string]bool{},
 			snapshots: map[string]contract.Snapshot{}, kept: map[string]keptEvent{}, wake: make(chan struct{}),
 			refuse: map[string]string{}, corrupt: map[string]Corruption{}, marks: map[string]time.Time{},
+			tokenApp: newTokenApp(opts.LongPolls, p.selectorRate, p.now()),
 		}
 	}
 	return p, nil
@@ -400,7 +426,13 @@ func (p *Platform) Corrupt(app, call string, how Corruption) error {
 	return nil
 }
 
-var calls = map[string]bool{CallSubscribe: true, CallAccount: true, CallUnsubscribe: true, CallFeed: true, CallAccess: true, CallEvents: true}
+var calls = map[string]bool{
+	CallSubscribe: true, CallAccount: true, CallUnsubscribe: true, CallFeed: true, CallAccess: true, CallEvents: true,
+	CallTokens: true, CallToken: true, CallTokenBySelector: true, CallTokensApplied: true, CallTokenUsage: true,
+}
+
+// feeds are the calls that take a query.
+var feeds = map[string]bool{CallFeed: true, CallTokens: true}
 
 // unsignedOnly are the codes the platform sends only before a request's
 // signature holds, so never signed.
@@ -480,6 +512,28 @@ func match(method, path string) (route, string, bool) {
 		if ok && tail == "access" && contract.ValidUUID(ws) && method == http.MethodPut {
 			return route{CallAccess, SnapshotBodyLimit, (*Platform).access}, ws, true
 		}
+	case rest == "tokens":
+		if method == http.MethodGet {
+			return route{CallTokens, SmallBodyLimit, (*Platform).tokenFeed}, "", true
+		}
+	case rest == "tokens/applied":
+		if method == http.MethodPost {
+			return route{CallTokensApplied, TokensBodyLimit, (*Platform).tokensApplied}, "", true
+		}
+	case rest == "tokens/usage":
+		if method == http.MethodPost {
+			return route{CallTokenUsage, TokensBodyLimit, (*Platform).tokenUsage}, "", true
+		}
+	case strings.HasPrefix(rest, "tokens/"):
+		id := strings.TrimPrefix(rest, "tokens/")
+		if contract.ValidUUID(id) && method == http.MethodGet {
+			return route{CallToken, SmallBodyLimit, (*Platform).tokenByID}, id, true
+		}
+	case strings.HasPrefix(rest, "token-selectors/"):
+		sel := strings.TrimPrefix(rest, "token-selectors/")
+		if contract.ValidSelector(sel) && method == http.MethodGet {
+			return route{CallTokenBySelector, SmallBodyLimit, (*Platform).tokenBySelector}, sel, true
+		}
 	}
 	return route{}, "", false
 }
@@ -494,8 +548,10 @@ func (p *Platform) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		unsigned(w, contract.CodeNotFound, "not found")
 		return
 	}
-	// 2: the app's rate.
-	if !p.allow(app, now) {
+	// 2: the app's rate, which a selector GET does not spend: its own
+	// bucket is checked once its signature holds, step 7.
+	selector := isSelectorGET(r)
+	if !selector && !p.allow(app, now, false) {
 		unsigned(w, contract.CodeRateLimited, "too many requests")
 		return
 	}
@@ -547,9 +603,14 @@ func (p *Platform) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sign(refusal(contract.CodeReplay, "the nonce was used"))
 		return
 	}
-	// 7: no query but the feed's, then the call.
-	if rt.name != CallFeed && strings.Contains(target, "?") {
+	// 7: no query but the feeds'; a selector GET's own bucket, a signed
+	// rate_limited; then the call.
+	if !feeds[rt.name] && strings.Contains(target, "?") {
 		sign(refusal(contract.CodeInvalid, "this call takes no query"))
+		return
+	}
+	if selector && !p.allow(app, now, true) {
+		sign(refusal(contract.CodeRateLimited, "too many selector requests"))
 		return
 	}
 	p.mu.Lock()
@@ -583,10 +644,22 @@ func (p *Platform) appOf(r *http.Request) *appState {
 }
 
 // allow spends one of app's tokens: a burst of PerSecond, refilled at
-// PerSecond a second.
-func (p *Platform) allow(app *appState, now time.Time) bool {
+// PerSecond a second; or, for a selector GET, one of the selector bucket's,
+// SelectorPerSecond.
+func (p *Platform) allow(app *appState, now time.Time, selector bool) bool {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	if selector {
+		if elapsed := now.Sub(app.selectorMetered).Seconds(); elapsed > 0 {
+			app.selectorTokens = min(p.selectorRate, app.selectorTokens+elapsed*p.selectorRate)
+		}
+		app.selectorMetered = now
+		if app.selectorTokens < 1 {
+			return false
+		}
+		app.selectorTokens--
+		return true
+	}
 	if elapsed := now.Sub(app.metered).Seconds(); elapsed > 0 {
 		app.tokens = min(p.perSecond, app.tokens+elapsed*p.perSecond)
 	}
@@ -1191,10 +1264,21 @@ func wireTime(t *time.Time) *contract.Time {
 // the generation. The changes held for sub are published with it.
 func (p *Platform) publishLocked(app *appState, sub string) contract.AccountDoc {
 	doc, _ := p.documentLocked(app, sub)
+	var newlyNamed []string
 	for _, w := range doc.Workspaces {
+		if !app.named[w.ID] {
+			newlyNamed = append(newlyNamed, w.ID)
+		}
 		app.named[w.ID] = true
 	}
 	delete(app.marks, sub)
+	// A workspace named now brings the records of its tokens that name the
+	// app, published after the document that names it.
+	defer func() {
+		for _, ws := range newlyNamed {
+			p.publishWorkspaceTokensLocked(app, ws)
+		}
+	}()
 	stored, ok := app.docs[sub]
 	if !ok || !sameContent(stored, doc) {
 		app.head++
@@ -1315,6 +1399,7 @@ func (p *Platform) Release(app string) error {
 		return ErrUnknown
 	}
 	st.held = false
+	p.releaseTokensLocked(st)
 	for sub := range st.marks {
 		p.publishLocked(st, sub)
 	}
@@ -1360,6 +1445,7 @@ func (p *Platform) Disable(sub string, at time.Time) error {
 			return
 		}
 		a.disabled, a.disabledAt, a.revokedAt = true, later(a.disabledAt, at), later(a.revokedAt, at)
+		p.revokeCreatorsTokensLocked(sub, "", nil, contract.RevokedCreatorDisabled)
 	})
 }
 
@@ -1376,6 +1462,8 @@ func (p *Platform) RevokeSessions(sub string, at time.Time, recovery bool) error
 		a.revokedAt = later(a.revokedAt, at)
 		if recovery {
 			a.credsAt = later(a.credsAt, at)
+			before := atMicroseconds(at)
+			p.revokeCreatorsTokensLocked(sub, "", &before, contract.RevokedCreatorRecovered)
 		}
 	})
 }
@@ -1423,6 +1511,7 @@ func (p *Platform) CloseAccount(sub string) error {
 			return ErrLastOwner
 		}
 	}
+	p.revokeCreatorsTokensLocked(sub, "", nil, contract.RevokedCreatorClosed)
 	for id, w := range p.workspaces {
 		delete(w.members, sub)
 		if id == a.personal {
@@ -1492,6 +1581,7 @@ func (p *Platform) RemoveMember(ws, sub string) error {
 			return ErrLastOwner
 		}
 		delete(w.members, sub)
+		p.revokeCreatorsTokensLocked(sub, ws, nil, contract.RevokedCreatorLeft)
 		return nil
 	})
 }
@@ -1612,6 +1702,7 @@ func (p *Platform) Restore() string {
 		app.docs = map[string]contract.AccountDoc{}
 		app.follows, app.marks, app.named = map[string]bool{}, map[string]time.Time{}, map[string]bool{}
 		app.snapshots, app.events, app.kept = map[string]contract.Snapshot{}, nil, map[string]keptEvent{}
+		app.resetTokens()
 	}
 	p.generation, p.confirmed = newUUID(), false
 	return p.generation

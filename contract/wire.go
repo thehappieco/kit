@@ -1,6 +1,8 @@
 package contract
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -299,6 +301,69 @@ type Item struct {
 	OtherBackups int      `json:"other_backups"`
 	People       []Person `json:"people"`
 	Protected    []string `json:"protected"`
+	// Ordinal, when not 0, is the app's number for the item, 1 to
+	// MaxOrdinal: unique among the snapshot's items and stable for the
+	// item's life, across renames. 0 is absent: the app gives none. It
+	// names nothing a command acts on; the console names an unlabelled item
+	// by it.
+	Ordinal Ordinal `json:"ordinal,omitzero"`
+	// Tokens, when not nil, are the tokens that hold permissions on the
+	// item (SPEC section 11.18). nil is absent: the app does not report
+	// tokens; an empty, non-nil list says no token holds the item, so an
+	// app that reports tokens sends ItemTokens{} for an item none holds.
+	// A token is never in People, Protected or OtherBackups.
+	Tokens ItemTokens `json:"tokens,omitzero"`
+}
+
+// MaxOrdinal is an item's highest ordinal, and MaxItemTokens the most
+// tokens one item lists.
+const (
+	MaxOrdinal    = 9999
+	MaxItemTokens = 1000
+)
+
+// Ordinal is an item's number in a snapshot, 1 to MaxOrdinal; 0 is no
+// ordinal, and the member is then absent. Present, it is never null or 0.
+type Ordinal int
+
+// UnmarshalJSON reads an ordinal that is present: an integer, never null
+// or 0, which would read as absent.
+func (o *Ordinal) UnmarshalJSON(b []byte) error {
+	var n int64
+	if string(bytes.TrimSpace(b)) == "null" || json.Unmarshal(b, &n) != nil || n == 0 || n < -MaxOrdinal-1 || n > MaxOrdinal+1 {
+		return invalid("items[].ordinal")
+	}
+	*o = Ordinal(n)
+	return nil
+}
+
+// ItemTokens are the tokens of an item in a snapshot. Present, the list is
+// never null: absent (nil) is what says the app does not report tokens.
+type ItemTokens []ItemToken
+
+// UnmarshalJSON reads the list, refusing null, and each entry strictly.
+func (t *ItemTokens) UnmarshalJSON(b []byte) error {
+	v, err := decodePresent[ItemToken](b, "items[].tokens")
+	if err != nil {
+		return err
+	}
+	*t = v
+	return nil
+}
+
+// ItemToken is one token's standing on an item, named by the token's id,
+// never its selector.
+type ItemToken struct {
+	ID string `json:"id"`
+	// Can are the permissions the app applied: a number's read, send and
+	// manage; a mailbox's read, act and send.
+	Can []string `json:"can"`
+	// Reads: in Wappie, the read flag and a grant at the number's current
+	// epoch; in Mailie, the flag.
+	Reads bool `json:"reads"`
+	// Waiting: the read flag without that grant (Wappie only; a mailbox's
+	// is always false).
+	Waiting bool `json:"waiting"`
 }
 
 // Person is one person's standing on an item.
@@ -324,6 +389,7 @@ func (s Snapshot) Validate() error {
 		return invalid("items")
 	}
 	seen := map[string]bool{}
+	ordinals := map[Ordinal]bool{}
 	for _, it := range s.Items {
 		if err := it.validate(); err != nil {
 			return err
@@ -334,6 +400,12 @@ func (s Snapshot) Validate() error {
 			return invalid("an item appears twice")
 		}
 		seen[it.ID] = true
+		if it.Ordinal != 0 {
+			if ordinals[it.Ordinal] {
+				return invalid("two items share an ordinal")
+			}
+			ordinals[it.Ordinal] = true
+		}
 	}
 	return nil
 }
@@ -388,6 +460,34 @@ func (it Item) validate() error {
 			return invalid("items[].protected names someone the item does not list")
 		}
 		protected[sub] = true
+	}
+	if it.Ordinal != 0 && (it.Ordinal < 1 || it.Ordinal > MaxOrdinal) {
+		return invalid("items[].ordinal")
+	}
+	if it.Tokens != nil {
+		if len(it.Tokens) > MaxItemTokens {
+			return invalid("items[].tokens")
+		}
+		tokens := map[string]bool{}
+		for _, t := range it.Tokens {
+			if !ValidUUID(t.ID) || tokens[t.ID] {
+				return invalid("items[].tokens[].id")
+			}
+			tokens[t.ID] = true
+			if t.Can == nil {
+				return invalid("items[].tokens[].can")
+			}
+			can := map[string]bool{}
+			for _, c := range t.Can {
+				if !oneOf(c, tokenPerms[it.Kind]) || can[c] {
+					return invalid("items[].tokens[].can")
+				}
+				can[c] = true
+			}
+			if t.Waiting && it.Kind == ItemMailbox {
+				return invalid("items[].tokens[].waiting is a number's")
+			}
+		}
 	}
 	return nil
 }
@@ -468,6 +568,35 @@ type Event struct {
 	Person  *string   `json:"person,omitempty"`
 	Cause   *string   `json:"cause,omitempty"`
 	To      *string   `json:"to,omitempty"`
+	// Stop is what an item.sync_paused stopped: StopPause or StopTurnOff,
+	// or "", absent, which the platform reads as a pause for a number and a
+	// turn-off for a mailbox, what each app sent before the member existed.
+	Stop Stop `json:"stop,omitzero"`
+}
+
+// Stop is an item.sync_paused's stop. Present, it is never null or "".
+type Stop string
+
+// The stops of an item.sync_paused.
+const (
+	// StopPause: one item's sync (Mailie) or capture (Wappie) was paused;
+	// what it holds stays, and it can be resumed.
+	StopPause Stop = "pause"
+	// StopTurnOff: a team mailbox's sync agreement was withdrawn, which
+	// deleted its index for every reader. Mailie only: the item is a
+	// mailbox.
+	StopTurnOff Stop = "turn_off"
+)
+
+// UnmarshalJSON reads a stop that is present: a string, never null or
+// empty, which would read as absent. Validate checks its value.
+func (s *Stop) UnmarshalJSON(b []byte) error {
+	var v string
+	if string(bytes.TrimSpace(b)) == "null" || json.Unmarshal(b, &v) != nil || v == "" {
+		return invalid("stop is absent, never null or empty")
+	}
+	*s = Stop(v)
+	return nil
 }
 
 // EventItem names the item an event is about.
@@ -531,6 +660,18 @@ func (ev Event) Validate() error {
 			}
 			seen[sub] = true
 		}
+	}
+	switch {
+	case ev.Stop == "":
+	case ev.Type != EventSyncPaused:
+		return invalid("stop is an item.sync_paused's")
+	case ev.Stop == StopPause:
+	case ev.Stop == StopTurnOff:
+		if ev.Item.Kind != ItemMailbox {
+			return invalid("only a mailbox's sync is turned off")
+		}
+	default:
+		return invalid("stop")
 	}
 	extra := func(purge, person, cause, to bool) error {
 		if (ev.PurgeAt != nil) != purge || (!person && ev.Person != nil) || (!cause && ev.Cause != nil) || (ev.To != nil) != to {

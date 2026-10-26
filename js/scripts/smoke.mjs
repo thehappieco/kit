@@ -29,6 +29,7 @@ import * as account from '@thehappieco/kit/account'
 import * as passkey from '@thehappieco/kit/passkey'
 import * as browserAccount from '@thehappieco/kit/browserAccount'
 import * as reqhmac from '@thehappieco/kit/reqhmac'
+import * as contract from '@thehappieco/kit/contract'
 import * as platformwrap from '@thehappieco/kit/platformwrap'
 import * as wappie from '@thehappieco/kit/profiles/wappie'
 import * as mailie from '@thehappieco/kit/profiles/mailie'
@@ -54,6 +55,8 @@ await assert.rejects(hpke.seal(new Uint8Array(32), new Uint8Array(0), new Uint8A
 assert.equal(typeof browserAccount.validBrowserKeyEnvelope, 'function')
 assert.match(await reqhmac.signature(wappie.wappieMCPHMAC, 's', 'to-go', 'r', 'GET', '/', '1', 'n', new Uint8Array(0)), /^v1=[0-9a-f]{64}$/)
 assert.equal(canonicalJSON({ b: 1, a: 2 }), '{"a":2,"b":1}')
+assert.equal(await contract.readingKeyFingerprint('UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0'), '84bf23bd7ffb2df919c7e4e5a7867702')
+await assert.rejects(contract.readingKeyFingerprint('UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0='), contract.Base64Error)
 const sub = '0199e4b2-3c41-7a52-8f3e-9b1d2c4e5f60'
 assert.equal(platform.rootWrapAAD('password', sub, 1), '["thehappie-id/root-wrap",1,"password","' + sub + '",1]')
 const rootWrap = await platform.sealRootWrap('recovery', new Uint8Array(32).fill(1), new Uint8Array(32).fill(2), sub, 1)

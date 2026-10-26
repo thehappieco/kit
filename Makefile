@@ -280,8 +280,10 @@ vectors-mailie-check:
 # CONTRACT_COMMIT: git archive of the platform's go.mod, go.sum,
 # internal/contract and tools/contractvectors into a temporary directory
 # (the platform's repository is only read), and its tools/contractvectors
-# -check against the kit's four files, on the toolchain the platform's
-# go.mod names. Twice: over the kit version the platform's go.mod requires,
+# -check against the kit's four files of the membership part, on the
+# toolchain the platform's go.mod names; its -check reads only the files
+# it writes, so the five the kit wrote in v0.9.0 ahead of the platform
+# (section 11.18) wait for a CONTRACT_COMMIT whose generator writes them. Twice: over the kit version the platform's go.mod requires,
 # and over this working tree (a replace), whose reqhmac the platform's code
 # then signs with. The kit's own tests write the files again byte for byte
 # in every run (TestTheKitWritesTheContractVectorsAgain). Not in CI: the

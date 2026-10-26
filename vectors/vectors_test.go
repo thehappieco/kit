@@ -144,7 +144,14 @@ func TestSpecCitations(t *testing.T) {
 			Applied []named `json:"applied"`
 			Usage   []named `json:"usage"`
 			Actions []named `json:"actions"`
-			Clean   []struct {
+			// The settings part's lists (kit v0.10.0).
+			Sections []named `json:"sections"`
+			Persons  []named `json:"persons"`
+			Commands []named `json:"commands"`
+			Results  []named `json:"results"`
+			Batches  []named `json:"batches"`
+			MACs     []named `json:"macs"`
+			Clean    []struct {
 				Raw string `json:"raw"`
 			} `json:"clean"`
 			Hints []struct {
@@ -172,6 +179,8 @@ func TestSpecCitations(t *testing.T) {
 			"documents": f.Documents, "snapshots": f.Snapshots, "events": f.Events,
 			"tokens": f.Tokens, "refused": f.Refused, "authorization": f.Headers, "reading_keys": f.Keys,
 			"records": f.Records, "feeds": f.Feeds, "applied": f.Applied, "usage": f.Usage, "actions": f.Actions,
+			"sections": f.Sections, "persons": f.Persons, "commands": f.Commands, "results": f.Results,
+			"batches": f.Batches, "macs": f.MACs,
 		} {
 			for _, c := range cases {
 				ids = append(ids, list+"/"+c.Name)

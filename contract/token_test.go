@@ -365,6 +365,12 @@ func TestARecordThatDoesNotDecodeStillNarrows(t *testing.T) {
 	if r, err = (contract.TokenFeedItem{Token: raw}).Record(); err == nil || !r.ExpiresAt.IsZero() || r.RevokedAt != nil || len(r.Items) != 1 {
 		t.Fatalf("%+v %v", r, err)
 	}
+	// A revoked_reason revokes too: a revoked_at written in another case is
+	// one the record does not have, and the revocation still sticks.
+	raw = []byte(strings.Replace(string(mustJSON(t, vecRecord(revoke(contract.RevokedInConsole)))), `"revoked_at":"`, `"Revoked_at":"`, 1))
+	if r, err = (contract.TokenFeedItem{Token: raw}).Record(); err != nil || r.RevokedAt == nil || !r.RevokedAt.IsZero() || r.Validate() == nil {
+		t.Fatalf("a miscased revoked_at: %+v %v", r, err)
+	}
 	for _, junk := range []string{`null`, `5`, `[]`, `"x"`} {
 		if r, err := (contract.TokenFeedItem{Token: json.RawMessage(junk)}).Record(); err == nil || r.App != "" {
 			t.Errorf("%s: %+v %v", junk, r, err)

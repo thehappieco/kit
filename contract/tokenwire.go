@@ -307,25 +307,36 @@ func NewTokenFeedItem(seq int64, r TokenRecord) (TokenFeedItem, error) {
 // could be read, member by member: a member that does not decode keeps
 // what of it decoded, a scalar nothing (a zero expires_at is the earliest,
 // so the token is past it), a list or an object the entries and members
-// read before the one that failed, which only narrows; and revoked_at,
-// present and not null, revokes whatever its value, a zero Time when it
-// does not decode: revoked, at a time unknown. So an app applies of it only
-// what it narrows, adds none of its grants, and advances its cursor, as
-// for a record that fails Validate (TokenFeed.Validate).
+// read before the one that failed, which only narrows. So an app applies
+// of it only what it narrows, adds none of its grants, and advances its
+// cursor, as for a record that fails Validate (TokenFeed.Validate).
+//
+// A revocation sticks, whatever the record's shape: revoked_at or
+// revoked_reason, either present by its exact name and not null, revokes.
+// When revoked_at does not decode, or is missing or miscased beside a
+// revoked_reason, RevokedAt is a zero Time: revoked, at a time unknown,
+// which Validate refuses, so the record is narrowed with its revocation.
 func (it TokenFeedItem) Record() (TokenRecord, error) {
 	if trimmed := bytes.TrimSpace(it.Token); len(trimmed) == 0 || trimmed[0] != '{' {
 		return TokenRecord{}, invalid("token: not a record")
 	}
 	raw := exactOnly(it.Token, reflect.TypeFor[TokenRecord]())
-	var r TokenRecord
-	if err := json.Unmarshal(raw, &r); err == nil {
-		return r, nil
-	}
-	r = TokenRecord{}
 	var members map[string]json.RawMessage
 	if json.Unmarshal(raw, &members) != nil {
 		return TokenRecord{}, invalid("token: not a record")
 	}
+	set := func(name string) bool {
+		v, ok := members[name]
+		return ok && string(bytes.TrimSpace(v)) != "null"
+	}
+	var r TokenRecord
+	if err := json.Unmarshal(raw, &r); err == nil {
+		if r.RevokedAt == nil && set("revoked_reason") {
+			r.RevokedAt = &Time{}
+		}
+		return r, nil
+	}
+	r = TokenRecord{}
 	for name, into := range map[string]any{
 		"v": &r.V, "type": &r.Type, "app": &r.App, "generation": &r.Generation, "id": &r.ID, "version": &r.Version,
 		"selector": &r.Selector, "hash": &r.Hash, "workspace_id": &r.WorkspaceID, "name": &r.Name,
@@ -338,9 +349,9 @@ func (it TokenFeedItem) Record() (TokenRecord, error) {
 			_ = json.Unmarshal(v, into)
 		}
 	}
-	if v, ok := members["revoked_at"]; ok && string(bytes.TrimSpace(v)) != "null" {
+	if set("revoked_at") || set("revoked_reason") {
 		var at Time
-		if json.Unmarshal(v, &at) != nil {
+		if json.Unmarshal(members["revoked_at"], &at) != nil {
 			at = Time{}
 		}
 		r.RevokedAt = &at

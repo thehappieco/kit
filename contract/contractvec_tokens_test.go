@@ -482,6 +482,7 @@ func wireTokens() (any, error) {
 		{"a reading key of another suite", vecRecord(func(r *contract.TokenRecord) { r.ReadingKey.Suite = "p256" })},
 		{"key terms with no revision", vecMailieRecord(func(r *contract.TokenRecord) { r.Terms.Version = "" })},
 		{"an uppercase creator", vecRecord(func(r *contract.TokenRecord) { r.CreatedBy = strings.ToUpper(vecSub) })},
+		{"1000 items, a record's most", vecRecord(func(r *contract.TokenRecord) { r.Items = manyItems[:contract.MaxTokenItems] })},
 		{"1001 items", vecRecord(func(r *contract.TokenRecord) { r.Items = manyItems })},
 	} {
 		if err := record(c.name, c.r); err != nil {
@@ -627,7 +628,11 @@ func wireTokens() (any, error) {
 			a.Refused, a.Suspended, a.SuspendedMore = []contract.TokenRefusal{}, many(contract.MaxAppliedEntries), true
 		})},
 		{"waiting_more beside a list short of 1000", ack(func(a *contract.TokenApplied) { a.Waiting, a.WaitingMore = contract.WaitingPerms{waiting}, true })},
+		{"waiting_more beside 999", ack(func(a *contract.TokenApplied) {
+			a.Refused, a.Suspended, a.Waiting, a.WaitingMore = []contract.TokenRefusal{}, nil, manyWaiting[:contract.MaxAppliedEntries-1], true
+		})},
 		{"suspended_more beside an empty list", ack(func(a *contract.TokenApplied) { a.Suspended, a.SuspendedMore = contract.Suspensions{}, true })},
+		{"suspended_more beside a list of 1", ack(func(a *contract.TokenApplied) { a.SuspendedMore = true })},
 		{"1000 permissions kept off, a held entry's most", ack(func(a *contract.TokenApplied) {
 			a.Held = []contract.TokenHeld{{Token: vecToken, Removed: keptOff(contract.MaxHeldRemoved)}}
 		})},
@@ -762,6 +767,13 @@ func wireTokens() (any, error) {
 		}
 		return out
 	}
+	refusals := func(n int) []contract.UsageRefusal {
+		out := make([]contract.UsageRefusal, n)
+		for i := range out {
+			out[i] = contract.UsageRefusal{Token: fmt.Sprintf("0199f2a1-0000-7000-8000-%012d", i+1), Day: "2026-10-13", Item: str(vecNumber), Perm: str(contract.CanSend), Code: contract.UseNoPermission, Count: 1}
+		}
+		return out
+	}
 	big := usage(func(u *contract.TokenUsage) {
 		u.Used, u.Refusals = nil, nil
 		for i := 0; i < contract.MaxUsageEntries; i++ {
@@ -807,6 +819,8 @@ func wireTokens() (any, error) {
 		{"used null", usage(func(u *contract.TokenUsage) { u.Used = nil })},
 		{"1000 days of use, the list's most", usage(func(u *contract.TokenUsage) { u.Used = daysOfUse(contract.MaxUsageEntries) })},
 		{"1001 days of use", usage(func(u *contract.TokenUsage) { u.Used = daysOfUse(contract.MaxUsageEntries + 1) })},
+		{"1000 refusals, the list's most", usage(func(u *contract.TokenUsage) { u.Refusals = refusals(contract.MaxUsageEntries) })},
+		{"1001 refusals", usage(func(u *contract.TokenUsage) { u.Refusals = refusals(contract.MaxUsageEntries + 1) })},
 	} {
 		body, err := json.Marshal(c.u)
 		if err != nil {
@@ -868,6 +882,7 @@ func wireTokens() (any, error) {
 		{"a record whose app is written App: a bad record, its revocation applies", `"app":"wappie"`, `"App":"wappie"`},
 		{"a record whose app does not decode: a bad record, its revocation applies", `"app":"wappie"`, `"app":7`},
 		{"a record whose generation is no UUID: a bad record, never a reset", `"generation":"` + vecGeneration + `"`, `"generation":"1"`},
+		{"a record whose revoked_at is written Revoked_at: revoked by its reason, a bad record", `"revoked_at":"`, `"Revoked_at":"`},
 	} {
 		raw, err := replaceOnce(revoked, c.old, c.new)
 		if err != nil {

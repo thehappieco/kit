@@ -459,9 +459,10 @@ func TestARestoreStartsTheTokenFeedAgainFromZero(t *testing.T) {
 	}
 }
 
-// A selector GET spends none of the app's rate: with the app's bucket at
-// one request a second, three selector GETs and then a call of another
-// kind all get through.
+// A selector GET spends none of the app's rate: with the app's 50 a second
+// and the selector's 3, fifty selector GETs in a second get three answers
+// and 47 signed rate_limited, and then the app's own 50 calls all get
+// through.
 func TestASelectorGETSpendsNoneOfTheAppsRate(t *testing.T) {
 	h, c, _, _, text := tokenSetup(t, contracttest.Options{PerSecond: 50, SelectorPerSecond: 3})
 	p, _ := contract.ParseToken(text)
@@ -486,6 +487,11 @@ func TestASelectorGETSpendsNoneOfTheAppsRate(t *testing.T) {
 // The token part's two bodies are read up to 256 KiB, that much included:
 // one byte more is too_large, unsigned, before the signature.
 func TestATokenBodyOfTwoHundredFiftySixKiBIsReadAndOneByteMoreIsNot(t *testing.T) {
+	// The bodies below are built from the constant, so the constant itself
+	// is pinned: moving it fails here.
+	if contracttest.TokensBodyLimit != 256<<10 {
+		t.Fatalf("TokensBodyLimit is %d, not 256 KiB", contracttest.TokensBodyLimit)
+	}
 	h, _, _, _, _ := tokenSetup(t, contracttest.Options{})
 	const body = `{"used":[],"refusals":[]}`
 	for _, target := range []string{"/contract/v1/tokens/usage", "/contract/v1/tokens/applied"} {

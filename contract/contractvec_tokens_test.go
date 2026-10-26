@@ -414,7 +414,7 @@ func wireTokens() (any, error) {
 		if err != nil {
 			return err
 		}
-		*list = append(*list, WireCase{Name: name, Value: raw, Valid: valid()})
+		*list = append(*list, wireCase(name, raw, valid()))
 		return nil
 	}
 	record := func(name string, r contract.TokenRecord) error {
@@ -506,7 +506,7 @@ func wireTokens() (any, error) {
 		}
 		var r contract.TokenRecord
 		valid := json.Unmarshal(raw, &r) == nil && r.Validate() == nil
-		out.Records = append(out.Records, WireCase{Name: c.name, Value: raw, Valid: valid})
+		out.Records = append(out.Records, wireCase(c.name, raw, valid))
 	}
 
 	// Feeds.
@@ -524,6 +524,15 @@ func wireTokens() (any, error) {
 		revoke(contract.RevokedInConsole)(r)
 		r.RevokedAt = &contract.Time{}
 	})
+	// bare is n items whose records are {}: the page's own checks never read
+	// a record, so the limit's cases carry none.
+	bare := func(n int) []contract.TokenFeedItem {
+		out := make([]contract.TokenFeedItem, n)
+		for i := range out {
+			out[i] = contract.TokenFeedItem{Seq: int64(i + 1), Token: json.RawMessage(`{}`)}
+		}
+		return out
+	}
 	feed := func(mut func(*contract.TokenFeed)) contract.TokenFeed {
 		f := contract.TokenFeed{
 			Generation: vecGeneration, GenerationConfirmed: true, Head: 90, PublishedThrough: contract.T(Now.Add(4 * time.Second)),
@@ -557,6 +566,10 @@ func wireTokens() (any, error) {
 		{"next_after above the head", feed(func(f *contract.TokenFeed) { f.NextAfter = 91 })},
 		{"a generation that is not a UUID", feed(func(f *contract.TokenFeed) { f.Generation = "1" })},
 		{"items null", feed(func(f *contract.TokenFeed) { f.Items = nil })},
+		{"200 records, a page's most", feed(func(f *contract.TokenFeed) { f.Items, f.Head, f.NextAfter = bare(contract.MaxTokenFeedItems), 200, 200 })},
+		{"201 records", feed(func(f *contract.TokenFeed) {
+			f.Items, f.Head, f.NextAfter = bare(contract.MaxTokenFeedItems+1), 201, 201
+		})},
 	} {
 		if err := add(&out.Feeds, c.name, c.f, func() bool { return c.f.Validate() == nil }); err != nil {
 			return nil, err
@@ -587,6 +600,13 @@ func wireTokens() (any, error) {
 		}
 		return s
 	}
+	keptOff := func(n int) []contract.HeldPerm {
+		out := make([]contract.HeldPerm, n)
+		for i := range out {
+			out[i] = contract.HeldPerm{Item: fmt.Sprintf("n%04d", i+1), Perm: contract.CanRead}
+		}
+		return out
+	}
 	manyWaiting := make(contract.WaitingPerms, contract.MaxAppliedEntries+1)
 	for i := range manyWaiting {
 		manyWaiting[i] = waiting
@@ -600,7 +620,20 @@ func wireTokens() (any, error) {
 		{"waiting and suspended absent: both unchanged", ack(func(a *contract.TokenApplied) { a.Waiting, a.Suspended = nil, nil })},
 		{"waiting and suspended empty: none", ack(func(a *contract.TokenApplied) { a.Suspended = contract.Suspensions{} })},
 		{"a permission held back unjudged until the giver's document", ack(func(a *contract.TokenApplied) { a.Waiting = contract.WaitingPerms{waiting} })},
-		{"more waiting than the list holds", ack(func(a *contract.TokenApplied) { a.Waiting, a.WaitingMore = contract.WaitingPerms{waiting}, true })},
+		{"more waiting than the list holds: 1000 and waiting_more", ack(func(a *contract.TokenApplied) {
+			a.Refused, a.Suspended, a.Waiting, a.WaitingMore = []contract.TokenRefusal{}, nil, manyWaiting[:contract.MaxAppliedEntries], true
+		})},
+		{"more stops than the list holds: 1000 and suspended_more", ack(func(a *contract.TokenApplied) {
+			a.Refused, a.Suspended, a.SuspendedMore = []contract.TokenRefusal{}, many(contract.MaxAppliedEntries), true
+		})},
+		{"waiting_more beside a list short of 1000", ack(func(a *contract.TokenApplied) { a.Waiting, a.WaitingMore = contract.WaitingPerms{waiting}, true })},
+		{"suspended_more beside an empty list", ack(func(a *contract.TokenApplied) { a.Suspended, a.SuspendedMore = contract.Suspensions{}, true })},
+		{"1000 permissions kept off, a held entry's most", ack(func(a *contract.TokenApplied) {
+			a.Held = []contract.TokenHeld{{Token: vecToken, Removed: keptOff(contract.MaxHeldRemoved)}}
+		})},
+		{"1001 permissions kept off", ack(func(a *contract.TokenApplied) {
+			a.Held = []contract.TokenHeld{{Token: vecToken, Removed: keptOff(contract.MaxHeldRemoved + 1)}}
+		})},
 		{"a stop because the app's own operator disabled the creator", ack(func(a *contract.TokenApplied) {
 			a.Suspended = contract.Suspensions{{Token: vecToken, Cause: contract.SuspendedCreatorDisabledHere}}
 		})},
@@ -676,7 +709,7 @@ func wireTokens() (any, error) {
 		return nil, err
 	}
 	wbase, err := encode(ack(func(a *contract.TokenApplied) {
-		a.Waiting, a.WaitingMore, a.Suspended, a.SuspendedMore = contract.WaitingPerms{waiting}, true, contract.Suspensions{}, true
+		a.Waiting, a.Suspended = contract.WaitingPerms{waiting}, contract.Suspensions{}
 	}))
 	if err != nil {
 		return nil, err
@@ -690,10 +723,11 @@ func wireTokens() (any, error) {
 		{"waiting null", abase, `"waiting":[]`, `"waiting":null`},
 		{"suspended null", abase, `"suspended":[]`, `"suspended":null`},
 		{"a member the platform does not know", abase, `"through":90,`, `"through":90,"note":"x",`},
-		{"waiting_more and suspended_more true", wbase, ``, ``},
-		{"waiting_more false", wbase, `"waiting_more":true`, `"waiting_more":false`},
-		{"waiting_more null", wbase, `"waiting_more":true`, `"waiting_more":null`},
-		{"suspended_more false", wbase, `"suspended_more":true`, `"suspended_more":false`},
+		{"a waiting permission and no stop, as a body", wbase, ``, ``},
+		{"waiting_more false", abase, `"through":90,`, `"through":90,"waiting_more":false,`},
+		{"waiting_more null", abase, `"through":90,`, `"through":90,"waiting_more":null,`},
+		{"suspended_more false", abase, `"through":90,`, `"through":90,"suspended_more":false,`},
+		{"suspended_more null", abase, `"through":90,`, `"through":90,"suspended_more":null,`},
 		{"a waiting permission without granted_by", wbase, `"granted_by":"` + vecOther + `",`, ``},
 		{"a waiting permission without granted_at", wbase, `,"granted_at":"2026-10-13T12:00:00Z"`, ``},
 		{"a waiting permission's token written Token", wbase, wentry, `{"Token":"` + vecToken + `","item":"` + vecNumber + `","perm":"send",`},
@@ -707,7 +741,7 @@ func wireTokens() (any, error) {
 		}
 		var a contract.TokenApplied
 		valid := strictDecode(raw, &a) == nil && a.Validate() == nil
-		out.Applied = append(out.Applied, WireCase{Name: c.name, Value: raw, Valid: valid})
+		out.Applied = append(out.Applied, wireCase(c.name, raw, valid))
 	}
 
 	// Usage bodies.
@@ -720,6 +754,13 @@ func wireTokens() (any, error) {
 			mut(&u)
 		}
 		return u
+	}
+	daysOfUse := func(n int) []contract.TokenUsed {
+		out := make([]contract.TokenUsed, n)
+		for i := range out {
+			out[i] = contract.TokenUsed{Token: fmt.Sprintf("0199f2a1-0000-7000-8000-%012d", i+1), Day: "2026-10-13"}
+		}
+		return out
 	}
 	big := usage(func(u *contract.TokenUsage) {
 		u.Used, u.Refusals = nil, nil
@@ -764,6 +805,8 @@ func wireTokens() (any, error) {
 		{"a day of a token twice", usage(func(u *contract.TokenUsage) { u.Used = append(u.Used, u.Used[0]) })},
 		{"a refusal twice", usage(func(u *contract.TokenUsage) { u.Refusals = append(u.Refusals, u.Refusals[0]) })},
 		{"used null", usage(func(u *contract.TokenUsage) { u.Used = nil })},
+		{"1000 days of use, the list's most", usage(func(u *contract.TokenUsage) { u.Used = daysOfUse(contract.MaxUsageEntries) })},
+		{"1001 days of use", usage(func(u *contract.TokenUsage) { u.Used = daysOfUse(contract.MaxUsageEntries + 1) })},
 	} {
 		body, err := json.Marshal(c.u)
 		if err != nil {
@@ -813,6 +856,26 @@ func wireTokens() (any, error) {
 	}
 	action, code := recordAction("wappie", vecGeneration, other)
 	out.Actions = append(out.Actions, ActionCase{Name: "another app's record, revoked there: refused, nothing applied", App: "wappie", Generation: vecGeneration, Value: other, Action: action, Code: code})
+	// Only a record whose app decodes as another app is refused: one whose
+	// app does not decode, or is written in another case, is a bad record
+	// of this app, and its revocation applies; one whose generation is no
+	// UUID is a bad record too, never a reset.
+	revoked, err := encode(vecRecord(revoke(contract.RevokedInConsole)))
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range []struct{ name, old, new string }{
+		{"a record whose app is written App: a bad record, its revocation applies", `"app":"wappie"`, `"App":"wappie"`},
+		{"a record whose app does not decode: a bad record, its revocation applies", `"app":"wappie"`, `"app":7`},
+		{"a record whose generation is no UUID: a bad record, never a reset", `"generation":"` + vecGeneration + `"`, `"generation":"1"`},
+	} {
+		raw, err := replaceOnce(revoked, c.old, c.new)
+		if err != nil {
+			return nil, err
+		}
+		action, code := recordAction("wappie", vecGeneration, raw)
+		out.Actions = append(out.Actions, ActionCase{Name: c.name, App: "wappie", Generation: vecGeneration, Value: raw, Action: action, Code: code})
+	}
 	return out, nil
 }
 
@@ -824,7 +887,7 @@ func wireTokens() (any, error) {
 func recordAction(app, generation string, raw json.RawMessage) (string, *string) {
 	code := func(s string) *string { return &s }
 	r, err := contract.TokenFeedItem{Token: raw}.Record()
-	if r.App != app {
+	if contract.ValidApp(r.App) && r.App != app {
 		return "refuse", nil
 	}
 	if contract.ValidUUID(r.Generation) && r.Generation != generation {
@@ -897,6 +960,13 @@ func wireSnapshotTokens() (any, error) {
 	snap := func(items ...contract.Item) contract.Snapshot {
 		return contract.Snapshot{V: contract.SnapshotV, SnapshotSeq: Now.UnixMilli(), Items: items}
 	}
+	manyTokens := func(n int) contract.ItemTokens {
+		out := make(contract.ItemTokens, n)
+		for i := range out {
+			out[i] = contract.ItemToken{ID: fmt.Sprintf("0199f2a1-0000-7000-8000-%012d", i+1), Can: []string{}}
+		}
+		return out
+	}
 	for _, c := range []struct {
 		name string
 		s    contract.Snapshot
@@ -924,6 +994,8 @@ func wireSnapshotTokens() (any, error) {
 			it.Tokens = contract.ItemTokens{{ID: vecToken, Can: []string{contract.CanAct}}}
 		}))},
 		{"a token named by its selector", snap(number(func(it *contract.Item) { it.Tokens[0].ID = vecSelector }))},
+		{"1000 tokens on an item, its most", snap(number(func(it *contract.Item) { it.Tokens = manyTokens(contract.MaxItemTokens) }))},
+		{"1001 tokens on an item", snap(number(func(it *contract.Item) { it.Tokens = manyTokens(contract.MaxItemTokens + 1) }))},
 	} {
 		raw, err := encode(c.s)
 		if err != nil {
@@ -931,7 +1003,7 @@ func wireSnapshotTokens() (any, error) {
 		}
 		var s contract.Snapshot
 		valid := json.Unmarshal(raw, &s) == nil && s.Validate() == nil
-		out.Snapshots = append(out.Snapshots, WireCase{Name: c.name, Value: raw, Valid: valid})
+		out.Snapshots = append(out.Snapshots, wireCase(c.name, raw, valid))
 	}
 	base, err := encode(snap(number(func(it *contract.Item) { it.Tokens = contract.ItemTokens{} })))
 	if err != nil {
@@ -952,6 +1024,7 @@ func wireSnapshotTokens() (any, error) {
 		{"tokens null", base, `"tokens":[]`, `"tokens":null`},
 		{"a token's id written ID", withToken, `"tokens":[{"id":`, `"tokens":[{"ID":`},
 		{"a token's id twice, once written ID", withToken, `"tokens":[{"id":"` + vecToken + `",`, `"tokens":[{"id":"` + vecToken + `","ID":"` + vecToken2 + `",`},
+		{"a token's reads written readſ, which encoding/json folds to reads", withToken, `"can":["read","send"],"reads":true`, `"can":["read","send"],"readſ":true`},
 	} {
 		raw, err := replaceOnce(c.base, c.old, c.new)
 		if err != nil {
@@ -959,7 +1032,7 @@ func wireSnapshotTokens() (any, error) {
 		}
 		var s contract.Snapshot
 		valid := json.Unmarshal(raw, &s) == nil && s.Validate() == nil
-		out.Snapshots = append(out.Snapshots, WireCase{Name: c.name, Value: raw, Valid: valid})
+		out.Snapshots = append(out.Snapshots, wireCase(c.name, raw, valid))
 	}
 	return out, nil
 }
@@ -1011,7 +1084,7 @@ func wireEventsStop() (any, error) {
 		}
 		var e contract.Event
 		valid := json.Unmarshal(raw, &e) == nil && e.Validate() == nil
-		out.Events = append(out.Events, WireCase{Name: c.name, Value: raw, Valid: valid})
+		out.Events = append(out.Events, wireCase(c.name, raw, valid))
 	}
 	base, err := encode(ev(contract.EventSyncPaused, contract.ActorPerson, contract.StopPause, nil))
 	if err != nil {
@@ -1028,7 +1101,7 @@ func wireEventsStop() (any, error) {
 		}
 		var e contract.Event
 		valid := json.Unmarshal(raw, &e) == nil && e.Validate() == nil
-		out.Events = append(out.Events, WireCase{Name: c.name, Value: raw, Valid: valid})
+		out.Events = append(out.Events, wireCase(c.name, raw, valid))
 	}
 	return out, nil
 }

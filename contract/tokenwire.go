@@ -298,25 +298,32 @@ func NewTokenFeedItem(seq int64, r TokenRecord) (TokenFeedItem, error) {
 }
 
 // Record decodes the item's record on its own, as an app decodes what the
-// platform sends: a member it does not know is ignored. Validate is the
-// app's next step. A record that does not decode is ErrInvalid, and comes
-// with what of it could be read, member by member: a member that does not
-// decode is left at its zero value (a zero expires_at is the earliest, so
-// the token is past it), except revoked_at, which, present and not null,
-// is a zero Time: revoked, at a time unknown. So an app applies of it only
+// platform sends: a member it does not know is ignored, and a member name
+// counts only exactly as written, at every depth (encoding/json would take
+// App or a Unicode-folded name for app; here such a member is one the app
+// does not know). Validate is the app's next step.
+//
+// A record that does not decode is ErrInvalid, and comes with what of it
+// could be read, member by member: a member that does not decode keeps
+// what of it decoded, a scalar nothing (a zero expires_at is the earliest,
+// so the token is past it), a list or an object the entries and members
+// read before the one that failed, which only narrows; and revoked_at,
+// present and not null, revokes whatever its value, a zero Time when it
+// does not decode: revoked, at a time unknown. So an app applies of it only
 // what it narrows, adds none of its grants, and advances its cursor, as
 // for a record that fails Validate (TokenFeed.Validate).
 func (it TokenFeedItem) Record() (TokenRecord, error) {
 	if trimmed := bytes.TrimSpace(it.Token); len(trimmed) == 0 || trimmed[0] != '{' {
 		return TokenRecord{}, invalid("token: not a record")
 	}
+	raw := exactOnly(it.Token, reflect.TypeFor[TokenRecord]())
 	var r TokenRecord
-	if err := json.Unmarshal(it.Token, &r); err == nil {
+	if err := json.Unmarshal(raw, &r); err == nil {
 		return r, nil
 	}
 	r = TokenRecord{}
 	var members map[string]json.RawMessage
-	if json.Unmarshal(it.Token, &members) != nil {
+	if json.Unmarshal(raw, &members) != nil {
 		return TokenRecord{}, invalid("token: not a record")
 	}
 	for name, into := range map[string]any{
@@ -325,15 +332,15 @@ func (it TokenFeedItem) Record() (TokenRecord, error) {
 		"created_by": &r.CreatedBy, "created_at": &r.CreatedAt, "expires_at": &r.ExpiresAt, "revoked_reason": &r.RevokedReason,
 		"terms": &r.Terms, "reading_key": &r.ReadingKey, "items": &r.Items,
 	} {
-		if raw, ok := members[name]; ok {
-			// What does not decode stays as far as it decoded: a list cut
+		if v, ok := members[name]; ok {
+			// What does not decode keeps what of it decoded: a list cut
 			// short lists less, which only narrows.
-			_ = json.Unmarshal(raw, into)
+			_ = json.Unmarshal(v, into)
 		}
 	}
-	if raw, ok := members["revoked_at"]; ok && string(bytes.TrimSpace(raw)) != "null" {
+	if v, ok := members["revoked_at"]; ok && string(bytes.TrimSpace(v)) != "null" {
 		var at Time
-		if json.Unmarshal(raw, &at) != nil {
+		if json.Unmarshal(v, &at) != nil {
 			at = Time{}
 		}
 		r.RevokedAt = &at
@@ -341,15 +348,69 @@ func (it TokenFeedItem) Record() (TokenRecord, error) {
 	return r, invalid("token: the record does not decode")
 }
 
+// unmarshalerType is json.Unmarshaler, whose types decode themselves.
+var unmarshalerType = reflect.TypeFor[json.Unmarshaler]()
+
+// exactOnly is raw with every object member that is not named exactly as
+// one of t's left out, at every depth t's members reach: a member an app
+// does not know, which encoding/json would otherwise match to one of t's
+// in any case. A value that is not of t's shape is left as it is, for the
+// decoder to refuse.
+func exactOnly(raw json.RawMessage, t reflect.Type) json.RawMessage {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if reflect.PointerTo(t).Implements(unmarshalerType) {
+		return raw
+	}
+	switch t.Kind() {
+	case reflect.Struct:
+		var members map[string]json.RawMessage
+		if json.Unmarshal(raw, &members) != nil || members == nil {
+			return raw
+		}
+		fields := map[string]reflect.Type{}
+		for i := 0; i < t.NumField(); i++ {
+			if name, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); name != "" && name != "-" {
+				fields[name] = t.Field(i).Type
+			}
+		}
+		kept := map[string]json.RawMessage{}
+		for name, v := range members {
+			if ft, ok := fields[name]; ok {
+				kept[name] = exactOnly(v, ft)
+			}
+		}
+		if b, err := json.Marshal(kept); err == nil {
+			return b
+		}
+	case reflect.Slice:
+		var elems []json.RawMessage
+		if json.Unmarshal(raw, &elems) != nil || elems == nil {
+			return raw
+		}
+		for i := range elems {
+			elems[i] = exactOnly(elems[i], t.Elem())
+		}
+		if b, err := json.Marshal(elems); err == nil {
+			return b
+		}
+	}
+	return raw
+}
+
 // Validate checks a token feed answer itself: its generation, its head and
 // cursor, and its records' order. It does not decode or validate the
 // records: a bad record never stalls the feed. An app takes each record on
 // its own (TokenFeedItem.Record) and decides, in this order:
-//   - a record of another app is refused: the app logs it, applies nothing
-//     of it and advances its cursor; one app's revocation (app_removed,
-//     app_held) never reaches another;
-//   - a record of another generation than the one the app holds is a reset
-//     (SPEC section 11.18);
+//   - a record whose app decodes as another valid app id is refused: the
+//     app logs it, applies nothing of it and advances its cursor; one app's
+//     revocation (app_removed, app_held) never reaches another. A record
+//     whose app does not decode, is missing or is written in another case
+//     is not refused: it is a bad record of this app, below;
+//   - a record whose generation decodes as another valid UUID than the one
+//     the app holds is a reset (SPEC section 11.18); a generation that does
+//     not decode, or is no UUID, makes a bad record, below;
 //   - a record that does not decode, that fails Validate, or whose reading
 //     key's fingerprint is not its key's (ReadingKey.Check) is applied only
 //     for what it narrows (a revocation, an earlier expires_at, an item or
@@ -456,12 +517,14 @@ type TokenApplied struct {
 	// back unjudged; absent (nil) means unchanged, and an empty list none.
 	Waiting WaitingPerms `json:"waiting,omitzero"`
 	// WaitingMore: the app holds more than Waiting lists. Present only as
-	// true, and only beside Waiting.
+	// true, and only beside a Waiting of MaxAppliedEntries entries: an app
+	// that holds more sends the 1000 it judged first.
 	WaitingMore TrueFlag `json:"waiting_more,omitzero"`
 	// Suspended, when present, is the whole set of the app's own stops;
 	// absent (nil) means unchanged, and an empty list none.
 	Suspended Suspensions `json:"suspended,omitzero"`
-	// SuspendedMore is WaitingMore's twin, for Suspended.
+	// SuspendedMore is WaitingMore's twin: only beside a Suspended of
+	// MaxAppliedEntries entries.
 	SuspendedMore TrueFlag `json:"suspended_more,omitzero"`
 	// Held are the tokens the app holds narrower than a reset's pass listed
 	// them: entries only after a reset, and always present, [] when none.
@@ -573,10 +636,10 @@ func (a TokenApplied) Validate() error {
 		return invalid("refused")
 	case a.Held == nil:
 		return invalid("held")
-	case bool(a.WaitingMore) && a.Waiting == nil:
-		return invalid("waiting_more without waiting")
-	case bool(a.SuspendedMore) && a.Suspended == nil:
-		return invalid("suspended_more without suspended")
+	case bool(a.WaitingMore) && len(a.Waiting) != MaxAppliedEntries:
+		return invalid("waiting_more only beside a waiting list of 1000")
+	case bool(a.SuspendedMore) && len(a.Suspended) != MaxAppliedEntries:
+		return invalid("suspended_more only beside a suspended list of 1000")
 	case len(a.Waiting) > MaxAppliedEntries:
 		return invalid("waiting")
 	case len(a.Suspended) > MaxAppliedEntries:

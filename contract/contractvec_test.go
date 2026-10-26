@@ -12,13 +12,17 @@ package contract_test
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/thehappieco/kit/contract"
@@ -74,7 +78,11 @@ func Generate() ([]File, error) {
 		if err := enc.Encode(v); err != nil {
 			return nil, err
 		}
-		files = append(files, File{Name: gen.name, Data: b.Bytes()})
+		data, err := inlineBig(b.Bytes())
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, File{Name: gen.name, Data: data})
 	}
 	return files, nil
 }
@@ -278,6 +286,61 @@ type WireCase struct {
 	Value json.RawMessage `json:"value"`
 	Valid bool            `json:"valid"`
 }
+
+// BigValue is the size of compact JSON over which a value of the token
+// part's files (kit v0.9.0) is written on one line, compact, rather than
+// indented with the rest of its file, which would swell it several times.
+const BigValue = 16 << 10
+
+// The big values of the files being written, by the placeholder that
+// stands for each until the file is encoded (inlineBig).
+var (
+	bigMu     sync.Mutex
+	bigValues = map[string]json.RawMessage{}
+)
+
+// wireCase is a case of the token part's files. A value over BigValue
+// bytes is held as a placeholder, which inlineBig replaces with its
+// compact text once the file is encoded.
+func wireCase(name string, raw json.RawMessage, valid bool) WireCase {
+	if len(raw) > BigValue {
+		sum := sha256.Sum256(raw)
+		key := "\u0000big:" + hex.EncodeToString(sum[:])
+		bigMu.Lock()
+		bigValues[key] = raw
+		bigMu.Unlock()
+		raw, _ = json.Marshal(key)
+	}
+	return WireCase{Name: name, Value: raw, Valid: valid}
+}
+
+// bigPlaceholder is a placeholder as an encoded file holds it.
+var bigPlaceholder = regexp.MustCompile(`"\\u0000big:[0-9a-f]{64}"`)
+
+// inlineBig writes each big value's compact text in place of its
+// placeholder.
+func inlineBig(b []byte) ([]byte, error) {
+	var missing error
+	out := bigPlaceholder.ReplaceAllFunc(b, func(m []byte) []byte {
+		var key string
+		if err := json.Unmarshal(m, &key); err != nil {
+			missing = err
+			return m
+		}
+		bigMu.Lock()
+		raw, ok := bigValues[key]
+		bigMu.Unlock()
+		if !ok {
+			missing = errors.New("contractvec: a big value's placeholder has no value")
+			return m
+		}
+		return raw
+	})
+	return out, missing
+}
+
+// caseValue is a case's value.
+func caseValue(c WireCase) json.RawMessage { return c.Value }
 
 // Wire is wire.json.
 type Wire struct {

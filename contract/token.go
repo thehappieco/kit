@@ -89,9 +89,9 @@ func (t ParsedToken) GoString() string { return t.String() }
 func (t ParsedToken) LogValue() slog.Value { return slog.StringValue(t.Selector) }
 
 // ParseToken checks the text of a token, with no trimming, case folding or
-// percent-decoding, and returns its selector and secret. A refusal is a
-// *TokenError, which names the step that refused it and never a byte of
-// the text.
+// percent-decoding, and returns its selector and its hash (ParsedToken),
+// never its secret. A refusal is a *TokenError, which names the step that
+// refused it and never a byte of the text.
 func ParseToken(s string) (ParsedToken, error) {
 	if len(s) != TokenLen {
 		return ParsedToken{}, tokenStep(1, "64 ASCII characters")
@@ -198,13 +198,15 @@ var (
 // one value, "Bearer" in any case, one space and the token, with nothing
 // before or after. A second header, no header, or no "Bearer" and one space
 // at the value's start (a tab in its place, say) is refused at step 0;
-// whatever follows that space goes to ParseToken, so a space more before or
-// after the token, or anything else around it, is refused there, at step 1
-// for its length (*TokenError either way). Note that Go's net/http, as RFC 9110 has it, drops the spaces and
-// tabs that start or end a field's value before an app reads it, so a
-// trailing space the client sent may never reach this check; one that
-// reaches it is refused. Another transport of the app's own carries the
-// token's 64 bytes with nothing around them, for ParseToken.
+// whatever follows that space goes to ParseToken, so a space more before
+// or after the token, or anything else around it, is refused there, at
+// step 1 for its length (*TokenError either way).
+//
+// Go's net/http, as RFC 9110 has it, drops the spaces and tabs that start
+// or end a field's value before an app reads it, so a trailing space the
+// client sent may never reach this check; one that reaches it is refused.
+// Another transport of the app's own carries the token's 64 bytes with
+// nothing around them, for ParseToken.
 func BearerToken(values []string) (string, error) {
 	if len(values) != 1 {
 		return "", tokenStep(0, "exactly one Authorization header")

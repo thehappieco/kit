@@ -172,15 +172,15 @@ func TestEveryWireVectorValidatesAsItSays(t *testing.T) {
 		}
 		for _, c := range w.Documents {
 			var d contract.AccountDoc
-			check("document", c.Name, c.Value, c.Valid, &d)
+			check("document", c.Name, caseValue(c), c.Valid, &d)
 		}
 		for _, c := range w.Snapshots {
 			var s contract.Snapshot
-			check("snapshot", c.Name, c.Value, c.Valid, &s)
+			check("snapshot", c.Name, caseValue(c), c.Valid, &s)
 		}
 		for _, c := range w.Events {
 			var e contract.Event
-			check("event", c.Name, c.Value, c.Valid, &e)
+			check("event", c.Name, caseValue(c), c.Valid, &e)
 		}
 	}
 }
@@ -294,6 +294,25 @@ func TestEveryReadingKeyVectorHolds(t *testing.T) {
 	}
 }
 
+// A big value of the token part's files is written compact, on one line,
+// and none is left a placeholder.
+func TestEveryBigValueIsWrittenCompact(t *testing.T) {
+	for _, file := range []string{"tokens.json", "reading-keys.json", "wire-tokens.json", "wire-snapshot-tokens.json", "wire-events-stop.json"} {
+		raw, err := fs.ReadFile(vectors.FS, dir+"/"+file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bytes.Contains(raw, []byte("big:")) {
+			t.Errorf("%s holds a placeholder", file)
+		}
+		for _, line := range bytes.Split(raw, []byte("\n")) {
+			if len(line) > BigValue && !bytes.Contains(line, []byte(`"value": {`)) && !bytes.Contains(line, []byte(`"body": "`)) {
+				t.Errorf("%s: a long line that is no value", file)
+			}
+		}
+	}
+}
+
 func TestEveryTokenWireVectorValidatesAsItSays(t *testing.T) {
 	var w WireTokens
 	read(t, "wire-tokens.json", &w)
@@ -303,14 +322,14 @@ func TestEveryTokenWireVectorValidatesAsItSays(t *testing.T) {
 	// What the platform sends, decoded as an app decodes it.
 	for _, c := range w.Records {
 		var r contract.TokenRecord
-		valid := json.Unmarshal(c.Value, &r) == nil && r.Validate() == nil
+		valid := json.Unmarshal(caseValue(c), &r) == nil && r.Validate() == nil
 		if valid != c.Valid {
 			t.Errorf("record %q: valid should be %v", c.Name, c.Valid)
 		}
 	}
 	for _, c := range w.Feeds {
 		var f contract.TokenFeed
-		valid := json.Unmarshal(c.Value, &f) == nil && f.Validate() == nil
+		valid := json.Unmarshal(caseValue(c), &f) == nil && f.Validate() == nil
 		if valid != c.Valid {
 			t.Errorf("feed %q: valid should be %v", c.Name, c.Valid)
 		}
@@ -318,7 +337,7 @@ func TestEveryTokenWireVectorValidatesAsItSays(t *testing.T) {
 	// What an app sends, decoded as the platform decodes it.
 	for _, c := range w.Applied {
 		var a contract.TokenApplied
-		valid := strictDecode(c.Value, &a) == nil && a.Validate() == nil
+		valid := strictDecode(caseValue(c), &a) == nil && a.Validate() == nil
 		if valid != c.Valid {
 			t.Errorf("acknowledgement %q: valid should be %v", c.Name, c.Valid)
 		}

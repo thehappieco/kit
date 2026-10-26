@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -455,5 +456,67 @@ func TestARestoreStartsTheTokenFeedAgainFromZero(t *testing.T) {
 	f := tokenFeed(t, c, 0)
 	if len(f.Items) != 1 || f.Generation != gen || record(t, f.Items[0]).Generation != gen || f.GenerationConfirmed {
 		t.Fatalf("after the restore: %+v", f)
+	}
+}
+
+// A selector GET spends none of the app's rate: with the app's bucket at
+// one request a second, three selector GETs and then a call of another
+// kind all get through.
+func TestASelectorGETSpendsNoneOfTheAppsRate(t *testing.T) {
+	h, c, _, _, text := tokenSetup(t, contracttest.Options{PerSecond: 50, SelectorPerSecond: 3})
+	p, _ := contract.ParseToken(text)
+	h.clock.Add(time.Second) // tokenSetup spent some of the 50
+	for i := 0; i < 50; i++ {
+		mustRefusal(t, func() error { _, err := c.TokenBySelector(t.Context(), p.Selector); return err }(), func() string {
+			if i < 3 {
+				return contract.CodeNotFound
+			}
+			return contract.CodeRateLimited
+		}())
+	}
+	// Fifty selector GETs in a second, three answered and 47 refused
+	// signed: the app's 50 are untouched.
+	for i := 0; i < 50; i++ {
+		if _, err := c.Tokens(t.Context(), 0, 0); err != nil {
+			t.Fatalf("call %d of the app's 50: %v", i+1, err)
+		}
+	}
+}
+
+// The token part's two bodies are read up to 256 KiB, that much included:
+// one byte more is too_large, unsigned, before the signature.
+func TestATokenBodyOfTwoHundredFiftySixKiBIsReadAndOneByteMoreIsNot(t *testing.T) {
+	h, _, _, _, _ := tokenSetup(t, contracttest.Options{})
+	const body = `{"used":[],"refusals":[]}`
+	for _, target := range []string{"/contract/v1/tokens/usage", "/contract/v1/tokens/applied"} {
+		at := strings.Repeat(" ", contracttest.TokensBodyLimit-len(body)) + body
+		c := call{method: http.MethodPost, target: target, app: "wappie", body: at}
+		a := h.send(t, c)
+		if a.status == http.StatusRequestEntityTooLarge {
+			t.Fatalf("%s: a body of exactly 256 KiB is too_large", target)
+		}
+		h.verified(t, a, []string{secretA}, "wappie", http.MethodPost, target)
+		over := " " + at
+		h.send(t, call{method: http.MethodPost, target: target, app: "wappie", body: over}).
+			wantUnsigned(t, http.StatusRequestEntityTooLarge, contract.CodeTooLarge)
+	}
+}
+
+// The client sends an acknowledgement's and a usage report's nil lists as
+// [], since they are always present.
+func TestTheClientSendsNilListsAsEmpty(t *testing.T) {
+	h, c, _, _, _ := tokenSetup(t, contracttest.Options{})
+	gen, _ := h.p.Generation()
+	if err := c.TokensApplied(t.Context(), contract.TokenApplied{Generation: gen, AppliedAt: contract.T(h.clock.Now())}); err != nil {
+		t.Fatalf("an acknowledgement with nil lists: %v", err)
+	}
+	if got := h.p.TokensApplied("wappie"); len(got) != 1 || got[0].Refused == nil || got[0].Held == nil {
+		t.Fatalf("kept: %+v", got)
+	}
+	if err := c.TokenUsage(t.Context(), contract.TokenUsage{}); err != nil {
+		t.Fatalf("a usage report with nil lists: %v", err)
+	}
+	if got := h.p.TokenUsage("wappie"); len(got) != 1 || got[0].Used == nil || got[0].Refusals == nil {
+		t.Fatalf("kept: %+v", got)
 	}
 }

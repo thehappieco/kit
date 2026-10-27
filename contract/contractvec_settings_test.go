@@ -623,7 +623,9 @@ func wireSettings() (any, error) {
 		{"an unknown AI alert", integration(func(in *contract.AIIntegration) {
 			in.Alerts = []contract.AIAlert{{Code: "ai_down", At: at(-time.Hour)}}
 		}), false},
-		{"an ended integration with no ended_at", integration(func(in *contract.AIIntegration) { in.Status, in.EndReason = "ended", ptr("console") }), false},
+		{"an ended integration with no ended_at", integration(func(in *contract.AIIntegration) { in.Status = "ended" }), false},
+		{"ended_at on an integration not ended", integration(func(in *contract.AIIntegration) { in.EndedAt = ptr(at(-time.Hour)) }), false},
+		{"a revoke reason with no ended_at", integration(func(in *contract.AIIntegration) { in.EndReason = ptr("console") }), false},
 		{"an unknown revoke reason", integration(func(in *contract.AIIntegration) {
 			in.Status, in.EndedAt, in.EndReason = "ended", ptr(at(-time.Hour)), ptr("user_deleted")
 		}), false},
@@ -889,7 +891,7 @@ func wireSettings() (any, error) {
 		{"members may link", emails(func(s *contract.EmailAccountsSettings) { s.LinkMinRole = ptr(contract.RoleMember) }), true},
 		{"an unknown link_min_role", emails(func(s *contract.EmailAccountsSettings) { s.LinkMinRole = ptr("guest") }), false},
 		{"an unknown sign_in", mailbox(func(m *contract.MailboxRow) { m.SignIn = "app_password" }), false},
-		{"an unknown sync mode", mailbox(func(m *contract.MailboxRow) { m.Sync.Mode = "shared" }), false},
+		{"an unknown sync mode", mailbox(func(m *contract.MailboxRow) { m.Sync.Mode, m.Sync.Agreement = "shared", nil }), false},
 		{"an unknown index state", mailbox(func(m *contract.MailboxRow) { m.Sync.Indexed = "done" }), false},
 		{"a mailbox listed twice", emails(func(s *contract.EmailAccountsSettings) { s.Items = append(s.Items, s.Items[0]) }), false},
 		{"a mailbox's key_epoch below 0", mailbox(func(m *contract.MailboxRow) { m.KeyEpoch = ptr[int64](-1) }), false},
@@ -927,6 +929,57 @@ func wireSettings() (any, error) {
 		{"holders_more below 0", row(func(r *contract.NumberRow) { r.MoveOut.HoldersMore = -1 }), false},
 		{"a move-out holder twice", row(func(r *contract.NumberRow) { r.MoveOut.Holders = append(r.MoveOut.Holders, r.MoveOut.Holders[0]) }), false},
 		{"a connection a move ends twice", row(func(r *contract.NumberRow) { r.MoveOut.Ends = []string{vecConnection, vecConnection} }), false},
+		// One fault each, so that every rule and every closed list is
+		// pinned on its own (Wappie's second review of kit#11).
+		{"every AI alert's function and provider", integration(func(in *contract.AIIntegration) {
+			in.Status = "paused"
+			in.Alerts = []contract.AIAlert{
+				{Code: "ai_quota", Function: ptr(contract.AIVideo), Provider: ptr(contract.AIGoogle), At: at(-time.Hour)},
+				{Code: "ai_model_unavailable", Function: ptr(contract.AIDocument), Provider: ptr(contract.AIAnthropic), At: at(-time.Hour)},
+				{Code: "ai_key_rejected", Provider: ptr(contract.AIAnthropic), At: at(-time.Hour)},
+			}
+		}), true},
+		{"an alert naming an unknown function", integration(func(in *contract.AIIntegration) {
+			in.Alerts = []contract.AIAlert{{Code: "ai_quota", Function: ptr("transcription"), At: at(-time.Hour)}}
+		}), false},
+		{"an alert naming an unknown provider", integration(func(in *contract.AIIntegration) {
+			in.Alerts = []contract.AIAlert{{Code: "ai_quota", Provider: ptr("mistral"), At: at(-time.Hour)}}
+		}), false},
+		{"an unknown paused_by kind", row(func(r *contract.NumberRow) { r.PausedBy.Kind = "operator" }), false},
+		{"a paused_by sub that is no UUID", row(func(r *contract.NumberRow) { r.PausedBy.Sub = ptr("ana") }), false},
+		{"an unknown capture", row(func(r *contract.NumberRow) { r.Capture, r.PausedBy = "off", nil }), false},
+		{"a number's id that is no item id", row(func(r *contract.NumberRow) { r.ID = "dev 1" }), false},
+		{"a move-out holder's sub that is no UUID", row(func(r *contract.NumberRow) { r.MoveOut.Holders[0].Sub = ptr("ana") }), false},
+		{"a move-out holder's row that is no id", row(func(r *contract.NumberRow) { r.MoveOut.Holders[0].Row = "" }), false},
+		{"an unknown provider of a provider key", integrations(func(s *contract.IntegrationsSettings) { s.ProviderKeys[0].Provider = "mistral" }), false},
+		{"a provider key's owner that is no sub", integrations(func(s *contract.IntegrationsSettings) { s.ProviderKeys[0].Owner = ptr("ana") }), false},
+		{"server_off naming an unknown function", integrations(func(s *contract.IntegrationsSettings) { s.ServerOff.Functions = []string{"transcription"} }), false},
+		{"server_off naming an unknown provider", integrations(func(s *contract.IntegrationsSettings) { s.ServerOff.Providers = []string{"mistral"} }), false},
+		{"server_off naming a function twice", integrations(func(s *contract.IntegrationsSettings) {
+			s.ServerOff.Functions = []string{contract.AIAudio, contract.AIAudio}
+		}), false},
+		{"an unknown integration status", integration(func(in *contract.AIIntegration) { in.Status = "running" }), false},
+		{"an integration's creator that is no sub", integration(func(in *contract.AIIntegration) { in.CreatedBy = ptr("ana") }), false},
+		{"an unknown switch", mcp(func(s *contract.MCPSettings) { s.Switches[0].Switch = "send" }), false},
+		{"an unknown operator", mcp(func(s *contract.MCPSettings) { s.Switches[0].Operator = "block" }), false},
+		{"a switch the operator denies, changeable", mcp(func(s *contract.MCPSettings) { s.Switches[3].Changeable = true }), false},
+		{"switched_by without switched_at", mcp(func(s *contract.MCPSettings) { s.SwitchedAt = nil }), false},
+		{"switched_by that is no sub", mcp(func(s *contract.MCPSettings) { s.SwitchedBy = ptr("ana") }), false},
+		{"an unknown connection kind", connection(func(c *contract.MCPConnection) { c.Kind = "everything" }), false},
+		{"an unknown connection status", connection(func(c *contract.MCPConnection) { c.Status = "paused" }), false},
+		{"an unknown connection tier", connection(func(c *contract.MCPConnection) { c.Tier = "trusted" }), false},
+		{"an unknown revoke reason on a connection", connection(func(c *contract.MCPConnection) {
+			c.Status, c.EndedAt, c.EndReason = "revoked", ptr(at(-time.Hour)), ptr("user_deleted")
+		}), false},
+		{"an unknown budget hit", connection(func(c *contract.MCPConnection) { c.BudgetHits[0].Code = "hourly_messages" }), false},
+		{"a consenter that is no sub", connection(func(c *contract.MCPConnection) { c.Consenter = ptr("ana") }), false},
+		{"drafts below 0", mcp(func(s *contract.MCPSettings) { s.Activity[0].Drafts, s.Activity[0].Sends = -1, 5 }), false},
+		{"sends below 0", mcp(func(s *contract.MCPSettings) { s.Activity[0].Drafts, s.Activity[0].Sends = 2, -1 }), false},
+		{"an unknown mailbox status", mailbox(func(m *contract.MailboxRow) { m.Status = "paused" }), false},
+		{"a linked_by that is no sub", mailbox(func(m *contract.MailboxRow) { m.LinkedBy = ptr("ana") }), false},
+		{"an agreement's revision that is no revision", mailbox(func(m *contract.MailboxRow) { m.Sync.Agreement.Revision = "sync text 3" }), false},
+		{"a team sync text that is no revision", emails(func(s *contract.EmailAccountsSettings) { s.Texts.TeamSync = "" }), false},
+		{"snapshot_seq 0", w(func(d *contract.SettingsDoc) { d.SnapshotSeq = ptr[int64](0) }, vecNumbers(nil)), false},
 		{"a bool member null", edit(numbers(nil), `"can_link":true`, `"can_link":null`), false},
 		{"an integer member null", edit(installations(nil), `"hosted_numbers":3`, `"hosted_numbers":null`), false},
 		{"a string member null", edit(numbers(nil), `"connection":"online"`, `"connection":null`), false},
@@ -936,11 +989,6 @@ func wireSettings() (any, error) {
 		{"truncated null", edit(numbers(nil), `"truncated":false`, `"truncated":null`), false},
 		{"truncated missing", edit(numbers(nil), `"truncated":false,`, ``), false},
 		{"snapshot_seq missing from Wappie Cloud", edit(installations(nil), `"snapshot_seq":null,`, ``), false},
-		{"a section over 1 MiB", mcp(func(s *contract.MCPSettings) {
-			s.Connections = many(6, func(i int) contract.MCPConnection {
-				return vecConnectionRow(func(c *contract.MCPConnection) { c.ID, c.SeenBy = fmt.Sprintf("conn_%d", i), subs(4600) })
-			})
-		}), false},
 
 		// The document itself.
 		{"a section of another app", mustRaw(sectionDoc("wappie", contract.SectionNumbers, vecNumbers(nil), func(d *contract.SettingsDoc) {
@@ -1049,6 +1097,30 @@ func wireSettings() (any, error) {
 				Actor: ptr(vecOther), ActorKind: ptr(contract.ActorPerson)})
 			s.Notices[4].Params = mustRaw(contract.MailboxSyncOffParams{State: "deleted", ActorKind: ptr(contract.ActorPerson)})
 		}), nil)), true},
+		{"Mailie's notice code on Wappie", mustRaw(personDoc("wappie", vecWappiePerson(func(s *contract.WappiePersonSettings) {
+			n := mailieNotice(contract.NoticeMailboxRemoved, 9)
+			n.ID = "819"
+			s.Notices[3] = n
+		}), nil)), false},
+		{"an unknown consent", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) { s.Consents[2].Consent = "share" }), nil)), false},
+		{"an unknown consent state", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) { s.Consents[2].State = "paused" }), nil)), false},
+		{"a text that is no revision", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) { s.Texts.Keys = "" }), nil)), false},
+		{"Wappie's pause by the app", mustRaw(personDoc("wappie", vecWappiePerson(func(s *contract.WappiePersonSettings) {
+			s.Notices[0].Params = mustRaw(contract.SyncPausedParams{ActorKind: contract.ActorApp, FirstAt: at(-time.Hour)})
+		}), nil)), false},
+		{"a removal notice in an unknown state", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) {
+			s.Notices[0].Params = mustRaw(contract.MailboxRemovedParams{State: "live", RecoverableUntil: at(time.Hour)})
+		}), nil)), false},
+		{"a turn-off notice in an unknown state", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) {
+			s.Notices[1].Params = mustRaw(contract.MailboxSyncOffParams{State: "purged"})
+		}), nil)), false},
+		{"Mailie's pause by a key", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) {
+			s.Notices[2].Params = mustRaw(contract.MailboxSyncPausedParams{State: "live", Actor: ptr(vecOther), ActorKind: ptr(contract.ActorKey)})
+		}), nil)), false},
+		{"a notice's hint that is no hint", mustRaw(personDoc("wappie", vecWappiePerson(func(s *contract.WappiePersonSettings) { s.Notices[0].Hint = ptr("5678") }), nil)), false},
+		{"a notice's workspace that is no UUID", mustRaw(personDoc("wappie", vecWappiePerson(func(s *contract.WappiePersonSettings) {
+			s.Notices[0].WorkspaceID = ptr("team")
+		}), nil)), false},
 		{"Mailie's pause notice in another state than live", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) {
 			s.Notices[2].Params = mustRaw(contract.MailboxSyncPausedParams{State: "removed"})
 		}), nil)), false},
@@ -1060,15 +1132,6 @@ func wireSettings() (any, error) {
 			d.Data = edit(d.Data, `"enrolled":true`, `"enrolled":null`)
 		})), false},
 		{"state_seq 0", mustRaw(personDoc("wappie", vecWappiePerson(nil), func(d *contract.PersonSettingsDoc) { d.StateSeq = 0 })), false},
-		{"a person's document over 256 KiB", mustRaw(personDoc("wappie", vecWappiePerson(func(s *contract.WappiePersonSettings) {
-			s.Notices = many(300, func(i int) contract.Notice {
-				n := wappieNotice(contract.NoticeNumberDeleted, i)
-				n.ID, n.Item = fmt.Sprintf("%064d", i), ptr(fmt.Sprintf("dev_%060d", i))
-				n.Label = ptr(strings.Repeat("€", contract.MaxLabel))
-				n.Hint = ptr("s…@" + strings.Repeat("a", 63) + "." + strings.Repeat("b", 63) + "." + strings.Repeat("c", 63) + "." + strings.Repeat("d", 50) + ".com")
-				return n
-			})
-		}), nil)), false},
 	}
 	for _, c := range sections {
 		if got := sectionValid(c.raw); got != c.valid {

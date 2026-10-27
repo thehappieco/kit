@@ -354,11 +354,11 @@ sha256 at `ee45e3a`. The kit's `contract` is the platform's `internal/contract` 
 
 | File | Kind | Cases | sha256 |
 |---|---|---|---|
-| `platform/contract-v1/wire-settings.json` | wire-settings | 195 sections (60 valid), 37 person documents (8 valid) | `7637869d84cbdf99ce22d85b64a1be57fc1578975c64a02235a91d801f375c0b` |
-| `platform/contract-v1/wire-commands.json` | wire-commands | 16 feed pages (6 valid), 142 commands (73 valid), 13 commands with the app's action (7 `run`, 1 `reset`, 2 `expired`, 3 `invalid_command`), 62 results (24 valid), 11 bodies of results (3 valid), 76 classes (13 `retry`, 63 `final`) | `57c4487fcf9b21146733c5cf8d088d2b26037c39997af358c817149d6f35fcf1` |
+| `platform/contract-v1/wire-settings.json` | wire-settings | 230 sections (61 valid), 46 person documents (8 valid) | `f25b5831001fd260786184b86ac3daeffb5dc49a69ce06615bb01d9bef2a6364` |
+| `platform/contract-v1/wire-commands.json` | wire-commands | 17 feed pages (6 valid), 161 commands (75 valid), 14 commands with the app's action (7 `run`, 1 `reset`, 2 `expired`, 4 `invalid_command`), 64 results (24 valid), 11 bodies of results (3 valid), 76 classes (13 `retry`, 63 `final`) | `463aa5b17dea3848e5693d5afab13955ff6a9476b29f93b961a1f45812030aa5` |
 | `platform/contract-v1/command-macs.json` | command-macs | 21 commands with their canonical text and MAC (7 verify) | `afa17bc71efe45f8e80330d0622b7e237fc8f1d2183a75969a1195186596c42c` |
 
-`command-macs.json` (41635 bytes) is ASCII; `wire-settings.json` (7810927) and `wire-commands.json` (1187049) hold UTF-8. They were revised before the tag after Wappie's review of the pull request (kit#11): a valid case for every closed code, the review's unpinned rules as small invalid cases, command feed pages, the wider before values of tightening kinds, the switches' `set`, a body naming another app under a MAC for this one, and documents and bodies at their call's limits.
+`command-macs.json` (41635 bytes) is ASCII; `wire-settings.json` (6592198) and `wire-commands.json` (1215779) hold UTF-8. They were revised before the tag after Wappie's two reviews of the pull request (kit#11): a valid case for every closed code at its member's full path, an invalid case with one fault for every rule the reviews named and an unknown value for each closed list, command feed pages, the wider before values of tightening kinds, the switches' `set`, a body naming another app under a MAC for this one, and results bodies at their call's limit; the documents' limits are pinned by Go tests instead (`contract`'s `TestADocumentAtItsCallsLimitIsValidAndOneByteMoreIsNot`).
 
 ## Mailie's platform wrap, written by the kit
 

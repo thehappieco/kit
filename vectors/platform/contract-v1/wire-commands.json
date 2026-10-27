@@ -2,7 +2,7 @@
   "format": "thehappie-contract/vectors",
   "version": 1,
   "kind": "wire-commands",
-  "description": "The settings part's commands and results (SPEC section 11.19). commands: a command as the platform serves it to the app named, signed with SecretA of signatures.json for that app; valid when contract.VerifyCommand takes it (it decodes as an app decodes: a member it does not know is ignored) and its ValidateIn accepts it for the kind of the workspace it names (workspace_kind: personal, team, or \"\" for a person's kind). actions: a command an app holding the generation takes, carried by an answer signed at signed_at, with last_wseq the highest wseq its producer ran in that workspace with another id, and again whether the feed delivered it again; what it does, in this order: invalid_command (a mac that does not hold under SecretA), reset (another generation), invalid_command (not valid), expired (issued more than 30 days before signed_at, unless delivered again), expired (signed_at after its expires_at), invalid_command (a wseq at or below last_wseq, unless delivered again), else run. results: one contract.CommandResult of a command of the app's kind, decoded as the platform decodes what an app sends (strictly: no member it does not know, every name exactly as written and present), then its ValidateFor(app, kind). batches: bodies of POST /contract/v1/commands/results: valid when within 256 KiB, decoded strictly as contract.CommandResults and valid. classes: each refusal code's class, retry or final, for a kind that tightens or not (contract.CommandRefusalClass).",
+  "description": "The settings part's commands and results (SPEC section 11.19). commands: a command as the platform serves it to the app named, signed with SecretA of signatures.json for that app; valid when contract.VerifyCommand takes it (it decodes as an app decodes: a member it does not know is ignored) and its ValidateIn accepts it for the kind of the workspace it names (workspace_kind: personal, team, or \"\" for a person's kind). actions: a command an app holding the generation takes, carried by an answer signed at signed_at, with last_wseq the highest wseq its producer ran in that workspace with another id, and again whether the feed delivered it again; what it does, in this order: invalid_command (a body that names another app, whatever its mac), invalid_command (a mac that does not hold under SecretA), reset (another generation), invalid_command (not valid), expired (issued more than 30 days before signed_at, unless delivered again), expired (signed_at after its expires_at), invalid_command (a wseq at or below last_wseq, unless delivered again), else run. results: one contract.CommandResult of a command of the app's kind, decoded as the platform decodes what an app sends (strictly: no member it does not know, every name exactly as written and present), then its ValidateFor(app, kind). batches: bodies of POST /contract/v1/commands/results: valid when within 256 KiB, decoded strictly as contract.CommandResults and valid. classes: each refusal code's class, retry or final, for a kind that tightens or not (contract.CommandRefusalClass).",
   "commands": [
     {
       "name": "wappie's item.rename",
@@ -6602,7 +6602,7 @@
       "valid": false
     },
     {
-      "name": "based_on naming a third person",
+      "name": "based_on naming a third person in the target's place",
       "app": "wappie",
       "workspace_kind": "team",
       "value": {
@@ -6613,7 +6613,7 @@
         "based_on": {
           "docs": {
             "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7,
-            "0199c3d4-0000-7000-8000-000000000003": 1
+            "0199c3d4-0000-7000-8000-000000000003": 3
           },
           "state_seq": 1791892800000
         },
@@ -6624,21 +6624,27 @@
         "generation": "0199b1e0-0000-7000-8000-000000000001",
         "id": "0199f3c4-0000-7000-8000-000000000021",
         "issued_at": "2026-10-13T12:00:00Z",
-        "kind": "item.rename",
-        "mac": "v1=8d83c6cb39a9bb8876aefefb21834d939ba2f0048e662bb5ca57c874a2316840",
+        "kind": "item.flags_raise",
+        "mac": "v1=68e24647f5bc9d7cd8d134ad49e8385659d5bcb18866155b9ac6212559ab6b07",
         "params": {
           "after": {
-            "label": "Vendas SP"
+            "can": [
+              "read",
+              "send"
+            ]
           },
           "before": {
-            "label": "Vendas"
+            "can": [
+              "read"
+            ]
           }
         },
         "retry_of": null,
         "secret": 2,
         "section": "numbers",
         "target": {
-          "item": "0199e000-0000-7000-8000-000000000004"
+          "item": "0199e000-0000-7000-8000-000000000004",
+          "person": "0199c3d4-0000-7000-8000-000000000002"
         },
         "type": "command",
         "v": 1,
@@ -8597,6 +8603,717 @@
       "valid": false
     },
     {
+      "name": "send withdrawn from old_text",
+      "app": "mailie",
+      "workspace_kind": "",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": null,
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": null,
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "consent.withdraw",
+        "mac": "v1=eaa04737c45668905159a7d960147e9181209dcd81779ee638f7267b627bbfcb",
+        "params": {
+          "after": {
+            "send": "off"
+          },
+          "before": {
+            "send": "old_text"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "person",
+        "target": {},
+        "type": "command",
+        "v": 1,
+        "workspace_id": null,
+        "wseq": null
+      },
+      "valid": true
+    },
+    {
+      "name": "actions agreed from old_text",
+      "app": "mailie",
+      "workspace_kind": "",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": null,
+        "agreement": {
+          "language": "pt-BR",
+          "revision": "2026-10-sync-3"
+        },
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "consent.agree",
+        "mac": "v1=6bc3e07a1a0c8f05d78d180e73d3fd10c95284f3f6923f7de3eff718fbcefe9e",
+        "params": {
+          "after": {
+            "actions": "on"
+          },
+          "before": {
+            "actions": "old_text"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "person",
+        "target": {},
+        "type": "command",
+        "v": 1,
+        "workspace_id": null,
+        "wseq": null
+      },
+      "valid": true
+    },
+    {
+      "name": "a before on a kind that has no setting",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.sync_now",
+        "mac": "v1=075dc38f9ee3367fe9adadec38f2a54e65b95172c37f5c67665ec88095bb3f5b",
+        "params": {
+          "before": {
+            "capture": "on"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "an after on a kind that has no setting",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.sync_now",
+        "mac": "v1=841b1b1814a4ca9596489d0e6441dfbd04da5865635d7e3f4082803470c70082",
+        "params": {
+          "after": {
+            "capture": "on"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a switch turned on to null",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "mcp.switch_on",
+        "mac": "v1=b4899540aa6a2847b1409101dbc84187e196cc265e263f45a211d2dd21b5092f",
+        "params": {
+          "after": {
+            "set": null
+          },
+          "before": {
+            "set": false
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "mcp",
+        "target": {
+          "switch": "text"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a switch turned off from off",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": null,
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "mcp.switch_off",
+        "mac": "v1=d85dba3a343a951331919deecadaf46b56f8c23aa4a4373d45e096cd1d88d587",
+        "params": {
+          "after": {
+            "set": false
+          },
+          "before": {
+            "set": false
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "mcp",
+        "target": {
+          "switch": "text"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "sending paused from paused",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": null,
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "mcp.send_pause",
+        "mac": "v1=b098aade6e7e97d08d3286a53d9400e49d3980ebb3c93af947f03040503f1ce2",
+        "params": {
+          "after": {
+            "send_paused": true
+          },
+          "before": {
+            "send_paused": true
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "mcp",
+        "target": {
+          "row": "conn_7"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a hold lifted from no hold",
+      "app": "mailie",
+      "workspace_kind": "personal",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.lift_hold",
+        "mac": "v1=3981e0616170edf9a98cdd51e7daab0b0f59c8b1ea512a05e0776112106f9062",
+        "params": {
+          "after": {
+            "held": false
+          },
+          "before": {
+            "held": false
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "0199d000-0000-7000-8000-000000000005",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a removed index turned off from off",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": null,
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.removed_index_off",
+        "mac": "v1=d3cdbf6cc6d53e0c2d13b6c10adcfe1b399e2949429e5baf066345676eaecd1a",
+        "params": {
+          "after": {
+            "index_kept": false
+          },
+          "before": {
+            "index_kept": false
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "Mailie's pause from paused",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.sync_stop",
+        "mac": "v1=a64576ed147a512f247c579164cc117fc8dc000bbd41787e873afb63cde9330a",
+        "params": {
+          "after": {
+            "paused": true
+          },
+          "before": {
+            "paused": true
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "an unknown role at issue",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "guest",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=94f9b4983faf1ebd972e751824062f7b6dcd2c173f5dd7101eca5f217800dffe",
+        "params": {
+          "after": {
+            "label": "Vendas SP"
+          },
+          "before": {
+            "label": "Vendas"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "an id that is no UUID",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "812",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=27be1c46c8cffd5270dcd8ce4a569c44bdfa8709b61f551745485b91c2e92a45",
+        "params": {
+          "after": {
+            "label": "Vendas SP"
+          },
+          "before": {
+            "label": "Vendas"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a type that is not command",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=31e5a64accd72ae37128b8c1c227024db8e31d17c3cca2ef69b3a536ca429d2a",
+        "params": {
+          "after": {
+            "label": "Vendas SP"
+          },
+          "before": {
+            "label": "Vendas"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "result",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a notice dismissed at version 0",
+      "app": "wappie",
+      "workspace_kind": "",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": null,
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "person.notices_dismiss",
+        "mac": "v1=4ebe87dfeeb0681ccda8289ddad2888628e425770eb0b5dfe0d3830e5e696698",
+        "params": {
+          "notices": [
+            {
+              "id": "812",
+              "version": 0
+            }
+          ]
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "person",
+        "target": {},
+        "type": "command",
+        "v": 1,
+        "workspace_id": null,
+        "wseq": null
+      },
+      "valid": false
+    },
+    {
+      "name": "params null",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.sync_now",
+        "mac": "v1=03b668737a91dd06c0e1f06ea7a3ed2e168c5e2290494189a117550758c9c94d",
+        "params": null,
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a target's person that is no sub",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7,
+            "ana": 3
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.flags_raise",
+        "mac": "v1=50f9bc6bb7e7364022bc8b649876ad07862c317af983890b6a57fb5773e17146",
+        "params": {
+          "after": {
+            "can": [
+              "read",
+              "send"
+            ]
+          },
+          "before": {
+            "can": [
+              "read"
+            ]
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004",
+          "person": "ana"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
       "name": "secret 0",
       "app": "wappie",
       "workspace_kind": "team",
@@ -8724,6 +9441,132 @@
         "retry_of": null,
         "secret": 2,
         "section": "numbers",
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a person's kind given a workspace",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": null,
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": null,
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "person.sign_out_everywhere",
+        "mac": "v1=b755895dd59616ba407422d4d25e278b56a6ed169d1679a18179b7a2400e7456",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "person",
+        "target": {},
+        "type": "command",
+        "v": 1,
+        "workspace_id": null,
+        "wseq": null
+      },
+      "valid": false
+    },
+    {
+      "name": "a workspace's kind given none",
+      "app": "wappie",
+      "workspace_kind": "",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4",
+        "params": {
+          "after": {
+            "label": "Vendas SP"
+          },
+          "before": {
+            "label": "Vendas"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a workspace's kind of an unknown kind",
+      "app": "wappie",
+      "workspace_kind": "shared",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=15faefc73f92f56a5ee4b23c867520a0fb1bc6622b400c744b801a32b247f0c4",
+        "params": {
+          "after": {
+            "label": "Vendas SP"
+          },
+          "before": {
+            "label": "Vendas"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
         "type": "command",
         "v": 1,
         "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
@@ -9486,6 +10329,54 @@
       "valid": false
     },
     {
+      "name": "next_after below 0",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "head": 1,
+        "items": [
+          {
+            "cseq": 1,
+            "command": {
+              "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "actor_role": "owner",
+              "agreement": null,
+              "app": "wappie",
+              "based_on": {
+                "docs": {
+                  "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+                },
+                "state_seq": 1791892800000
+              },
+              "confirm": null,
+              "cseq": 1,
+              "expires_at": "2026-10-13T12:05:00Z",
+              "first_issued_at": "2026-10-13T12:00:00Z",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "id": "0199f3c4-0000-7000-8000-000000000001",
+              "issued_at": "2026-10-13T12:00:00Z",
+              "kind": "item.sync_now",
+              "mac": "v1=b7ace0eb1dae32cd2f1bc3e534524d8a2bd52351b3fd4acbd67bea31c971bdf6",
+              "params": {},
+              "retry_of": null,
+              "secret": 2,
+              "section": "numbers",
+              "target": {
+                "item": "0199e000-0000-7000-8000-000000000004"
+              },
+              "type": "command",
+              "v": 1,
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "wseq": 1
+            },
+            "again": false
+          }
+        ],
+        "next_after": -1,
+        "more": false
+      },
+      "valid": false
+    },
+    {
       "name": "a generation that is no UUID",
       "value": {
         "generation": "1",
@@ -10136,6 +11027,52 @@
         "v": 1,
         "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
         "wseq": 41
+      },
+      "action": "invalid_command"
+    },
+    {
+      "name": "a body naming another app: invalid_command",
+      "app": "wappie",
+      "generation": "0199b1e0-0000-7000-8000-000000000001",
+      "signed_at": "2026-10-13T12:00:00Z",
+      "last_wseq": null,
+      "again": false,
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": null,
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": null,
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "consent.withdraw",
+        "mac": "v1=f48631f5d8c929cb3d5b53284e91f928a99cc20c09f5aef95fdad219035d7da8",
+        "params": {
+          "after": {
+            "actions": "off"
+          },
+          "before": {
+            "actions": "on"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "person",
+        "target": {},
+        "type": "command",
+        "v": 1,
+        "workspace_id": null,
+        "wseq": null
       },
       "action": "invalid_command"
     },
@@ -15769,16 +16706,64 @@
     {
       "name": "a detail of two shapes",
       "app": "wappie",
-      "kind": "item.rename",
+      "kind": "mcp.switch_off",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "ran",
+        "code": null,
+        "retry_after": null,
+        "state_seq": 1791892800001,
+        "detail": {
+          "sessions_ended": 1,
+          "also_off": [
+            "ai"
+          ]
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "also_off naming an unknown switch",
+      "app": "wappie",
+      "kind": "mcp.switch_off",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "ran",
+        "code": null,
+        "retry_after": null,
+        "state_seq": 1791892800001,
+        "detail": {
+          "also_off": [
+            "send"
+          ]
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "a holder of an unknown kind in others_have_access",
+      "app": "wappie",
+      "kind": "item.move_out",
       "value": {
         "id": "0199f3c4-0000-7000-8000-000000000021",
         "outcome": "refused",
-        "code": "label_changed",
+        "code": "others_have_access",
         "retry_after": null,
         "state_seq": 1791892800000,
         "detail": {
-          "cleaned": "Vendas",
-          "purged": true
+          "holders": [
+            {
+              "kind": "admin",
+              "sub": "0199c3d4-0000-7000-8000-000000000002",
+              "row": "usr_0000"
+            }
+          ],
+          "holders_more": 0,
+          "ends": [
+            "conn_7"
+          ]
         },
         "at": "2026-10-13T12:00:01Z"
       },

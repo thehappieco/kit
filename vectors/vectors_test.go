@@ -722,10 +722,10 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 			"events 14 (6 valid)"},
 		// Kit v0.10.0's, from the platform's design at 509cc65: the
 		// settings part, its commands and their MAC.
-		{"wire-settings.json", "wire-settings", "kit v0.10.0", false, "7637869d84cbdf99ce22d85b64a1be57fc1578975c64a02235a91d801f375c0b",
-			"sections 195 (60 valid), persons 37 (8 valid)"},
-		{"wire-commands.json", "wire-commands", "kit v0.10.0", false, "57c4487fcf9b21146733c5cf8d088d2b26037c39997af358c817149d6f35fcf1",
-			"feeds 16 (6 valid), actions 13 (run 7, reset 1, expired 2, invalid_command 3), commands 142 (73 valid), results 62 (24 valid), batches 11 (3 valid), classes 76 (retry 13, final 63)"},
+		{"wire-settings.json", "wire-settings", "kit v0.10.0", false, "f25b5831001fd260786184b86ac3daeffb5dc49a69ce06615bb01d9bef2a6364",
+			"sections 230 (61 valid), persons 46 (8 valid)"},
+		{"wire-commands.json", "wire-commands", "kit v0.10.0", false, "463aa5b17dea3848e5693d5afab13955ff6a9476b29f93b961a1f45812030aa5",
+			"feeds 17 (6 valid), actions 14 (run 7, reset 1, expired 2, invalid_command 4), commands 161 (75 valid), results 64 (24 valid), batches 11 (3 valid), classes 76 (retry 13, final 63)"},
 		{"command-macs.json", "command-macs", "kit v0.10.0", true, "afa17bc71efe45f8e80330d0622b7e237fc8f1d2183a75969a1195186596c42c",
 			"macs 21 (7 valid)"},
 	}

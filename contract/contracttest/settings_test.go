@@ -346,8 +346,9 @@ func TestACommandIsIssuedAsTheConsoleIssuesItAndSignedWhenServed(t *testing.T) {
 	if cmds[1].ExpiresAt == nil || !cmds[1].ExpiresAt.Equal(now.Add(contract.CommandLifetime)) || len(cmds[1].BasedOn.Docs) != 1 {
 		t.Fatalf("the kind with an expiry: %+v", cmds[1])
 	}
-	// Under another app or another secret, no mac holds.
-	if _, err := contract.VerifyCommand(f.Items[0].Command, "mailie", []string{secretA}); !errors.Is(err, contract.ErrCommandMAC) {
+	// Under another app the body is refused before its mac, and under
+	// another secret no mac holds.
+	if _, err := contract.VerifyCommand(f.Items[0].Command, "mailie", []string{secretA}); !errors.Is(err, contract.ErrInvalid) {
 		t.Fatalf("under another app: %v", err)
 	}
 	if _, err := contract.VerifyCommand(f.Items[0].Command, "wappie", []string{secretB}); !errors.Is(err, contract.ErrCommandMAC) {

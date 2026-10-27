@@ -207,12 +207,12 @@ func FuzzACommandVerifiesOnlyUnderItsMAC(f *testing.F) {
 		if _, err := VerifyCommand(signed, "wappie", []string{other}); !errors.Is(err, ErrCommandMAC) {
 			t.Fatal("a signed command verifies under another secret")
 		}
-		if _, err := VerifyCommand(signed, "mailie", []string{secret}); !errors.Is(err, ErrCommandMAC) {
+		if _, err := VerifyCommand(signed, "mailie", []string{secret}); !errors.Is(err, ErrInvalid) {
 			t.Fatal("a signed command verifies for another app")
 		}
 		_, err = VerifyCommand(raw, "wappie", []string{secret})
-		canonical, mac, cerr := canonicalCommand(signed)
-		_, carried, _ := canonicalCommand(raw)
+		canonical, mac, _, cerr := canonicalCommand(signed)
+		_, carried, _, _ := canonicalCommand(raw)
 		if cerr != nil || commandMAC(canonical, "wappie", secret) != mac {
 			t.Fatal("the mac SignCommand writes is not its canonical text's")
 		}

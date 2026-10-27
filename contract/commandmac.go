@@ -40,29 +40,30 @@ var ErrCommandMAC = errors.New("contract: the command's mac does not hold")
 // JSON object: valid UTF-8, no escape of half a surrogate pair, no member
 // twice anywhere, and only what JCS writes (null, booleans, strings,
 // integers within ±(2^53−1), arrays and objects).
-func canonicalCommand(raw []byte) (canonical []byte, mac string, err error) {
+func canonicalCommand(raw []byte) (canonical []byte, mac, app string, err error) {
 	if !wellFormed(raw) {
-		return nil, "", invalid("command: not one well-formed JSON object, or a member twice")
+		return nil, "", "", invalid("command: not one well-formed JSON object, or a member twice")
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()
 	var v map[string]any
 	if dec.Decode(&v) != nil || v == nil {
-		return nil, "", invalid("command: not a JSON object")
+		return nil, "", "", invalid("command: not a JSON object")
 	}
 	if m, ok := v["mac"]; ok {
 		s, isString := m.(string)
 		if !isString {
-			return nil, "", invalid("command: mac")
+			return nil, "", "", invalid("command: mac")
 		}
 		mac = s
 		delete(v, "mac")
 	}
+	app, _ = v["app"].(string)
 	canonical, err = jcs.Marshal(v)
 	if err != nil {
-		return nil, "", invalid("command: no canonical text")
+		return nil, "", "", invalid("command: no canonical text")
 	}
-	return canonical, mac, nil
+	return canonical, mac, app, nil
 }
 
 // commandMAC is the MAC of a canonical command for app under secret.
@@ -86,18 +87,18 @@ func SignCommand(raw []byte, app, secret string) ([]byte, error) {
 	if !ValidApp(app) {
 		return nil, invalid("app")
 	}
-	canonical, _, err := canonicalCommand(raw)
+	canonical, _, bodyApp, err := canonicalCommand(raw)
 	if err != nil {
 		return nil, err
+	}
+	if bodyApp != app {
+		return nil, invalid("command: the body names another app")
 	}
 	dec := json.NewDecoder(bytes.NewReader(canonical))
 	dec.UseNumber()
 	var v map[string]any
 	if err := dec.Decode(&v); err != nil {
 		return nil, err
-	}
-	if v["app"] != app {
-		return nil, invalid("command: the body names another app")
 	}
 	v["mac"] = commandMAC(canonical, app, secret)
 	return jcs.Marshal(v)
@@ -114,9 +115,9 @@ func SignCommand(raw []byte, app, secret string) ([]byte, error) {
 // it does not know is ignored, and a member counts only named exactly as
 // written; Validate, or ValidateIn once the app knows the workspace's
 // kind, is the app's next step, and the feed item's cseq must be the
-// command's own. A command whose MAC holds but whose body names another app
-// than app is ErrInvalid too: an app runs only its own commands, whatever
-// feed carried them.
+// command's own. A command whose body names another app than app is
+// ErrInvalid, refused before its MAC is checked: an app runs only its own
+// commands, whatever feed carried them.
 func VerifyCommand(raw []byte, app string, secrets []string) (Command, error) {
 	if len(secrets) == 0 || !ValidApp(app) {
 		return Command{}, ErrCommandMAC
@@ -126,9 +127,14 @@ func VerifyCommand(raw []byte, app string, secrets []string) (Command, error) {
 			return Command{}, ErrCommandMAC
 		}
 	}
-	canonical, mac, err := canonicalCommand(raw)
+	canonical, mac, bodyApp, err := canonicalCommand(raw)
 	if err != nil {
 		return Command{}, err
+	}
+	// An app runs only its own commands: a body of another app is refused
+	// first, its MAC holding or not (SPEC section 11.19's order).
+	if bodyApp != app {
+		return Command{}, invalid("command: the body names another app")
 	}
 	if !validMAC(mac) {
 		return Command{}, ErrCommandMAC
@@ -145,9 +151,6 @@ func VerifyCommand(raw []byte, app string, secrets []string) (Command, error) {
 	var c Command
 	if err := json.Unmarshal(exactOnly(raw, reflect.TypeFor[Command]()), &c); err != nil {
 		return Command{}, invalid("command: it does not decode")
-	}
-	if c.App != app {
-		return Command{}, invalid("command: the body names another app")
 	}
 	return c, nil
 }

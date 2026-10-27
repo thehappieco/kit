@@ -484,7 +484,12 @@ type MCPSwitch struct {
 	Switch string `json:"switch"`
 	// Set is the workspace's own choice, an owner's, or null until one is
 	// made, while the switch follows its default: the switch commands'
-	// before and after. Effective and TokenEffective follow from it.
+	// before and after. Effective and TokenEffective follow from it. The
+	// switches depend on one another: attachments, drafts and ai need text,
+	// and ai needs attachments, so mcp.switch_off of text sets attachments,
+	// drafts and ai to false too, and of attachments ai, whatever their
+	// set, null included; each switch it turns off with it is listed in
+	// the result's also_off.
 	Set     *bool `json:"set"`
 	Default bool  `json:"default"`
 	// Operator is the operator's half: allow or deny.

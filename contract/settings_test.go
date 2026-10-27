@@ -122,7 +122,7 @@ func TestACommandVerifiesUnderItsAppAndSecretOnly(t *testing.T) {
 		app     string
 		secrets []string
 	}{
-		{"mailie", []string{SecretA}}, {"wappie", []string{SecretB}}, {"wappie", nil},
+		{"wappie", []string{SecretB}}, {"wappie", nil},
 		{"wappie", []string{"", SecretA}}, {"wappie", []string{SecretA + "="}}, {"Wappie", []string{SecretA}},
 	} {
 		if _, err := contract.VerifyCommand(raw, try.app, try.secrets); !errors.Is(err, contract.ErrCommandMAC) {
@@ -130,7 +130,10 @@ func TestACommandVerifiesUnderItsAppAndSecretOnly(t *testing.T) {
 		}
 	}
 	// A body that names another app is no command of this one: not signed
-	// for it, and refused by it even when its MAC holds.
+	// for it, and refused by it first, its MAC holding or not.
+	if _, err := contract.VerifyCommand(raw, "mailie", []string{SecretA}); !errors.Is(err, contract.ErrInvalid) {
+		t.Errorf("a wappie command checked by mailie: %v", err)
+	}
 	if _, err := contract.SignCommand(raw, "mailie", SecretA); !errors.Is(err, contract.ErrInvalid) {
 		t.Errorf("signing a wappie body for mailie: %v", err)
 	}
@@ -198,6 +201,61 @@ func TestNoHostIsANumber(t *testing.T) {
 	for _, h := range []string{"claude.ai", "localhost", "xn--bcher-kva.example", "a1.b2c"} {
 		if !contract.ValidHost(h) {
 			t.Errorf("%s is refused", h)
+		}
+	}
+}
+
+// An app id other than wappie, mailie and the reference app has no
+// sections, kinds or notice codes: nothing defaults to Wappie's.
+func TestAnUnknownAppHasNoSettingsPart(t *testing.T) {
+	for _, app := range []string{"otherapp", "wappiex", "Wappie", ""} {
+		if contract.Sections(app) != nil || contract.CommandKinds(app) != nil || contract.NoticeCodes(app) != nil ||
+			contract.SectionProducer(app, contract.SectionNumbers) != "" {
+			t.Errorf("%q has a settings part", app)
+		}
+		if _, ok := contract.CommandKindOf(app, contract.OpItemRename); ok {
+			t.Errorf("%q has a kind", app)
+		}
+		d := sectionDoc("wappie", contract.SectionNumbers, vecNumbers(nil), func(d *contract.SettingsDoc) { d.App = app })
+		if !errors.Is(d.Validate(), contract.ErrInvalid) {
+			t.Errorf("%q's numbers validate", app)
+		}
+		c := vecCmd("wappie", contract.OpItemRename, func(c *contract.Command) { c.App = app; c.MAC = "v1=" + strings.Repeat("0", 64) })
+		if !errors.Is(c.Validate(), contract.ErrInvalid) {
+			t.Errorf("%q's command validates", app)
+		}
+	}
+	if contract.ReferenceApp != "fakeproduct" || contract.CommandKinds(contract.ReferenceApp) == nil {
+		t.Error("the reference app")
+	}
+}
+
+// A settings document is valid up to its call's limit, 1 MiB for a section
+// and 256 KiB for a person, and not one byte over: the limits are pinned
+// here, by documents padded to them, rather than by documents of megabytes
+// in the vector files.
+func TestADocumentAtItsCallsLimitIsValidAndOneByteMoreIsNot(t *testing.T) {
+	if contract.SettingsBodyLimit != 1<<20 || contract.PersonSettingsBodyLimit != 256<<10 || contract.ResultsBodyLimit != 256<<10 {
+		t.Fatalf("the limits are %d, %d and %d", contract.SettingsBodyLimit, contract.PersonSettingsBodyLimit, contract.ResultsBodyLimit)
+	}
+	pad := func(raw []byte, n int) []byte {
+		return append([]byte("{"+strings.Repeat(" ", n-len(raw))), raw[1:]...)
+	}
+	section := mustRaw(sectionDoc("wappie", contract.SectionNumbers, vecNumbers(nil), nil))
+	person := mustRaw(personDoc("mailie", vecMailiePerson(nil), nil))
+	for _, c := range []struct {
+		raw   []byte
+		limit int
+		valid func([]byte) bool
+	}{
+		{section, contract.SettingsBodyLimit, sectionValid},
+		{person, contract.PersonSettingsBodyLimit, personValid},
+	} {
+		if at := pad(c.raw, c.limit); len(at) != c.limit || !c.valid(at) {
+			t.Errorf("a document of %d bytes is refused", len(at))
+		}
+		if over := pad(c.raw, c.limit+1); c.valid(over) {
+			t.Errorf("a document of %d bytes is valid", len(over))
 		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"os"
@@ -395,33 +396,31 @@ func TestEverySettingsVectorValidatesAsItSays(t *testing.T) {
 }
 
 // Every code of every closed list of the settings part is in a valid case,
-// each where it belongs (a member's codes under that member, a notice's
-// params under its code), and every section of both apps: dropping a code
-// from the validator fails this test.
+// at the member's full path in its section (a notice's params under its
+// code), and every section of both apps: dropping a code from the
+// validator, or from the cases, fails this test.
 func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
 	w := settingsFile(t)
-	// seen holds member=value for every string value of a valid case's
-	// data, and code.member=value inside a notice's params.
+	// seen holds section:path=value for every string and number of a
+	// valid case's data, the path the members' names joined by dots, []
+	// for a list's entries, and a notice's params as params(<code>).
 	seen := map[string]bool{}
-	var walk func(v any, member, code string)
-	walk = func(v any, member, code string) {
+	var walk func(v any, path string)
+	walk = func(v any, path string) {
 		switch v := v.(type) {
-		case string:
-			seen[member+"="+v] = true
-			if code != "" {
-				seen[code+"."+member+"="+v] = true
-			}
+		case string, json.Number:
+			seen[fmt.Sprintf("%s=%v", path, v)] = true
 		case []any:
 			for _, e := range v {
-				walk(e, member, code)
+				walk(e, path+"[]")
 			}
 		case map[string]any:
 			for k, e := range v {
-				inner := code
+				name := k
 				if c, ok := v["code"].(string); ok && k == "params" {
-					inner = c
+					name = "params(" + c + ")"
 				}
-				walk(e, k, inner)
+				walk(e, path+"."+name)
 			}
 		}
 	}
@@ -439,12 +438,18 @@ func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
 			if err := json.Unmarshal(c.Value, &doc); err != nil {
 				t.Fatal(err)
 			}
+			section := doc.Section
+			if section == "" {
+				section = doc.App + "-person"
+			}
 			sections[doc.App+"/"+doc.Section] = true
+			dec := json.NewDecoder(bytes.NewReader(doc.Data))
+			dec.UseNumber()
 			var data any
-			if err := json.Unmarshal(doc.Data, &data); err != nil {
+			if err := dec.Decode(&data); err != nil {
 				t.Fatal(err)
 			}
-			walk(data, "", "")
+			walk(data, section+":")
 		}
 	}
 	for _, app := range []string{"wappie", "mailie"} {
@@ -453,63 +458,60 @@ func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
 				t.Errorf("no valid case of %s's section %q", app, s)
 			}
 		}
-		for _, code := range contract.NoticeCodes(app) {
-			if !seen["code="+code] {
-				t.Errorf("no valid case holds %s's notice code %s", app, code)
-			}
-		}
 	}
-	for member, codes := range map[string][]string{
-		"server_allows": contract.ServerAllows(),
-		"provider":      append(contract.AIProviders(), "google", "microsoft", "icloud", "imap"),
-		"functions":     contract.AIFunctions(),
-		"providers":     contract.AIProviders(),
-		"end_reason":    contract.EndReasons(),
-		"connection":    {"pairing", "online", "offline", "logged_out_phone", "logged_out_deletion", "banned"},
-		"capture":       {"on", "paused"},
-		"kind":          {"person", "key", "app", "service_account", "assistant", "ai", "legacy_key", "token", "metadata", "content"},
-		"period":        {"month"},
-		"operator":      {"allow", "deny"},
-		"switch":        {"text", "attachments", "drafts", "ai"},
-		"tier":          {"web_tested", "local_tested", "unknown", "token"},
-		"send":          {"off", "draft", "direct"},
-		"availability":  {"usable", "withheld", "closed"},
-		"link_min_role": {"owner", "admin", "member"},
-		"sign_in":       {"oauth", "password"},
-		"reason":        {"scope_missing", "mailbox_refused", "token_rejected", "unproved", "other"},
-		"mode":          {"team", "personal"},
-		"indexed":       {"none", "partial", "complete"},
-		"consent":       {"sync", "actions", "send"},
-		"actor_kind":    {"person", "key"},
+	people := []string{"person", "service_account", "assistant", "ai", "legacy_key", "token"}
+	for path, codes := range map[string][]string{
+		"numbers:.items[].connection":                                     {"pairing", "online", "offline", "logged_out_phone", "logged_out_deletion", "banned"},
+		"numbers:.items[].capture":                                        {"on", "paused"},
+		"numbers:.items[].paused_by.kind":                                 {"person", "key", "app"},
+		"numbers:.items[].move_out.holders[].kind":                        people,
+		"integrations:.server_off.functions[]":                            contract.AIFunctions(),
+		"integrations:.server_off.providers[]":                            contract.AIProviders(),
+		"integrations:.provider_keys[].provider":                          contract.AIProviders(),
+		"integrations:.integrations[].status":                             {"pending", "active", "paused", "reseal", "ended"},
+		"integrations:.integrations[].functions[].id":                     contract.AIFunctions(),
+		"integrations:.integrations[].functions[].provider":               contract.AIProviders(),
+		"integrations:.integrations[].cap.period":                         {"month"},
+		"integrations:.integrations[].alerts[].code":                      contract.AIAlerts(),
+		"integrations:.integrations[].alerts[].function":                  contract.AIFunctions(),
+		"integrations:.integrations[].alerts[].provider":                  contract.AIProviders(),
+		"integrations:.integrations[].end_reason":                         contract.EndReasons(),
+		"mcp:.switches[].switch":                                          {"text", "attachments", "drafts", "ai"},
+		"mcp:.switches[].operator":                                        {"allow", "deny"},
+		"mcp:.server_allows[]":                                            contract.ServerAllows(),
+		"mcp:.connections[].kind":                                         {"metadata", "content"},
+		"mcp:.connections[].status":                                       {"pending", "active", "reseal", "revoked", "expired"},
+		"mcp:.connections[].tier":                                         {"web_tested", "local_tested", "unknown", "token"},
+		"mcp:.connections[].consent.send":                                 {"off", "draft", "direct"},
+		"mcp:.connections[].history_days":                                 {"7", "30", "90"},
+		"mcp:.connections[].budget_hits[].code":                           contract.BudgetHits(),
+		"mcp:.connections[].end_reason":                                   contract.EndReasons(),
+		"installations:.bindings[].state":                                 {"reserved", "active"},
+		"email-accounts:.availability":                                    {"usable", "withheld", "closed"},
+		"email-accounts:.link_min_role":                                   {"owner", "admin", "member"},
+		"email-accounts:.items[].provider":                                {"google", "microsoft", "icloud", "imap"},
+		"email-accounts:.items[].sign_in":                                 {"oauth", "password"},
+		"email-accounts:.items[].status":                                  {"connected", "needs_reauth", "pending_auth", "error", "removed"},
+		"email-accounts:.items[].reason":                                  {"scope_missing", "mailbox_refused", "token_rejected", "unproved", "other"},
+		"email-accounts:.items[].sync.mode":                               {"team", "personal"},
+		"email-accounts:.items[].sync.paused.kind":                        {"person"},
+		"email-accounts:.items[].sync.indexed":                            {"none", "partial", "complete"},
+		"permissions:.members[].status":                                   {"active", "suspended", "held", "disabled"},
+		"wappie-person:.notices[].code":                                   contract.NoticeCodes("wappie"),
+		"wappie-person:.notices[].params(sync_paused).actor_kind":         {"person", "key"},
+		"mailie-person:.notices[].code":                                   contract.NoticeCodes("mailie"),
+		"mailie-person:.notices[].params(mailbox_removed).state":          {"removed", "deleted"},
+		"mailie-person:.notices[].params(mailbox_sync_off).state":         {"live", "removed", "deleted"},
+		"mailie-person:.notices[].params(mailbox_sync_off).actor_kind":    {"person"},
+		"mailie-person:.notices[].params(mailbox_sync_paused).state":      {"live"},
+		"mailie-person:.notices[].params(mailbox_sync_paused).actor_kind": {"person"},
+		"mailie-person:.consents[].consent":                               {"sync", "actions", "send"},
+		"mailie-person:.consents[].state":                                 {"on", "off", "old_text"},
 	} {
 		for _, code := range codes {
-			if !seen[member+"="+code] {
-				t.Errorf("no valid case holds %s %s", member, code)
+			if !seen[path+"="+code] {
+				t.Errorf("no valid case holds %s %s", path, code)
 			}
-		}
-	}
-	for _, code := range contract.AIAlerts() {
-		if !seen["code="+code] {
-			t.Errorf("no valid case holds the AI alert %s", code)
-		}
-	}
-	for _, code := range contract.BudgetHits() {
-		if !seen["code="+code] {
-			t.Errorf("no valid case holds the budget hit %s", code)
-		}
-	}
-	for _, want := range []string{
-		"status=pending", "status=active", "status=paused", "status=reseal", "status=ended", "status=revoked", "status=expired",
-		"status=connected", "status=needs_reauth", "status=pending_auth", "status=error", "status=removed",
-		"status=suspended", "status=held", "status=disabled", "state=reserved", "state=active",
-		"state=on", "state=off", "state=old_text",
-		"mailbox_removed.state=removed", "mailbox_removed.state=deleted",
-		"mailbox_sync_off.state=live", "mailbox_sync_off.state=removed", "mailbox_sync_off.state=deleted",
-		"mailbox_sync_off.actor_kind=person", "mailbox_sync_paused.state=live", "mailbox_sync_paused.actor_kind=person",
-		"sync_paused.actor_kind=person", "sync_paused.actor_kind=key",
-	} {
-		if !seen[want] {
-			t.Errorf("no valid case holds %s", want)
 		}
 	}
 }

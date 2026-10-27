@@ -221,7 +221,8 @@ func commandValid(app, workspaceKind string, raw []byte) bool {
 }
 
 // commandAction is what an app does with a command it takes, in this
-// order: a mac that does not hold, invalid_command; another generation, a
+// order: a body naming another app, invalid_command; a mac that does not
+// hold, invalid_command; another generation, a
 // reset; a command that is not valid, invalid_command; issued more than
 // CommandRetention before the answer that carried it (but delivered
 // again), expired; carried after its expires_at, expired; a wseq at or
@@ -277,7 +278,7 @@ func batchValid(body []byte) bool {
 func wireCommands() (any, error) {
 	out := WireCommands{
 		Format: Format, Version: 1, Kind: "wire-commands",
-		Description: "The settings part's commands and results (SPEC section 11.19). commands: a command as the platform serves it to the app named, signed with SecretA of signatures.json for that app; valid when contract.VerifyCommand takes it (it decodes as an app decodes: a member it does not know is ignored) and its ValidateIn accepts it for the kind of the workspace it names (workspace_kind: personal, team, or \"\" for a person's kind). actions: a command an app holding the generation takes, carried by an answer signed at signed_at, with last_wseq the highest wseq its producer ran in that workspace with another id, and again whether the feed delivered it again; what it does, in this order: invalid_command (a mac that does not hold under SecretA), reset (another generation), invalid_command (not valid), expired (issued more than 30 days before signed_at, unless delivered again), expired (signed_at after its expires_at), invalid_command (a wseq at or below last_wseq, unless delivered again), else run. results: one contract.CommandResult of a command of the app's kind, decoded as the platform decodes what an app sends (strictly: no member it does not know, every name exactly as written and present), then its ValidateFor(app, kind). batches: bodies of POST /contract/v1/commands/results: valid when within 256 KiB, decoded strictly as contract.CommandResults and valid. classes: each refusal code's class, retry or final, for a kind that tightens or not (contract.CommandRefusalClass).",
+		Description: "The settings part's commands and results (SPEC section 11.19). commands: a command as the platform serves it to the app named, signed with SecretA of signatures.json for that app; valid when contract.VerifyCommand takes it (it decodes as an app decodes: a member it does not know is ignored) and its ValidateIn accepts it for the kind of the workspace it names (workspace_kind: personal, team, or \"\" for a person's kind). actions: a command an app holding the generation takes, carried by an answer signed at signed_at, with last_wseq the highest wseq its producer ran in that workspace with another id, and again whether the feed delivered it again; what it does, in this order: invalid_command (a body that names another app, whatever its mac), invalid_command (a mac that does not hold under SecretA), reset (another generation), invalid_command (not valid), expired (issued more than 30 days before signed_at, unless delivered again), expired (signed_at after its expires_at), invalid_command (a wseq at or below last_wseq, unless delivered again), else run. results: one contract.CommandResult of a command of the app's kind, decoded as the platform decodes what an app sends (strictly: no member it does not know, every name exactly as written and present), then its ValidateFor(app, kind). batches: bodies of POST /contract/v1/commands/results: valid when within 256 KiB, decoded strictly as contract.CommandResults and valid. classes: each refusal code's class, retry or final, for a kind that tightens or not (contract.CommandRefusalClass).",
 	}
 	type cmdCase struct {
 		name  string
@@ -402,7 +403,10 @@ func wireCommands() (any, error) {
 		{"a target member its kind does not name", wappie(contract.OpItemRename, func(c *contract.Command) { c.Target.Row = "reg_1" }), false},
 		{"an unknown switch", wappie(contract.OpMCPSwitchOff, func(c *contract.Command) { c.Target.Switch = "send" }), false},
 		{"based_on without the target's document", wappie(contract.OpItemFlagsRaise, func(c *contract.Command) { delete(c.BasedOn.Docs, vecOther) }), false},
-		{"based_on naming a third person", wappie(contract.OpItemRename, func(c *contract.Command) { c.BasedOn.Docs[vecThird] = 1 }), false},
+		{"based_on naming a third person in the target's place", wappie(contract.OpItemFlagsRaise, func(c *contract.Command) {
+			delete(c.BasedOn.Docs, vecOther)
+			c.BasedOn.Docs[vecThird] = 3
+		}), false},
 		{"301 notices dismissed", wappie(contract.OpPersonNoticesDismiss, func(c *contract.Command) {
 			c.Params = mustRaw(map[string]any{"notices": many(301, func(i int) contract.NoticeRef { return contract.NoticeRef{ID: fmt.Sprint(i), Version: 1} })})
 		}), false},
@@ -422,6 +426,25 @@ func wireCommands() (any, error) {
 		{"a move out from another workspace", wappie(contract.OpItemMoveOut, params(`{"before":{"workspace":"`+vecThird+`"},"after":{"workspace":"`+vecPersonal+`"}}`)), false},
 		{"a cap narrowed to the same", wappie(contract.OpAIIntegrationNarrow, params(`{"before":{"cap":100},"after":{"cap":100}}`)), false},
 		{"an integration paused from paused", wappie(contract.OpAIIntegrationNarrow, params(`{"before":{"paused":true},"after":{"paused":true}}`)), false},
+		{"send withdrawn from old_text", mailie(contract.OpConsentWithdraw, params(`{"before":{"send":"old_text"},"after":{"send":"off"}}`)), true},
+		{"actions agreed from old_text", mailie(contract.OpConsentAgree, params(`{"before":{"actions":"old_text"},"after":{"actions":"on"}}`)), true},
+		{"a before on a kind that has no setting", wappie(contract.OpItemSyncNow, params(`{"before":{"capture":"on"}}`)), false},
+		{"an after on a kind that has no setting", wappie(contract.OpItemSyncNow, params(`{"after":{"capture":"on"}}`)), false},
+		{"a switch turned on to null", wappie(contract.OpMCPSwitchOn, params(`{"before":{"set":false},"after":{"set":null}}`)), false},
+		{"a switch turned off from off", wappie(contract.OpMCPSwitchOff, params(`{"before":{"set":false},"after":{"set":false}}`)), false},
+		{"sending paused from paused", wappie(contract.OpMCPSendPause, params(`{"before":{"send_paused":true},"after":{"send_paused":true}}`)), false},
+		{"a hold lifted from no hold", mailie(contract.OpItemLiftHold, params(`{"before":{"held":false},"after":{"held":false}}`)), false},
+		{"a removed index turned off from off", mailie(contract.OpItemRemovedIndexOff, params(`{"before":{"index_kept":false},"after":{"index_kept":false}}`)), false},
+		{"Mailie's pause from paused", mailie(contract.OpItemSyncStop, params(`{"before":{"paused":true},"after":{"paused":true}}`)), false},
+		{"an unknown role at issue", wappie(contract.OpItemRename, func(c *contract.Command) { c.ActorRole = ptr("guest") }), false},
+		{"an id that is no UUID", wappie(contract.OpItemRename, func(c *contract.Command) { c.ID = "812" }), false},
+		{"a type that is not command", wappie(contract.OpItemRename, func(c *contract.Command) { c.Type = "result" }), false},
+		{"a notice dismissed at version 0", wappie(contract.OpPersonNoticesDismiss, params(`{"notices":[{"id":"812","version":0}]}`)), false},
+		{"params null", wappie(contract.OpItemSyncNow, func(c *contract.Command) { c.Params = json.RawMessage(`null`) }), false},
+		{"a target's person that is no sub", wappie(contract.OpItemFlagsRaise, func(c *contract.Command) {
+			delete(c.BasedOn.Docs, vecOther)
+			c.Target.Person, c.BasedOn.Docs["ana"] = "ana", 3
+		}), false},
 		{"secret 0", wappie(contract.OpItemRename, func(c *contract.Command) { c.Secret = 0 }), false},
 		{"version 2 of the format", wappie(contract.OpItemRename, func(c *contract.Command) { c.V = 2 }), false},
 	} {
@@ -484,6 +507,7 @@ func wireCommands() (any, error) {
 		{"cseq 0", page(1, func(f *contract.CommandFeed) { f.Items[0].CSeq = 0 }), false},
 		{"next_after past the head", page(2, func(f *contract.CommandFeed) { f.NextAfter = 3 }), false},
 		{"a head below 0", page(0, func(f *contract.CommandFeed) { f.Head, f.NextAfter = -1, 0 }), false},
+		{"next_after below 0", page(1, func(f *contract.CommandFeed) { f.NextAfter = -1 }), false},
 		{"a generation that is no UUID", page(1, func(f *contract.CommandFeed) { f.Generation = "1" }), false},
 		{"items null", page(0, func(f *contract.CommandFeed) { f.Items = nil }), false},
 		{"a command that is no object", page(1, func(f *contract.CommandFeed) { f.Items[0].Command = json.RawMessage(`"item.sync_now"`) }), false},
@@ -492,6 +516,23 @@ func wireCommands() (any, error) {
 			return nil, fmt.Errorf("contractvec: feed %q is valid %v, the design asks %v", c.name, got, c.valid)
 		}
 		out.Feeds = append(out.Feeds, wireCase(c.name, c.raw, c.valid))
+	}
+
+	// ValidateIn with another workspace's kind than the command's: a
+	// person's kind given a workspace, and a workspace's kind given none.
+	for _, c := range []struct {
+		name, kind string
+		c          contract.Command
+	}{
+		{"a person's kind given a workspace", contract.KindTeam, wappie(contract.OpPersonSignOutEverywhere, nil)},
+		{"a workspace's kind given none", "", wappie(contract.OpItemRename, nil)},
+		{"a workspace's kind of an unknown kind", "shared", wappie(contract.OpItemRename, nil)},
+	} {
+		raw := signed(c.c, SecretA)
+		if commandValid(c.c.App, c.kind, raw) {
+			return nil, fmt.Errorf("contractvec: %q passes", c.name)
+		}
+		out.Commands = append(out.Commands, CommandCase{Name: c.name, App: c.c.App, WorkspaceKind: c.kind, Value: raw})
 	}
 
 	// Actions.
@@ -530,6 +571,16 @@ func wireCommands() (any, error) {
 		c.Action = a.action
 		if got := commandAction(c); got != a.action {
 			return nil, fmt.Errorf("contractvec: action %q is %s, the design asks %s", a.name, got, a.action)
+		}
+		out.Actions = append(out.Actions, c)
+	}
+	{
+		body := signed(mailie(contract.OpConsentWithdraw, nil), SecretA)
+		c := CommandAction{Name: "a body naming another app: invalid_command", App: "wappie", Generation: vecGeneration,
+			SignedAt: Now.Format(time.RFC3339), Action: "invalid_command",
+			Value: json.RawMessage(withMAC(body, macOver([]byte(SecretA), "wappie", []byte(must(canonicalOf(body))))))}
+		if commandAction(c) != c.Action {
+			return nil, fmt.Errorf("contractvec: a command of another app runs")
 		}
 		out.Actions = append(out.Actions, c)
 	}
@@ -632,8 +683,15 @@ func wireCommands() (any, error) {
 		}), false},
 		{"label_changed without its detail", "wappie", contract.OpItemRename, refused(contract.CodeLabelChanged, nil), false},
 		{"a detail of no shape", "wappie", contract.OpItemRename, edit(result(nil), `"detail":null`, `"detail":{}`), false},
-		{"a detail of two shapes", "wappie", contract.OpItemRename, refused(contract.CodeLabelChanged, func(r *contract.CommandResult) {
-			r.Detail = &contract.ResultDetail{Cleaned: ptr("Vendas"), Purged: ptr(true)}
+		{"a detail of two shapes", "wappie", contract.OpMCPSwitchOff, result(func(r *contract.CommandResult) {
+			r.Detail = &contract.ResultDetail{SessionsEnded: ptr[int64](1), AlsoOff: &[]string{contract.SwitchAI}}
+		}), false},
+		{"also_off naming an unknown switch", "wappie", contract.OpMCPSwitchOff, result(func(r *contract.CommandResult) {
+			r.Detail = &contract.ResultDetail{AlsoOff: &[]string{"send"}}
+		}), false},
+		{"a holder of an unknown kind in others_have_access", "wappie", contract.OpItemMoveOut, refused(contract.CodeOthersHaveAccess, func(r *contract.CommandResult) {
+			holderDetail(1, 0)(r)
+			(*r.Detail.Holders)[0].Kind = "admin"
 		}), false},
 		{"state_seq null with ran", "wappie", contract.OpItemRename, result(func(r *contract.CommandResult) { r.StateSeq = nil }), false},
 		{"a refusal with no state_seq", "wappie", contract.OpItemRename, refused(contract.CodeStateChanged, func(r *contract.CommandResult) { r.StateSeq = nil }), false},

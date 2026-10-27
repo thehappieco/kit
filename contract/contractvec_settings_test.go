@@ -481,9 +481,8 @@ func wireSettings() (any, error) {
 	ids := func(prefix string, n int) []string {
 		return many(n, func(i int) string { return fmt.Sprintf("%s%04d", prefix, i) })
 	}
-	subs := func(n int) []string {
-		return many(n, func(i int) string { return fmt.Sprintf("0199a0c2-0000-7000-8000-%012d", i+1) })
-	}
+	sub := func(i int) string { return fmt.Sprintf("0199a0c2-0000-7000-8000-%012d", i+1) }
+	subs := func(n int) []string { return many(n, sub) }
 	label80 := strings.Repeat("Matriz ", 11) + "Sul"
 	sections := []settingsCase{
 		// Wappie: numbers.
@@ -692,13 +691,13 @@ func wireSettings() (any, error) {
 		{"seen by 5001", connection(func(c *contract.MCPConnection) { c.SeenBy = subs(5001) }), false},
 		{"5000 consenters waiting for renewals", mcp(func(s *contract.MCPSettings) {
 			s.RenewalsWaiting = many(5000, func(i int) contract.RenewalsWaiting {
-				return contract.RenewalsWaiting{Consenter: ptr(subs(5000)[i]), Count: 1}
+				return contract.RenewalsWaiting{Consenter: ptr(sub(i)), Count: 1}
 			})
 			s.RenewalsWaiting[0].Consenter = nil
 		}), true},
 		{"5001 consenters waiting for renewals", mcp(func(s *contract.MCPSettings) {
 			s.RenewalsWaiting = many(5001, func(i int) contract.RenewalsWaiting {
-				return contract.RenewalsWaiting{Consenter: ptr(subs(5001)[i]), Count: 1}
+				return contract.RenewalsWaiting{Consenter: ptr(sub(i)), Count: 1}
 			})
 		}), false},
 		{"200 legacy tokens", mcp(func(s *contract.MCPSettings) {
@@ -857,17 +856,17 @@ func wireSettings() (any, error) {
 		{"Mailie's permissions, each status", permissions(func(s *contract.PermissionsSettings) {
 			s.Members = nil
 			for i, status := range []string{"active", "suspended", "held", "disabled"} {
-				s.Members = append(s.Members, contract.PermissionsMember{Sub: subs(4)[i], Status: status, Enrolled: i%2 == 0})
+				s.Members = append(s.Members, contract.PermissionsMember{Sub: sub(i), Status: status, Enrolled: i%2 == 0})
 			}
 		}), true},
 		{"5000 members", permissions(func(s *contract.PermissionsSettings) {
 			s.Members = many(5000, func(i int) contract.PermissionsMember {
-				return contract.PermissionsMember{Sub: subs(5000)[i], Status: "active"}
+				return contract.PermissionsMember{Sub: sub(i), Status: "active"}
 			})
 		}), true},
 		{"5001 members", permissions(func(s *contract.PermissionsSettings) {
 			s.Members = many(5001, func(i int) contract.PermissionsMember {
-				return contract.PermissionsMember{Sub: subs(5001)[i], Status: "active"}
+				return contract.PermissionsMember{Sub: sub(i), Status: "active"}
 			})
 		}), false},
 		{"a member twice", permissions(func(s *contract.PermissionsSettings) { s.Members[1].Sub = vecSub }), false},

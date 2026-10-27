@@ -960,7 +960,7 @@ func wireSettings() (any, error) {
 		}), false},
 		{"an unknown integration status", integration(func(in *contract.AIIntegration) { in.Status = "running" }), false},
 		{"an integration's creator that is no sub", integration(func(in *contract.AIIntegration) { in.CreatedBy = ptr("ana") }), false},
-		{"an unknown switch", mcp(func(s *contract.MCPSettings) { s.Switches[0].Switch = "send" }), false},
+		{"an unknown switch", mcp(func(s *contract.MCPSettings) { s.Switches[2].Switch = "send" }), false},
 		{"an unknown operator", mcp(func(s *contract.MCPSettings) { s.Switches[0].Operator = "block" }), false},
 		{"a switch the operator denies, changeable", mcp(func(s *contract.MCPSettings) { s.Switches[3].Changeable = true }), false},
 		{"switched_by without switched_at", mcp(func(s *contract.MCPSettings) { s.SwitchedAt = nil }), false},
@@ -1103,7 +1103,10 @@ func wireSettings() (any, error) {
 			s.Notices[3] = n
 		}), nil)), false},
 		{"an unknown consent", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) { s.Consents[2].Consent = "share" }), nil)), false},
-		{"an unknown consent state", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) { s.Consents[2].State = "paused" }), nil)), false},
+		{"an unknown consent state", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) { s.Consents[0].State = "paused" }), nil)), false},
+		{"Mailie's actor named without its kind", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) {
+			s.Notices[2].Params = mustRaw(contract.MailboxSyncPausedParams{State: "live", Actor: ptr(vecOther)})
+		}), nil)), false},
 		{"a text that is no revision", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) { s.Texts.Keys = "" }), nil)), false},
 		{"Wappie's pause by the app", mustRaw(personDoc("wappie", vecWappiePerson(func(s *contract.WappiePersonSettings) {
 			s.Notices[0].Params = mustRaw(contract.SyncPausedParams{ActorKind: contract.ActorApp, FirstAt: at(-time.Hour)})

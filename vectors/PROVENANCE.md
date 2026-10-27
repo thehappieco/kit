@@ -354,11 +354,11 @@ sha256 at `ee45e3a`. The kit's `contract` is the platform's `internal/contract` 
 
 | File | Kind | Cases | sha256 |
 |---|---|---|---|
-| `platform/contract-v1/wire-settings.json` | wire-settings | 230 sections (61 valid), 46 person documents (8 valid) | `f25b5831001fd260786184b86ac3daeffb5dc49a69ce06615bb01d9bef2a6364` |
+| `platform/contract-v1/wire-settings.json` | wire-settings | 230 sections (61 valid), 47 person documents (8 valid) | `7f444907e80de3bcf961aed944462e4f02b2601d195c1319efdfc89c30da609e` |
 | `platform/contract-v1/wire-commands.json` | wire-commands | 17 feed pages (6 valid), 161 commands (75 valid), 14 commands with the app's action (7 `run`, 1 `reset`, 2 `expired`, 4 `invalid_command`), 64 results (24 valid), 11 bodies of results (3 valid), 76 classes (13 `retry`, 63 `final`) | `463aa5b17dea3848e5693d5afab13955ff6a9476b29f93b961a1f45812030aa5` |
 | `platform/contract-v1/command-macs.json` | command-macs | 21 commands with their canonical text and MAC (7 verify) | `afa17bc71efe45f8e80330d0622b7e237fc8f1d2183a75969a1195186596c42c` |
 
-`command-macs.json` (41635 bytes) is ASCII; `wire-settings.json` (6592198) and `wire-commands.json` (1215779) hold UTF-8. They were revised before the tag after Wappie's two reviews of the pull request (kit#11): a valid case for every closed code at its member's full path, an invalid case with one fault for every rule the reviews named and an unknown value for each closed list, command feed pages, the wider before values of tightening kinds, the switches' `set`, a body naming another app under a MAC for this one, and results bodies at their call's limit; the documents' limits are pinned by Go tests instead (`contract`'s `TestADocumentAtItsCallsLimitIsValidAndOneByteMoreIsNot`).
+`command-macs.json` (41635 bytes) is ASCII; `wire-settings.json` (6595332) and `wire-commands.json` (1215779) hold UTF-8. They were revised before the tag after Wappie's three reviews of the pull request (kit#11): a valid case for every closed code at its member's full path, an invalid case with one fault for every rule the reviews named and an unknown value for each closed list, command feed pages, the wider before values of tightening kinds, the switches' `set`, a body naming another app under a MAC for this one, and results bodies at their call's limit; the documents' limits are pinned by Go tests instead (`contract`'s `TestADocumentAtItsCallsLimitIsValidAndOneByteMoreIsNot`).
 
 ## Mailie's platform wrap, written by the kit
 

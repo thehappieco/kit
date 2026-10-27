@@ -20778,7 +20778,7 @@
         "data": {
           "switches": [
             {
-              "switch": "send",
+              "switch": "text",
               "set": true,
               "default": false,
               "operator": "allow",
@@ -20796,7 +20796,7 @@
               "changeable": true
             },
             {
-              "switch": "drafts",
+              "switch": "send",
               "set": null,
               "default": false,
               "operator": "allow",
@@ -27757,7 +27757,7 @@
           "consents": [
             {
               "consent": "sync",
-              "state": "on",
+              "state": "paused",
               "revision": "2026-10-sync-3",
               "agreed_at": "2026-10-12T12:00:00Z",
               "withdrawn_at": null
@@ -27771,7 +27771,7 @@
             },
             {
               "consent": "send",
-              "state": "paused",
+              "state": "off",
               "revision": null,
               "agreed_at": null,
               "withdrawn_at": "2026-10-13T11:00:00Z"
@@ -27828,6 +27828,106 @@
                 "state": "live",
                 "actor": "0199c3d4-0000-7000-8000-000000000002",
                 "actor_kind": "person"
+              }
+            }
+          ],
+          "signed_out_everywhere_at": null
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "Mailie's actor named without its kind",
+      "value": {
+        "v": 1,
+        "type": "person_settings",
+        "app": "mailie",
+        "producer": "mailie",
+        "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "state_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "consent.agree",
+          "consent.withdraw",
+          "person.sign_out_everywhere",
+          "person.notices_dismiss"
+        ],
+        "data": {
+          "consents": [
+            {
+              "consent": "sync",
+              "state": "on",
+              "revision": "2026-10-sync-3",
+              "agreed_at": "2026-10-12T12:00:00Z",
+              "withdrawn_at": null
+            },
+            {
+              "consent": "actions",
+              "state": "old_text",
+              "revision": "2026-10-actions-1",
+              "agreed_at": "2026-10-11T12:00:00Z",
+              "withdrawn_at": null
+            },
+            {
+              "consent": "send",
+              "state": "off",
+              "revision": null,
+              "agreed_at": null,
+              "withdrawn_at": "2026-10-13T11:00:00Z"
+            }
+          ],
+          "texts": {
+            "sync": "2026-10-sync-3",
+            "actions": "2026-10-actions-2",
+            "send": "2026-10-send-1",
+            "keys": "2026-10-api-keys-2"
+          },
+          "enrolled": true,
+          "notices": [
+            {
+              "id": "mbe_0",
+              "code": "mailbox_removed",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "item": "acc_7f3a",
+              "at": "2026-10-13T11:00:00Z",
+              "version": 1,
+              "label": "Suporte",
+              "hint": "s…@example.com",
+              "params": {
+                "state": "removed",
+                "recoverable_until": "2026-11-12T12:00:00Z"
+              }
+            },
+            {
+              "id": "mbe_1",
+              "code": "mailbox_sync_off",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "item": "acc_7f3a",
+              "at": "2026-10-13T11:00:00Z",
+              "version": 1,
+              "label": "Suporte",
+              "hint": "s…@example.com",
+              "params": {
+                "state": "live",
+                "recoverable_until": null,
+                "actor": null,
+                "actor_kind": null
+              }
+            },
+            {
+              "id": "mbe_2",
+              "code": "mailbox_sync_paused",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "item": "acc_7f3a",
+              "at": "2026-10-13T11:00:00Z",
+              "version": 1,
+              "label": "Suporte",
+              "hint": "s…@example.com",
+              "params": {
+                "state": "live",
+                "actor": "0199c3d4-0000-7000-8000-000000000002",
+                "actor_kind": null
               }
             }
           ],

@@ -722,8 +722,8 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 			"events 14 (6 valid)"},
 		// Kit v0.10.0's, from the platform's design at 509cc65: the
 		// settings part, its commands and their MAC.
-		{"wire-settings.json", "wire-settings", "kit v0.10.0", false, "f25b5831001fd260786184b86ac3daeffb5dc49a69ce06615bb01d9bef2a6364",
-			"sections 230 (61 valid), persons 46 (8 valid)"},
+		{"wire-settings.json", "wire-settings", "kit v0.10.0", false, "7f444907e80de3bcf961aed944462e4f02b2601d195c1319efdfc89c30da609e",
+			"sections 230 (61 valid), persons 47 (8 valid)"},
 		{"wire-commands.json", "wire-commands", "kit v0.10.0", false, "463aa5b17dea3848e5693d5afab13955ff6a9476b29f93b961a1f45812030aa5",
 			"feeds 17 (6 valid), actions 14 (run 7, reset 1, expired 2, invalid_command 4), commands 161 (75 valid), results 64 (24 valid), batches 11 (3 valid), classes 76 (retry 13, final 63)"},
 		{"command-macs.json", "command-macs", "kit v0.10.0", true, "afa17bc71efe45f8e80330d0622b7e237fc8f1d2183a75969a1195186596c42c",

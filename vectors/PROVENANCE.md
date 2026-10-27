@@ -349,16 +349,16 @@ sha256 at `ee45e3a`. The kit's `contract` is the platform's `internal/contract` 
 
 - **Source:** the same design, `docs/design/2026-10-26/contract-tokens-and-settings.md`, final at platform commit `509cc65`, under the platform's decision 0054: section 4 (the settings part), section 6 (the spec's edits), section 7 (the vector files `wire-settings.json`, `wire-commands.json` and `command-macs.json`, and the kit's part) and the resolved points of section 10, with Wappie's closed lists as the design took them from Wappie's code at core `ee7fe82` and cloud `4279158`.
 - **Written:** by the kit, ahead of the platform, as test code over its own `contract` (`contract/contractvec_settings_test.go`, `contract/contractvec_commands_test.go`), so that the platform's generator, once it takes this kit, writes the same bytes. Nothing random: made-up ids, names and hosts, the public resolver `8.8.8.8` as the public IPv4 address, the secrets `SecretA` and `SecretB` of `signatures.json`, every moment from `2026-10-13T12:00:00Z`, and every command signed with `contract.SignCommand`. Every case states the outcome the design asks of it, and the generator fails rather than write a case whose outcome the code does not give. 2-space indented JSON with no HTML escaping and one final newline, a value whose compact JSON is over 16 KiB written compact on one line. `TestTheKitWritesTheContractVectorsAgain` compares what it writes with these files byte for byte in every Go test run; `KIT_CONTRACT_OUT=vectors/platform/contract-v1 go test -run TestWriteTheContractVectors ./contract` writes a file only where none is.
-- **Toolchains:** on 2026-10-26 the kit's test wrote all three on go1.27.1 (darwin/arm64), and wrote them again byte for byte on go1.26.7.
+- **Toolchains:** on 2026-10-26 the kit's test wrote all three on go1.27.1 (darwin/arm64), and wrote them again byte for byte on go1.26.7; as revised after Wappie's review, the same.
 - **Format:** the contract's own, with three new kinds (`wire-settings`, `wire-commands`, `command-macs`), described in `README.md` and SPEC section 11.19.
 
 | File | Kind | Cases | sha256 |
 |---|---|---|---|
-| `platform/contract-v1/wire-settings.json` | wire-settings | 146 sections (57 valid), 30 person documents (7 valid) | `ad7f3a6af001f2c6f3c04123dae628aaf9b3f5b100b53ecdbe9c1638c1a1e60b` |
-| `platform/contract-v1/wire-commands.json` | wire-commands | 115 commands (61 valid), 13 commands with the app's action (7 `run`, 1 `reset`, 2 `expired`, 3 `invalid_command`), 54 results (24 valid), 10 bodies of results (2 valid), 76 classes (13 `retry`, 63 `final`) | `d55ed06a32359b570c71d368ed5728d2f0a10311fc51ab0ace4f94bacdabc72c` |
-| `platform/contract-v1/command-macs.json` | command-macs | 20 commands with their canonical text and MAC (7 verify) | `c3152ca1fbcb07ee12d7cfe4dc4e90cd68d0759e05da79e56202d685be74ef9c` |
+| `platform/contract-v1/wire-settings.json` | wire-settings | 195 sections (60 valid), 37 person documents (8 valid) | `7637869d84cbdf99ce22d85b64a1be57fc1578975c64a02235a91d801f375c0b` |
+| `platform/contract-v1/wire-commands.json` | wire-commands | 16 feed pages (6 valid), 142 commands (73 valid), 13 commands with the app's action (7 `run`, 1 `reset`, 2 `expired`, 3 `invalid_command`), 62 results (24 valid), 11 bodies of results (3 valid), 76 classes (13 `retry`, 63 `final`) | `57c4487fcf9b21146733c5cf8d088d2b26037c39997af358c817149d6f35fcf1` |
+| `platform/contract-v1/command-macs.json` | command-macs | 21 commands with their canonical text and MAC (7 verify) | `afa17bc71efe45f8e80330d0622b7e237fc8f1d2183a75969a1195186596c42c` |
 
-`command-macs.json` (39855 bytes) is ASCII; `wire-settings.json` (6323387) and `wire-commands.json` (705557) hold UTF-8.
+`command-macs.json` (41635 bytes) is ASCII; `wire-settings.json` (7810927) and `wire-commands.json` (1187049) hold UTF-8. They were revised before the tag after Wappie's review of the pull request (kit#11): a valid case for every closed code, the review's unpinned rules as small invalid cases, command feed pages, the wider before values of tightening kinds, the switches' `set`, a body naming another app under a MAC for this one, and documents and bodies at their call's limits.
 
 ## Mailie's platform wrap, written by the kit
 

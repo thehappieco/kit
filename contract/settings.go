@@ -73,17 +73,21 @@ var mailieSections = map[string]sectionDef{
 	SectionPerson:        {producer: ProducerMailie, data: func() sectionData { return new(MailiePersonSettings) }},
 }
 
-// sectionsOf are app's sections, its person's under SectionPerson. An app
-// other than wappie and mailie, the platform's reference app in
-// development, has Wappie's sections, kinds and codes, each produced by
-// the app itself under its own id, with snapshots.
+// ReferenceApp is the platform's reference app, in development
+// (tools/fakeproduct). It has Wappie's sections, kinds and codes, each
+// produced by the app itself under its own id, with snapshots. An app id
+// other than wappie, mailie and this one has none.
+const ReferenceApp = "fakeproduct"
+
+// sectionsOf are app's sections, its person's under SectionPerson.
 func sectionsOf(app string) map[string]sectionDef {
-	switch {
-	case app == "wappie":
+	switch app {
+	case "wappie":
 		return wappieSections
-	case app == "mailie":
+	case "mailie":
 		return mailieSections
-	case !ValidApp(app):
+	case ReferenceApp:
+	default:
 		return nil
 	}
 	own := map[string]sectionDef{}
@@ -286,8 +290,9 @@ var hostLabelRE = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
 // ValidHost reports whether s is a host a document may name: a lowercase
 // ASCII hostname of at most 253 bytes (A-labels), its labels of 1 to 63
 // letters, digits and hyphens, no hyphen at either end of one, no trailing
-// dot, and a last label that is not all digits, so that no address passes
-// for a name.
+// dot, and a last label that starts with a letter, so that no address
+// passes for a name: neither one of digits nor one a WHATWG URL parser
+// reads as a number (0x7f000001, 10.0.0.0x1).
 func ValidHost(s string) bool {
 	if s == "" || len(s) > 253 {
 		return false
@@ -299,7 +304,7 @@ func ValidHost(s string) bool {
 		}
 	}
 	last := labels[len(labels)-1]
-	return strings.Trim(last, "0123456789") != ""
+	return last[0] >= 'a' && last[0] <= 'z'
 }
 
 // ValidOrigin reports whether s is an installation's origin: https://, a

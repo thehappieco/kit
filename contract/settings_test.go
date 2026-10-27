@@ -129,6 +129,16 @@ func TestACommandVerifiesUnderItsAppAndSecretOnly(t *testing.T) {
 			t.Errorf("%s %d secrets: %v", try.app, len(try.secrets), err)
 		}
 	}
+	// A body that names another app is no command of this one: not signed
+	// for it, and refused by it even when its MAC holds.
+	if _, err := contract.SignCommand(raw, "mailie", SecretA); !errors.Is(err, contract.ErrInvalid) {
+		t.Errorf("signing a wappie body for mailie: %v", err)
+	}
+	mailie := signed(vecCmd("mailie", contract.OpConsentWithdraw, nil), SecretA)
+	forged := withMAC(mailie, macOver([]byte(SecretA), "wappie", []byte(must(canonicalOf(mailie)))))
+	if _, err := contract.VerifyCommand([]byte(forged), "wappie", []string{SecretA}); !errors.Is(err, contract.ErrInvalid) {
+		t.Errorf("a mailie body under a MAC for wappie: %v", err)
+	}
 	if _, err := contract.SignCommand(raw, "wappie", ""); !errors.Is(err, contract.ErrSecret) {
 		t.Errorf("signing under an empty key: %v", err)
 	}
@@ -149,5 +159,45 @@ func TestACommandsRefusalNamesNoValue(t *testing.T) {
 	err := c.Validate()
 	if err == nil || strings.Contains(err.Error(), "ana@") || strings.Contains(err.Error(), vecSub) {
 		t.Fatalf("%v", err)
+	}
+}
+
+// DecodeStrict reads a body as the platform does: every member present,
+// named exactly, none unknown, null only for a pointer; and only into a
+// pointer.
+func TestDecodeStrictReadsABodyAsThePlatformDoes(t *testing.T) {
+	var r contract.CommandResult
+	good := `{"id":"` + vecCommand + `","outcome":"ran","code":null,"retry_after":null,"state_seq":1,"detail":null,"at":"2026-10-13T12:00:00Z"}`
+	if err := contract.DecodeStrict([]byte(good), &r); err != nil || r.Validate() != nil {
+		t.Fatalf("%v", err)
+	}
+	for _, bad := range []string{
+		strings.Replace(good, `,"detail":null`, ``, 1),
+		strings.Replace(good, `"outcome":"ran"`, `"outcome":null`, 1),
+		strings.Replace(good, `"outcome"`, `"Outcome"`, 1),
+		strings.Replace(good, `"at"`, `"note":1,"at"`, 1),
+		strings.Replace(good, `"at"`, `"id":"x","at"`, 1),
+	} {
+		if err := contract.DecodeStrict([]byte(bad), &r); !errors.Is(err, contract.ErrInvalid) {
+			t.Errorf("%s: %v", bad, err)
+		}
+	}
+	if err := contract.DecodeStrict([]byte(good), r); !errors.Is(err, contract.ErrInvalid) {
+		t.Errorf("a destination that is no pointer: %v", err)
+	}
+}
+
+// A host's last label starts with a letter: no number a WHATWG URL parser
+// reads passes for a name.
+func TestNoHostIsANumber(t *testing.T) {
+	for _, h := range []string{"0x7f000001", "10.0.0.0x1", "example.0x", "a.1b", "8.8.8.8", "2130706433"} {
+		if contract.ValidHost(h) || contract.ValidOrigin("https://"+h) && h != "8.8.8.8" {
+			t.Errorf("%s passes as a host", h)
+		}
+	}
+	for _, h := range []string{"claude.ai", "localhost", "xn--bcher-kva.example", "a1.b2c"} {
+		if !contract.ValidHost(h) {
+			t.Errorf("%s is refused", h)
+		}
 	}
 }

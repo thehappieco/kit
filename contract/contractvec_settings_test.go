@@ -37,13 +37,16 @@ func ptr[T any](v T) *T { return &v }
 
 func at(d time.Duration) contract.Time { return contract.T(Now.Add(d)) }
 
-// mustRaw is v's JSON, which every builder below can write.
+// mustRaw is v's JSON, which every builder below can write, with no HTML
+// escaping, as contract.Client writes a document.
 func mustRaw(v any) json.RawMessage {
-	raw, err := json.Marshal(v)
-	if err != nil {
+	var b bytes.Buffer
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
 		panic(err)
 	}
-	return raw
+	return bytes.TrimSuffix(b.Bytes(), []byte("\n"))
 }
 
 // ---------------------------------------------------------------------------
@@ -349,13 +352,18 @@ func strictJSON(raw []byte) bool {
 	return errors.Is(err, io.EOF)
 }
 
-// exactNames checks the names of every object raw holds against t's.
+// exactNames checks the names of every object raw holds against t's, and
+// that null stands only where t holds a pointer.
 func exactNames(raw json.RawMessage, t reflect.Type) bool {
+	pointer := false
 	for t.Kind() == reflect.Pointer {
-		t = t.Elem()
+		t, pointer = t.Elem(), true
 	}
 	if _, ok := reflect.New(t).Interface().(json.Unmarshaler); ok {
 		return true
+	}
+	if string(bytes.TrimSpace(raw)) == "null" {
+		return pointer
 	}
 	switch t.Kind() {
 	case reflect.Struct:
@@ -394,15 +402,17 @@ func exactNames(raw json.RawMessage, t reflect.Type) bool {
 	return true
 }
 
-// sectionValid is what the platform makes of a section's document.
+// sectionValid is what the platform makes of a section's document: within
+// its call's limit, decoded strictly, and valid.
 func sectionValid(raw []byte) bool {
 	var d contract.SettingsDoc
-	return exactDecode(raw, &d) == nil && d.Validate() == nil
+	return len(raw) <= contract.SettingsBodyLimit && exactDecode(raw, &d) == nil && d.Validate() == nil
 }
 
+// personValid is the same for a person's document.
 func personValid(raw []byte) bool {
 	var d contract.PersonSettingsDoc
-	return exactDecode(raw, &d) == nil && d.Validate() == nil
+	return len(raw) <= contract.PersonSettingsBodyLimit && exactDecode(raw, &d) == nil && d.Validate() == nil
 }
 
 // WireSettings is wire-settings.json.
@@ -435,7 +445,7 @@ func edit(raw json.RawMessage, old, new string) json.RawMessage {
 func wireSettings() (any, error) {
 	out := WireSettings{
 		Format: Format, Version: 1, Kind: "wire-settings",
-		Description: "The settings part's documents (SPEC section 11.19), each decoded as the platform decodes what an app sends (strictly: one object, no member twice, no member it does not know, every name exactly as written, every member present) and then validated, data and all; every valid one is within its call's body limit, 1 MiB for a section and 256 KiB for a person: sections are contract.SettingsDoc (PUT /contract/v1/workspaces/{id}/settings/{section}), persons contract.PersonSettingsDoc (PUT /contract/v1/accounts/{sub}/settings). Every closed list's every code appears in a valid case.",
+		Description: "The settings part's documents (SPEC section 11.19), each valid when it is within its call's body limit, 1 MiB for a section and 256 KiB for a person, decodes as the platform decodes what an app sends (strictly: one object, no member twice, no member it does not know, every name exactly as written, every member present, null only where a member may be null), and its Validate accepts it, data and all: sections are contract.SettingsDoc (PUT /contract/v1/workspaces/{id}/settings/{section}), persons contract.PersonSettingsDoc (PUT /contract/v1/accounts/{sub}/settings). Every closed list's every code appears in a valid case.",
 	}
 	w := func(mut func(*contract.SettingsDoc), data any) json.RawMessage {
 		return mustRaw(sectionDoc("wappie", contract.SectionNumbers, data, mut))
@@ -872,6 +882,66 @@ func wireSettings() (any, error) {
 		{"a member twice", permissions(func(s *contract.PermissionsSettings) { s.Members[1].Sub = vecSub }), false},
 		{"an unknown member status", permissions(func(s *contract.PermissionsSettings) { s.Members[1].Status = "invited" }), false},
 
+		// Every closed code in a valid case, and the rules the review
+		// found unpinned (kit#11).
+		{"a closed team's email accounts", emails(func(s *contract.EmailAccountsSettings) { s.Availability, s.LinkMinRole = "closed", nil }), true},
+		{"only owners may link", emails(func(s *contract.EmailAccountsSettings) { s.LinkMinRole = ptr(contract.RoleOwner) }), true},
+		{"members may link", emails(func(s *contract.EmailAccountsSettings) { s.LinkMinRole = ptr(contract.RoleMember) }), true},
+		{"an unknown link_min_role", emails(func(s *contract.EmailAccountsSettings) { s.LinkMinRole = ptr("guest") }), false},
+		{"an unknown sign_in", mailbox(func(m *contract.MailboxRow) { m.SignIn = "app_password" }), false},
+		{"an unknown sync mode", mailbox(func(m *contract.MailboxRow) { m.Sync.Mode = "shared" }), false},
+		{"an unknown index state", mailbox(func(m *contract.MailboxRow) { m.Sync.Indexed = "done" }), false},
+		{"a mailbox listed twice", emails(func(s *contract.EmailAccountsSettings) { s.Items = append(s.Items, s.Items[0]) }), false},
+		{"a mailbox's key_epoch below 0", mailbox(func(m *contract.MailboxRow) { m.KeyEpoch = ptr[int64](-1) }), false},
+		{"a cap by the year", integration(func(in *contract.AIIntegration) { in.Cap.Period = "year" }), false},
+		{"a cap's limit below 0", integration(func(in *contract.AIIntegration) { in.Cap.Limit = -1 }), false},
+		{"a cap's use below 0", integration(func(in *contract.AIIntegration) { in.Cap.Used = -1 }), false},
+		{"an integration twice", integrations(func(s *contract.IntegrationsSettings) { s.Integrations = append(s.Integrations, s.Integrations[0]) }), false},
+		{"a provider key twice", integrations(func(s *contract.IntegrationsSettings) { s.ProviderKeys = append(s.ProviderKeys, s.ProviderKeys[0]) }), false},
+		{"an integration's number twice", integration(func(in *contract.AIIntegration) { in.Items = []string{vecNumber, vecNumber} }), false},
+		{"a connection twice", mcp(func(s *contract.MCPSettings) { s.Connections = append(s.Connections, s.Connections[0]) }), false},
+		{"a legacy token twice", mcp(func(s *contract.MCPSettings) { s.LegacyTokens = append(s.LegacyTokens, s.LegacyTokens[0]) }), false},
+		{"a consenter twice among the renewals waiting", mcp(func(s *contract.MCPSettings) { s.RenewalsWaiting = append(s.RenewalsWaiting, s.RenewalsWaiting[0]) }), false},
+		{"no renewal waiting for a consenter", mcp(func(s *contract.MCPSettings) { s.RenewalsWaiting[0].Count = 0 }), false},
+		{"a day of activity twice", mcp(func(s *contract.MCPSettings) { s.Activity = append(s.Activity, s.Activity[0]) }), false},
+		{"a malformed day of activity", mcp(func(s *contract.MCPSettings) { s.Activity[0].Day = "2026-13-01" }), false},
+		{"two budget hits of one code", connection(func(c *contract.MCPConnection) {
+			c.BudgetHits = []contract.BudgetHit{{Code: "network", At: at(-time.Hour)}, {Code: "network", At: at(-2 * time.Hour)}}
+		}), false},
+		{"seen twice by one person", connection(func(c *contract.MCPConnection) { c.SeenBy = []string{vecSub, vecSub} }), false},
+		{"a connection's number twice", connection(func(c *contract.MCPConnection) { c.Items = []string{vecNumber, vecNumber} }), false},
+		{"a host whose last label is a number in hex", connection(func(c *contract.MCPConnection) { c.MainDomain = ptr("10.0.0.0x1") }), false},
+		{"a host whose last label starts with a digit", connection(func(c *contract.MCPConnection) { c.VerifiedHost = ptr("claude.4ai") }), false},
+		{"an origin whose host is a number in hex", installations(func(s *contract.InstallationsSettings) {
+			s.Installations[0].Origin = "https://0x7f000001:8443"
+		}), false},
+		{"an installation twice", installations(func(s *contract.InstallationsSettings) { s.Installations = append(s.Installations, s.Installations[0]) }), false},
+		{"a binding twice", installations(func(s *contract.InstallationsSettings) { s.Bindings = append(s.Bindings, s.Bindings[0]) }), false},
+		{"licences used below 0", installations(func(s *contract.InstallationsSettings) { s.Licences.Used = -1 }), false},
+		{"a capacity below 0", installations(func(s *contract.InstallationsSettings) { s.Licences.Capacity = ptr[int64](-1) }), false},
+		{"hosted numbers below 0", installations(func(s *contract.InstallationsSettings) { s.HostedNumbers = -1 }), false},
+		{"a pending registration twice", numbers(func(s *contract.NumbersSettings) { s.Pending = append(s.Pending, s.Pending[0]) }), false},
+		{"free places below 0", numbers(func(s *contract.NumbersSettings) { s.PlacesFree = ptr[int64](-1) }), false},
+		{"a number's key_epoch below 0", row(func(r *contract.NumberRow) { r.KeyEpoch = ptr[int64](-1) }), false},
+		{"a number's bytes below 0", row(func(r *contract.NumberRow) { r.Bytes = ptr[int64](-1) }), false},
+		{"holders_more below 0", row(func(r *contract.NumberRow) { r.MoveOut.HoldersMore = -1 }), false},
+		{"a move-out holder twice", row(func(r *contract.NumberRow) { r.MoveOut.Holders = append(r.MoveOut.Holders, r.MoveOut.Holders[0]) }), false},
+		{"a connection a move ends twice", row(func(r *contract.NumberRow) { r.MoveOut.Ends = []string{vecConnection, vecConnection} }), false},
+		{"a bool member null", edit(numbers(nil), `"can_link":true`, `"can_link":null`), false},
+		{"an integer member null", edit(installations(nil), `"hosted_numbers":3`, `"hosted_numbers":null`), false},
+		{"a string member null", edit(numbers(nil), `"connection":"online"`, `"connection":null`), false},
+		{"a list member null", numbers(func(s *contract.NumbersSettings) { s.Pending = nil }), false},
+		{"a switch's effective null", edit(mcp(nil), `"effective":true`, `"effective":null`), false},
+		{"accepts null", w(func(d *contract.SettingsDoc) { d.Accepts = nil }, vecNumbers(nil)), false},
+		{"truncated null", edit(numbers(nil), `"truncated":false`, `"truncated":null`), false},
+		{"truncated missing", edit(numbers(nil), `"truncated":false,`, ``), false},
+		{"snapshot_seq missing from Wappie Cloud", edit(installations(nil), `"snapshot_seq":null,`, ``), false},
+		{"a section over 1 MiB", mcp(func(s *contract.MCPSettings) {
+			s.Connections = many(6, func(i int) contract.MCPConnection {
+				return vecConnectionRow(func(c *contract.MCPConnection) { c.ID, c.SeenBy = fmt.Sprintf("conn_%d", i), subs(4600) })
+			})
+		}), false},
+
 		// The document itself.
 		{"a section of another app", mustRaw(sectionDoc("wappie", contract.SectionNumbers, vecNumbers(nil), func(d *contract.SettingsDoc) {
 			d.Section = contract.SectionEmailAccounts
@@ -968,6 +1038,37 @@ func wireSettings() (any, error) {
 		{"Mailie's data on Wappie's person", mustRaw(personDoc("wappie", vecMailiePerson(nil), nil)), false},
 		{"a section's type on a person", mustRaw(personDoc("wappie", vecWappiePerson(nil), func(d *contract.PersonSettingsDoc) { d.Type = contract.SettingsType })), false},
 		{"an uppercase sub", mustRaw(personDoc("wappie", vecWappiePerson(nil), func(d *contract.PersonSettingsDoc) { d.Sub = strings.ToUpper(vecSub) })), false},
+		{"Mailie's notices in every state, and an actor named", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) {
+			s.Notices = []contract.Notice{
+				mailieNotice(contract.NoticeMailboxRemoved, 0), mailieNotice(contract.NoticeMailboxRemoved, 1),
+				mailieNotice(contract.NoticeMailboxSyncOff, 2), mailieNotice(contract.NoticeMailboxSyncOff, 3),
+				mailieNotice(contract.NoticeMailboxSyncOff, 4), mailieNotice(contract.NoticeMailboxSyncPaused, 5),
+			}
+			s.Notices[1].Params = mustRaw(contract.MailboxRemovedParams{State: "deleted", RecoverableUntil: at(-time.Hour)})
+			s.Notices[3].Params = mustRaw(contract.MailboxSyncOffParams{State: "removed", RecoverableUntil: ptr(at(29 * 24 * time.Hour)),
+				Actor: ptr(vecOther), ActorKind: ptr(contract.ActorPerson)})
+			s.Notices[4].Params = mustRaw(contract.MailboxSyncOffParams{State: "deleted", ActorKind: ptr(contract.ActorPerson)})
+		}), nil)), true},
+		{"Mailie's pause notice in another state than live", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) {
+			s.Notices[2].Params = mustRaw(contract.MailboxSyncPausedParams{State: "removed"})
+		}), nil)), false},
+		{"Wappie's notice at version 0", mustRaw(personDoc("wappie", vecWappiePerson(func(s *contract.WappiePersonSettings) { s.Notices[1].Version = 0 }), nil)), false},
+		{"a notice's bool param null", mustRaw(personDoc("wappie", vecWappiePerson(func(s *contract.WappiePersonSettings) {
+			s.Notices[0].Params = edit(s.Notices[0].Params, `"several_actors":true`, `"several_actors":null`)
+		}), nil)), false},
+		{"enrolled null", mustRaw(personDoc("mailie", vecMailiePerson(func(s *contract.MailiePersonSettings) {}), func(d *contract.PersonSettingsDoc) {
+			d.Data = edit(d.Data, `"enrolled":true`, `"enrolled":null`)
+		})), false},
+		{"state_seq 0", mustRaw(personDoc("wappie", vecWappiePerson(nil), func(d *contract.PersonSettingsDoc) { d.StateSeq = 0 })), false},
+		{"a person's document over 256 KiB", mustRaw(personDoc("wappie", vecWappiePerson(func(s *contract.WappiePersonSettings) {
+			s.Notices = many(300, func(i int) contract.Notice {
+				n := wappieNotice(contract.NoticeNumberDeleted, i)
+				n.ID, n.Item = fmt.Sprintf("%064d", i), ptr(fmt.Sprintf("dev_%060d", i))
+				n.Label = ptr(strings.Repeat("€", contract.MaxLabel))
+				n.Hint = ptr("s…@" + strings.Repeat("a", 63) + "." + strings.Repeat("b", 63) + "." + strings.Repeat("c", 63) + "." + strings.Repeat("d", 50) + ".com")
+				return n
+			})
+		}), nil)), false},
 	}
 	for _, c := range sections {
 		if got := sectionValid(c.raw); got != c.valid {

@@ -34,14 +34,14 @@ var (
 	mailieNotices = []string{NoticeMailboxRemoved, NoticeMailboxSyncOff, NoticeMailboxSyncPaused}
 )
 
-// NoticeCodes are app's notice codes: Wappie's or Mailie's (an app other
-// than these two, the platform's reference app, has Wappie's). It returns
-// a copy: the set Validate checks is closed.
+// NoticeCodes are app's notice codes: Wappie's or Mailie's (the platform's
+// reference app has Wappie's), or none for another app. It returns a copy:
+// the set Validate checks is closed.
 func NoticeCodes(app string) []string {
-	if app == "mailie" {
+	switch app {
+	case "mailie":
 		return slices.Clone(mailieNotices)
-	}
-	if ValidApp(app) {
+	case "wappie", ReferenceApp:
 		return slices.Clone(wappieNotices)
 	}
 	return nil
@@ -482,15 +482,18 @@ type MCPSettings struct {
 // MCPSwitch is one workspace switch, as computed.
 type MCPSwitch struct {
 	Switch string `json:"switch"`
-	// Set is the workspace's own choice, or null for the default.
+	// Set is the workspace's own choice, an owner's, or null until one is
+	// made, while the switch follows its default: the switch commands'
+	// before and after. Effective and TokenEffective follow from it.
 	Set     *bool `json:"set"`
 	Default bool  `json:"default"`
 	// Operator is the operator's half: allow or deny.
 	Operator string `json:"operator"`
-	// Effective is MCP's gate, what assistants get: the switch commands'
-	// before and after.
+	// Effective is MCP's gate, what assistants get: Set, else Default,
+	// under the operator and the enclave's reader list.
 	Effective bool `json:"effective"`
-	// TokenEffective is the token's gate: a bool for text and attachments,
+	// TokenEffective is the token's gate: Set, else Default, under the
+	// operator's deny of the workspace; a bool for text and attachments,
 	// null for drafts and ai.
 	TokenEffective *bool `json:"token_effective"`
 	// Changeable is false when the operator denies the switch.

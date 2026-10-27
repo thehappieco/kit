@@ -13,9 +13,28 @@ package contracttest
 // next looks at the app's commands: at a command feed request, a batch of
 // results, a document, a change to the directory, IssueCommand and the
 // accessors. So a long-poll that waits is woken by a command issued, or
-// issued again on an event (ReopenTeam, a document whose accepts lists the
-// kind again), never by the clock alone: it sees a retry the clock made due
-// when its wait ends.
+// issued again on an event (ReopenTeam, a newer document whose accepts
+// lists the kind again), never by the clock alone: it sees a retry the
+// clock made due when its wait ends.
+//
+// The rules the fake holds an app to, as the platform does:
+//   - a document and each result are read strictly (contract.DecodeStrict):
+//     every member present but those the type marks omitempty, null only
+//     where the type holds a pointer, so a document missing truncated, or
+//     Wappie Cloud's missing its null snapshot_seq, is invalid_request, and
+//     a result missing at is rejected invalid_request;
+//   - an intent refused kind_not_accepted, a retry for a tightening kind
+//     only, is issued again once the fake keeps a document of its section
+//     (for a person's kind, the actor's own document) whose state_seq is
+//     higher than that of the document kept when the result came (any, when
+//     none was), and whose accepts lists the kind; the document kept when
+//     the result came never issues it again, whatever its accepts;
+//   - a final result for a command with one kept already is duplicate when
+//     it is the same result (its time compared at microseconds), else
+//     rejected conflict; for a command delivered again (again: true), which
+//     an app runs again after its own restore, it is duplicate when its
+//     outcome and code are the kept one's, whatever its at, state_seq and
+//     detail.
 //
 // Where the platform does more, the fake is simpler:
 //   - it cleans no label of a document again, where the platform cleans each
@@ -102,8 +121,9 @@ type Intent struct {
 	Commands []string
 	// Waiting: it waits to be issued again, once Due passes by the fake's
 	// clock or, when Due is zero, for the event its last code names
-	// (team_closed: the team's reopening; kind_not_accepted: the kind in its
-	// document's accepts again); and either way for an open workspace whose
+	// (team_closed: the team's reopening; kind_not_accepted: a document of
+	// its section newer than the one kept when the result came, whose
+	// accepts lists the kind); and either way for an open workspace whose
 	// kept document accepts its kind.
 	Waiting bool
 	Due     time.Time
@@ -159,6 +179,10 @@ type command struct {
 	// ranAt is when the fake kept a final ran, for a command delivered
 	// again.
 	ranAt time.Time
+	// again: the fake delivered it again (again: true), so a result an app
+	// sends after running it again matches the kept one by its outcome and
+	// code.
+	again bool
 }
 
 // intent is what a person chose in the console, issued once and again after
@@ -178,6 +202,11 @@ type intent struct {
 	waiting    bool
 	due        time.Time
 	expired    bool
+	// newerThan: after kind_not_accepted, it is issued again only from a
+	// document whose state_seq is above this one, the state_seq of the
+	// document kept when the result came (0 for none).
+	newerThan     int64
+	needsNewerDoc bool
 }
 
 // restoreCommands is Restore's: the documents go, as the snapshots do; the
@@ -268,6 +297,18 @@ func matchSettings(method, rest string) (route, string, bool) {
 // Documents
 // ---------------------------------------------------------------------------
 
+// decodeContract reads what an app sends as the platform reads it: the
+// fake's own checks of its text first (valid UTF-8, no escape of half a
+// surrogate pair, no member twice, member names), then the contract's
+// strict reading (contract.DecodeStrict): every member present but those
+// the type marks omitempty, and null only where it holds a pointer.
+func decodeContract(raw []byte, dst any) error {
+	if err := checkJSON(raw, 1<<30); err != nil {
+		return err
+	}
+	return contract.DecodeStrict(raw, dst)
+}
+
 // putSettings takes a section: decoded strictly and valid, for the
 // workspace and section its path names, of the app that sends it, its
 // state_seq at most a day ahead of the fake's clock, else invalid_request;
@@ -276,7 +317,7 @@ func matchSettings(method, rest string) (route, string, bool) {
 func (p *Platform) putSettings(rq *request) answer {
 	ws, section, _ := strings.Cut(rq.arg, "/")
 	var doc contract.SettingsDoc
-	if err := decodeStrict(rq.body, &doc); err != nil || doc.Validate() != nil {
+	if err := decodeContract(rq.body, &doc); err != nil || doc.Validate() != nil {
 		return refusal(contract.CodeInvalid, "the section is not valid")
 	}
 	switch {
@@ -305,7 +346,7 @@ func (p *Platform) putSettings(rq *request) answer {
 // not_found.
 func (p *Platform) putPersonSettings(rq *request) answer {
 	var doc contract.PersonSettingsDoc
-	if err := decodeStrict(rq.body, &doc); err != nil || doc.Validate() != nil {
+	if err := decodeContract(rq.body, &doc); err != nil || doc.Validate() != nil {
 		return refusal(contract.CodeInvalid, "the person's settings are not valid")
 	}
 	switch {
@@ -374,10 +415,11 @@ func (p *Platform) PersonSettings(app, sub string) (contract.PersonSettingsDoc, 
 //
 // It refuses, issuing nothing: an app it does not serve, a workspace that
 // does not exist, or an actor who is not an account and, for a workspace's
-// kind, a member of it (ErrUnknown); a kind that is not one of the app's, a
-// person's kind with a workspace, or a command that fails
-// contract.Command.ValidateIn with the workspace's kind (ErrInvalid); and
-// what the console would not offer (ErrNotOffered).
+// kind, a member of it (ErrUnknown); a kind that is not one of the app's
+// (only wappie, mailie and contract.ReferenceApp have any), a person's kind
+// with a workspace, or a command that fails contract.Command.ValidateIn with
+// the workspace's kind (ErrInvalid); and what the console would not offer
+// (ErrNotOffered).
 func (p *Platform) IssueCommand(app string, spec CommandSpec) (string, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -537,7 +579,7 @@ func (p *Platform) issueLocked(app *appState, in *intent, now time.Time) (*comma
 		}
 	}
 	in.ids = append(in.ids, c.ID)
-	in.role, in.docs, in.lastIssue, in.waiting, in.due = c.ActorRole, docs, at, false, time.Time{}
+	in.role, in.docs, in.lastIssue, in.waiting, in.due, in.needsNewerDoc = c.ActorRole, docs, at, false, time.Time{}, false
 	cmd := &command{c: c, intent: in, tightening: in.tightening}
 	app.cmds = append(app.cmds, cmd)
 	app.cmdByID[c.ID] = cmd
@@ -548,8 +590,10 @@ func (p *Platform) issueLocked(app *appState, in *intent, now time.Time) (*comma
 // settleCommandsLocked settles what fell due by the clock for app: an
 // intent that waits past its first command's five minutes, or 30 days from
 // its last issue, ends expired; one whose retry is due, and which the
-// console would offer now, is issued again; and a command with an expiry
-// that no answer carried by its expires_at is recorded expired.
+// console would offer now (after kind_not_accepted, from a document newer
+// than the one kept when the result came), is issued again; and a command
+// with an expiry that no answer carried by its expires_at is recorded
+// expired.
 func (p *Platform) settleCommandsLocked(app *appState, now time.Time) {
 	var due []*intent
 	for _, in := range app.intents {
@@ -559,7 +603,8 @@ func (p *Platform) settleCommandsLocked(app *appState, now time.Time) {
 		switch {
 		case in.deadline != nil && !now.Before(*in.deadline), !now.Before(in.lastIssue.Add(contract.CommandRetention)):
 			in.waiting, in.expired = false, true
-		case (in.due.IsZero() || !now.Before(in.due)) && p.offeredLocked(app, in) == nil:
+		case (in.due.IsZero() || !now.Before(in.due)) && p.offeredLocked(app, in) == nil &&
+			(!in.needsNewerDoc || p.stateLocked(app, in).seq > in.newerThan):
 			due = append(due, in)
 		}
 	}
@@ -737,6 +782,9 @@ func (p *Platform) readCommandFeed(rq *request, after int64) (contract.CommandFe
 		if c.final == nil {
 			c.carried = true
 		}
+		if redo {
+			c.again = true
+		}
 	}
 	f.NextAfter = max(after, f.Head)
 	if f.More {
@@ -793,12 +841,13 @@ func (p *Platform) postResults(rq *request) answer {
 // not decode strictly or is not valid for its command's kind; rejected
 // not_found for no such command of the app; for a final result, duplicate
 // when the same final result is kept (its time compared at microseconds, as
-// the platform keeps it), rejected conflict when another is; for an
+// the platform keeps it), or, for a command delivered again, one of the
+// same outcome and code, and rejected conflict when another is; for an
 // in_progress, duplicate after a final one or the same in_progress; else
 // accepted, and kept.
 func (p *Platform) postResultLocked(app *appState, raw json.RawMessage, now time.Time) contract.CommandResultAnswer {
 	var r contract.CommandResult
-	if decodeStrict(raw, &r) != nil || r.Validate() != nil {
+	if decodeContract(raw, &r) != nil || r.Validate() != nil {
 		return resultAnswer(resultID(raw), contract.OutcomeRejected, contract.CodeInvalid)
 	}
 	c := app.cmdByID[r.ID]
@@ -813,7 +862,7 @@ func (p *Platform) postResultLocked(app *appState, raw json.RawMessage, now time
 		}
 		c.progress = &r
 		return resultAnswer(r.ID, contract.OutcomeAccepted, "")
-	case c.final != nil && sameResult(*c.final, r):
+	case c.final != nil && (sameResult(*c.final, r) || c.again && sameOutcome(*c.final, r)):
 		return resultAnswer(r.ID, contract.OutcomeDuplicate, "")
 	case c.final != nil:
 		return resultAnswer(r.ID, contract.OutcomeRejected, contract.CodeConflict)
@@ -822,16 +871,17 @@ func (p *Platform) postResultLocked(app *appState, raw json.RawMessage, now time
 	if r.Outcome == contract.OutcomeRan {
 		c.ranAt = now
 	}
-	p.awaitRetryLocked(c, r, now)
+	p.awaitRetryLocked(app, c, r, now)
 	return resultAnswer(r.ID, contract.OutcomeAccepted, "")
 }
 
 // awaitRetryLocked makes an intent whose last command got a retry code wait
-// to be issued again: for team_closed and kind_not_accepted, for the event
-// they name; for any other, after retry_after or a backoff of 5 s × 2ⁿ, at
-// most 5 minutes, n counting the commands issued again so far. Any other
-// final result ends the intent.
-func (p *Platform) awaitRetryLocked(c *command, r contract.CommandResult, now time.Time) {
+// to be issued again: for team_closed, for the team's reopening; for
+// kind_not_accepted, for a document of its section with a state_seq above
+// the one kept now, which lists the kind; for any other, after retry_after
+// or a backoff of 5 s × 2ⁿ, at most 5 minutes, n counting the commands
+// issued again so far. Any other final result ends the intent.
+func (p *Platform) awaitRetryLocked(app *appState, c *command, r contract.CommandResult, now time.Time) {
 	in := c.intent
 	if in.ids[len(in.ids)-1] != c.c.ID || r.Outcome != contract.OutcomeRefused ||
 		contract.CommandRefusalClass(*r.Code, c.tightening) != contract.ClassRetry {
@@ -839,7 +889,9 @@ func (p *Platform) awaitRetryLocked(c *command, r contract.CommandResult, now ti
 	}
 	in.waiting, in.due = true, time.Time{}
 	switch *r.Code {
-	case contract.CodeTeamClosed, contract.CodeKindNotAccepted:
+	case contract.CodeTeamClosed:
+	case contract.CodeKindNotAccepted:
+		in.needsNewerDoc, in.newerThan = true, p.stateLocked(app, in).seq
 	default:
 		delay := retryBackoffMax
 		if n := len(in.ids) - 1; n < 6 {
@@ -859,6 +911,13 @@ func sameResult(a, b contract.CommandResult) bool {
 	ja, errA := json.Marshal(a)
 	jb, errB := json.Marshal(b)
 	return errA == nil && errB == nil && bytes.Equal(ja, jb)
+}
+
+// sameOutcome reports whether a and b have the same outcome and code: how
+// a result an app sends for a command delivered again, after running it
+// again, matches the kept one, whatever its at, state_seq and detail.
+func sameOutcome(a, b contract.CommandResult) bool {
+	return a.Outcome == b.Outcome && (a.Code == nil) == (b.Code == nil) && (a.Code == nil || *a.Code == *b.Code)
 }
 
 func resultAnswer(id, outcome, code string) contract.CommandResultAnswer {

@@ -395,23 +395,33 @@ func TestEverySettingsVectorValidatesAsItSays(t *testing.T) {
 }
 
 // Every code of every closed list of the settings part is in a valid case,
-// and every section of both apps.
+// each where it belongs (a member's codes under that member, a notice's
+// params under its code), and every section of both apps: dropping a code
+// from the validator fails this test.
 func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
 	w := settingsFile(t)
+	// seen holds member=value for every string value of a valid case's
+	// data, and code.member=value inside a notice's params.
 	seen := map[string]bool{}
-	var walk func(v any)
-	walk = func(v any) {
+	var walk func(v any, member, code string)
+	walk = func(v any, member, code string) {
 		switch v := v.(type) {
 		case string:
-			seen[v] = true
+			seen[member+"="+v] = true
+			if code != "" {
+				seen[code+"."+member+"="+v] = true
+			}
 		case []any:
 			for _, e := range v {
-				walk(e)
+				walk(e, member, code)
 			}
 		case map[string]any:
 			for k, e := range v {
-				seen["member:"+k] = true
-				walk(e)
+				inner := code
+				if c, ok := v["code"].(string); ok && k == "params" {
+					inner = c
+				}
+				walk(e, k, inner)
 			}
 		}
 	}
@@ -434,7 +444,7 @@ func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
 			if err := json.Unmarshal(doc.Data, &data); err != nil {
 				t.Fatal(err)
 			}
-			walk(data)
+			walk(data, "", "")
 		}
 	}
 	for _, app := range []string{"wappie", "mailie"} {
@@ -444,26 +454,62 @@ func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
 			}
 		}
 		for _, code := range contract.NoticeCodes(app) {
-			if !seen[code] {
+			if !seen["code="+code] {
 				t.Errorf("no valid case holds %s's notice code %s", app, code)
 			}
 		}
 	}
-	for _, list := range [][]string{
-		contract.ServerAllows(), contract.AIProviders(), contract.AIFunctions(), contract.EndReasons(),
-		contract.BudgetHits(), contract.AIAlerts(),
-		{"pairing", "online", "offline", "logged_out_phone", "logged_out_deletion", "banned"},
-		{"person", "service_account", "assistant", "ai", "legacy_key", "token"},
-		{"pending", "active", "paused", "reseal", "ended"},
-		{"metadata", "content"}, {"revoked", "expired"}, {"web_tested", "local_tested", "unknown", "token"}, {"off", "draft", "direct"},
-		{"google", "microsoft", "icloud", "imap"}, {"connected", "needs_reauth", "pending_auth", "error", "removed"},
-		{"scope_missing", "mailbox_refused", "token_rejected", "unproved", "other"}, {"none", "partial", "complete"},
-		{"usable", "withheld"}, {"active", "suspended", "held", "disabled"}, {"reserved"},
+	for member, codes := range map[string][]string{
+		"server_allows": contract.ServerAllows(),
+		"provider":      append(contract.AIProviders(), "google", "microsoft", "icloud", "imap"),
+		"functions":     contract.AIFunctions(),
+		"providers":     contract.AIProviders(),
+		"end_reason":    contract.EndReasons(),
+		"connection":    {"pairing", "online", "offline", "logged_out_phone", "logged_out_deletion", "banned"},
+		"capture":       {"on", "paused"},
+		"kind":          {"person", "key", "app", "service_account", "assistant", "ai", "legacy_key", "token", "metadata", "content"},
+		"period":        {"month"},
+		"operator":      {"allow", "deny"},
+		"switch":        {"text", "attachments", "drafts", "ai"},
+		"tier":          {"web_tested", "local_tested", "unknown", "token"},
+		"send":          {"off", "draft", "direct"},
+		"availability":  {"usable", "withheld", "closed"},
+		"link_min_role": {"owner", "admin", "member"},
+		"sign_in":       {"oauth", "password"},
+		"reason":        {"scope_missing", "mailbox_refused", "token_rejected", "unproved", "other"},
+		"mode":          {"team", "personal"},
+		"indexed":       {"none", "partial", "complete"},
+		"consent":       {"sync", "actions", "send"},
+		"actor_kind":    {"person", "key"},
 	} {
-		for _, code := range list {
-			if !seen[code] {
-				t.Errorf("no valid case holds the code %s", code)
+		for _, code := range codes {
+			if !seen[member+"="+code] {
+				t.Errorf("no valid case holds %s %s", member, code)
 			}
+		}
+	}
+	for _, code := range contract.AIAlerts() {
+		if !seen["code="+code] {
+			t.Errorf("no valid case holds the AI alert %s", code)
+		}
+	}
+	for _, code := range contract.BudgetHits() {
+		if !seen["code="+code] {
+			t.Errorf("no valid case holds the budget hit %s", code)
+		}
+	}
+	for _, want := range []string{
+		"status=pending", "status=active", "status=paused", "status=reseal", "status=ended", "status=revoked", "status=expired",
+		"status=connected", "status=needs_reauth", "status=pending_auth", "status=error", "status=removed",
+		"status=suspended", "status=held", "status=disabled", "state=reserved", "state=active",
+		"state=on", "state=off", "state=old_text",
+		"mailbox_removed.state=removed", "mailbox_removed.state=deleted",
+		"mailbox_sync_off.state=live", "mailbox_sync_off.state=removed", "mailbox_sync_off.state=deleted",
+		"mailbox_sync_off.actor_kind=person", "mailbox_sync_paused.state=live", "mailbox_sync_paused.actor_kind=person",
+		"sync_paused.actor_kind=person", "sync_paused.actor_kind=key",
+	} {
+		if !seen[want] {
+			t.Errorf("no valid case holds %s", want)
 		}
 	}
 }
@@ -492,6 +538,11 @@ func TestEveryCommandVectorHolds(t *testing.T) {
 			if !kinds[app+" "+k.Kind] {
 				t.Errorf("no valid command of %s's %s", app, k.Kind)
 			}
+		}
+	}
+	for _, c := range w.Feeds {
+		if feedValid(caseValue(c)) != c.Valid {
+			t.Errorf("feed %q: valid should be %v", c.Name, c.Valid)
 		}
 	}
 	actions := map[string]bool{}

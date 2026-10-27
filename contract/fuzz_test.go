@@ -187,8 +187,9 @@ func TestTheClosedSetsCannotBeWidened(t *testing.T) {
 func FuzzACommandVerifiesOnlyUnderItsMAC(f *testing.F) {
 	const secret, other = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8", "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
 	for _, s := range []string{
-		`{"v":1,"kind":"item.rename","params":{"before":{"label":"Vendas"},"after":{"label":"Vendas SP"}},"issued_at":"2026-10-13T12:00:00.120Z"}`,
-		`{"mac":"v1=00","a":[1,2,{"b":null}]}`, `{"a":" é"}`, `{"a":1,"a":2}`, `{"a":"\ud800"}`, `{}`, `[]`, `null`, `{"a":1.5}`,
+		`{"v":1,"app":"wappie","kind":"item.rename","params":{"before":{"label":"Vendas"},"after":{"label":"Vendas SP"}},"issued_at":"2026-10-13T12:00:00.120Z"}`,
+		`{"app":"wappie","mac":"v1=00","a":[1,2,{"b":null}]}`, `{"app":"mailie","a":1}`, `{"app":"wappie","a":"\u2028\u00e9"}`,
+		`{"app":"wappie","a":1,"a":2}`, `{"app":"wappie","a":"\ud800"}`, `{"app":"wappie"}`, `{}`, `[]`, `null`, `{"app":"wappie","a":1.5}`,
 	} {
 		f.Add([]byte(s))
 	}

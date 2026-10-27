@@ -518,10 +518,23 @@ func TestAskingFromBelowTheAcknowledgedCursorDeliversAgainOnlyTheTighteningsThat
 	if f, cmds, _ := take(t, fx.c, 2); !slices.Equal(ids(cmds), []string{open}) || f.Items[0].Again {
 		t.Fatalf("from 2: %+v", f)
 	}
-	// Run again, it meets the kept result.
-	post(t, fx, results(ran(fx, ranTightening)), contract.OutcomeDuplicate)
+	// Run again an hour later, judged on another state_seq, it meets the
+	// kept result by its outcome and code; another outcome or code is a
+	// conflict. A command never delivered again keeps the strict rule: the
+	// same ran an hour later is a conflict.
+	fx.h.clock.Add(time.Hour)
+	rerunSeq := fx.seq + 9
+	rerun := ran(fx, ranTightening)
+	rerun.StateSeq = &rerunSeq
+	stale := refused(fx, ranTightening, contract.CodeStateChanged, 0)
+	later := ran(fx, ranRename)
+	later.StateSeq = &rerunSeq
+	post(t, fx, results(rerun, stale, later), contract.OutcomeDuplicate, "rejected:conflict", "rejected:conflict")
+	if r, _ := fx.h.p.CommandResult("wappie", ranTightening); r.StateSeq == nil || *r.StateSeq != fx.seq+1 {
+		t.Fatalf("the rerun replaced the kept result: %+v", r)
+	}
 	// Ninety days on, a tightening that ran comes again no more.
-	fx.h.clock.Add(90 * 24 * time.Hour)
+	fx.h.clock.Add(90*24*time.Hour - time.Hour)
 	if _, cmds, _ := take(t, fx.c, 0); !slices.Equal(ids(cmds), []string{ranTightening, open}) {
 		t.Fatalf("at 90 days: %v", ids(cmds))
 	}
@@ -684,6 +697,125 @@ func TestKindNotAcceptedWaitsForItsKindInAcceptsOnlyForATightening(t *testing.T)
 	_, cmds, _ := take(t, fx.c, 2)
 	if len(cmds) != 1 || *cmds[0].RetryOf != drop || cmds[0].BasedOn.StateSeq != fx.seq {
 		t.Fatalf("issued again once accepted: %+v", cmds)
+	}
+}
+
+func TestKindNotAcceptedIsIssuedAgainOnlyFromANewerDocumentThatListsTheKind(t *testing.T) {
+	fx := settingsSetup(t, contracttest.Options{})
+	all := kindsOf(contract.SectionNumbers)
+	drop := issue(t, fx, dropSend(fx.team))
+	take(t, fx.c, 0)
+	// The answer comes before the narrower document: the document kept
+	// then still lists the kind, and issues nothing again, however often
+	// the app asks.
+	post(t, fx, results(refused(fx, drop, contract.CodeKindNotAccepted, 0)), contract.OutcomeAccepted)
+	for i := range 5 {
+		if _, cmds, _ := take(t, fx.c, 1); len(cmds) != 0 {
+			t.Fatalf("round %d issued it again from the document kept when the answer came: %+v", i, cmds)
+		}
+	}
+	fx.h.clock.Add(time.Hour)
+	if _, cmds, _ := take(t, fx.c, 1); len(cmds) != 0 {
+		t.Fatalf("an hour on: %+v", cmds)
+	}
+	if in, _ := fx.h.p.Intent("wappie", drop); !in.Waiting || !in.Due.IsZero() || len(in.Commands) != 1 {
+		t.Fatalf("the intent: %+v", in)
+	}
+	// The narrower document, newer, does not list it.
+	if err := fx.c.PutSettings(t.Context(), numbersDoc(fx.team, fx.seq+1, without(all, contract.OpItemFlagsDrop))); err != nil {
+		t.Fatal(err)
+	}
+	if _, cmds, _ := take(t, fx.c, 1); len(cmds) != 0 {
+		t.Fatalf("from the narrower document: %+v", cmds)
+	}
+	// A newer one that lists it again issues it again.
+	if err := fx.c.PutSettings(t.Context(), numbersDoc(fx.team, fx.seq+2, all)); err != nil {
+		t.Fatal(err)
+	}
+	_, cmds, _ := take(t, fx.c, 1)
+	if len(cmds) != 1 || *cmds[0].RetryOf != drop {
+		t.Fatalf("from a newer document that lists it: %+v", cmds)
+	}
+	// Refused so again, it waits for a document newer than that one.
+	post(t, fx, results(refused(fx, cmds[0].ID, contract.CodeKindNotAccepted, 0)), contract.OutcomeAccepted)
+	if _, cmds, _ := take(t, fx.c, 2); len(cmds) != 0 {
+		t.Fatalf("issued again from the same document: %+v", cmds)
+	}
+	if err := fx.c.PutSettings(t.Context(), numbersDoc(fx.team, fx.seq+3, all)); err != nil {
+		t.Fatal(err)
+	}
+	if _, cmds, _ := take(t, fx.c, 2); len(cmds) != 1 || *cmds[0].RetryOf != drop || cmds[0].CSeq != 3 {
+		t.Fatalf("from the next document: %+v", cmds)
+	}
+}
+
+func TestADocumentOrAResultMissingAMemberOrNullWhereItMayNotBeIsInvalid(t *testing.T) {
+	fx := settingsSetup(t, contracttest.Options{})
+	send := func(what, target, body string) {
+		t.Helper()
+		cl := call{method: http.MethodPut, target: target, app: "wappie", body: body}
+		a := fx.h.send(t, cl)
+		if a.status != http.StatusBadRequest {
+			t.Errorf("%s: %d %s", what, a.status, a.body)
+			return
+		}
+		fx.h.wantSigned(t, a, cl, http.StatusBadRequest, contract.CodeInvalid)
+	}
+	cut := func(body, member string) string {
+		t.Helper()
+		out := strings.Replace(body, member, "", 1)
+		if out == body {
+			t.Fatalf("no %s in %s", member, body)
+		}
+		return out
+	}
+	section := "/contract/v1/workspaces/" + fx.team + "/settings/"
+	numbers, _ := json.Marshal(numbersDoc(fx.team, fx.seq+1, []string{}))
+	send("a section missing truncated", section+"numbers", cut(string(numbers), `"truncated":false,`))
+	send("a section's truncated null", section+"numbers", strings.Replace(string(numbers), `"truncated":false`, `"truncated":null`, 1))
+	send("a section's state_seq null", section+"numbers", strings.Replace(string(numbers), `"state_seq":`+fmt.Sprint(fx.seq+1), `"state_seq":null`, 1))
+	send("a section's data with can_link null", section+"numbers", strings.Replace(string(numbers), `"can_link":true`, `"can_link":null`, 1))
+	person, _ := json.Marshal(personDoc(anaSub, fx.seq+1, []string{}))
+	send("a person's document missing truncated", "/contract/v1/accounts/"+anaSub+"/settings", cut(string(person), `"truncated":false,`))
+	// Wappie Cloud's section names its snapshot_seq, null: missing, it is
+	// not valid.
+	cloud := contract.SettingsDoc{
+		V: contract.SettingsV, Type: contract.SettingsType, App: "wappie", Section: contract.SectionInstallations,
+		Producer: contract.ProducerWappieCloud, WorkspaceID: fx.team, StateSeq: fx.seq, MeasuredAt: contract.T(fx.h.clock.Now()),
+		Accepts: []string{},
+		Data:    json.RawMessage(`{"licences":{"used":0,"capacity":null},"hosted_numbers":0,"installations":[],"bindings":[]}`),
+	}
+	if err := fx.c.PutSettings(t.Context(), cloud); err != nil {
+		t.Fatalf("Wappie Cloud's section: %v", err)
+	}
+	cloud.StateSeq++
+	installations, _ := json.Marshal(cloud)
+	send("Wappie Cloud's section missing snapshot_seq", section+"installations", cut(string(installations), `"snapshot_seq":null,`))
+	if kept, _ := fx.h.p.Settings("wappie", fx.team, contract.SectionInstallations); kept.StateSeq != fx.seq {
+		t.Fatalf("a refused section was kept: %+v", kept)
+	}
+	// A result missing at, or retry_after, is rejected alone, by its id.
+	name := issue(t, fx, rename(fx.team))
+	drop := issue(t, fx, dropSend(fx.team))
+	take(t, fx.c, 0)
+	noAt, _ := json.Marshal(ran(fx, name))
+	noRetryAfter, _ := json.Marshal(ran(fx, drop))
+	good, _ := json.Marshal(ran(fx, drop))
+	target := "/contract/v1/commands/results"
+	cl := call{method: http.MethodPost, target: target, app: "wappie", body: `{"results":[` +
+		cut(string(noAt), `,"at":"`+fx.h.clock.Now().UTC().Format(time.RFC3339Nano)+`"`) + `,` +
+		cut(string(noRetryAfter), `"retry_after":null,`) + `,` + string(good) + `]}`}
+	a := fx.h.send(t, cl)
+	fx.h.verified(t, a, []string{secretA}, "wappie", http.MethodPost, target)
+	var got contract.CommandResultsAnswer
+	if err := json.Unmarshal(a.body, &got); err != nil || len(got.Results) != 3 {
+		t.Fatalf("the answers: %d %s", a.status, a.body)
+	}
+	for i, want := range []struct{ id, outcome string }{{name, contract.OutcomeRejected}, {drop, contract.OutcomeRejected}, {drop, contract.OutcomeAccepted}} {
+		r := got.Results[i]
+		if r.ID != want.id || r.Outcome != want.outcome || (want.outcome == contract.OutcomeRejected && *r.Code != contract.CodeInvalid) {
+			t.Errorf("result %d: %+v", i, r)
+		}
 	}
 }
 

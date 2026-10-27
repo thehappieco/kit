@@ -95,6 +95,17 @@
       "valid": false
     },
     {
+      "name": "a body naming another app, under a MAC for this one",
+      "app": "wappie",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "command": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":null,\"agreement\":null,\"app\":\"mailie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":null,\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"consent.withdraw\",\"mac\":\"v1=f48631f5d8c929cb3d5b53284e91f928a99cc20c09f5aef95fdad219035d7da8\",\"params\":{\"after\":{\"actions\":\"off\"},\"before\":{\"actions\":\"on\"}},\"retry_of\":null,\"secret\":2,\"section\":\"person\",\"target\":{},\"type\":\"command\",\"v\":1,\"workspace_id\":null,\"wseq\":null}",
+      "jcs": "{\"actor\":\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\",\"actor_role\":null,\"agreement\":null,\"app\":\"mailie\",\"based_on\":{\"docs\":{\"0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20\":7},\"state_seq\":1791892800000},\"confirm\":null,\"cseq\":812,\"expires_at\":null,\"first_issued_at\":\"2026-10-13T12:00:00Z\",\"generation\":\"0199b1e0-0000-7000-8000-000000000001\",\"id\":\"0199f3c4-0000-7000-8000-000000000021\",\"issued_at\":\"2026-10-13T12:00:00Z\",\"kind\":\"consent.withdraw\",\"params\":{\"after\":{\"actions\":\"off\"},\"before\":{\"actions\":\"on\"}},\"retry_of\":null,\"secret\":2,\"section\":\"person\",\"target\":{},\"type\":\"command\",\"v\":1,\"workspace_id\":null,\"wseq\":null}",
+      "mac": "v1=f48631f5d8c929cb3d5b53284e91f928a99cc20c09f5aef95fdad219035d7da8",
+      "valid": false
+    },
+    {
       "name": "another secret",
       "app": "wappie",
       "secrets": [

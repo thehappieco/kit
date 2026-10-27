@@ -3,6 +3,7 @@ package contract
 import (
 	"bytes"
 	"encoding/json"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -161,8 +162,8 @@ var wappieKinds = append([]CommandKind{
 	kind(OpMCPConnectionSeen, SectionMCP, false, onRow, noChange),
 	kind(OpMCPSendPause, SectionMCP, true, onRow, between("send_paused", `false`, `true`)),
 	kind(OpMCPSendResume, SectionMCP, false, onRow, between("send_paused", `true`, `false`), CodeStateChanged),
-	kind(OpMCPSwitchOn, SectionMCP, false, onSwitch, between("effective", `false`, `true`), CodeOperatorOff, CodeSwitchOff, CodeStateChanged),
-	kind(OpMCPSwitchOff, SectionMCP, true, onSwitch, between("effective", `true`, `false`)),
+	kind(OpMCPSwitchOn, SectionMCP, false, onSwitch, between("set", `false|null`, `true`), CodeOperatorOff, CodeSwitchOff, CodeStateChanged),
+	kind(OpMCPSwitchOff, SectionMCP, true, onSwitch, between("set", `true|null`, `false`)),
 	kind(OpMCPLegacyTokenRevoke, SectionMCP, true, onRow, noChange),
 	kind(OpInstallationAdd, SectionInstallations, false, onNothing, addInstallationParams, CodeInvalidValue, CodeAlreadyAdded, CodeLabelChanged),
 	kind(OpInstallationRename, SectionInstallations, false, onRow, renameParams("name"), CodeLabelChanged, CodeStateChanged),
@@ -202,13 +203,13 @@ func byName(kinds []CommandKind) map[string]CommandKind {
 	return m
 }
 
-// commandKindsOf are app's kinds by name: Wappie's, Mailie's, or, for an
-// app other than these two (the platform's reference app), Wappie's.
+// commandKindsOf are app's kinds by name: Wappie's, Mailie's, or, for the
+// platform's reference app, Wappie's; none for another app.
 func commandKindsOf(app string) map[string]CommandKind {
-	switch {
-	case app == "mailie":
+	switch app {
+	case "mailie":
 		return mailieKindsByName
-	case ValidApp(app):
+	case "wappie", ReferenceApp:
 		return wappieKindsByName
 	}
 	return nil
@@ -218,10 +219,11 @@ func commandKindsOf(app string) map[string]CommandKind {
 // It returns copies: the lists Validate checks are closed.
 func CommandKinds(app string) []CommandKind {
 	list := wappieKinds
-	switch {
-	case app == "mailie":
+	switch app {
+	case "mailie":
 		list = mailieKinds
-	case !ValidApp(app):
+	case "wappie", ReferenceApp:
+	default:
 		return nil
 	}
 	out := make([]CommandKind, len(list))
@@ -670,8 +672,11 @@ func dismissParams(c *Command, p params) error {
 	if err := noChange(c, p); err != nil {
 		return err
 	}
+	// Each entry's members count only named exactly as written, as an app
+	// reads what the platform sends: ID or VERSION is a member it does not
+	// know.
 	var notices []NoticeRef
-	if json.Unmarshal(p["notices"], &notices) != nil || len(notices) == 0 || len(notices) > MaxNotices {
+	if json.Unmarshal(exactOnly(p["notices"], reflect.TypeFor[[]NoticeRef]()), &notices) != nil || len(notices) == 0 || len(notices) > MaxNotices {
 		return invalid("params.notices")
 	}
 	seen := map[string]bool{}

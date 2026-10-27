@@ -232,7 +232,11 @@ func (c *Client) call(ctx context.Context, timeout time.Duration, method, target
 // callSigned is call, and the time the platform signed the answer.
 func (c *Client) callSigned(ctx context.Context, timeout time.Duration, method, target string, in, out any) (time.Time, error) {
 	var body []byte
-	if in != nil {
+	switch in := in.(type) {
+	case nil:
+	case rawBody:
+		body = in
+	default:
 		var err error
 		if body, err = json.Marshal(in); err != nil {
 			return time.Time{}, err
@@ -487,10 +491,31 @@ func (c *Client) PutPersonSettings(ctx context.Context, doc PersonSettingsDoc) e
 	return c.put(ctx, "/contract/v1/accounts/"+doc.Sub+"/settings", doc, "the person's settings")
 }
 
-// put puts body and wants {"accepted": true}.
+// rawBody is a body encoded already.
+type rawBody []byte
+
+// marshalPlain is v's JSON with no HTML escaping: encoding/json writes each
+// &, < and > as six bytes, which could push a valid document past its
+// call's limit. A raw member (a document's data) is written as it is, so a
+// producer encodes its data without HTML escaping too.
+func marshalPlain(v any) (rawBody, error) {
+	var b bytes.Buffer
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
+		return nil, err
+	}
+	return bytes.TrimSuffix(b.Bytes(), []byte("\n")), nil
+}
+
+// put puts body, with no HTML escaping, and wants {"accepted": true}.
 func (c *Client) put(ctx context.Context, target string, body any, what string) error {
+	raw, err := marshalPlain(body)
+	if err != nil {
+		return err
+	}
 	var r AccessResult
-	if err := c.call(ctx, callTimeout, http.MethodPut, target, body, &r); err != nil {
+	if err := c.call(ctx, callTimeout, http.MethodPut, target, raw, &r); err != nil {
 		return err
 	}
 	if !r.Accepted {
@@ -528,8 +553,12 @@ func (c *Client) Commands(ctx context.Context, after int64, wait int) (CommandFe
 // per result, for each result's id in order, with an outcome of the
 // contract's, is ErrUnverified.
 func (c *Client) PostResults(ctx context.Context, results []CommandResult) ([]CommandResultAnswer, error) {
+	body, err := marshalPlain(CommandResults{Results: results})
+	if err != nil {
+		return nil, err
+	}
 	var r CommandResultsAnswer
-	if err := c.call(ctx, callTimeout, http.MethodPost, "/contract/v1/commands/results", CommandResults{Results: results}, &r); err != nil {
+	if err := c.call(ctx, callTimeout, http.MethodPost, "/contract/v1/commands/results", body, &r); err != nil {
 		return nil, err
 	}
 	if len(r.Results) != len(results) {

@@ -39,8 +39,8 @@ var vecParams = map[string]map[string]string{
 		contract.OpMCPConnectionSeen:       `{}`,
 		contract.OpMCPSendPause:            `{"before":{"send_paused":false},"after":{"send_paused":true}}`,
 		contract.OpMCPSendResume:           `{"before":{"send_paused":true},"after":{"send_paused":false}}`,
-		contract.OpMCPSwitchOn:             `{"before":{"effective":false},"after":{"effective":true}}`,
-		contract.OpMCPSwitchOff:            `{"before":{"effective":true},"after":{"effective":false}}`,
+		contract.OpMCPSwitchOn:             `{"before":{"set":false},"after":{"set":true}}`,
+		contract.OpMCPSwitchOff:            `{"before":{"set":true},"after":{"set":false}}`,
 		contract.OpMCPLegacyTokenRevoke:    `{}`,
 		contract.OpInstallationAdd:         `{"origin":"https://wappie.example.com","name":"Matriz"}`,
 		contract.OpInstallationRename:      `{"before":{"name":"Matriz"},"after":{"name":"Matriz SP"}}`,
@@ -205,6 +205,7 @@ type WireCommands struct {
 	Kind        string          `json:"kind"`
 	Description string          `json:"description"`
 	Commands    []CommandCase   `json:"commands"`
+	Feeds       []WireCase      `json:"feeds"`
 	Actions     []CommandAction `json:"actions"`
 	Results     []ResultCase    `json:"results"`
 	Batches     []BodyCase      `json:"batches"`
@@ -250,6 +251,13 @@ func commandAction(a CommandAction) string {
 		return "invalid_command"
 	}
 	return "run"
+}
+
+// feedValid is what an app makes of a command feed page: decoded as it
+// decodes what the platform sends, and valid.
+func feedValid(raw []byte) bool {
+	var f contract.CommandFeed
+	return json.Unmarshal(raw, &f) == nil && f.Validate() == nil
 }
 
 // resultValid is what the platform makes of a result of app's kind:
@@ -325,6 +333,22 @@ func wireCommands() (any, error) {
 		}), true},
 		{"the reference app's rename", vecCmd("fakeproduct", contract.OpItemRename, nil), true},
 		{"a member's role at issue", wappie(contract.OpMCPConnectionSeen, func(c *contract.Command) { c.ActorRole = ptr(contract.RoleMember) }), true},
+		{"a team's sync turned off from an older revision", mailie(contract.OpItemTeamSyncOff, params(`{"before":{"sync":"older_revision"},"after":{"sync":"off"}}`)), true},
+		{"a bound consent turned off", mailie(contract.OpItemTeamSyncOff, params(`{"before":{"sync":"bound"},"after":{"sync":"off"}}`)), true},
+		{"sync withdrawn from an older revision", mailie(contract.OpConsentWithdraw, params(`{"before":{"sync":"older_revision"},"after":{"sync":"off"}}`)), true},
+		{"actions withdrawn from old_text", mailie(contract.OpConsentWithdraw, params(`{"before":{"actions":"old_text"},"after":{"actions":"off"}}`)), true},
+		{"send withdrawn", mailie(contract.OpConsentWithdraw, params(`{"before":{"send":"on"},"after":{"send":"off"}}`)), true},
+		{"actions agreed, in English", mailie(contract.OpConsentAgree, func(c *contract.Command) {
+			c.Params, c.Agreement.Language = str(`{"before":{"actions":"off"},"after":{"actions":"on"}}`), "en"
+		}), true},
+		{"a team's sync agreed in Spanish", mailie(contract.OpItemTeamSyncOn, func(c *contract.Command) { c.Agreement.Language = "es" }), true},
+		{"an admin's role at issue", wappie(contract.OpItemRename, func(c *contract.Command) { c.ActorRole = ptr(contract.RoleAdmin) }), true},
+		{"attachments turned off", wappie(contract.OpMCPSwitchOff, func(c *contract.Command) { c.Target.Switch = contract.SwitchAttachments }), true},
+		{"drafts turned on", wappie(contract.OpMCPSwitchOn, func(c *contract.Command) { c.Target.Switch = contract.SwitchDrafts }), true},
+		{"a switch that follows its default of on, turned off", wappie(contract.OpMCPSwitchOff, func(c *contract.Command) {
+			c.Target.Switch, c.Params = contract.SwitchAI, str(`{"before":{"set":null},"after":{"set":false}}`)
+		}), true},
+		{"a switch that follows its default of off, turned on", wappie(contract.OpMCPSwitchOn, params(`{"before":{"set":null},"after":{"set":true}}`)), true},
 		// Invalid.
 		{"a tightening kind with expires_at", wappie(contract.OpItemFlagsDrop, func(c *contract.Command) { c.ExpiresAt = ptr(at(contract.CommandLifetime)) }), false},
 		{"another kind without expires_at", wappie(contract.OpItemRename, func(c *contract.Command) { c.ExpiresAt = nil }), false},
@@ -383,6 +407,21 @@ func wireCommands() (any, error) {
 			c.Params = mustRaw(map[string]any{"notices": many(301, func(i int) contract.NoticeRef { return contract.NoticeRef{ID: fmt.Sprint(i), Version: 1} })})
 		}), false},
 		{"no notice dismissed", wappie(contract.OpPersonNoticesDismiss, params(`{"notices":[]}`)), false},
+		{"a switch set to null", wappie(contract.OpMCPSwitchOff, params(`{"before":{"set":true},"after":{"set":null}}`)), false},
+		{"a switch turned on from on", wappie(contract.OpMCPSwitchOn, params(`{"before":{"set":true},"after":{"set":true}}`)), false},
+		{"a switch command naming effective", wappie(contract.OpMCPSwitchOff, params(`{"before":{"effective":true},"after":{"effective":false}}`)), false},
+		{"a generation that is no UUID", wappie(contract.OpItemRename, func(c *contract.Command) { c.Generation = "restored-1" }), false},
+		{"cseq 0", wappie(contract.OpItemRename, func(c *contract.Command) { c.CSeq = 0 }), false},
+		{"wseq 0", wappie(contract.OpItemRename, func(c *contract.Command) { c.WSeq = ptr[int64](0) }), false},
+		{"based_on.state_seq 0", wappie(contract.OpItemRename, func(c *contract.Command) { c.BasedOn.StateSeq = 0 }), false},
+		{"a document's version 0", wappie(contract.OpItemRename, func(c *contract.Command) { c.BasedOn.Docs[vecSub] = 0 }), false},
+		{"an actor that is no sub", wappie(contract.OpItemRename, func(c *contract.Command) { c.Actor = "owner" }), false},
+		{"an installation added with its name missing", wappie(contract.OpInstallationAdd, params(`{"origin":"https://wappie.example.com"}`)), false},
+		{"a notice dismissed twice", wappie(contract.OpPersonNoticesDismiss, params(`{"notices":[{"id":"812","version":2},{"id":"812","version":3}]}`)), false},
+		{"a notice's id written ID", wappie(contract.OpPersonNoticesDismiss, params(`{"notices":[{"ID":"812","VERSION":2}]}`)), false},
+		{"a move out from another workspace", wappie(contract.OpItemMoveOut, params(`{"before":{"workspace":"`+vecThird+`"},"after":{"workspace":"`+vecPersonal+`"}}`)), false},
+		{"a cap narrowed to the same", wappie(contract.OpAIIntegrationNarrow, params(`{"before":{"cap":100},"after":{"cap":100}}`)), false},
+		{"an integration paused from paused", wappie(contract.OpAIIntegrationNarrow, params(`{"before":{"paused":true},"after":{"paused":true}}`)), false},
 		{"secret 0", wappie(contract.OpItemRename, func(c *contract.Command) { c.Secret = 0 }), false},
 		{"version 2 of the format", wappie(contract.OpItemRename, func(c *contract.Command) { c.V = 2 }), false},
 	} {
@@ -407,6 +446,52 @@ func wireCommands() (any, error) {
 			return nil, fmt.Errorf("contractvec: a miscased target passes")
 		}
 		out.Commands = append(out.Commands, CommandCase{Name: "a target written Target", App: "wappie", WorkspaceKind: contract.KindTeam, Value: raw})
+	}
+
+	// Feeds.
+	cmdAt := func(n int, secret string) json.RawMessage {
+		return signed(wappie(contract.OpItemSyncNow, func(c *contract.Command) {
+			c.ID, c.CSeq, c.WSeq = fmt.Sprintf("0199f3c4-0000-7000-8000-%012d", n), int64(n), ptr(int64(n))
+		}), secret)
+	}
+	page := func(n int, mut func(*contract.CommandFeed)) json.RawMessage {
+		f := contract.CommandFeed{Generation: vecGeneration, Head: int64(n), Items: []contract.CommandFeedItem{}, NextAfter: int64(n)}
+		for i := 1; i <= n; i++ {
+			f.Items = append(f.Items, contract.CommandFeedItem{CSeq: int64(i), Command: cmdAt(i, SecretA)})
+		}
+		if mut != nil {
+			mut(&f)
+		}
+		return mustRaw(f)
+	}
+	for _, c := range []struct {
+		name  string
+		raw   json.RawMessage
+		valid bool
+	}{
+		{"a page of two commands", page(2, nil), true},
+		{"no command yet", page(0, nil), true},
+		{"100 commands", page(100, nil), true},
+		{"101 commands", page(101, nil), false},
+		{"a page with more to come", page(2, func(f *contract.CommandFeed) { f.Head, f.NextAfter, f.More = 9, 2, true }), true},
+		{"a command delivered again", page(2, func(f *contract.CommandFeed) { f.Items[0].Again = true }), true},
+		{"a page that holds a command whose mac does not hold still stands", page(2, func(f *contract.CommandFeed) {
+			f.Items[1].Command = cmdAt(2, SecretB)
+		}), true},
+		{"commands out of order", page(2, func(f *contract.CommandFeed) { f.Items[0], f.Items[1] = f.Items[1], f.Items[0] }), false},
+		{"a command twice", page(2, func(f *contract.CommandFeed) { f.Items[1] = f.Items[0] }), false},
+		{"a cseq past the head", page(2, func(f *contract.CommandFeed) { f.Head, f.NextAfter = 1, 1 }), false},
+		{"cseq 0", page(1, func(f *contract.CommandFeed) { f.Items[0].CSeq = 0 }), false},
+		{"next_after past the head", page(2, func(f *contract.CommandFeed) { f.NextAfter = 3 }), false},
+		{"a head below 0", page(0, func(f *contract.CommandFeed) { f.Head, f.NextAfter = -1, 0 }), false},
+		{"a generation that is no UUID", page(1, func(f *contract.CommandFeed) { f.Generation = "1" }), false},
+		{"items null", page(0, func(f *contract.CommandFeed) { f.Items = nil }), false},
+		{"a command that is no object", page(1, func(f *contract.CommandFeed) { f.Items[0].Command = json.RawMessage(`"item.sync_now"`) }), false},
+	} {
+		if got := feedValid(c.raw); got != c.valid {
+			return nil, fmt.Errorf("contractvec: feed %q is valid %v, the design asks %v", c.name, got, c.valid)
+		}
+		out.Feeds = append(out.Feeds, wireCase(c.name, c.raw, c.valid))
 	}
 
 	// Actions.
@@ -570,6 +655,21 @@ func wireCommands() (any, error) {
 		{"purged false", "mailie", contract.OpItemRemove, result(func(r *contract.CommandResult) {
 			r.Detail = &contract.ResultDetail{Purged: ptr(false)}
 		}), false},
+		{"state_seq 0", "wappie", contract.OpItemRename, result(func(r *contract.CommandResult) { r.StateSeq = ptr[int64](0) }), false},
+		{"an id that is no UUID", "wappie", contract.OpItemRename, result(func(r *contract.CommandResult) { r.ID = "812" }), false},
+		{"no at", "wappie", contract.OpItemRename, edit(result(nil), `,"at":"2026-10-13T12:00:01Z"`, ``), false},
+		{"in_progress with a detail", "wappie", contract.OpItemMoveOut, result(func(r *contract.CommandResult) {
+			r.Outcome, r.StateSeq = contract.OutcomeInProgress, nil
+			holderDetail(1, 0)(r)
+		}), false},
+		{"a holders detail on another code", "wappie", contract.OpItemMoveOut, refused(contract.CodeNotSoleOwner, holderDetail(1, 0)), false},
+		{"also_off naming a switch twice", "wappie", contract.OpMCPSwitchOff, result(func(r *contract.CommandResult) {
+			r.Detail = &contract.ResultDetail{AlsoOff: &[]string{contract.SwitchAI, contract.SwitchAI}}
+		}), false},
+		{"sessions_ended below 0", "mailie", contract.OpPersonSignOutEverywhere, result(func(r *contract.CommandResult) {
+			r.Detail = &contract.ResultDetail{SessionsEnded: ptr[int64](-1)}
+		}), false},
+		{"outcome null", "wappie", contract.OpItemRename, edit(result(nil), `"outcome":"ran"`, `"outcome":null`), false},
 		{"an outcome the contract does not know", "wappie", contract.OpItemRename, result(func(r *contract.CommandResult) { r.Outcome = "done" }), false},
 		{"a member written Outcome", "wappie", contract.OpItemRename, edit(result(nil), `"outcome"`, `"Outcome"`), false},
 		{"a member missing", "wappie", contract.OpItemRename, edit(result(nil), `,"detail":null`, ``), false},
@@ -605,7 +705,8 @@ func wireCommands() (any, error) {
 		{"a result that does not validate", batch(2, func(rs []contract.CommandResult) { rs[1].StateSeq = nil }), false},
 		{"results written Results", strings.Replace(batch(1, nil), `"results"`, `"Results"`, 1), false},
 		{"a generation beside the results", strings.Replace(batch(1, nil), `{"results"`, `{"generation":"`+vecGeneration+`","results"`, 1), false},
-		{"a body over 256 KiB", `{"results":[` + strings.Repeat(" ", contract.ResultsBodyLimit) + strings.TrimPrefix(batch(1, nil), `{"results":[`), false},
+		{"a body at 256 KiB", padTo(batch(1, nil), contract.ResultsBodyLimit), true},
+		{"a body over 256 KiB", padTo(batch(1, nil), contract.ResultsBodyLimit+1), false},
 	} {
 		if got := batchValid([]byte(c.body)); got != c.valid {
 			return nil, fmt.Errorf("contractvec: batch %q is valid %v, the design asks %v", c.name, got, c.valid)
@@ -620,6 +721,13 @@ func wireCommands() (any, error) {
 		}
 	}
 	return out, nil
+}
+
+// padTo is body, a JSON object, padded with spaces after its first member's
+// name to n bytes.
+func padTo(body string, n int) string {
+	i := strings.Index(body, ":") + 1
+	return body[:i] + strings.Repeat(" ", n-len(body)) + body[i:]
 }
 
 // MACCase is one command as an app receives it, the secrets it holds, its
@@ -754,6 +862,8 @@ func commandMACs() (any, error) {
 		return nil, err
 	}
 	mailieCmd := signed(vecCmd("mailie", contract.OpConsentWithdraw, nil), SecretB)
+	mailieBody := signed(vecCmd("mailie", contract.OpConsentWithdraw, nil), SecretA)
+	forWappie := withMAC(mailieBody, macOver([]byte(SecretA), "wappie", []byte(must(canonicalOf(mailieBody)))))
 	for _, c := range []struct {
 		name    string
 		app     string
@@ -769,6 +879,7 @@ func commandMACs() (any, error) {
 		{"a label with & and <, which JCS writes as they are", "wappie", one, string(escaped), true},
 		{"Mailie's tightening, during a rotation: the next secret", "mailie", []string{SecretA, SecretB}, string(mailieCmd), true},
 		{"another app", "mailie", one, string(plain), false},
+		{"a body naming another app, under a MAC for this one", "wappie", one, forWappie, false},
 		{"another secret", "wappie", []string{SecretB}, string(plain), false},
 		{"a member changed after signing", "wappie", one, string(edit(plain, `"Vendas SP"`, `"Vendas RJ"`)), false},
 		{"a member added after signing", "wappie", one, string(edit(plain, `"kind":`, `"priority":"high","kind":`)), false},

@@ -123,7 +123,8 @@ func escapedUnit(b []byte) (rune, bool) {
 
 // exactShape reports whether every object of raw that t's members reach
 // names its members exactly as t names them, none it does not have, and
-// every one present but those t marks omitempty or omitzero. A value of
+// every one present but those t marks omitempty or omitzero; and whether
+// every null raw holds is a pointer's. A value of
 // another shape than t's is left to the decoder, which refuses it; a value
 // whose type decodes itself (json.Unmarshaler) or is kept raw is its own.
 func exactShape(raw json.RawMessage, t reflect.Type) bool {
@@ -136,13 +137,14 @@ func exactShape(raw json.RawMessage, t reflect.Type) bool {
 	if reflect.PointerTo(t).Implements(unmarshalerType) || t == reflect.TypeFor[json.RawMessage]() {
 		return true
 	}
+	if string(bytes.TrimSpace(raw)) == "null" {
+		// Only a pointer may be null: encoding/json reads null into a bool,
+		// a number, a string, a list or an object as its zero value, so a
+		// member that may not be null would pass as false, 0 or empty.
+		return false
+	}
 	switch t.Kind() {
 	case reflect.Struct:
-		if string(bytes.TrimSpace(raw)) == "null" {
-			// Only a pointer may be null: a struct's null would read as
-			// every member at its zero value.
-			return false
-		}
 		var members map[string]json.RawMessage
 		if json.Unmarshal(raw, &members) != nil {
 			return true
@@ -184,6 +186,22 @@ func exactShape(raw json.RawMessage, t reflect.Type) bool {
 	return true
 }
 
+// DecodeStrict decodes raw, one JSON value an app sends the platform, into
+// v, a pointer, as the platform reads it (SPEC section 11.19): valid UTF-8
+// with no escape of half a UTF-16 surrogate pair; no member twice in any
+// object; every member named exactly as v's type names it, none it does
+// not have, and every one present but those it marks omitempty or
+// omitzero; and null only where the type holds a pointer, a raw value or a
+// type that reads itself. A raw value (a settings document's data) is the
+// caller's to read, as Validate reads data. Any failure is ErrInvalid.
+func DecodeStrict(raw []byte, v any) error {
+	t := reflect.TypeOf(v)
+	if t == nil || t.Kind() != reflect.Pointer {
+		return invalid("the destination is a pointer")
+	}
+	return decodeExact(raw, v, "body")
+}
+
 // decodeExact decodes raw into dst, a pointer, as the platform reads what an
 // app sends (wellFormed, exactShape), with no member dst does not have; raw
 // is never null, which would leave dst as it was.
@@ -192,7 +210,7 @@ func decodeExact(raw []byte, dst any, what string) error {
 		return invalid("%s: not one well-formed JSON value, or a member twice", what)
 	}
 	if !exactShape(raw, reflect.TypeOf(dst).Elem()) {
-		return invalid("%s: a member missing, unknown or not named exactly", what)
+		return invalid("%s: a member missing, unknown, not named exactly, or null where it may not be", what)
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()

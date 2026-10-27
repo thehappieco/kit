@@ -77,7 +77,8 @@ func commandMAC(canonical []byte, app, secret string) string {
 // set to the MAC of the rest under app and secret, as the JCS text of the
 // whole: the platform's, each time it puts a command in a feed answer, with
 // the secret it signs that answer with. A mac raw holds already is
-// replaced. secret must be a secret (CheckSecrets), and app an app's id.
+// replaced. secret must be a secret (CheckSecrets), app an app's id, and
+// the body's app that one.
 func SignCommand(raw []byte, app, secret string) ([]byte, error) {
 	if !validSecret(secret) {
 		return nil, ErrSecret
@@ -95,6 +96,9 @@ func SignCommand(raw []byte, app, secret string) ([]byte, error) {
 	if err := dec.Decode(&v); err != nil {
 		return nil, err
 	}
+	if v["app"] != app {
+		return nil, invalid("command: the body names another app")
+	}
 	v["mac"] = commandMAC(canonical, app, secret)
 	return jcs.Marshal(v)
 }
@@ -110,7 +114,9 @@ func SignCommand(raw []byte, app, secret string) ([]byte, error) {
 // it does not know is ignored, and a member counts only named exactly as
 // written; Validate, or ValidateIn once the app knows the workspace's
 // kind, is the app's next step, and the feed item's cseq must be the
-// command's own.
+// command's own. A command whose MAC holds but whose body names another app
+// than app is ErrInvalid too: an app runs only its own commands, whatever
+// feed carried them.
 func VerifyCommand(raw []byte, app string, secrets []string) (Command, error) {
 	if len(secrets) == 0 || !ValidApp(app) {
 		return Command{}, ErrCommandMAC
@@ -139,6 +145,9 @@ func VerifyCommand(raw []byte, app string, secrets []string) (Command, error) {
 	var c Command
 	if err := json.Unmarshal(exactOnly(raw, reflect.TypeFor[Command]()), &c); err != nil {
 		return Command{}, invalid("command: it does not decode")
+	}
+	if c.App != app {
+		return Command{}, invalid("command: the body names another app")
 	}
 	return c, nil
 }

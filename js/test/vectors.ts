@@ -46,10 +46,17 @@ export interface VectorFile {
   cases: VectorCase[]
 }
 
-// Every file under vectors/, as text, by its path there ("kit/seal-go.json").
+// Every file under vectors/, as text, by its path there ("kit/seal-go.json"),
+// but the contract's wire files, which only Go reads: they hold several
+// megabytes of documents at their count limits, which every browser tab
+// would otherwise load with each spec.
+const globbed = import.meta.glob(['../../vectors/**/*.json', '!../../vectors/platform/contract-v1/wire*.json'], {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
 const bundled: Record<string, string> = Object.fromEntries(
-  Object.entries(import.meta.glob('../../vectors/**/*.json', { query: '?raw', import: 'default', eager: true }) as Record<string, string>)
-    .map(([path, text]) => [path.replace(/^\.\.\/\.\.\/vectors\//, ''), text]),
+  Object.entries(globbed).map(([path, text]) => [path.replace(/^\.\.\/\.\.\/vectors\//, ''), text]),
 )
 
 /** text is a vector file's exact text, for the files whose bytes a test reproduces. */

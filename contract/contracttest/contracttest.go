@@ -1,10 +1,11 @@
 // Package contracttest is a fake platform for the apps' tests: the six calls
-// of the contract's membership part (SPEC section 11.17) and the five of its
-// token part (SPEC section 11.18, tokens.go) over loopback HTTP, each
-// request checked in the order the platform's transport checks it, and
-// every answer to a request whose signature held signed with
-// contract.SignAnswer, refusals included. An app's own client, or a
-// contract.Client from Client, talks to it as it talks to the platform.
+// of the contract's membership part (SPEC section 11.17), the five of its
+// token part (SPEC section 11.18, tokens.go) and the four of its settings
+// part (SPEC section 11.19, settings.go) over loopback HTTP, each request
+// checked in the order the platform's transport checks it, and every
+// answer to a request whose signature held signed with contract.SignAnswer,
+// refusals included. An app's own client, or a contract.Client from Client,
+// talks to it as it talks to the platform.
 //
 // The order a request meets the checks, as the platform's
 // internal/contractapi (its reference) runs them, each refusing before the
@@ -27,7 +28,7 @@
 //     unsigned;
 //  6. the nonce, admitted once in the app's replay cache, else 401 replay,
 //     signed (503 unavailable when the cache is full);
-//  7. no query but on the two feeds, else 400 invalid_request, signed; a
+//  7. no query but on the three feeds, else 400 invalid_request, signed; a
 //     selector GET's own bucket, else 429 rate_limited, signed (SPEC
 //     section 11.18); then the call itself, whose every answer is signed.
 //
@@ -119,15 +120,24 @@ const (
 	CallTokenBySelector = "token-selector" // GET /contract/v1/token-selectors/{selector}
 	CallTokensApplied   = "tokens-applied" // POST /contract/v1/tokens/applied
 	CallTokenUsage      = "tokens-usage"   // POST /contract/v1/tokens/usage
+
+	// The settings part's (SPEC section 11.19).
+	CallSettings       = "settings"        // PUT /contract/v1/workspaces/{id}/settings/{section}
+	CallPersonSettings = "person-settings" // PUT /contract/v1/accounts/{sub}/settings
+	CallCommands       = "commands"        // GET /contract/v1/commands?after=&wait=
+	CallResults        = "results"         // POST /contract/v1/commands/results
 )
 
 // The body limits of the calls. The token part's acknowledgement and
-// usage take TokensBodyLimit.
+// usage take TokensBodyLimit; the settings part's are the contract's.
 const (
-	SmallBodyLimit    = 4 << 10
-	EventsBodyLimit   = 256 << 10
-	SnapshotBodyLimit = 1 << 20
-	TokensBodyLimit   = 256 << 10
+	SmallBodyLimit          = 4 << 10
+	EventsBodyLimit         = 256 << 10
+	SnapshotBodyLimit       = 1 << 20
+	TokensBodyLimit         = 256 << 10
+	SettingsBodyLimit       = contract.SettingsBodyLimit
+	PersonSettingsBodyLimit = contract.PersonSettingsBodyLimit
+	ResultsBodyLimit        = contract.ResultsBodyLimit
 )
 
 // The defaults of Options.
@@ -137,8 +147,8 @@ const (
 	DefaultSelectorPerSecond = 10
 )
 
-// MaxSnapshotAhead is how far ahead of the platform's clock a snapshot_seq
-// may be.
+// MaxSnapshotAhead is how far ahead of the platform's clock a snapshot_seq,
+// or a settings document's state_seq, may be.
 const MaxSnapshotAhead = 24 * time.Hour
 
 // App is one app the fake serves.
@@ -258,6 +268,7 @@ type appState struct {
 	marks map[string]time.Time
 
 	tokenApp
+	settingsApp
 }
 
 type keptEvent struct {
@@ -322,7 +333,8 @@ func New(opts Options) (*Platform, error) {
 			follows: map[string]bool{}, docs: map[string]contract.AccountDoc{}, named: map[string]bool{},
 			snapshots: map[string]contract.Snapshot{}, kept: map[string]keptEvent{}, wake: make(chan struct{}),
 			refuse: map[string]string{}, corrupt: map[string]Corruption{}, marks: map[string]time.Time{},
-			tokenApp: newTokenApp(opts.LongPolls, p.selectorRate, p.now()),
+			tokenApp:    newTokenApp(opts.LongPolls, p.selectorRate, p.now()),
+			settingsApp: newSettingsApp(opts.LongPolls),
 		}
 	}
 	return p, nil
@@ -376,6 +388,8 @@ func (p *Platform) Close() {
 
 // SetSecrets replaces an app's secrets: current signs the answers, and
 // requests signed with current or other are accepted (a rotation's steps).
+// A current secret that changes is the next generation of the app's
+// secret, whose number a command served from then on names (its secret).
 func (p *Platform) SetSecrets(app, current, other string) error {
 	if contract.CheckSecrets(current, other) != nil {
 		return fmt.Errorf("%w: the secrets are not valid", ErrInvalid)
@@ -385,6 +399,9 @@ func (p *Platform) SetSecrets(app, current, other string) error {
 	st := p.apps[app]
 	if st == nil {
 		return ErrUnknown
+	}
+	if current != st.current {
+		st.secretNo++
 	}
 	st.current, st.secrets = current, contract.Secrets(current, other)
 	return nil
@@ -429,10 +446,11 @@ func (p *Platform) Corrupt(app, call string, how Corruption) error {
 var calls = map[string]bool{
 	CallSubscribe: true, CallAccount: true, CallUnsubscribe: true, CallFeed: true, CallAccess: true, CallEvents: true,
 	CallTokens: true, CallToken: true, CallTokenBySelector: true, CallTokensApplied: true, CallTokenUsage: true,
+	CallSettings: true, CallPersonSettings: true, CallCommands: true, CallResults: true,
 }
 
 // feeds are the calls that take a query.
-var feeds = map[string]bool{CallFeed: true, CallTokens: true}
+var feeds = map[string]bool{CallFeed: true, CallTokens: true, CallCommands: true}
 
 // unsignedOnly are the codes the platform sends only before a request's
 // signature holds, so never signed.
@@ -468,6 +486,10 @@ type request struct {
 	query string
 	arg   string
 	body  []byte
+	// secret signs the answer, and secretNo is its generation number: a
+	// command served is signed with it (settings.go).
+	secret   string
+	secretNo int64
 }
 
 type answer struct {
@@ -484,6 +506,9 @@ func match(method, path string) (route, string, bool) {
 	rest, ok := strings.CutPrefix(path, "/contract/v1/")
 	if !ok {
 		return route{}, "", false
+	}
+	if rt, arg, ok := matchSettings(method, rest); ok {
+		return rt, arg, true
 	}
 	switch {
 	case rest == "feed":
@@ -585,7 +610,7 @@ func (p *Platform) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	// 5: the signature.
 	p.mu.Lock()
-	secrets, current := app.secrets, app.current
+	secrets, current, secretNo := app.secrets, app.current, app.secretNo
 	p.mu.Unlock()
 	if !scheme.SignedBy(secrets, got, contract.ToPlatform, app.id, r.Method, target, body) {
 		unsigned(w, contract.CodeUnauthenticated, "the signature does not hold")
@@ -625,7 +650,7 @@ func (p *Platform) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sign(refusal(code, "refused by the test"))
 		return
 	}
-	ans := rt.serve(p, &request{ctx: r.Context(), app: app, query: query, arg: arg, body: body})
+	ans := rt.serve(p, &request{ctx: r.Context(), app: app, query: query, arg: arg, body: body, secret: current, secretNo: secretNo})
 	if r.Context().Err() != nil {
 		return // the app went away; nothing reaches it
 	}
@@ -1303,7 +1328,9 @@ func sameContent(a, b contract.AccountDoc) bool {
 // republishLocked publishes, for every app, the document of every account
 // it follows: what a change to the directory marks. For an app whose
 // publishing is held, it marks the accounts whose document changed instead,
-// each at the time of its oldest change not yet published.
+// each at the time of its oldest change not yet published. Then it settles
+// every app's commands, so that a team reopened issues again what waited
+// for it.
 func (p *Platform) republishLocked() {
 	for _, app := range p.apps {
 		for sub := range app.follows {
@@ -1319,6 +1346,9 @@ func (p *Platform) republishLocked() {
 				app.marks[sub] = atMicroseconds(p.now())
 			}
 		}
+	}
+	for _, app := range p.apps {
+		p.settleCommandsLocked(app, p.now())
 	}
 }
 
@@ -1671,10 +1701,15 @@ func (p *Platform) Generation() (id string, confirmed bool) {
 
 // NewGeneration gives the platform a new generation, not yet confirmed, as
 // the restore runbook does: every feed answer and document carries it from
-// now on.
+// now on, and so does every command served. The command feed from 0 holds
+// every command without a final result, and no cursor of it is
+// acknowledged in the new generation yet.
 func (p *Platform) NewGeneration() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	for _, app := range p.apps {
+		app.newCommandGeneration()
+	}
 	p.generation, p.confirmed = newUUID(), false
 	return p.generation
 }
@@ -1691,9 +1726,12 @@ func (p *Platform) ConfirmGeneration() {
 // so a cursor above 0 is gone, and a new generation begins, not yet
 // confirmed. The directory stays, but such a backup holds no subscription
 // and names no workspace to an app, so it holds no snapshot or event of
-// one either: they all go. An app gets documents again only for the
-// accounts it subscribes to again (PUT), and a snapshot or an event of a
-// workspace not named to it again is not_found.
+// one either: they all go, and so do its settings documents. An app gets
+// documents again only for the accounts it subscribes to again (PUT), and a
+// snapshot, an event or a settings document of a workspace not named to it
+// again is not_found. Its commands without a final result stay, numbered
+// again from 1 in their order, so the command feed from 0 holds them; those
+// with one go, so a result for one is not_found.
 func (p *Platform) Restore() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -1703,6 +1741,7 @@ func (p *Platform) Restore() string {
 		app.follows, app.marks, app.named = map[string]bool{}, map[string]time.Time{}, map[string]bool{}
 		app.snapshots, app.events, app.kept = map[string]contract.Snapshot{}, nil, map[string]keptEvent{}
 		app.resetTokens()
+		app.restoreCommands()
 	}
 	p.generation, p.confirmed = newUUID(), false
 	return p.generation

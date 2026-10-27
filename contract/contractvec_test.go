@@ -66,6 +66,10 @@ func Generate() ([]File, error) {
 		{"wire-tokens.json", wireTokens},
 		{"wire-snapshot-tokens.json", wireSnapshotTokens},
 		{"wire-events-stop.json", wireEventsStop},
+		// Kit v0.10.0: the settings part, its commands and their MAC.
+		{"wire-settings.json", wireSettings},
+		{"wire-commands.json", wireCommands},
+		{"command-macs.json", commandMACs},
 	} {
 		v, err := gen.make()
 		if err != nil {

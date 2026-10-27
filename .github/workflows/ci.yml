@@ -94,6 +94,8 @@ jobs:
           go test -run '^$' -fuzz '^FuzzAnAnswerVerifiesOnlyUnderTheSecret$' -fuzztime 30s ./contract
           go test -run '^$' -fuzz '^FuzzParseTokenTakesOnlyTheLayout$' -fuzztime 30s ./contract
           go test -run '^$' -fuzz '^FuzzAValidReadingKeyIsCanonicalAndOfFullOrder$' -fuzztime 30s ./contract
+          go test -run '^$' -fuzz '^FuzzACommandVerifiesOnlyUnderItsMAC$' -fuzztime 30s ./contract
+          go test -run '^$' -fuzz '^FuzzASettingsDocumentThatValidatesReadsAgainTheSame$' -fuzztime 30s ./contract
 
   # What only the toolchain that wrote the vectors can check. The seeded
   # replays of Wappie's Go vectors run only on the toolchain a file records,
@@ -158,7 +160,8 @@ jobs:
       # on this toolchain too. The contract's label mask reads the Unicode
       # tables of the toolchain it is built with, which a new Go may extend,
       # and its other parsers lean on the standard library's regexp, time
-      # and HMAC, so they are fuzzed here as well.
+      # and HMAC, and its settings documents and commands on encoding/json,
+      # so they are fuzzed here as well.
       - name: fuzz the strict JSON readers and the contract's parsers
         run: |
           go test -run '^$' -fuzz '^FuzzCheckClientExtensions$' -fuzztime 30s ./profiles/platform
@@ -169,6 +172,8 @@ jobs:
           go test -run '^$' -fuzz '^FuzzAnAnswerVerifiesOnlyUnderTheSecret$' -fuzztime 30s ./contract
           go test -run '^$' -fuzz '^FuzzParseTokenTakesOnlyTheLayout$' -fuzztime 30s ./contract
           go test -run '^$' -fuzz '^FuzzAValidReadingKeyIsCanonicalAndOfFullOrder$' -fuzztime 30s ./contract
+          go test -run '^$' -fuzz '^FuzzACommandVerifiesOnlyUnderItsMAC$' -fuzztime 30s ./contract
+          go test -run '^$' -fuzz '^FuzzASettingsDocumentThatValidatesReadsAgainTheSame$' -fuzztime 30s ./contract
 
   # On the toolchain Wappie builds what it ships with, 1.26.10 (the first
   # 1.26 release without GO-2026-6809, crypto/x509, which govulncheck

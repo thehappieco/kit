@@ -152,8 +152,8 @@ type settingsApp struct {
 	cmds     []*command       // by cseq
 	cmdByID  map[string]*command
 	intents  []*intent // in the order they began
-	acked    int64     // the cursor acknowledged in ackedGen, stored only by a read that answers a request (readCommandFeed)
-	ackedGen string    // the generation of the last read that answered a request; "" before any
+	acked    int64     // the highest cursor acknowledged in ackedGen (readCommandFeed)
+	ackedGen string    // the generation acked was stored in; "" before any
 	cmdWake  chan struct{}
 	cmdPolls chan struct{}
 }
@@ -703,8 +703,9 @@ func (p *Platform) commandFeed(rq *request) answer {
 	// The channel is taken before the read, so a command issued between the
 	// two still wakes this request. The first read is the request's last
 	// only with no wait; one that waits answers it only when it finds a
-	// command, so neither a request that waits nor one refused rate_limited
-	// acknowledges its cursor through an empty first read.
+	// command, so in a new generation neither a request that waits nor one
+	// refused rate_limited takes the old generation's cursor through an
+	// empty first read.
 	f, woken, ans, ok := p.readCommandFeed(rq, after, wait == 0)
 	if !ok {
 		return ans
@@ -746,21 +747,26 @@ func (p *Platform) commandFeed(rq *request) answer {
 // last 90 days, marked again. Each command is signed as served, with the
 // secret that signs the answer.
 //
-// The request acknowledges every command up to the cursor, which only the
-// read whose page answers it stores: a read that finds a command, or the
-// request's last read (last: its wait is 0, or the wait is over). An empty
-// read that is not the last stores no acknowledgement, neither the cursor
-// nor the generation: the request waits and reads again, or is refused
-// rate_limited and comes back with the same cursor. A read that stores
-// while the stored acknowledgement is of another generation, or there is
-// none, stores 0 in this one: the request still carries the app's cursor of
-// the old generation, so it acknowledges nothing in the new one, however
-// often it reads while it waits, and the app's reset to 0 that follows is
-// no restore of its own. This is the platform's rule (platform commits
-// 6a96954 and 9a33f6c), with what it leaves (SPEC section 11.19): the
-// request names no generation, so a page of the new generation lost in
-// transit lets the retry's old cursor count, and so does a second request
-// waiting with the old cursor that is answered after the first one was.
+// The request acknowledges every command up to the cursor. While the stored
+// acknowledgement is of the fake's generation now, every read stores it,
+// the highest cursor acknowledged in the generation, so a request that
+// waits and never gets its answer (the app stopped, or its client gave up)
+// still counts. Otherwise only the read whose page answers the request
+// stores one: a read that finds a command, or the request's last read
+// (last: its wait is 0, or the wait is over); and it stores 0 in the
+// generation now, since the request still carries the app's cursor of the
+// old one. An empty read that is not the last then stores nothing, neither
+// the cursor nor the generation: the request waits and reads again, or is
+// refused rate_limited and comes back with the same cursor. So a request
+// with the old generation's cursor acknowledges nothing in the new one,
+// however often it reads while it waits, and the app's reset to 0 that
+// follows is no restore of its own. This is the platform's rule (platform
+// commits 6a96954, 9a33f6c and 1a0b4fa), with what it leaves (SPEC
+// section 11.19), since the request names no generation: the old cursor
+// counts when it comes again after the first answer in the new generation
+// (a retry after a page lost in transit, or after the app stopped before
+// its reset committed), and when a second request waiting with it is
+// answered after the first.
 func (p *Platform) readCommandFeed(rq *request, after int64, last bool) (contract.CommandFeed, <-chan struct{}, answer, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -771,10 +777,9 @@ func (p *Platform) readCommandFeed(rq *request, after int64, last bool) (contrac
 	if after > app.cmdHead {
 		return contract.CommandFeed{}, woken, refusal(contract.CodeGone, "the cursor is past the command feed's head: take every command again"), false
 	}
-	// The acknowledgement this read stores if its page answers the
-	// request. A request answered in a generation the app was not served
-	// yet carries its cursor of the old one, and acknowledges nothing in
-	// this one.
+	// The acknowledgement this read stores. A request answered in a
+	// generation the app was not served yet carries its cursor of the old
+	// one, and acknowledges nothing in this one.
 	acked := app.acked
 	ack := max(acked, after)
 	if app.ackedGen != p.generation {
@@ -814,11 +819,13 @@ func (p *Platform) readCommandFeed(rq *request, after int64, last bool) (contrac
 			c.again = true
 		}
 	}
-	// Only a page that answers the request stores its acknowledgement: an
-	// empty one the request waits after, or is refused rate_limited after,
-	// never does, so the request's old cursor is never taken under the
-	// generation this read found.
-	if last || len(f.Items) > 0 {
+	// Within the stored acknowledgement's generation every read stores it,
+	// so a request that waits and ends before its last read still
+	// acknowledges its cursor. Across a generation only a page that answers
+	// the request stores it: an empty one the request waits after, or is
+	// refused rate_limited after, never does, so the request's old cursor
+	// is never taken under the generation this read found.
+	if last || len(f.Items) > 0 || app.ackedGen == p.generation {
 		app.acked, app.ackedGen = ack, p.generation
 	}
 	f.NextAfter = max(after, f.Head)

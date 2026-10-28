@@ -533,13 +533,16 @@ func (p *Platform) tokenFeed(rq *request) answer {
 	timer := time.NewTimer(time.Duration(wait) * time.Second)
 	defer timer.Stop()
 	select {
-	case <-p.drain:
-		return answer{status: http.StatusOK, body: f}
 	case <-rq.ctx.Done():
+		// The app went away: the page reaches no one, and nothing is read
+		// again.
 		return answer{status: http.StatusOK, body: f}
+	case <-p.drain:
 	case <-woken:
 	case <-timer.C:
 	}
+	// Woken, timed out or drained, it reads again, as the platform's
+	// long-polls do.
 	f, _, ans, ok = p.readTokenFeed(rq.app, after)
 	if !ok {
 		return ans

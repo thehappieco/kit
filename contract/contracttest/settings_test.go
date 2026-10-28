@@ -1012,6 +1012,32 @@ func TestANewGenerationDeliversEveryCommandWithoutAFinalResultFromZero(t *testin
 	}
 }
 
+func TestTheOldGenerationsCursorAcknowledgesNothingInTheNewOne(t *testing.T) {
+	fx := settingsSetup(t, contracttest.Options{})
+	name := issue(t, fx, rename(fx.team))
+	cut := issue(t, fx, dropSend(fx.team))
+	take(t, fx.c, 0)
+	post(t, fx, results(ran(fx, name), ran(fx, cut)), contract.OutcomeAccepted, contract.OutcomeAccepted)
+	take(t, fx.c, 2)
+	fx.h.clock.Add(60 * 24 * time.Hour)
+	gen := fx.h.p.NewGeneration()
+	// The app's first request after the platform's restore still carries
+	// its cursor of the old generation, and learns of the new one.
+	if f, cmds, _ := take(t, fx.c, 2); f.Generation != gen || len(cmds) != 0 {
+		t.Fatalf("the old cursor in the new generation: %+v", f)
+	}
+	// Its reset to 0 is no restore of its own: nothing comes again.
+	if f, cmds, _ := take(t, fx.c, 0); f.Generation != gen || len(cmds) != 0 {
+		t.Fatalf("the reset after the platform's restore: %v, %+v", ids(cmds), f.Items)
+	}
+	// Once answered in the new generation, its own restore still is one:
+	// the tightening that ran comes again, the rename does not.
+	take(t, fx.c, 2)
+	if f, cmds, _ := take(t, fx.c, 0); !slices.Equal(ids(cmds), []string{cut}) || !f.Items[0].Again || cmds[0].Generation != gen {
+		t.Fatalf("a restore in the new generation: %v, %+v", ids(cmds), f.Items)
+	}
+}
+
 func TestTheSettingsCallsReadTheirBodiesUpToTheContractsLimits(t *testing.T) {
 	// The bodies below are built from the constants, so the constants
 	// themselves are pinned: moving one fails here.

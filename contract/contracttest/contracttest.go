@@ -1703,13 +1703,12 @@ func (p *Platform) Generation() (id string, confirmed bool) {
 // the restore runbook does: every feed answer and document carries it from
 // now on, and so does every command served. The command feed from 0 holds
 // every command without a final result, and no cursor of it is
-// acknowledged in the new generation yet.
+// acknowledged in the new generation yet: an app's first request answered
+// in it, which still carries its old generation's cursor, acknowledges
+// nothing, so its reset to 0 gets no command again.
 func (p *Platform) NewGeneration() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	for _, app := range p.apps {
-		app.newCommandGeneration()
-	}
 	p.generation, p.confirmed = newUUID(), false
 	return p.generation
 }

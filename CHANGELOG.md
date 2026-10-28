@@ -2,6 +2,17 @@
 
 One version covers both languages. Before 1.0.0 a minor version may change APIs but never bytes; a patch changes neither.
 
+## v0.10.1
+
+The release date is the tag's.
+
+- A fix in `contract/contracttest`'s command feed alone (SPEC section 11.19), so the fake answers as the platform's feed does (platform commit `6a96954`, `internal/console/commandfeed.go`, its test `TestTheOldGenerationsCursorAcknowledgesNothingInTheNewOne`). After `NewGeneration`, as after the platform's restore, an app's first request still carries its cursor of the old generation, since it learns of the new one only from that request's answer. v0.10.0's fake took that cursor as acknowledged in the new generation, so the app's reset to 0 that follows was read as a restore of its own, and every tightening that ran in the last 90 days came back `again: true`. Now the first request the fake answers in a generation acknowledges nothing in it, and only the requests after it raise the cursor: the reset to 0 gets only the commands without a final result, none `again`, and an app's own restore within the generation (asking from below a cursor it acknowledged after that first answer) still gets its tightenings that ran `again`, as before. The first request an app ever sends acknowledges nothing either, as on the platform.
+- What an app that tested against v0.10.0's fake should expect: after `NewGeneration` (or `Restore`), no command `again` on its reset from 0, so a test that counted on those reruns, or on their `duplicate` results, now sees none; a test that asks from below its cursor before the fake answered it once in the generation sees no `again` either. Nothing else of the fake changes, and an app's own code needs no change: the platform never sent those commands `again`.
+- `contracttest`'s new test: `TestTheOldGenerationsCursorAcknowledgesNothingInTheNewOne`, which fails on v0.10.0.
+- SPEC section 11.19 gains one sentence under "After the platform's restore": a request answered in a generation the app was not served before still carries its old cursor, and acknowledges nothing in the new one, so none of the restored commands comes `again` (Appendix B records it under spec 10).
+- `js/package.json` and its lockfile name 0.10.1; the tarball changes in `package.json` alone.
+- No API, wire or byte changes: every vector file, every value of the Wappie, Mailie and platform profiles, package `contract` and every exported name of `contract/contracttest` are those of v0.10.0.
+
 ## v0.10.0
 
 The release date is the tag's.

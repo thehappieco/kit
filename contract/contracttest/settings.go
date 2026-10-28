@@ -152,7 +152,8 @@ type settingsApp struct {
 	cmds     []*command       // by cseq
 	cmdByID  map[string]*command
 	intents  []*intent // in the order they began
-	acked    int64     // the highest cursor the app asked after in this generation
+	acked    int64     // the highest cursor the app asked after in ackedGen
+	ackedGen string    // the generation the app was last answered in; "" before its first request
 	cmdWake  chan struct{}
 	cmdPolls chan struct{}
 }
@@ -213,7 +214,8 @@ type intent struct {
 // commands with a final result go too, so a result for one is not_found;
 // the commands without one stay, numbered again from 1 in their order, so
 // the command feed from 0 holds them; their intents, and the intents
-// waiting to be issued again, stay.
+// waiting to be issued again, stay. Restore's new generation leaves no
+// cursor acknowledged (readCommandFeed).
 func (a *settingsApp) restoreCommands() {
 	a.sections, a.people = map[settingsKey]contract.SettingsDoc{}, map[string]contract.PersonSettingsDoc{}
 	var kept []*command
@@ -227,14 +229,9 @@ func (a *settingsApp) restoreCommands() {
 		kept = append(kept, c)
 		live[c.intent] = true
 	}
-	a.cmds, a.cmdHead, a.acked = kept, int64(len(kept)), 0
+	a.cmds, a.cmdHead = kept, int64(len(kept))
 	a.intents = slices.DeleteFunc(a.intents, func(in *intent) bool { return !in.waiting && !live[in] })
 }
-
-// newCommandGeneration is NewGeneration's: the app follows the command feed
-// from 0 again, which holds every command without a final result, and no
-// cursor is acknowledged in the new generation yet.
-func (a *settingsApp) newCommandGeneration() { a.acked = 0 }
 
 // wakeCommands wakes the app's command feed long-polls.
 func (a *settingsApp) wakeCommands() {
@@ -737,12 +734,15 @@ func (p *Platform) commandFeed(rq *request) answer {
 
 // readCommandFeed is the app's command feed after the cursor, and the
 // channel its next issue closes. The request acknowledges every command up
-// to the cursor. A page holds, oldest first, every command after the cursor
-// with no final result, which it marks carried; and, when the cursor is
-// below the highest the app acknowledged in this generation, every
-// tightening command after it whose final result is a ran kept in the last
-// 90 days, marked again. Each command is signed as served, with the secret
-// that signs the answer.
+// to the cursor, but for the first request the fake answers in a
+// generation: that one still carries the app's cursor of the old
+// generation, so it acknowledges nothing in the new one, and the app's
+// reset to 0 that follows is no restore of its own. A page holds, oldest
+// first, every command after the cursor with no final result, which it
+// marks carried; and, when the cursor is below the highest the app
+// acknowledged in this generation, every tightening command after it whose
+// final result is a ran kept in the last 90 days, marked again. Each
+// command is signed as served, with the secret that signs the answer.
 func (p *Platform) readCommandFeed(rq *request, after int64) (contract.CommandFeed, <-chan struct{}, answer, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -753,8 +753,15 @@ func (p *Platform) readCommandFeed(rq *request, after int64) (contract.CommandFe
 	if after > app.cmdHead {
 		return contract.CommandFeed{}, woken, refusal(contract.CodeGone, "the cursor is past the command feed's head: take every command again"), false
 	}
+	// A request answered in a generation the app was not served yet
+	// carries its cursor of the old one, and acknowledges nothing in this
+	// one, as the platform's feed does.
+	ack := after
+	if app.ackedGen != p.generation {
+		app.acked, ack = 0, 0
+	}
 	again := after < app.acked
-	app.acked = max(app.acked, after)
+	app.acked, app.ackedGen = max(app.acked, ack), p.generation
 	f := contract.CommandFeed{Generation: p.generation, Head: app.cmdHead, Items: []contract.CommandFeedItem{}, NextAfter: app.cmdHead}
 	// The envelope at its longest: next_after at the head, more false.
 	size := len(marshal(f))

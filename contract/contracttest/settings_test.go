@@ -7,6 +7,7 @@ package contracttest_test
 // intents the fake issues again after a retry code.
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1009,6 +1010,238 @@ func TestANewGenerationDeliversEveryCommandWithoutAFinalResultFromZero(t *testin
 	f, cmds, _ := take(t, fx.c, 0)
 	if f.Generation != gen || !slices.Equal(ids(cmds), []string{open}) || f.Items[0].Again || cmds[0].CSeq != 2 {
 		t.Fatalf("in the new generation: %+v", f)
+	}
+}
+
+// ranTwoTightenings issues a rename and a tightening to wappie, which takes
+// both, runs both and acknowledges 2 with a request that waits for nothing;
+// it returns the tightening.
+func ranTwoTightenings(t *testing.T, fx settingsFixture) (cut string) {
+	t.Helper()
+	name := issue(t, fx, rename(fx.team))
+	cut = issue(t, fx, dropSend(fx.team))
+	take(t, fx.c, 0)
+	post(t, fx, results(ran(fx, name), ran(fx, cut)), contract.OutcomeAccepted, contract.OutcomeAccepted)
+	take(t, fx.c, 2)
+	return cut
+}
+
+// poll is a command feed request that waits up to wait seconds, verified
+// and decoded as take's.
+func poll(t *testing.T, c *contract.Client, after int64, wait int) (contract.CommandFeed, []contract.Command) {
+	t.Helper()
+	f, _, err := c.Commands(t.Context(), after, wait)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmds := make([]contract.Command, len(f.Items))
+	for i, it := range f.Items {
+		cmd, err := contract.VerifyCommand(it.Command, c.App, []string{secretA})
+		if err != nil {
+			t.Fatalf("command %d: %v", it.CSeq, err)
+		}
+		cmds[i] = cmd
+	}
+	return f, cmds
+}
+
+func TestTheOldGenerationsCursorAcknowledgesNothingInTheNewOne(t *testing.T) {
+	fx := settingsSetup(t, contracttest.Options{})
+	cut := ranTwoTightenings(t, fx)
+	fx.h.clock.Add(60 * 24 * time.Hour)
+	gen := fx.h.p.NewGeneration()
+	// The app's first request after the platform's restore still carries
+	// its cursor of the old generation, and learns of the new one.
+	if f, cmds, _ := take(t, fx.c, 2); f.Generation != gen || len(cmds) != 0 {
+		t.Fatalf("the old cursor in the new generation: %+v", f)
+	}
+	// Its reset to 0 is no restore of its own: nothing comes again.
+	if f, cmds, _ := take(t, fx.c, 0); f.Generation != gen || len(cmds) != 0 {
+		t.Fatalf("the reset after the platform's restore: %v, %+v", ids(cmds), f.Items)
+	}
+	// Once answered in the new generation, its own restore still is one:
+	// the tightening that ran comes again, the rename does not.
+	take(t, fx.c, 2)
+	if f, cmds, _ := take(t, fx.c, 0); !slices.Equal(ids(cmds), []string{cut}) || !f.Items[0].Again || cmds[0].Generation != gen {
+		t.Fatalf("a restore in the new generation: %v, %+v", ids(cmds), f.Items)
+	}
+}
+
+func TestALongPollWithTheOldGenerationsCursorAcknowledgesNothingInTheNewOne(t *testing.T) {
+	fx := settingsSetup(t, contracttest.Options{})
+	cut := ranTwoTightenings(t, fx)
+	fx.h.clock.Add(60 * 24 * time.Hour)
+	gen := fx.h.p.NewGeneration()
+	// The app's follower waits on every request: its first one after the
+	// platform's restore still carries the old generation's cursor, finds
+	// nothing, waits, and reads again, which answers it in the new
+	// generation. Neither read takes that cursor in the new one.
+	if f, cmds := poll(t, fx.c, 2, 1); f.Generation != gen || len(cmds) != 0 {
+		t.Fatalf("the old cursor in the new generation: %+v", f)
+	}
+	// Its reset to 0, waiting too, is no restore of its own: nothing comes
+	// again, at its first read or after the wait.
+	if f, cmds := poll(t, fx.c, 0, 1); f.Generation != gen || len(cmds) != 0 {
+		t.Fatalf("the reset after the platform's restore: %v, %+v", ids(cmds), f.Items)
+	}
+	// Once answered in the new generation, its own restore still is one,
+	// whose first read answers the request with the tightening again.
+	poll(t, fx.c, 2, 1)
+	if f, cmds := poll(t, fx.c, 0, 1); !slices.Equal(ids(cmds), []string{cut}) || !f.Items[0].Again {
+		t.Fatalf("a restore in the new generation: %v, %+v", ids(cmds), f.Items)
+	}
+}
+
+// polled is the answer of a command feed request that waits.
+type polled struct {
+	f   contract.CommandFeed
+	err error
+}
+
+// startWaiting sends a command feed request at after that waits up to wait
+// seconds, and returns where its answer comes.
+func startWaiting(ctx context.Context, c *contract.Client, after int64, wait int) <-chan polled {
+	got := make(chan polled, 1)
+	go func() {
+		f, _, err := c.Commands(ctx, after, wait)
+		got <- polled{f, err}
+	}()
+	return got
+}
+
+// answerOf is the answer of a request startWaiting sent, within 5 s.
+func answerOf(t *testing.T, got <-chan polled, what string) polled {
+	t.Helper()
+	select {
+	case a := <-got:
+		return a
+	case <-time.After(5 * time.Second):
+		t.Fatalf("%s: no answer", what)
+		return polled{}
+	}
+}
+
+func TestAWaitingRequestRefusedRateLimitedAcknowledgesNothing(t *testing.T) {
+	fx := settingsSetup(t, contracttest.Options{LongPolls: 1})
+	ranTwoTightenings(t, fx)
+	// One request of the app's waits at its cursor, and holds the one place.
+	ctx, stop := context.WithCancel(t.Context())
+	waiting := startWaiting(ctx, fx.c, 2, contract.MaxWait)
+	time.Sleep(200 * time.Millisecond) // it takes its place
+	fx.h.clock.Add(60 * 24 * time.Hour)
+	gen := fx.h.p.NewGeneration()
+	// Another, with the same old cursor, would wait too, and is refused
+	// rate_limited after a first read that found nothing: that read takes
+	// neither its cursor nor the new generation.
+	_, _, err := fx.c.Commands(t.Context(), 2, contract.MaxWait)
+	mustRefusal(t, err, contract.CodeRateLimited)
+	// Its retry, with the same old cursor and no wait, is answered in the
+	// new generation and acknowledges nothing in it: the reset to 0 gets
+	// nothing again.
+	if f, cmds, _ := take(t, fx.c, 2); f.Generation != gen || len(cmds) != 0 {
+		t.Fatalf("the retry in the new generation: %+v", f)
+	}
+	if f, cmds, _ := take(t, fx.c, 0); f.Generation != gen || len(cmds) != 0 {
+		t.Fatalf("the reset after the platform's restore: %v, %+v", ids(cmds), f.Items)
+	}
+	// The request that waited ends unanswered, its client giving up, so it
+	// reads nothing more, and the reset still gets nothing again. Answered
+	// after the retry, it would have taken its old cursor in the new
+	// generation: the second request SPEC section 11.19 leaves
+	// (TestASecondRequestWaitingWithTheOldCursorCountsItWhenAnsweredAfterTheFirst).
+	stop()
+	if got := answerOf(t, waiting, "the request that waited"); got.err == nil {
+		t.Fatalf("the request that waited was answered: %+v", got.f)
+	}
+	if f, cmds, _ := take(t, fx.c, 0); f.Generation != gen || len(cmds) != 0 {
+		t.Fatalf("the reset once the waiting request ended: %v, %+v", ids(cmds), f.Items)
+	}
+}
+
+func TestARequestThatEndsDuringItsWaitStillAcknowledgesItsCursor(t *testing.T) {
+	fx := settingsSetup(t, contracttest.Options{})
+	name := issue(t, fx, rename(fx.team))
+	cut := issue(t, fx, dropSend(fx.team))
+	// The app's backup holds its cursor 0. It takes both commands, runs
+	// them, and asks at 2 with a wait; it is stopped during the wait, its
+	// client giving up, so the request's first read, which found nothing,
+	// is its only one.
+	take(t, fx.c, 0)
+	post(t, fx, results(ran(fx, name), ran(fx, cut)), contract.OutcomeAccepted, contract.OutcomeAccepted)
+	ctx, stop := context.WithCancel(t.Context())
+	waiting := startWaiting(ctx, fx.c, 2, contract.MaxWait)
+	time.Sleep(200 * time.Millisecond) // it reads, and takes its place
+	stop()
+	if got := answerOf(t, waiting, "the stopped request"); got.err == nil {
+		t.Fatalf("the stopped request was answered: %+v", got.f)
+	}
+	// Restored from that backup, it asks from 0, and the tightening comes
+	// again.
+	if f, cmds, _ := take(t, fx.c, 0); !slices.Equal(ids(cmds), []string{cut}) || !f.Items[0].Again {
+		t.Fatalf("after its restore: %v, %+v", ids(cmds), f.Items)
+	}
+}
+
+func TestAGenerationThatChangesDuringAWaitTakesNothingOfTheOldCursor(t *testing.T) {
+	fx := settingsSetup(t, contracttest.Options{})
+	cut := ranTwoTightenings(t, fx)
+	// The follower waits at 2, and the platform is restored meanwhile: the
+	// read before the wait stored 2 in the old generation, and the read
+	// after it answers in the new one and takes nothing of 2 there.
+	waiting := startWaiting(t.Context(), fx.c, 2, 1)
+	time.Sleep(200 * time.Millisecond) // it reads, and takes its place
+	fx.h.clock.Add(60 * 24 * time.Hour)
+	gen := fx.h.p.NewGeneration()
+	if got := answerOf(t, waiting, "the request that waited"); got.err != nil || got.f.Generation != gen || len(got.f.Items) != 0 {
+		t.Fatalf("the read after the wait: %+v, %v", got.f, got.err)
+	}
+	if f, cmds, _ := take(t, fx.c, 0); f.Generation != gen || len(cmds) != 0 {
+		t.Fatalf("the reset after the platform's restore: %v, %+v", ids(cmds), f.Items)
+	}
+	// Answered in the new generation, its own restore still is one.
+	take(t, fx.c, 2)
+	if f, cmds, _ := take(t, fx.c, 0); !slices.Equal(ids(cmds), []string{cut}) || !f.Items[0].Again {
+		t.Fatalf("a restore in the new generation: %v, %+v", ids(cmds), f.Items)
+	}
+}
+
+func TestASecondRequestWaitingWithTheOldCursorCountsItWhenAnsweredAfterTheFirst(t *testing.T) {
+	fx := settingsSetup(t, contracttest.Options{})
+	cut := ranTwoTightenings(t, fx)
+	// SPEC section 11.19's case left: two requests of the app wait with the
+	// old cursor while the platform is restored. The first answered
+	// acknowledges nothing in the new generation; the second, answered
+	// after it, finds the new generation stored and takes its cursor there,
+	// so the reset to 0 gets the tightening again, as after the app's own
+	// restore. An app that keeps SPEC section 11.19's rule, one command
+	// feed request outstanding at a time, never sends the second.
+	first := startWaiting(t.Context(), fx.c, 2, 1)
+	second := startWaiting(t.Context(), fx.c, 2, 1)
+	time.Sleep(200 * time.Millisecond) // both read, and take their places
+	fx.h.clock.Add(60 * 24 * time.Hour)
+	gen := fx.h.p.NewGeneration()
+	for _, w := range []<-chan polled{first, second} {
+		if got := answerOf(t, w, "a request that waited"); got.err != nil || got.f.Generation != gen {
+			t.Fatalf("a request that waited: %+v, %v", got.f, got.err)
+		}
+	}
+	if f, cmds, _ := take(t, fx.c, 0); !slices.Equal(ids(cmds), []string{cut}) || !f.Items[0].Again {
+		t.Fatalf("the reset after both answers: %v, %+v", ids(cmds), f.Items)
+	}
+}
+
+func TestTheDrainEndsACommandFeedWaitWithALastRead(t *testing.T) {
+	fx := settingsSetup(t, contracttest.Options{})
+	ranTwoTightenings(t, fx)
+	waiting := startWaiting(t.Context(), fx.c, 2, contract.MaxWait)
+	time.Sleep(200 * time.Millisecond) // it reads, and takes its place
+	gen := fx.h.p.NewGeneration()
+	// Its first read was in the old generation: the page the drain answers
+	// comes from a read after it, in the new one, as the platform's drain
+	// answers.
+	fx.h.p.Close()
+	if got := answerOf(t, waiting, "the drained request"); got.err != nil || got.f.Generation != gen {
+		t.Fatalf("the drained request: %+v, %v", got.f, got.err)
 	}
 }
 

@@ -377,8 +377,8 @@ func (p *Platform) Client(app string) *contract.Client {
 	return c
 }
 
-// Close ends every waiting long-poll and, for Start's Platform, stops
-// listening.
+// Close ends every waiting long-poll, each with a read of its own, as the
+// platform's drain does, and, for Start's Platform, stops listening.
 func (p *Platform) Close() {
 	p.drainOnce.Do(func() { close(p.drain) })
 	if p.server != nil {
@@ -1030,13 +1030,16 @@ func (p *Platform) feed(rq *request) answer {
 	timer := time.NewTimer(time.Duration(wait) * time.Second)
 	defer timer.Stop()
 	select {
-	case <-p.drain:
-		return answer{status: http.StatusOK, body: f}
 	case <-rq.ctx.Done():
+		// The app went away: the page reaches no one, and nothing is read
+		// again.
 		return answer{status: http.StatusOK, body: f}
+	case <-p.drain:
 	case <-woken:
 	case <-timer.C:
 	}
+	// Woken, timed out or drained, it reads again, as the platform's
+	// long-polls do.
 	f, _, ans, ok = p.readFeed(rq.app, after)
 	if !ok {
 		return ans
@@ -1703,13 +1706,16 @@ func (p *Platform) Generation() (id string, confirmed bool) {
 // the restore runbook does: every feed answer and document carries it from
 // now on, and so does every command served. The command feed from 0 holds
 // every command without a final result, and no cursor of it is
-// acknowledged in the new generation yet.
+// acknowledged in the new generation yet: the first page that answers an
+// app's request in it, which still carries its old generation's cursor,
+// acknowledges nothing, however often the request read while it waited,
+// so its reset to 0 gets no command again, but in the cases SPEC section
+// 11.19 leaves: the old cursor asked again after that first answer (a page
+// lost, or the app stopped before its reset), or a second request waiting
+// with it answered after the first (readCommandFeed).
 func (p *Platform) NewGeneration() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	for _, app := range p.apps {
-		app.newCommandGeneration()
-	}
 	p.generation, p.confirmed = newUUID(), false
 	return p.generation
 }

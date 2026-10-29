@@ -1213,8 +1213,8 @@ func TestASecondRequestWaitingWithTheOldCursorCountsItWhenAnsweredAfterTheFirst(
 	// acknowledges nothing in the new generation; the second, answered
 	// after it, finds the new generation stored and takes its cursor there,
 	// so the reset to 0 gets the tightening again, as after the app's own
-	// restore. An app that waits with one command feed request at a time
-	// never sends the second.
+	// restore. An app that keeps SPEC section 11.19's rule, one command
+	// feed request outstanding at a time, never sends the second.
 	first := startWaiting(t.Context(), fx.c, 2, 1)
 	second := startWaiting(t.Context(), fx.c, 2, 1)
 	time.Sleep(200 * time.Millisecond) // both read, and take their places

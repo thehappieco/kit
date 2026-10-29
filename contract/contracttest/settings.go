@@ -766,7 +766,8 @@ func (p *Platform) commandFeed(rq *request) answer {
 // counts when it comes again after the first answer in the new generation
 // (a retry after a page lost in transit, or after the app stopped before
 // its reset committed), and when a second request waiting with it is
-// answered after the first.
+// answered after the first, which an app that keeps one command feed
+// request outstanding at a time, the app's rule there, never sends.
 func (p *Platform) readCommandFeed(rq *request, after int64, last bool) (contract.CommandFeed, <-chan struct{}, answer, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()

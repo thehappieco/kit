@@ -1,7 +1,8 @@
 // Package contracttest is a fake platform for the apps' tests: the six calls
 // of the contract's membership part (SPEC section 11.17), the five of its
-// token part (SPEC section 11.18, tokens.go) and the four of its settings
-// part (SPEC section 11.19, settings.go) over loopback HTTP, each request
+// token part (SPEC section 11.18, tokens.go) and the five of its settings
+// part (SPEC section 11.19: settings.go, and the relink's pairing in
+// pairing.go) over loopback HTTP, each request
 // checked in the order the platform's transport checks it, and every
 // answer to a request whose signature held signed with contract.SignAnswer,
 // refusals included. An app's own client, or a contract.Client from Client,
@@ -126,6 +127,7 @@ const (
 	CallPersonSettings = "person-settings" // PUT /contract/v1/accounts/{sub}/settings
 	CallCommands       = "commands"        // GET /contract/v1/commands?after=&wait=
 	CallResults        = "results"         // POST /contract/v1/commands/results
+	CallPairing        = "pairing"         // PUT /contract/v1/commands/{id}/pairing (kit v0.11.0)
 )
 
 // The body limits of the calls. The token part's acknowledgement and
@@ -138,6 +140,7 @@ const (
 	SettingsBodyLimit       = contract.SettingsBodyLimit
 	PersonSettingsBodyLimit = contract.PersonSettingsBodyLimit
 	ResultsBodyLimit        = contract.ResultsBodyLimit
+	PairingBodyLimit        = contract.PairingBodyLimit
 )
 
 // The defaults of Options.
@@ -446,7 +449,7 @@ func (p *Platform) Corrupt(app, call string, how Corruption) error {
 var calls = map[string]bool{
 	CallSubscribe: true, CallAccount: true, CallUnsubscribe: true, CallFeed: true, CallAccess: true, CallEvents: true,
 	CallTokens: true, CallToken: true, CallTokenBySelector: true, CallTokensApplied: true, CallTokenUsage: true,
-	CallSettings: true, CallPersonSettings: true, CallCommands: true, CallResults: true,
+	CallSettings: true, CallPersonSettings: true, CallCommands: true, CallResults: true, CallPairing: true,
 }
 
 // feeds are the calls that take a query.
@@ -1712,10 +1715,15 @@ func (p *Platform) Generation() (id string, confirmed bool) {
 // so its reset to 0 gets no command again, but in the cases SPEC section
 // 11.19 leaves: the old cursor asked again after that first answer (a page
 // lost, or the app stopped before its reset), or a second request waiting
-// with it answered after the first (readCommandFeed).
+// with it answered after the first (readCommandFeed). The pairings go, as
+// the platform's memory of them does at a restart, so the next QR of a
+// relink still running counts as its first.
 func (p *Platform) NewGeneration() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	for _, app := range p.apps {
+		app.pairings = map[string]*pairing{}
+	}
 	p.generation, p.confirmed = newUUID(), false
 	return p.generation
 }
@@ -1737,7 +1745,7 @@ func (p *Platform) ConfirmGeneration() {
 // snapshot, an event or a settings document of a workspace not named to it
 // again is not_found. Its commands without a final result stay, numbered
 // again from 1 in their order, so the command feed from 0 holds them; those
-// with one go, so a result for one is not_found.
+// with one go, so a result for one is not_found. The pairings go too.
 func (p *Platform) Restore() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()

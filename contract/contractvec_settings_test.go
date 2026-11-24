@@ -246,7 +246,8 @@ func vecMailiePerson(mut func(*contract.MailiePersonSettings)) contract.MailiePe
 }
 
 // sectionDoc is app's section document holding data, its header filled as
-// the section's producer writes it.
+// the section's producer writes it, its accepts every kind of the section
+// kit v0.10.1 had (v010Kinds), so wire-settings.json never changes.
 func sectionDoc(app, section string, data any, mut func(*contract.SettingsDoc)) contract.SettingsDoc {
 	d := contract.SettingsDoc{
 		V: contract.SettingsV, Type: contract.SettingsType, App: app, Section: section,
@@ -256,7 +257,7 @@ func sectionDoc(app, section string, data any, mut func(*contract.SettingsDoc)) 
 	if d.Producer == contract.ProducerWappieCloud {
 		d.SnapshotSeq = nil
 	}
-	for _, k := range contract.CommandKinds(app) {
+	for _, k := range v010Kinds(app) {
 		if k.Section == section {
 			d.Accepts = append(d.Accepts, k.Kind)
 		}
@@ -272,7 +273,7 @@ func personDoc(app string, data any, mut func(*contract.PersonSettingsDoc)) cont
 		V: contract.SettingsV, Type: contract.PersonSettingsType, App: app, Producer: contract.SectionProducer(app, contract.SectionPerson),
 		Sub: vecSub, StateSeq: vecSeq, MeasuredAt: contract.T(Now), Accepts: []string{}, Data: mustRaw(data),
 	}
-	for _, k := range contract.CommandKinds(app) {
+	for _, k := range v010Kinds(app) {
 		if k.Section == contract.SectionPerson {
 			d.Accepts = append(d.Accepts, k.Kind)
 		}

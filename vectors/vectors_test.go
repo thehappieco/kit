@@ -151,6 +151,9 @@ func TestSpecCitations(t *testing.T) {
 			Results  []named `json:"results"`
 			Batches  []named `json:"batches"`
 			MACs     []named `json:"macs"`
+			// The relink's lists, and the token feed's pages (kit v0.11.0).
+			Pairings []named `json:"pairings"`
+			Pages    []named `json:"pages"`
 			Clean    []struct {
 				Raw string `json:"raw"`
 			} `json:"clean"`
@@ -180,7 +183,7 @@ func TestSpecCitations(t *testing.T) {
 			"tokens": f.Tokens, "refused": f.Refused, "authorization": f.Headers, "reading_keys": f.Keys,
 			"records": f.Records, "feeds": f.Feeds, "applied": f.Applied, "usage": f.Usage, "actions": f.Actions,
 			"sections": f.Sections, "persons": f.Persons, "commands": f.Commands, "results": f.Results,
-			"batches": f.Batches, "macs": f.MACs,
+			"batches": f.Batches, "macs": f.MACs, "pairings": f.Pairings, "pages": f.Pages,
 		} {
 			for _, c := range cases {
 				ids = append(ids, list+"/"+c.Name)
@@ -635,14 +638,15 @@ func TestMailieKeySchemeFiles(t *testing.T) {
 // The contract's files (SPEC sections 11.17 to 11.19): the first four are
 // the platform's, captured at the commits PROVENANCE.md records, and the
 // five of kit v0.9.0 and the three of kit v0.10.0 the kit's own, written
-// from the platform's design at 509cc65. Each has the sha256 recorded
-// there, so a copy from another commit or an edit fails here even after
-// `make manifest` has recorded it.
-// Their directory holds exactly these twelve; each is valid UTF-8 ending with
-// exactly one newline, ASCII only where it says so, in the platform's
+// from the platform's design at 509cc65, and the two of kit v0.11.0 the
+// kit's own too, written from the platform's spec of the relink (14.13) at
+// 958c3b4 and its logs. Each has the sha256 recorded there, so a copy from
+// another commit or an edit fails here even after `make manifest` has
+// recorded it. Their directory holds exactly these fourteen; each is valid
+// UTF-8 ending with exactly one newline, ASCII only where it says so, in the platform's
 // contract format with its kind, and with its counts of cases, of each
 // check's result and of the cases that must be refused, under unique
-// names. contract's own tests run every case and write the twelve files
+// names. contract's own tests run every case and write the fourteen files
 // again byte for byte.
 func TestPlatformContractVectorFiles(t *testing.T) {
 	type named struct {
@@ -679,6 +683,8 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		Results   []named `json:"results"`
 		Batches   []named `json:"batches"`
 		MACs      []named `json:"macs"`
+		Pairings  []named `json:"pairings"`
+		Pages     []named `json:"pages"`
 		Classes   []struct {
 			Code       string `json:"code"`
 			Tightening bool   `json:"tightening"`
@@ -728,6 +734,13 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 			"feeds 17 (6 valid), actions 14 (run 7, reset 1, expired 2, invalid_command 4), commands 161 (75 valid), results 64 (24 valid), batches 11 (3 valid), classes 76 (retry 13, final 63)"},
 		{"command-macs.json", "command-macs", "kit v0.10.0", true, "afa17bc71efe45f8e80330d0622b7e237fc8f1d2183a75969a1195186596c42c",
 			"macs 21 (7 valid)"},
+		// Kit v0.11.0's, from the platform's spec 14.13 at 958c3b4 and its
+		// log of week 45 to 47: the relink and its pairing route, and what
+		// rides its release.
+		{"wire-pairing.json", "wire-pairing", "kit v0.11.0", true, "ab1e0348a756d55f306096ae5d6a960ebe7c1036a649ea3210f54cca442ce5da",
+			"answers 7 (2 valid), commands 13 (5 valid), results 34 (20 valid), pairings 32 (9 valid), classes 6 (retry 0, final 6)"},
+		{"wire-v011.json", "wire-v011", "kit v0.11.0", false, "f73724b022b5ccd3673d95708b7a642361c63f05ef9947d7357094e008e60b4c",
+			"sections 20 (11 valid), commands 11 (4 valid), results 13 (5 valid), pages 6 (apply 1, reset 2, revoke 0, narrow 2, refuse 1)"},
 	}
 	entries, err := fs.ReadDir(vectors.FS, "platform/contract-v1")
 	if err != nil {
@@ -794,7 +807,7 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 				}
 				counts = append(counts, fmt.Sprintf("%s %d (run %d, reset %d, expired %d, invalid_command %d)", name, len(cases),
 					actions["run"], actions["reset"], actions["expired"], actions["invalid_command"]))
-			case name == "actions":
+			case name == "actions" || name == "pages":
 				actions := map[string]int{}
 				for _, c := range cases {
 					actions[c.Action]++
@@ -832,6 +845,8 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		list("results", f.Results)
 		list("batches", f.Batches)
 		list("macs", f.MACs)
+		list("pairings", f.Pairings)
+		list("pages", f.Pages)
 		if len(f.Classes) > 0 {
 			classes := map[string]int{}
 			for _, c := range f.Classes {

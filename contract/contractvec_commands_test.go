@@ -47,6 +47,8 @@ var vecParams = map[string]map[string]string{
 		contract.OpLicenceRelease:          `{}`,
 		contract.OpPersonSignOutEverywhere: `{}`,
 		contract.OpPersonNoticesDismiss:    `{"notices":[{"id":"812","version":2}]}`,
+		// Kit v0.11.0.
+		contract.OpItemRelink: `{}`,
 	},
 	"mailie": {
 		contract.OpItemSyncNow:             `{}`,
@@ -66,7 +68,61 @@ var vecParams = map[string]map[string]string{
 		contract.OpPersonNoticesDismiss:    `{"notices":[{"id":"mbe_0","version":1}]}`,
 		contract.OpConsentAgree:            `{"before":{"sync":"off"},"after":{"sync":"on"}}`,
 		contract.OpConsentWithdraw:         `{"before":{"actions":"on"},"after":{"actions":"off"}}`,
+		// Kit v0.11.0: a mailbox's row holds no label, so before is the
+		// snapshot's.
+		contract.OpItemRename: `{"before":{"label":null},"after":{"label":"Suporte"}}`,
 	},
+}
+
+// v010KindNames are each app's kinds as kit v0.10.1 listed them, in its
+// order. wire-commands.json and wire-settings.json are written from them, so
+// a kind a later kit adds changes no byte of a frozen file; the later kinds'
+// cases go in files of their own (wire-pairing.json, wire-v011.json).
+var v010KindNames = map[string][]string{
+	"wappie": {
+		"item.rename", "item.sync_stop", "item.sync_resume", "item.sync_now", "item.flags_raise", "item.flags_drop",
+		"item.access_remove", "item.registration_delete", "item.move_out", "ai.provider_key_delete", "ai.integration_narrow",
+		"ai.integration_revoke", "mcp.connection_revoke", "mcp.connection_seen", "mcp.send_pause", "mcp.send_resume",
+		"mcp.switch_on", "mcp.switch_off", "mcp.legacy_token_revoke", "installation.add", "installation.rename",
+		"licence.release", "person.sign_out_everywhere", "person.notices_dismiss",
+	},
+	"mailie": {
+		"item.sync_now", "item.sync_stop", "item.sync_resume", "item.lift_hold", "item.team_sync_on", "item.team_sync_off",
+		"item.remove", "item.recover", "item.purge", "item.removed_index_off", "item.flags_raise", "item.flags_drop",
+		"item.access_remove", "consent.agree", "consent.withdraw", "person.sign_out_everywhere", "person.notices_dismiss",
+	},
+}
+
+// v010Kinds are app's kinds of kit v0.10.1 (v010KindNames), as this kit
+// describes them; the reference app has Wappie's.
+func v010Kinds(app string) []contract.CommandKind {
+	names := v010KindNames[app]
+	if app == contract.ReferenceApp {
+		names = v010KindNames["wappie"]
+	}
+	out := make([]contract.CommandKind, len(names))
+	for i, name := range names {
+		k, ok := contract.CommandKindOf(app, name)
+		if !ok {
+			panic("contractvec: no kind " + name + " of " + app)
+		}
+		out[i] = k
+	}
+	return out
+}
+
+// v010Codes are the refusal codes as kit v0.10.1 listed them, in its
+// order: wire-commands.json's classes. The codes a later kit adds have
+// their classes in a file of their own (wire-pairing.json).
+func v010Codes() []string {
+	return []string{
+		"not_authorized", "owner_only", "not_held", "not_found", "state_changed", "memberships_behind",
+		"memberships_unconfirmed", "workspace_busy", "item_busy", "rate_limited", "kind_not_accepted", "connect_failed",
+		"paused", "storage_paused", "capacity_reached", "personal_inactive", "not_linked", "read_only", "needs_reauth",
+		"consent_needed", "no_reader", "last_reader", "others_have_access", "not_sole_owner", "missing_old_keys",
+		"already_added", "recovery_closed", "label_changed", "invalid_value", "not_current_text", "grant_needed",
+		"app_only", "team_withheld", "team_closed", "operator_off", "switch_off", "expired", "invalid_command",
+	}
 }
 
 // vecCmd is app's command of kind as the platform issues it, before its
@@ -290,9 +346,10 @@ func wireCommands() (any, error) {
 	add := func(name string, c contract.Command, valid bool) {
 		cases = append(cases, cmdCase{name: name, c: c, valid: valid})
 	}
-	// Every kind of both apps, as the console issues it.
+	// Every kind of both apps, as the console issues it: kit v0.10.1's
+	// (the later ones are in wire-pairing.json and wire-v011.json).
 	for _, app := range []string{"wappie", "mailie"} {
-		for _, k := range contract.CommandKinds(app) {
+		for _, k := range v010Kinds(app) {
 			add(fmt.Sprintf("%s's %s", app, k.Kind), vecCmd(app, k.Kind, nil), true)
 		}
 	}
@@ -772,8 +829,8 @@ func wireCommands() (any, error) {
 		out.Batches = append(out.Batches, BodyCase{Name: c.name, Body: c.body, Valid: c.valid})
 	}
 
-	// Classes.
-	for _, code := range contract.CommandRefusalCodes() {
+	// Classes: kit v0.10.1's codes (the later ones are in wire-pairing.json).
+	for _, code := range v010Codes() {
 		for _, tightening := range []bool{false, true} {
 			out.Classes = append(out.Classes, ClassCase{Code: code, Tightening: tightening, Class: contract.CommandRefusalClass(code, tightening)})
 		}

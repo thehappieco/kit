@@ -1,6 +1,7 @@
 package contract
 
 import (
+	"bytes"
 	"encoding/json"
 	"slices"
 )
@@ -178,6 +179,14 @@ type NumberRow struct {
 	PausedBy  *PausedBy `json:"paused_by"`
 	CanResume bool      `json:"can_resume"`
 	ReadOnly  bool      `json:"read_only"`
+	// CanRelink: item.relink may link the number again now (kit v0.11.0).
+	// It is false for a number Wappie holds no full identity of, and the
+	// console keys the relink's link and its offer on it, never on
+	// Connection. It is optional, so a section from before v0.11.0 stays
+	// valid: absent (nil), a reader falls back to Connection
+	// logged_out_phone. Present, it is true or false, never null. The
+	// platform knows it before Wappie sends it.
+	CanRelink *bool `json:"can_relink,omitempty"`
 	// KeyEpoch is the current epoch only, never a key.
 	KeyEpoch *int64 `json:"key_epoch"`
 	// MoveOut is a team number's transfer preview, for the team's only
@@ -186,6 +195,25 @@ type NumberRow struct {
 	RecoveryOpen bool     `json:"recovery_open"`
 	// Bytes is null until the privacy text names it.
 	Bytes *int64 `json:"bytes"`
+}
+
+// UnmarshalJSON reads a row strictly, as DecodeStrict reads a body, and
+// refuses a can_relink that is null, which would read as absent.
+func (it *NumberRow) UnmarshalJSON(b []byte) error {
+	type row NumberRow
+	var v row
+	if err := decodeExact(b, &v, "items[]"); err != nil {
+		return err
+	}
+	var members map[string]json.RawMessage
+	if json.Unmarshal(b, &members) != nil {
+		return invalid("items[]")
+	}
+	if raw, ok := members["can_relink"]; ok && string(bytes.TrimSpace(raw)) == "null" {
+		return invalid("items[].can_relink is absent, true or false")
+	}
+	*it = NumberRow(v)
+	return nil
 }
 
 // PausedBy is who paused a number's capture: a person, a token with manage
@@ -800,6 +828,9 @@ type MailboxRow struct {
 	SignIn   string `json:"sign_in"`
 	Status   string `json:"status"`
 	// Reason is a code on error and needs_reauth only; never last_error.
+	// grant_ended (kit v0.11.0) is a grant the provider ended (OAuth's
+	// invalid_grant); Mailie sends other for it until the platform knows
+	// it.
 	Reason      *string         `json:"reason"`
 	ConnectedAt *Time           `json:"connected_at"`
 	LinkedBy    *string         `json:"linked_by"`
@@ -813,8 +844,10 @@ type MailboxRow struct {
 // MailboxSync is a mailbox's sync.
 type MailboxSync struct {
 	Mode string `json:"mode"`
-	// On is the consent side: false once turned off, which deleted the
-	// index.
+	// On is the consent side: false once sync is turned off. It is not
+	// tied to Indexed: on false may come with the index still kept, which
+	// the console draws as sync off beside its index line, so a reader
+	// never infers the index from it, nor it from the index.
 	On bool `json:"on"`
 	// Agreement is a team's agreement, or null; a personal mailbox's is the
 	// person's own.
@@ -856,7 +889,7 @@ type MailboxRemoved struct {
 var (
 	mailProviders   = []string{"google", "microsoft", "icloud", "imap"}
 	mailboxStatuses = []string{"connected", "needs_reauth", "pending_auth", "error", "removed"}
-	mailboxReasons  = []string{"scope_missing", "mailbox_refused", "token_rejected", "unproved", "other"}
+	mailboxReasons  = []string{"scope_missing", "mailbox_refused", "token_rejected", "unproved", "grant_ended", "other"}
 	indexStates     = []string{"none", "partial", "complete"}
 	roles           = []string{RoleOwner, RoleAdmin, RoleMember}
 )

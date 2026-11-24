@@ -3,9 +3,10 @@ package contracttest
 // The settings part (SPEC section 11.19; the platform's decision 0054): the
 // documents an app sends of its settings, per workspace section and per
 // person; the commands a test issues as the console does (IssueCommand),
-// which reach the app's command feed signed when served; and the results the
+// which reach the app's command feed signed when served; the results the
 // app sends back, after which the fake issues an intent again for a retry
-// code, as the platform does. Times are the fake's clock (Options.Now): a
+// code, as the platform does; and a running item.relink's QRs (pairing.go,
+// the platform's decision 0057). Times are the fake's clock (Options.Now): a
 // command's expiry, a retry's backoff, an intent's five minutes and the 90
 // days of a command delivered again all follow it, so a test moves the clock
 // it gives the fake. What falls due by the clock alone (a retry's backoff,
@@ -156,12 +157,15 @@ type settingsApp struct {
 	ackedGen string    // the generation acked was stored in; "" before any
 	cmdWake  chan struct{}
 	cmdPolls chan struct{}
+
+	// pairings are the running relinks' QRs, by command id (pairing.go).
+	pairings map[string]*pairing
 }
 
 func newSettingsApp(longPolls int) settingsApp {
 	return settingsApp{
 		sections: map[settingsKey]contract.SettingsDoc{}, people: map[string]contract.PersonSettingsDoc{},
-		secretNo: 1, wseqs: map[string]int64{}, cmdByID: map[string]*command{},
+		secretNo: 1, wseqs: map[string]int64{}, cmdByID: map[string]*command{}, pairings: map[string]*pairing{},
 		cmdWake: make(chan struct{}), cmdPolls: make(chan struct{}, longPolls),
 	}
 }
@@ -214,10 +218,12 @@ type intent struct {
 // commands with a final result go too, so a result for one is not_found;
 // the commands without one stay, numbered again from 1 in their order, so
 // the command feed from 0 holds them; their intents, and the intents
-// waiting to be issued again, stay. Restore's new generation leaves no
-// cursor acknowledged (readCommandFeed).
+// waiting to be issued again, stay. The pairings go, as the platform's
+// memory does. Restore's new generation leaves no cursor acknowledged
+// (readCommandFeed).
 func (a *settingsApp) restoreCommands() {
 	a.sections, a.people = map[settingsKey]contract.SettingsDoc{}, map[string]contract.PersonSettingsDoc{}
+	a.pairings = map[string]*pairing{}
 	var kept []*command
 	live := map[*intent]bool{}
 	for _, c := range a.cmds {
@@ -274,6 +280,11 @@ func matchSettings(method, rest string) (route, string, bool) {
 	case rest == "commands/results":
 		if method == http.MethodPost {
 			return route{CallResults, ResultsBodyLimit, (*Platform).postResults}, "", true
+		}
+	case strings.HasPrefix(rest, "commands/") && strings.HasSuffix(rest, "/pairing"):
+		id := strings.TrimSuffix(strings.TrimPrefix(rest, "commands/"), "/pairing")
+		if contract.ValidUUID(id) && method == http.MethodPut {
+			return route{CallPairing, PairingBodyLimit, (*Platform).putPairing}, id, true
 		}
 	case strings.HasPrefix(rest, "accounts/") && strings.HasSuffix(rest, "/settings"):
 		sub := strings.TrimSuffix(strings.TrimPrefix(rest, "accounts/"), "/settings")
@@ -590,7 +601,7 @@ func (p *Platform) issueLocked(app *appState, in *intent, now time.Time) (*comma
 // console would offer now (after kind_not_accepted, from a document newer
 // than the one kept when the result came), is issued again; and a command
 // with an expiry that no answer carried by its expires_at is recorded
-// expired.
+// expired. Then the pairings follow (prunePairings).
 func (p *Platform) settleCommandsLocked(app *appState, now time.Time) {
 	var due []*intent
 	for _, in := range app.intents {
@@ -622,6 +633,7 @@ func (p *Platform) settleCommandsLocked(app *appState, now time.Time) {
 			}
 		}
 	}
+	app.prunePairings(now)
 }
 
 // Command is the command id issued to app as the fake keeps it, in the

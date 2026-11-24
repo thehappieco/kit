@@ -76,6 +76,8 @@ type CommandKind struct {
 	InProgress bool
 	// Refusals are its own refusal codes, beside every kind's.
 	Refusals []string
+	// never are the codes of every kind's that this kind never answers.
+	never []string
 	// params checks its params (SPEC section 11.19).
 	params func(c *Command, p params) error
 }
@@ -91,6 +93,7 @@ const (
 	OpItemAccessRemove        = "item.access_remove"
 	OpItemRegistrationDelete  = "item.registration_delete"
 	OpItemMoveOut             = "item.move_out"
+	OpItemRelink              = "item.relink"
 	OpAIProviderKeyDelete     = "ai.provider_key_delete"
 	OpAIIntegrationNarrow     = "ai.integration_narrow"
 	OpAIIntegrationRevoke     = "ai.integration_revoke"
@@ -125,6 +128,10 @@ func kind(name, section string, tightening bool, target []string, check func(*Co
 func (k CommandKind) confirming(member string) CommandKind { k.Confirm = member; return k }
 func (k CommandKind) agreeing(when string) CommandKind     { k.Agreement = when; return k }
 func (k CommandKind) inProgress() CommandKind              { k.InProgress = true; return k }
+func (k CommandKind) neverAnswers(codes ...string) CommandKind {
+	k.never = codes
+	return k
+}
 
 var (
 	onItem       = []string{TargetItem}
@@ -153,8 +160,16 @@ var wappieKinds = append([]CommandKind{
 	kind(OpItemAccessRemove, SectionNumbers, true, onItemPerson, flagsParams(numberFlags, removeAll), CodeLastReader),
 	kind(OpItemRegistrationDelete, SectionNumbers, false, onRow, noChange, CodeStateChanged).confirming(TargetRow),
 	kind(OpItemMoveOut, SectionNumbers, false, onItem, moveOutParams,
-		CodeNotSoleOwner, CodeOthersHaveAccess, CodeCapacityReached, CodePersonalInactive, CodeMissingOldKeys, CodeStateChanged).
+		CodeNotSoleOwner, CodeOthersHaveAccess, CodeCapacityReached, CodePersonalInactive, CodeMissingOldKeys, CodeItemBusy,
+		CodeStateChanged).
 		confirming(TargetItem).inProgress(),
+	// item.relink links a number logged out by its phone again, into the
+	// same number, with a QR Wappie's server makes (the pairing route). No
+	// command passes a step-up, so Wappie never answers it app_only.
+	kind(OpItemRelink, SectionNumbers, false, onItem, noChange,
+		CodeOtherAccount, CodeLinkTimeout, CodeConnectFailed, CodeNumberHeld, CodeReadOnly, CodeNoReader, CodeCapacityReached,
+		CodeStoragePaused, CodeItemBusy, CodeStateChanged).
+		inProgress().neverAnswers(CodeAppOnly),
 	kind(OpAIProviderKeyDelete, SectionIntegrations, true, onRow, noChange),
 	kind(OpAIIntegrationNarrow, SectionIntegrations, true, onRow, narrowParams, CodeInvalidValue),
 	kind(OpAIIntegrationRevoke, SectionIntegrations, true, onRow, revokeParams),
@@ -171,6 +186,8 @@ var wappieKinds = append([]CommandKind{
 }, personKinds...)
 
 var mailieKinds = append([]CommandKind{
+	// A mailbox's row holds no label: before is the snapshot's, or null.
+	kind(OpItemRename, SectionEmailAccounts, false, onItem, renameParams("label"), CodeLabelChanged, CodeStateChanged),
 	kind(OpItemSyncNow, SectionEmailAccounts, false, onItem, noChange, CodePaused, CodeConsentNeeded, CodeNeedsReauth, CodeItemBusy),
 	kind(OpItemSyncStop, SectionEmailAccounts, false, onItem, between("paused", `false`, `true`), CodeStateChanged),
 	kind(OpItemSyncResume, SectionEmailAccounts, false, onItem, between("paused", `true`, `false`), CodeStateChanged, CodeNotCurrentText, CodeNoReader).
@@ -230,6 +247,7 @@ func CommandKinds(app string) []CommandKind {
 	for i, k := range list {
 		k.Target = slices.Clone(k.Target)
 		k.Refusals = slices.Clone(k.Refusals)
+		k.never = slices.Clone(k.never)
 		out[i] = k
 	}
 	return out
@@ -240,6 +258,7 @@ func CommandKindOf(app, kind string) (CommandKind, bool) {
 	k, ok := commandKindsOf(app)[kind]
 	k.Target = slices.Clone(k.Target)
 	k.Refusals = slices.Clone(k.Refusals)
+	k.never = slices.Clone(k.never)
 	return k, ok
 }
 
@@ -798,6 +817,9 @@ const (
 	CodeCapacityReached        = "capacity_reached"
 	CodePersonalInactive       = "personal_inactive"
 	CodeNotLinked              = "not_linked"
+	CodeOtherAccount           = "other_account"
+	CodeLinkTimeout            = "link_timeout"
+	CodeNumberHeld             = "number_held"
 	CodeReadOnly               = "read_only"
 	CodeNeedsReauth            = "needs_reauth"
 	CodeConsentNeeded          = "consent_needed"
@@ -832,8 +854,8 @@ var commandCodes = []string{
 	CodeNotAuthorized, CodeOwnerOnly, CodeNotHeld, CodeNotFound, CodeStateChanged, CodeMembershipsBehind,
 	CodeMembershipsUnconfirmed, CodeWorkspaceBusy, CodeItemBusy, CodeRateLimited, CodeKindNotAccepted,
 	CodeConnectFailed, CodePaused, CodeStoragePaused, CodeCapacityReached, CodePersonalInactive, CodeNotLinked,
-	CodeReadOnly, CodeNeedsReauth, CodeConsentNeeded, CodeNoReader, CodeLastReader, CodeOthersHaveAccess,
-	CodeNotSoleOwner, CodeMissingOldKeys, CodeAlreadyAdded, CodeRecoveryClosed, CodeLabelChanged, CodeInvalidValue,
+	CodeOtherAccount, CodeLinkTimeout, CodeNumberHeld, CodeReadOnly, CodeNeedsReauth, CodeConsentNeeded, CodeNoReader,
+	CodeLastReader, CodeOthersHaveAccess, CodeNotSoleOwner, CodeMissingOldKeys, CodeAlreadyAdded, CodeRecoveryClosed, CodeLabelChanged, CodeInvalidValue,
 	CodeNotCurrentText, CodeGrantNeeded, CodeAppOnly, CodeTeamWithheld, CodeTeamClosed, CodeOperatorOff,
 	CodeSwitchOff, CodeExpired, CodeInvalidCommand,
 }
@@ -843,9 +865,10 @@ var commandCodes = []string{
 // kind_not_accepted for the section's accepts to list the kind again.
 var retryOnTime = []string{CodeMembershipsBehind, CodeMembershipsUnconfirmed, CodeWorkspaceBusy, CodeItemBusy, CodeRateLimited}
 
-// everyKind are the codes any kind may answer: and state_changed for a
-// tightening kind. A person's kind has no workspace, so never team_closed
-// or team_withheld.
+// everyKind are the codes any kind may answer, but those a kind never
+// answers (item.relink's app_only): and state_changed for a tightening
+// kind. A person's kind has no workspace, so never team_closed or
+// team_withheld.
 var everyKind = []string{
 	CodeNotHeld, CodeNotFound, CodeNotAuthorized, CodeOwnerOnly, CodeMembershipsBehind, CodeMembershipsUnconfirmed,
 	CodeWorkspaceBusy, CodeRateLimited, CodeTeamClosed, CodeTeamWithheld, CodeAppOnly, CodeKindNotAccepted,
@@ -894,12 +917,21 @@ type CommandResult struct {
 }
 
 // ResultDetail is a result's closed detail, one shape per code or kind:
-// Cleaned with label_changed; Holders, HoldersMore and Ends with
-// others_have_access; SessionsEnded for a person.sign_out_everywhere that
-// ran; AlsoOff for an mcp.switch_off that ran; Purged for a Mailie
-// item.remove that ran and purged the link at once.
+// Cleaned (or CleanedNull) with label_changed; Holders, HoldersMore and
+// Ends with others_have_access; SessionsEnded for a
+// person.sign_out_everywhere that ran; AlsoOff for an mcp.switch_off that
+// ran; Purged for a Mailie item.remove that ran and purged the link at
+// once. It reads itself as the platform reads what an app sends (every
+// member named exactly, none it does not have, null only where it may be),
+// so that a cleaned that is null is told from one that is absent.
 type ResultDetail struct {
-	Cleaned       *string   `json:"cleaned,omitempty"`
+	Cleaned *string `json:"cleaned,omitempty"`
+	// CleanedNull: cleaned is present and null, {"cleaned": null}, with
+	// label_changed on an item.rename only (kit v0.11.0): the app keeps no
+	// name of the one asked for (a placeholder, an id, the number itself,
+	// as typed or as cleaned). Cleaned is then nil. Absent, cleaned is
+	// neither.
+	CleanedNull   bool      `json:"-"`
 	Holders       *[]Holder `json:"holders,omitempty"`
 	HoldersMore   *int64    `json:"holders_more,omitempty"`
 	Ends          *[]string `json:"ends,omitempty"`
@@ -919,14 +951,56 @@ const (
 	detailMixed
 )
 
+// UnmarshalJSON reads a detail strictly, as DecodeStrict reads a body, and
+// sets CleanedNull for a cleaned that is present and null.
+func (d *ResultDetail) UnmarshalJSON(b []byte) error {
+	type detail ResultDetail
+	var v detail
+	if err := decodeExact(b, &v, "detail"); err != nil {
+		return err
+	}
+	var members map[string]json.RawMessage
+	if json.Unmarshal(b, &members) != nil {
+		return invalid("detail")
+	}
+	if raw, ok := members["cleaned"]; ok && string(bytes.TrimSpace(raw)) == "null" {
+		v.CleanedNull = true
+	}
+	*d = ResultDetail(v)
+	return nil
+}
+
+// MarshalJSON writes a detail, with {"cleaned": null} for CleanedNull. It
+// escapes no HTML character itself: the encoder that writes it decides.
+func (d ResultDetail) MarshalJSON() ([]byte, error) {
+	type detail ResultDetail
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(detail(d)); err != nil {
+		return nil, err
+	}
+	b := bytes.TrimSuffix(buf.Bytes(), []byte("\n"))
+	if !d.CleanedNull || d.Cleaned != nil {
+		return b, nil
+	}
+	if string(b) == "{}" {
+		return []byte(`{"cleaned":null}`), nil
+	}
+	return append([]byte(`{"cleaned":null,`), b[1:]...), nil
+}
+
 func (d *ResultDetail) shape() int {
 	if d == nil {
 		return detailNone
 	}
 	set := 0
 	shape := detailMixed
-	if d.Cleaned != nil {
+	if d.Cleaned != nil || d.CleanedNull {
 		set, shape = set+1, detailCleaned
+		if d.Cleaned != nil && d.CleanedNull {
+			return detailMixed
+		}
 	}
 	if d.Holders != nil || d.HoldersMore != nil || d.Ends != nil {
 		set++
@@ -1025,7 +1099,7 @@ func (r CommandResult) Validate() error {
 	d := r.Detail
 	switch shape {
 	case detailCleaned:
-		if !ValidLabel(*d.Cleaned) {
+		if d.Cleaned != nil && !ValidLabel(*d.Cleaned) {
 			return invalid("detail.cleaned")
 		}
 	case detailHolders:
@@ -1049,12 +1123,14 @@ func (r CommandResult) Validate() error {
 }
 
 // ValidateFor is Validate, and the rules of app's kind: a code its kind may
-// answer (every kind's, state_changed for a tightening kind, and its own);
-// in_progress only for a kind whose first result may be; a person's
-// not_held with no state_seq, and a workspace kind's with one; and a
-// detail its kind's: sessions_ended for a person.sign_out_everywhere that
-// ran, also_off for an mcp.switch_off that ran, purged or none for a
-// Mailie item.remove that ran, none for any other.
+// answer (every kind's but those it never answers, item.relink's
+// app_only; state_changed for a tightening kind; and its own); in_progress
+// only for a kind whose first result may be; a person's not_held with no
+// state_seq, and a workspace kind's with one; a null cleaned with an
+// item.rename's label_changed only; and a detail its kind's:
+// sessions_ended for a person.sign_out_everywhere that ran, also_off for
+// an mcp.switch_off that ran, purged or none for a Mailie item.remove that
+// ran, none for any other.
 func (r CommandResult) ValidateFor(app, kind string) error {
 	if err := r.Validate(); err != nil {
 		return err
@@ -1072,12 +1148,14 @@ func (r CommandResult) ValidateFor(app, kind string) error {
 		}
 	case OutcomeRefused:
 		code := *r.Code
-		allowed := oneOf(code, everyKind) || oneOf(code, k.Refusals) || k.Tightening && code == CodeStateChanged
+		allowed := oneOf(code, everyKind) && !oneOf(code, k.never) || oneOf(code, k.Refusals) || k.Tightening && code == CodeStateChanged
 		switch {
 		case !allowed, person && (code == CodeTeamClosed || code == CodeTeamWithheld):
 			return invalid("code is not one this kind answers")
 		case code == CodeNotHeld && person != (r.StateSeq == nil):
 			return invalid("state_seq is null for a person's not_held only")
+		case r.Detail != nil && r.Detail.CleanedNull && kind != OpItemRename:
+			return invalid("detail.cleaned is null for an item.rename only")
 		}
 	case OutcomeRan:
 		want := detailNone

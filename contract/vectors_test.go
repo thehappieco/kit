@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/thehappieco/kit/contract"
@@ -299,7 +300,7 @@ func TestEveryReadingKeyVectorHolds(t *testing.T) {
 // written compact, on one line, and none is left a placeholder.
 func TestEveryBigValueIsWrittenCompact(t *testing.T) {
 	for _, file := range []string{"tokens.json", "reading-keys.json", "wire-tokens.json", "wire-snapshot-tokens.json", "wire-events-stop.json",
-		"wire-settings.json", "wire-commands.json", "command-macs.json"} {
+		"wire-settings.json", "wire-commands.json", "command-macs.json", "wire-pairing.json", "wire-v011.json"} {
 		raw, err := fs.ReadFile(vectors.FS, dir+"/"+file)
 		if err != nil {
 			t.Fatal(err)
@@ -401,6 +402,7 @@ func TestEverySettingsVectorValidatesAsItSays(t *testing.T) {
 // validator, or from the cases, fails this test.
 func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
 	w := settingsFile(t)
+	_, _, v011 := commandFiles(t)
 	// seen holds section:path=value for every string and number of a
 	// valid case's data, the path the members' names joined by dots, []
 	// for a list's entries, and a notice's params as params(<code>).
@@ -425,7 +427,7 @@ func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
 		}
 	}
 	sections := map[string]bool{}
-	for _, list := range [][]WireCase{w.Sections, w.Persons} {
+	for _, list := range [][]WireCase{w.Sections, w.Persons, v011.Sections} {
 		for _, c := range list {
 			if !c.Valid {
 				continue
@@ -492,7 +494,7 @@ func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
 		"email-accounts:.items[].provider":                                {"google", "microsoft", "icloud", "imap"},
 		"email-accounts:.items[].sign_in":                                 {"oauth", "password"},
 		"email-accounts:.items[].status":                                  {"connected", "needs_reauth", "pending_auth", "error", "removed"},
-		"email-accounts:.items[].reason":                                  {"scope_missing", "mailbox_refused", "token_rejected", "unproved", "other"},
+		"email-accounts:.items[].reason":                                  {"scope_missing", "mailbox_refused", "token_rejected", "unproved", "grant_ended", "other"},
 		"email-accounts:.items[].sync.mode":                               {"team", "personal"},
 		"email-accounts:.items[].sync.paused.kind":                        {"person"},
 		"email-accounts:.items[].sync.indexed":                            {"none", "partial", "complete"},
@@ -516,14 +518,33 @@ func TestEveryClosedCodeOfTheSettingsPartIsInAValidCase(t *testing.T) {
 	}
 }
 
-func TestEveryCommandVectorHolds(t *testing.T) {
+// commandFiles are the files that hold commands, results and classes:
+// kit v0.10.0's, and the cases of the kinds and codes kit v0.11.0 adds,
+// which no frozen file may hold.
+func commandFiles(t *testing.T) (WireCommands, WirePairing, WireV011) {
+	t.Helper()
 	var w WireCommands
 	read(t, "wire-commands.json", &w)
 	if w.Format != Format || w.Version != 1 || w.Kind != "wire-commands" {
 		t.Fatalf("header %q %d %q", w.Format, w.Version, w.Kind)
 	}
+	var p WirePairing
+	read(t, "wire-pairing.json", &p)
+	if p.Format != Format || p.Version != 1 || p.Kind != "wire-pairing" {
+		t.Fatalf("wire-pairing.json: header %q %d %q", p.Format, p.Version, p.Kind)
+	}
+	var v WireV011
+	read(t, "wire-v011.json", &v)
+	if v.Format != Format || v.Version != 1 || v.Kind != "wire-v011" {
+		t.Fatalf("wire-v011.json: header %q %d %q", v.Format, v.Version, v.Kind)
+	}
+	return w, p, v
+}
+
+func TestEveryCommandVectorHolds(t *testing.T) {
+	w, pairing, v011 := commandFiles(t)
 	kinds := map[string]bool{}
-	for _, c := range w.Commands {
+	for _, c := range append(append(append([]CommandCase{}, w.Commands...), pairing.Commands...), v011.Commands...) {
 		if commandValid(c.App, c.WorkspaceKind, c.Value) != c.Valid {
 			t.Errorf("command %q: valid should be %v", c.Name, c.Valid)
 		}
@@ -535,6 +556,7 @@ func TestEveryCommandVectorHolds(t *testing.T) {
 			kinds[c.App+" "+cmd.Kind] = true
 		}
 	}
+	// Every kind of both apps has a valid command across the files.
 	for _, app := range []string{"wappie", "mailie"} {
 		for _, k := range contract.CommandKinds(app) {
 			if !kinds[app+" "+k.Kind] {
@@ -559,7 +581,7 @@ func TestEveryCommandVectorHolds(t *testing.T) {
 			t.Errorf("no command ends in %s", want)
 		}
 	}
-	for _, c := range w.Results {
+	for _, c := range append(append(append([]ResultCase{}, w.Results...), pairing.Results...), v011.Results...) {
 		if resultValid(c.App, c.Kind, c.Value) != c.Valid {
 			t.Errorf("result %q: valid should be %v", c.Name, c.Valid)
 		}
@@ -569,8 +591,9 @@ func TestEveryCommandVectorHolds(t *testing.T) {
 			t.Errorf("batch %q: valid should be %v", c.Name, c.Valid)
 		}
 	}
+	// Every code has its two classes across the files, once each.
 	codes := map[string]int{}
-	for _, c := range w.Classes {
+	for _, c := range append(append([]ClassCase{}, w.Classes...), pairing.Classes...) {
 		if got := contract.CommandRefusalClass(c.Code, c.Tightening); got != c.Class || got == "" {
 			t.Errorf("class of %s (tightening %v): %q, want %q", c.Code, c.Tightening, got, c.Class)
 		}
@@ -626,5 +649,93 @@ func TestEveryCommandMACVectorHolds(t *testing.T) {
 	}
 	if pass == 0 || fail == 0 {
 		t.Errorf("%d commands verify and %d do not; want both", pass, fail)
+	}
+}
+
+func TestEveryPairingVectorHolds(t *testing.T) {
+	_, p, _ := commandFiles(t)
+	valid, invalid := 0, 0
+	for _, c := range p.Pairings {
+		if pairingValid(c.Body, c.Now) != c.Valid {
+			t.Errorf("pairing %q: valid should be %v", c.Name, c.Valid)
+		}
+		if c.Valid {
+			valid++
+			// The QR is never logged: its String leaves out a QR of
+			// WhatsApp's length (a QR of a character or two could match any
+			// text).
+			var q contract.PairingQR
+			if err := contract.DecodeStrict([]byte(c.Body), &q); err != nil || len(q.QR) > 20 && strings.Contains(q.String(), q.QR) {
+				t.Errorf("pairing %q: %v, or its String shows the QR", c.Name, err)
+			}
+		} else {
+			invalid++
+		}
+	}
+	if valid == 0 || invalid == 0 {
+		t.Errorf("%d pairings are valid and %d not; want both", valid, invalid)
+	}
+	for _, c := range p.Answers {
+		if pairingAnswerValid(caseValue(c)) != c.Valid {
+			t.Errorf("answer %q: valid should be %v", c.Name, c.Valid)
+		}
+	}
+	codes := map[string]bool{}
+	for _, c := range p.Classes {
+		codes[c.Code] = true
+	}
+	if len(codes) != 3 || !codes[contract.CodeOtherAccount] || !codes[contract.CodeLinkTimeout] || !codes[contract.CodeNumberHeld] {
+		t.Errorf("wire-pairing.json's classes hold %v, want exactly kit v0.11.0's three codes", codes)
+	}
+	// Every refusal of item.relink has a valid result.
+	refused := map[string]bool{}
+	for _, c := range p.Results {
+		var r contract.CommandResult
+		if c.Valid && c.Kind == contract.OpItemRelink && json.Unmarshal(caseValue(WireCase{Value: c.Value}), &r) == nil && r.Code != nil {
+			refused[*r.Code] = true
+		}
+	}
+	k, _ := contract.CommandKindOf("wappie", contract.OpItemRelink)
+	for _, code := range k.Refusals {
+		if !refused[code] {
+			t.Errorf("no valid result refuses item.relink %s", code)
+		}
+	}
+}
+
+func TestEveryV011VectorHolds(t *testing.T) {
+	_, _, v := commandFiles(t)
+	for _, c := range v.Sections {
+		if sectionValid(caseValue(c)) != c.Valid {
+			t.Errorf("section %q: valid should be %v", c.Name, c.Valid)
+		}
+	}
+	actions := map[string]bool{}
+	for _, c := range v.Pages {
+		action, code := pageAction(c.App, c.Generation, c.Value)
+		if action != c.Action || (code == nil) != (c.Code == nil) || (code != nil && *code != *c.Code) {
+			t.Errorf("page %q: %s %v, want %s %v", c.Name, action, code, c.Action, c.Code)
+		}
+		actions[action] = true
+	}
+	for _, want := range []string{"apply", "reset", "narrow", "refuse"} {
+		if !actions[want] {
+			t.Errorf("no page ends in %s", want)
+		}
+	}
+	// A null cleaned is told from an absent one: each valid one writes back
+	// as it came.
+	for _, c := range v.Results {
+		if !c.Valid || !bytes.Contains(c.Value, []byte(`"cleaned":null`)) {
+			continue
+		}
+		var r contract.CommandResult
+		if err := contract.DecodeStrict(c.Value, &r); err != nil || r.Detail == nil || !r.Detail.CleanedNull || r.Detail.Cleaned != nil {
+			t.Fatalf("result %q: %v %+v", c.Name, err, r.Detail)
+		}
+		again, err := json.Marshal(r.Detail)
+		if err != nil || string(again) != `{"cleaned":null}` {
+			t.Errorf("result %q: its detail writes back as %s", c.Name, again)
+		}
 	}
 }

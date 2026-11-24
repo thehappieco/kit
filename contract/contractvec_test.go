@@ -70,6 +70,9 @@ func Generate() ([]File, error) {
 		{"wire-settings.json", wireSettings},
 		{"wire-commands.json", wireCommands},
 		{"command-macs.json", commandMACs},
+		// Kit v0.11.0: the relink, and what rides its release.
+		{"wire-pairing.json", wirePairing},
+		{"wire-v011.json", wireV011},
 	} {
 		v, err := gen.make()
 		if err != nil {

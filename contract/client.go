@@ -214,7 +214,7 @@ func route(target string) string {
 	for i, p := range parts {
 		switch p {
 		case "", "contract", "v1", "accounts", "workspaces", "access", "feed", "events",
-			"tokens", "token-selectors", "applied", "usage", "settings", "commands", "results":
+			"tokens", "token-selectors", "applied", "usage", "settings", "commands", "results", "pairing":
 		default:
 			parts[i] = "{id}"
 		}
@@ -570,4 +570,36 @@ func (c *Client) PostResults(ctx context.Context, results []CommandResult) ([]Co
 		}
 	}
 	return r.Results, nil
+}
+
+// PutPairing sends one QR of a running item.relink, the command id:
+// PUT /contract/v1/commands/{id}/pairing (SPEC section 11.19). It refuses,
+// before it sends anything, an id that is no UUID and a body that fails
+// ValidateAt on the app's clock. It returns true when the platform holds
+// the QR, and false with no error for a seq at or below the highest it
+// kept or a PUT more than PairingHold after the command's first QR: both
+// count as delivered. A signed not_found (an id that names no relink of
+// the app's the feed carried, or one with a final result: the app sends
+// no more QRs for it) or invalid_request is a *Refusal. The QR is never
+// in an error.
+func (c *Client) PutPairing(ctx context.Context, id string, p PairingQR) (bool, error) {
+	if !ValidUUID(id) {
+		return false, invalid("id")
+	}
+	now := time.Now
+	if c.Now != nil {
+		now = c.Now
+	}
+	if err := p.ValidateAt(now()); err != nil {
+		return false, err
+	}
+	body, err := marshalPlain(p)
+	if err != nil {
+		return false, invalid("pairing")
+	}
+	var a PairingAnswer
+	if err := c.call(ctx, callTimeout, http.MethodPut, "/contract/v1/commands/"+id+"/pairing", body, &a); err != nil {
+		return false, err
+	}
+	return a.Accepted, nil
 }

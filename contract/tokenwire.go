@@ -301,7 +301,9 @@ func NewTokenFeedItem(seq int64, r TokenRecord) (TokenFeedItem, error) {
 // platform sends: a member it does not know is ignored, and a member name
 // counts only exactly as written, at every depth (encoding/json would take
 // App or a Unicode-folded name for app; here such a member is one the app
-// does not know). Validate is the app's next step.
+// does not know). Validate is the app's next step. A record in a page is
+// judged against its page's generation: one that names another, valid or
+// not, is a bad record, never a reset (TokenFeed.Validate).
 //
 // A record that does not decode is ErrInvalid, and comes with what of it
 // could be read, member by member: a member that does not decode keeps
@@ -412,16 +414,22 @@ func exactOnly(raw json.RawMessage, t reflect.Type) json.RawMessage {
 
 // Validate checks a token feed answer itself: its generation, its head and
 // cursor, and its records' order. It does not decode or validate the
-// records: a bad record never stalls the feed. An app takes each record on
-// its own (TokenFeedItem.Record) and decides, in this order:
+// records: a bad record never stalls the feed. A page whose generation is
+// not the one the app holds is a reset, whatever its records say (SPEC
+// section 11.18). In a page of its own generation, an app takes each
+// record on its own (TokenFeedItem.Record) and decides, in this order:
 //   - a record whose app decodes as another valid app id is refused: the
 //     app logs it, applies nothing of it and advances its cursor; one app's
 //     revocation (app_removed, app_held) never reaches another. A record
 //     whose app does not decode, is missing or is written in another case
 //     is not refused: it is a bad record of this app, below;
-//   - a record whose generation decodes as another valid UUID than the one
-//     the app holds is a reset (SPEC section 11.18); a generation that does
-//     not decode, or is no UUID, makes a bad record, below;
+//   - a record whose generation decodes as another valid UUID than its
+//     page's is a bad record, below, never a reset (kit v0.11.0): the
+//     platform never sends a page whose records' generation is not its
+//     own, and a page's generation is the one that resets. A record
+//     outside a page, a signed GET's, whose generation decodes as another
+//     valid UUID than the one the app holds is a reset. A generation that
+//     does not decode, or is no UUID, makes a bad record, below;
 //   - a record that does not decode, that fails Validate, or whose reading
 //     key's fingerprint is not its key's (ReadingKey.Check) is applied only
 //     for what it narrows (a revocation, an earlier expires_at, an item or

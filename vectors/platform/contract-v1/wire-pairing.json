@@ -1,0 +1,1307 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "wire-pairing",
+  "description": "The relink of a number logged out by its phone (kit v0.11.0, SPEC section 11.19). pairings: bodies of PUT /contract/v1/commands/{id}/pairing, valid when within 4 KiB, decoded as the platform decodes what an app sends (strictly: exactly seq, qr and expires_at, none null, none twice, names exactly as written), seq 1 or more, qr 1 to 512 characters of ^[A-Za-z0-9+/=,@._:#-]$ (whatsmeow's text, otherwise opaque), and expires_at RFC 3339 in UTC with Z, after now (Unix seconds, the platform's clock) and at most 90 s after it (contract.PairingQR's ValidateAt); a seq at or below the highest the platform kept is no fault of the body, so no case here judges one. answers: the platform's signed 200 to a pairing, valid when exactly {\"accepted\": a boolean} (contract.PairingAnswer). commands: item.relink as the platform serves it to the app named, signed with SecretA of signatures.json, valid as wire-commands.json's commands are. results: one contract.CommandResult of a command of the app's kind, decoded strictly, then its ValidateFor(app, kind): item.relink's and item.move_out's item_busy. classes: the class, retry or final, of each refusal code kit v0.11.0 adds (other_account, link_timeout, number_held), for a kind that tightens or not.",
+  "pairings": [
+    {
+      "name": "the first QR, 277 characters, its window a minute",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": true
+    },
+    {
+      "name": "the next QR, seq 2",
+      "body": "{\"seq\":2,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": true
+    },
+    {
+      "name": "a QR of exactly 512 characters",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HV,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": true
+    },
+    {
+      "name": "a QR of one character",
+      "body": "{\"seq\":1,\"qr\":\"2\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": true
+    },
+    {
+      "name": "expires_at a second after now",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:00:01Z\"}",
+      "now": 1791892800,
+      "valid": true
+    },
+    {
+      "name": "expires_at 90 s after now",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:30Z\"}",
+      "now": 1791892800,
+      "valid": true
+    },
+    {
+      "name": "expires_at with a fraction",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:00:20.12Z\"}",
+      "now": 1791892800,
+      "valid": true
+    },
+    {
+      "name": "the members in another order",
+      "body": "{\"expires_at\":\"2026-10-13T12:01:00Z\",\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"seq\":1}",
+      "now": 1791892800,
+      "valid": true
+    },
+    {
+      "name": "a body at 4 KiB",
+      "body": "{\"seq\":                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": true
+    },
+    {
+      "name": "seq 0",
+      "body": "{\"seq\":0,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "seq below 0",
+      "body": "{\"seq\":-1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "seq as text",
+      "body": "{\"seq\":\"1\",\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "seq 1.5",
+      "body": "{\"seq\":1.5,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "an empty QR",
+      "body": "{\"seq\":1,\"qr\":\"\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "a QR of 513 characters",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVV,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "a QR with a space",
+      "body": "{\"seq\":1,\"qr\":\"2@AB CD\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "a QR with a character outside ASCII, escaped",
+      "body": "{\"seq\":1,\"qr\":\"2@AB\\u00e7D\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "a QR with ?",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/?x\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "a QR with a line break",
+      "body": "{\"seq\":1,\"qr\":\"2@AB\\nCD\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "a pairing code beside the QR",
+      "body": "{\"code\":\"ABCD-EFGH\",\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "a member twice",
+      "body": "{\"seq\":1,\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "the QR null",
+      "body": "{\"seq\":1,\"qr\":null,\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "expires_at null",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":null}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "expires_at missing",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "a member written Seq",
+      "body": "{\"Seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "expires_at at now",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:00:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "expires_at before now",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T11:59:59Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "expires_at 91 s after now",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:31Z\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "expires_at in another zone",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T14:01:00+01:00\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "expires_at written +00:00",
+      "body": "{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00+00:00\"}",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "a list, not an object",
+      "body": "[{\"seq\":1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}]",
+      "now": 1791892800,
+      "valid": false
+    },
+    {
+      "name": "a body over 4 KiB",
+      "body": "{\"seq\":                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       1,\"qr\":\"https://wa.me/settings/linked_devices#2@Qk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQk9HVVMQ,AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09o=,AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Ns=,AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=,BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t0=\",\"expires_at\":\"2026-10-13T12:01:00Z\"}",
+      "now": 1791892800,
+      "valid": false
+    }
+  ],
+  "answers": [
+    {
+      "name": "the QR held",
+      "value": {
+        "accepted": true
+      },
+      "valid": true
+    },
+    {
+      "name": "a seq at or below the highest kept, or a PUT past the three minutes: delivered, not held",
+      "value": {
+        "accepted": false
+      },
+      "valid": true
+    },
+    {
+      "name": "accepted as text",
+      "value": {
+        "accepted": "true"
+      },
+      "valid": false
+    },
+    {
+      "name": "accepted null",
+      "value": {
+        "accepted": null
+      },
+      "valid": false
+    },
+    {
+      "name": "no member",
+      "value": {},
+      "valid": false
+    },
+    {
+      "name": "a member the app does not know",
+      "value": {
+        "accepted": true,
+        "seq": 1
+      },
+      "valid": false
+    },
+    {
+      "name": "a member written Accepted",
+      "value": {
+        "Accepted": true
+      },
+      "valid": false
+    }
+  ],
+  "commands": [
+    {
+      "name": "Wappie's relink in a team",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=68945e51ea5a2e444388a47ed25b8a45329612d2baf5cd53fcdb2e32f970c77f",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": true
+    },
+    {
+      "name": "Wappie's relink in a personal workspace",
+      "app": "wappie",
+      "workspace_kind": "personal",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=6435b43b05bdadc05e6302e7d91e4c94f5ff40f2dac318840fdc6f0a039d7b3d",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "0199d000-0000-7000-8000-000000000005",
+        "wseq": 41
+      },
+      "valid": true
+    },
+    {
+      "name": "an admin's relink",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "admin",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=5658920085cfbd8814d34cd07f49119223d0131e31d7245f892082a9a6857675",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink issued again, keeping its first expiry",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:04:00Z",
+        "first_issued_at": "2026-10-13T11:59:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000022",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=64e46ee682e3530b24947b90ee6ddedf71521e27f0dafe0a6648db345ee43a59",
+        "params": {},
+        "retry_of": "0199f3c4-0000-7000-8000-000000000021",
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": true
+    },
+    {
+      "name": "the reference app's relink",
+      "app": "fakeproduct",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "fakeproduct",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=02ca9acea5cd1511523c2379372b954a0551c420960e778f0fff27ea452cb89f",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink with params",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=3b753d91fe74a3f1f70c95ea823f700345c359141604145b53a576e2bab8d0ec",
+        "params": {
+          "after": {
+            "connection": "online"
+          },
+          "before": {
+            "connection": "logged_out_phone"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink with a confirmation",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": "0199e000-0000-7000-8000-000000000004",
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=969d40345d980184cea956df18e7bfc6337fe74b0c1d684c364cde75649306c9",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink with no expiry",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": null,
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=ee66bc8cd4979beee2ea78c8f1978257f61f48b7eed2bb2b4a4253d56821bb77",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink with an expiry over five minutes",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:01Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=6650a0b786da3fa5b5e04e15dac967368a42f2b438da6d477891f67f00cd5a5e",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink naming a person",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7,
+            "0199c3d4-0000-7000-8000-000000000002": 3
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=59fe4da3b86d53611275730f981c229540c97670a5e6990e4617afbef16505e1",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004",
+          "person": "0199c3d4-0000-7000-8000-000000000002"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink naming a row",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=238c331b026371b71f20dacf7622eaa1ab2e7a2d3373324a426d86fa3e460d74",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004",
+          "row": "reg_1"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink with an agreement",
+      "app": "wappie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": {
+          "language": "pt-BR",
+          "revision": "2026-10-sync-3"
+        },
+        "app": "wappie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=92706f2708b532e56a5dc4485951c7ab77957366e79c795f8c6df77fee9620fc",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "numbers",
+        "target": {
+          "item": "0199e000-0000-7000-8000-000000000004"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "Mailie's relink",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.relink",
+        "mac": "v1=496b85c31637eecf0a410f35ce8bfaf45ca845d5f3f023475d86afa0a3219a1c",
+        "params": {},
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    }
+  ],
+  "results": [
+    {
+      "name": "a relink in progress, no state yet",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "in_progress",
+        "code": null,
+        "retry_after": null,
+        "state_seq": null,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink in progress, its state sent",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "in_progress",
+        "code": null,
+        "retry_after": null,
+        "state_seq": 1791892800001,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink that ran",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "ran",
+        "code": null,
+        "retry_after": null,
+        "state_seq": 1791892800001,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "the reference app's relink that ran",
+      "app": "fakeproduct",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "ran",
+        "code": null,
+        "retry_after": null,
+        "state_seq": 1791892800001,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused other_account",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "other_account",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused link_timeout",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "link_timeout",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused connect_failed",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "connect_failed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused number_held",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "number_held",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused read_only",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "read_only",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused no_reader",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "no_reader",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused capacity_reached",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "capacity_reached",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused storage_paused",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "storage_paused",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused item_busy",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "item_busy",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused state_changed",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "state_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused item_busy, to retry when WhatsApp's window ends",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "item_busy",
+        "retry_after": 42,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused workspace_busy while a move runs",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "workspace_busy",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused memberships_behind, to retry",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "memberships_behind",
+        "retry_after": 30,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink not started by its expires_at: expired, no state_seq",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "expired",
+        "retry_after": null,
+        "state_seq": null,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a move out refused item_busy while a relink pairs, with the seconds left",
+      "app": "wappie",
+      "kind": "item.move_out",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "item_busy",
+        "retry_after": 1,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a move out refused item_busy, no retry_after: a backoff",
+      "app": "wappie",
+      "kind": "item.move_out",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "item_busy",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a relink refused app_only: never Wappie's answer",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "app_only",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink that ran with a detail",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "ran",
+        "code": null,
+        "retry_after": null,
+        "state_seq": 1791892800001,
+        "detail": {
+          "sessions_ended": 1
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink that ran with no state_seq",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "ran",
+        "code": null,
+        "retry_after": null,
+        "state_seq": null,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink in progress with a code",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "in_progress",
+        "code": "item_busy",
+        "retry_after": null,
+        "state_seq": 1791892800001,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink in progress with a retry_after",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "in_progress",
+        "code": null,
+        "retry_after": 30,
+        "state_seq": 1791892800001,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink refused with a code not its kind's",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "cleaned": "Vendas"
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "a relink refused last_reader",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "last_reader",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "other_account with a retry_after: a final code",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "other_account",
+        "retry_after": 30,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "link_timeout with a retry_after: a final code",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "link_timeout",
+        "retry_after": 30,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "item_busy with a retry_after over an hour",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "item_busy",
+        "retry_after": 3601,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "expired with a state_seq",
+      "app": "wappie",
+      "kind": "item.relink",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "expired",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "number_held on a move out",
+      "app": "wappie",
+      "kind": "item.move_out",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "number_held",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "other_account on a rename",
+      "app": "wappie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "other_account",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "link_timeout on Mailie's sync now",
+      "app": "mailie",
+      "kind": "item.sync_now",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "link_timeout",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    }
+  ],
+  "classes": [
+    {
+      "code": "other_account",
+      "tightening": false,
+      "class": "final"
+    },
+    {
+      "code": "other_account",
+      "tightening": true,
+      "class": "final"
+    },
+    {
+      "code": "link_timeout",
+      "tightening": false,
+      "class": "final"
+    },
+    {
+      "code": "link_timeout",
+      "tightening": true,
+      "class": "final"
+    },
+    {
+      "code": "number_held",
+      "tightening": false,
+      "class": "final"
+    },
+    {
+      "code": "number_held",
+      "tightening": true,
+      "class": "final"
+    }
+  ]
+}

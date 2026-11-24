@@ -1,0 +1,2236 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "wire-v011",
+  "description": "What kit v0.11.0 adds beside the relink (SPEC sections 11.18 and 11.19). sections: settings documents, valid as wire-settings.json's sections are: a Wappie numbers row's optional can_relink, true or false, absent (a reader then falls back to connection logged_out_phone) and never null; the relink in Wappie's accepts and the rename in Mailie's email-accounts accepts; a mailbox's reason grant_ended, on needs_reauth and error only; a mailbox whose sync is off with its index still kept. commands: Mailie's item.rename as the platform serves it, signed with SecretA of signatures.json, valid as wire-commands.json's are (before is the snapshot's label or null, after a label). results: label_changed with a null cleaned, decoded strictly (a cleaned that is null is told from one that is absent), then ValidateFor(app, kind): null only with label_changed and only on an item.rename (Wappie's, the reference app's, Mailie's). pages: a token feed page of one record and what an app holding generation does with it: a page of another generation is a reset whatever its record says; in a page of its own generation a record of another generation is a bad record, narrowed as invalid_record, never a reset; else as wire-tokens.json's actions.",
+  "sections": [
+    {
+      "name": "a number logged out by its phone, which can be linked again",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "wappie",
+        "section": "numbers",
+        "producer": "wappie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "can_link": true,
+          "places_free": 2,
+          "storage_paused": false,
+          "pending": [
+            {
+              "id": "reg_1",
+              "created_at": "2026-10-13T11:00:00Z",
+              "pairing": true,
+              "can_retry": false
+            }
+          ],
+          "items": [
+            {
+              "id": "0199e000-0000-7000-8000-000000000004",
+              "connection": "logged_out_phone",
+              "last_connected_at": "2026-10-11T12:00:00Z",
+              "capture": "on",
+              "paused_by": null,
+              "can_resume": false,
+              "read_only": true,
+              "can_relink": true,
+              "key_epoch": 3,
+              "move_out": {
+                "holders": [
+                  {
+                    "kind": "person",
+                    "sub": "0199c3d4-0000-7000-8000-000000000002",
+                    "row": "usr_42"
+                  },
+                  {
+                    "kind": "token",
+                    "sub": null,
+                    "row": "0199f2a1-0000-7000-8000-000000000011"
+                  }
+                ],
+                "holders_more": 0,
+                "ends": [
+                  "conn_7"
+                ]
+              },
+              "recovery_open": false,
+              "bytes": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "a number logged out by its phone that Wappie holds no identity of: can_relink false",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "wappie",
+        "section": "numbers",
+        "producer": "wappie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "can_link": true,
+          "places_free": 2,
+          "storage_paused": false,
+          "pending": [
+            {
+              "id": "reg_1",
+              "created_at": "2026-10-13T11:00:00Z",
+              "pairing": true,
+              "can_retry": false
+            }
+          ],
+          "items": [
+            {
+              "id": "0199e000-0000-7000-8000-000000000004",
+              "connection": "logged_out_phone",
+              "last_connected_at": "2026-10-11T12:00:00Z",
+              "capture": "on",
+              "paused_by": null,
+              "can_resume": false,
+              "read_only": true,
+              "can_relink": false,
+              "key_epoch": 3,
+              "move_out": {
+                "holders": [
+                  {
+                    "kind": "person",
+                    "sub": "0199c3d4-0000-7000-8000-000000000002",
+                    "row": "usr_42"
+                  },
+                  {
+                    "kind": "token",
+                    "sub": null,
+                    "row": "0199f2a1-0000-7000-8000-000000000011"
+                  }
+                ],
+                "holders_more": 0,
+                "ends": [
+                  "conn_7"
+                ]
+              },
+              "recovery_open": false,
+              "bytes": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "a number from before kit v0.11.0: can_relink absent",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "wappie",
+        "section": "numbers",
+        "producer": "wappie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "can_link": true,
+          "places_free": 2,
+          "storage_paused": false,
+          "pending": [
+            {
+              "id": "reg_1",
+              "created_at": "2026-10-13T11:00:00Z",
+              "pairing": true,
+              "can_retry": false
+            }
+          ],
+          "items": [
+            {
+              "id": "0199e000-0000-7000-8000-000000000004",
+              "connection": "logged_out_phone",
+              "last_connected_at": "2026-10-11T12:00:00Z",
+              "capture": "on",
+              "paused_by": null,
+              "can_resume": false,
+              "read_only": true,
+              "key_epoch": 3,
+              "move_out": {
+                "holders": [
+                  {
+                    "kind": "person",
+                    "sub": "0199c3d4-0000-7000-8000-000000000002",
+                    "row": "usr_42"
+                  },
+                  {
+                    "kind": "token",
+                    "sub": null,
+                    "row": "0199f2a1-0000-7000-8000-000000000011"
+                  }
+                ],
+                "holders_more": 0,
+                "ends": [
+                  "conn_7"
+                ]
+              },
+              "recovery_open": false,
+              "bytes": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "an online number that cannot be linked again",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "wappie",
+        "section": "numbers",
+        "producer": "wappie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "can_link": true,
+          "places_free": 2,
+          "storage_paused": false,
+          "pending": [
+            {
+              "id": "reg_1",
+              "created_at": "2026-10-13T11:00:00Z",
+              "pairing": true,
+              "can_retry": false
+            }
+          ],
+          "items": [
+            {
+              "id": "0199e000-0000-7000-8000-000000000004",
+              "connection": "online",
+              "last_connected_at": "2026-10-13T11:59:00Z",
+              "capture": "paused",
+              "paused_by": {
+                "kind": "person",
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "at": "2026-10-13T11:00:00Z"
+              },
+              "can_resume": true,
+              "read_only": false,
+              "can_relink": false,
+              "key_epoch": 3,
+              "move_out": {
+                "holders": [
+                  {
+                    "kind": "person",
+                    "sub": "0199c3d4-0000-7000-8000-000000000002",
+                    "row": "usr_42"
+                  },
+                  {
+                    "kind": "token",
+                    "sub": null,
+                    "row": "0199f2a1-0000-7000-8000-000000000011"
+                  }
+                ],
+                "holders_more": 0,
+                "ends": [
+                  "conn_7"
+                ]
+              },
+              "recovery_open": false,
+              "bytes": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "the relink in Wappie's accepts",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "wappie",
+        "section": "numbers",
+        "producer": "wappie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.rename",
+          "item.relink"
+        ],
+        "data": {
+          "can_link": true,
+          "places_free": 2,
+          "storage_paused": false,
+          "pending": [
+            {
+              "id": "reg_1",
+              "created_at": "2026-10-13T11:00:00Z",
+              "pairing": true,
+              "can_retry": false
+            }
+          ],
+          "items": [
+            {
+              "id": "0199e000-0000-7000-8000-000000000004",
+              "connection": "logged_out_phone",
+              "last_connected_at": "2026-10-11T12:00:00Z",
+              "capture": "on",
+              "paused_by": null,
+              "can_resume": false,
+              "read_only": true,
+              "can_relink": true,
+              "key_epoch": 3,
+              "move_out": {
+                "holders": [
+                  {
+                    "kind": "person",
+                    "sub": "0199c3d4-0000-7000-8000-000000000002",
+                    "row": "usr_42"
+                  },
+                  {
+                    "kind": "token",
+                    "sub": null,
+                    "row": "0199f2a1-0000-7000-8000-000000000011"
+                  }
+                ],
+                "holders_more": 0,
+                "ends": [
+                  "conn_7"
+                ]
+              },
+              "recovery_open": false,
+              "bytes": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "the reference app's number with can_relink, the relink accepted",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "fakeproduct",
+        "section": "numbers",
+        "producer": "fakeproduct",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.relink"
+        ],
+        "data": {
+          "can_link": true,
+          "places_free": 2,
+          "storage_paused": false,
+          "pending": [
+            {
+              "id": "reg_1",
+              "created_at": "2026-10-13T11:00:00Z",
+              "pairing": true,
+              "can_retry": false
+            }
+          ],
+          "items": [
+            {
+              "id": "0199e000-0000-7000-8000-000000000004",
+              "connection": "logged_out_phone",
+              "last_connected_at": "2026-10-11T12:00:00Z",
+              "capture": "on",
+              "paused_by": null,
+              "can_resume": false,
+              "read_only": true,
+              "can_relink": true,
+              "key_epoch": 3,
+              "move_out": {
+                "holders": [
+                  {
+                    "kind": "person",
+                    "sub": "0199c3d4-0000-7000-8000-000000000002",
+                    "row": "usr_42"
+                  },
+                  {
+                    "kind": "token",
+                    "sub": null,
+                    "row": "0199f2a1-0000-7000-8000-000000000011"
+                  }
+                ],
+                "holders_more": 0,
+                "ends": [
+                  "conn_7"
+                ]
+              },
+              "recovery_open": false,
+              "bytes": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "can_relink null",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "wappie",
+        "section": "numbers",
+        "producer": "wappie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "can_link": true,
+          "places_free": 2,
+          "storage_paused": false,
+          "pending": [
+            {
+              "id": "reg_1",
+              "created_at": "2026-10-13T11:00:00Z",
+              "pairing": true,
+              "can_retry": false
+            }
+          ],
+          "items": [
+            {
+              "id": "0199e000-0000-7000-8000-000000000004",
+              "connection": "logged_out_phone",
+              "last_connected_at": "2026-10-11T12:00:00Z",
+              "capture": "on",
+              "paused_by": null,
+              "can_resume": false,
+              "read_only": true,
+              "can_relink": null,
+              "key_epoch": 3,
+              "move_out": {
+                "holders": [
+                  {
+                    "kind": "person",
+                    "sub": "0199c3d4-0000-7000-8000-000000000002",
+                    "row": "usr_42"
+                  },
+                  {
+                    "kind": "token",
+                    "sub": null,
+                    "row": "0199f2a1-0000-7000-8000-000000000011"
+                  }
+                ],
+                "holders_more": 0,
+                "ends": [
+                  "conn_7"
+                ]
+              },
+              "recovery_open": false,
+              "bytes": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "can_relink as text",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "wappie",
+        "section": "numbers",
+        "producer": "wappie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "can_link": true,
+          "places_free": 2,
+          "storage_paused": false,
+          "pending": [
+            {
+              "id": "reg_1",
+              "created_at": "2026-10-13T11:00:00Z",
+              "pairing": true,
+              "can_retry": false
+            }
+          ],
+          "items": [
+            {
+              "id": "0199e000-0000-7000-8000-000000000004",
+              "connection": "logged_out_phone",
+              "last_connected_at": "2026-10-11T12:00:00Z",
+              "capture": "on",
+              "paused_by": null,
+              "can_resume": false,
+              "read_only": true,
+              "can_relink": "true",
+              "key_epoch": 3,
+              "move_out": {
+                "holders": [
+                  {
+                    "kind": "person",
+                    "sub": "0199c3d4-0000-7000-8000-000000000002",
+                    "row": "usr_42"
+                  },
+                  {
+                    "kind": "token",
+                    "sub": null,
+                    "row": "0199f2a1-0000-7000-8000-000000000011"
+                  }
+                ],
+                "holders_more": 0,
+                "ends": [
+                  "conn_7"
+                ]
+              },
+              "recovery_open": false,
+              "bytes": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "can_relink written Can_relink",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "wappie",
+        "section": "numbers",
+        "producer": "wappie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "can_link": true,
+          "places_free": 2,
+          "storage_paused": false,
+          "pending": [
+            {
+              "id": "reg_1",
+              "created_at": "2026-10-13T11:00:00Z",
+              "pairing": true,
+              "can_retry": false
+            }
+          ],
+          "items": [
+            {
+              "id": "0199e000-0000-7000-8000-000000000004",
+              "connection": "logged_out_phone",
+              "last_connected_at": "2026-10-11T12:00:00Z",
+              "capture": "on",
+              "paused_by": null,
+              "can_resume": false,
+              "read_only": true,
+              "Can_relink": true,
+              "key_epoch": 3,
+              "move_out": {
+                "holders": [
+                  {
+                    "kind": "person",
+                    "sub": "0199c3d4-0000-7000-8000-000000000002",
+                    "row": "usr_42"
+                  },
+                  {
+                    "kind": "token",
+                    "sub": null,
+                    "row": "0199f2a1-0000-7000-8000-000000000011"
+                  }
+                ],
+                "holders_more": 0,
+                "ends": [
+                  "conn_7"
+                ]
+              },
+              "recovery_open": false,
+              "bytes": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "can_relink twice",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "wappie",
+        "section": "numbers",
+        "producer": "wappie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "can_link": true,
+          "places_free": 2,
+          "storage_paused": false,
+          "pending": [
+            {
+              "id": "reg_1",
+              "created_at": "2026-10-13T11:00:00Z",
+              "pairing": true,
+              "can_retry": false
+            }
+          ],
+          "items": [
+            {
+              "id": "0199e000-0000-7000-8000-000000000004",
+              "connection": "logged_out_phone",
+              "last_connected_at": "2026-10-11T12:00:00Z",
+              "capture": "on",
+              "paused_by": null,
+              "can_resume": false,
+              "read_only": true,
+              "can_relink": true,
+              "can_relink": false,
+              "key_epoch": 3,
+              "move_out": {
+                "holders": [
+                  {
+                    "kind": "person",
+                    "sub": "0199c3d4-0000-7000-8000-000000000002",
+                    "row": "usr_42"
+                  },
+                  {
+                    "kind": "token",
+                    "sub": null,
+                    "row": "0199f2a1-0000-7000-8000-000000000011"
+                  }
+                ],
+                "holders_more": 0,
+                "ends": [
+                  "conn_7"
+                ]
+              },
+              "recovery_open": false,
+              "bytes": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "the relink in Mailie's accepts",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.relink"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "the rename in Mailie's email-accounts accepts",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.rename",
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "the rename in Mailie's permissions accepts",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "permissions",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.rename"
+        ],
+        "data": {
+          "members": [
+            {
+              "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "status": "active",
+              "enrolled": true
+            },
+            {
+              "sub": "0199c3d4-0000-7000-8000-000000000002",
+              "status": "held",
+              "enrolled": false
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "a grant the provider ended: needs_reauth, grant_ended",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "needs_reauth",
+              "reason": "grant_ended",
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "a grant the provider ended: error, grant_ended",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "error",
+              "reason": "grant_ended",
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "grant_ended on a connected mailbox",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": "grant_ended",
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "grant_ended on a removed mailbox",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "removed",
+              "reason": "grant_ended",
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": {
+                "removed_at": "2026-10-13T11:00:00Z",
+                "purge_after": "2026-11-12T12:00:00Z",
+                "index_kept": true
+              }
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "a reason written in capitals",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "needs_reauth",
+              "reason": "GRANT_ENDED",
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "sync off with the index still kept",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": false,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "sync off with part of the index kept",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": false,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "partial",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    }
+  ],
+  "commands": [
+    {
+      "name": "Mailie's rename of a team's mailbox with no label yet",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=2b3a30df03e4a9c5f4787c92780500ca5fc1e1be62815a2daba77f4e236b614b",
+        "params": {
+          "after": {
+            "label": "Suporte"
+          },
+          "before": {
+            "label": null
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": true
+    },
+    {
+      "name": "Mailie's rename of a labelled mailbox",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=122a58046e0057ade424ca8e1984a7ee69442dd4678cd60b853f01d2d210bba7",
+        "params": {
+          "after": {
+            "label": "Suporte SP"
+          },
+          "before": {
+            "label": "Suporte"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": true
+    },
+    {
+      "name": "Mailie's rename of a personal mailbox",
+      "app": "mailie",
+      "workspace_kind": "personal",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=0d7122dc763a2e95c40020b7500c11a03bc57fdfc592f750bd23090ed89923d4",
+        "params": {
+          "after": {
+            "label": "Suporte"
+          },
+          "before": {
+            "label": null
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "0199d000-0000-7000-8000-000000000005",
+        "wseq": 41
+      },
+      "valid": true
+    },
+    {
+      "name": "a member's rename, which Mailie judges",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "member",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=9f3b8871969dfd6a6103dc195bcddf509f88b945f48bdae0eaf125eae37d602c",
+        "params": {
+          "after": {
+            "label": "Suporte"
+          },
+          "before": {
+            "label": null
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": true
+    },
+    {
+      "name": "a rename to an address",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=d8317e1e9fecd032fb31b5293bad51b3bc98d6996e8d59b10288a9de7ed852e0",
+        "params": {
+          "after": {
+            "label": "suporte@loja.com"
+          },
+          "before": {
+            "label": null
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a rename to no label",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=91dca124ca4307c5adf3578da87a65a4ae637ed852bfd1c71b2b5e83ab8cf33b",
+        "params": {
+          "after": {
+            "label": null
+          },
+          "before": {
+            "label": "Suporte"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a rename with no before",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=fe7c7f4c7caa02c45c4e307a480686595d5c1a55634e6e0ba79f434e1112fed4",
+        "params": {
+          "after": {
+            "label": "Suporte"
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a rename of another setting",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=6335743a0eab8e6f7d77cf814f8c677bf0ef7cda34e3c2b1df70d7c302fcd1a7",
+        "params": {
+          "after": {
+            "paused": true
+          },
+          "before": {
+            "paused": false
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a rename with no expiry",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": null,
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=bce56145fd93c00577f313135e5d97cd5b56d91e51b909375e3ceeb7efd89a4b",
+        "params": {
+          "after": {
+            "label": "Suporte"
+          },
+          "before": {
+            "label": null
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "a rename confirming the mailbox",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": "acc_7f3a",
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=5afa819a347d41a46f4570b73d00ff99cc58dc43b8c1a0fcdf8fcb9a6be91a19",
+        "params": {
+          "after": {
+            "label": "Suporte"
+          },
+          "before": {
+            "label": null
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "email-accounts",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    },
+    {
+      "name": "Mailie's rename in the permissions section",
+      "app": "mailie",
+      "workspace_kind": "team",
+      "value": {
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_role": "owner",
+        "agreement": null,
+        "app": "mailie",
+        "based_on": {
+          "docs": {
+            "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20": 7
+          },
+          "state_seq": 1791892800000
+        },
+        "confirm": null,
+        "cseq": 812,
+        "expires_at": "2026-10-13T12:05:00Z",
+        "first_issued_at": "2026-10-13T12:00:00Z",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "kind": "item.rename",
+        "mac": "v1=095a586f88f4d2c704abd915b601c13ffb7dd65a380777677f6f7bcb1bd9c5ed",
+        "params": {
+          "after": {
+            "label": "Suporte"
+          },
+          "before": {
+            "label": null
+          }
+        },
+        "retry_of": null,
+        "secret": 2,
+        "section": "permissions",
+        "target": {
+          "item": "acc_7f3a"
+        },
+        "type": "command",
+        "v": 1,
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "wseq": 41
+      },
+      "valid": false
+    }
+  ],
+  "results": [
+    {
+      "name": "a rename to a name Wappie keeps none of: cleaned null",
+      "app": "wappie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "cleaned": null
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "the reference app's rename, cleaned null",
+      "app": "fakeproduct",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "cleaned": null
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "Mailie's rename to a name it keeps none of: cleaned null",
+      "app": "mailie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "cleaned": null
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "Mailie's rename with the cleaned label",
+      "app": "mailie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "cleaned": "Suporte …5678"
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "Mailie's rename refused state_changed",
+      "app": "mailie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "state_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "cleaned null on an installation's rename",
+      "app": "wappie",
+      "kind": "installation.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "cleaned": null
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "cleaned null on an installation added",
+      "app": "wappie",
+      "kind": "installation.add",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "cleaned": null
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "cleaned null with another code",
+      "app": "wappie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "state_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "cleaned": null
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "cleaned null and a cleaned label",
+      "app": "wappie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "cleaned": null,
+          "cleaned": "Vendas"
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "cleaned null beside another shape",
+      "app": "wappie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "cleaned": null,
+          "sessions_ended": 1
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "cleaned written Cleaned, null",
+      "app": "wappie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": {
+          "Cleaned": null
+        },
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "Mailie's rename refused label_changed with no detail",
+      "app": "mailie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "label_changed",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "Mailie's rename refused last_reader",
+      "app": "mailie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "last_reader",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    }
+  ],
+  "pages": [
+    {
+      "name": "a record in a page of the app's generation: it applies",
+      "app": "wappie",
+      "generation": "0199b1e0-0000-7000-8000-000000000001",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 90,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 90,
+            "token": {
+              "v": 1,
+              "type": "token",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "id": "0199f2a1-0000-7000-8000-000000000011",
+              "version": 90,
+              "selector": "9f3c0a7be41d2c58",
+              "hash": "7fbeaba3be098c5c5c27c61c8ca1ba44499ce7a56936fcc2c2ea9c61adf26fe6",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "name": "Nightly export",
+              "created_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "created_at": "2026-10-13T12:00:00Z",
+              "expires_at": "2027-10-13T12:00:00Z",
+              "revoked_at": null,
+              "revoked_reason": null,
+              "terms": null,
+              "reading_key": {
+                "suite": "x25519",
+                "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+                "fingerprint": "84bf23bd7ffb2df919c7e4e5a7867702",
+                "registered_at": "2026-10-13T12:03:00Z"
+              },
+              "items": [
+                {
+                  "id": "0199e000-0000-7000-8000-000000000004",
+                  "kind": "number",
+                  "perms": [
+                    {
+                      "perm": "read",
+                      "granted_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                      "granted_at": "2026-10-13T12:00:00Z"
+                    },
+                    {
+                      "perm": "send",
+                      "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+                      "granted_at": "2026-10-14T12:00:00Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "next_after": 90,
+        "more": false
+      },
+      "action": "apply",
+      "code": null
+    },
+    {
+      "name": "a record whose generation differs from its page's: a bad record, never a reset",
+      "app": "wappie",
+      "generation": "0199b1e0-0000-7000-8000-000000000001",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 90,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 90,
+            "token": {
+              "v": 1,
+              "type": "token",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000002",
+              "id": "0199f2a1-0000-7000-8000-000000000011",
+              "version": 90,
+              "selector": "9f3c0a7be41d2c58",
+              "hash": "7fbeaba3be098c5c5c27c61c8ca1ba44499ce7a56936fcc2c2ea9c61adf26fe6",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "name": "Nightly export",
+              "created_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "created_at": "2026-10-13T12:00:00Z",
+              "expires_at": "2027-10-13T12:00:00Z",
+              "revoked_at": null,
+              "revoked_reason": null,
+              "terms": null,
+              "reading_key": {
+                "suite": "x25519",
+                "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+                "fingerprint": "84bf23bd7ffb2df919c7e4e5a7867702",
+                "registered_at": "2026-10-13T12:03:00Z"
+              },
+              "items": [
+                {
+                  "id": "0199e000-0000-7000-8000-000000000004",
+                  "kind": "number",
+                  "perms": [
+                    {
+                      "perm": "read",
+                      "granted_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                      "granted_at": "2026-10-13T12:00:00Z"
+                    },
+                    {
+                      "perm": "send",
+                      "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+                      "granted_at": "2026-10-14T12:00:00Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "next_after": 90,
+        "more": false
+      },
+      "action": "narrow",
+      "code": "invalid_record"
+    },
+    {
+      "name": "a revoked record whose generation differs from its page's: a bad record, never a reset",
+      "app": "wappie",
+      "generation": "0199b1e0-0000-7000-8000-000000000001",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 90,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 90,
+            "token": {
+              "v": 1,
+              "type": "token",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000002",
+              "id": "0199f2a1-0000-7000-8000-000000000011",
+              "version": 90,
+              "selector": "9f3c0a7be41d2c58",
+              "hash": "7fbeaba3be098c5c5c27c61c8ca1ba44499ce7a56936fcc2c2ea9c61adf26fe6",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "name": "Nightly export",
+              "created_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "created_at": "2026-10-13T12:00:00Z",
+              "expires_at": "2027-10-13T12:00:00Z",
+              "revoked_at": "2026-10-15T12:00:00Z",
+              "revoked_reason": "revoked",
+              "terms": null,
+              "reading_key": {
+                "suite": "x25519",
+                "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+                "fingerprint": "84bf23bd7ffb2df919c7e4e5a7867702",
+                "registered_at": "2026-10-13T12:03:00Z"
+              },
+              "items": []
+            }
+          }
+        ],
+        "next_after": 90,
+        "more": false
+      },
+      "action": "narrow",
+      "code": "invalid_record"
+    },
+    {
+      "name": "a page of another generation: a reset",
+      "app": "wappie",
+      "generation": "0199b1e0-0000-7000-8000-000000000001",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000002",
+        "generation_confirmed": true,
+        "head": 90,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 90,
+            "token": {
+              "v": 1,
+              "type": "token",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000002",
+              "id": "0199f2a1-0000-7000-8000-000000000011",
+              "version": 90,
+              "selector": "9f3c0a7be41d2c58",
+              "hash": "7fbeaba3be098c5c5c27c61c8ca1ba44499ce7a56936fcc2c2ea9c61adf26fe6",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "name": "Nightly export",
+              "created_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "created_at": "2026-10-13T12:00:00Z",
+              "expires_at": "2027-10-13T12:00:00Z",
+              "revoked_at": null,
+              "revoked_reason": null,
+              "terms": null,
+              "reading_key": {
+                "suite": "x25519",
+                "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+                "fingerprint": "84bf23bd7ffb2df919c7e4e5a7867702",
+                "registered_at": "2026-10-13T12:03:00Z"
+              },
+              "items": [
+                {
+                  "id": "0199e000-0000-7000-8000-000000000004",
+                  "kind": "number",
+                  "perms": [
+                    {
+                      "perm": "read",
+                      "granted_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                      "granted_at": "2026-10-13T12:00:00Z"
+                    },
+                    {
+                      "perm": "send",
+                      "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+                      "granted_at": "2026-10-14T12:00:00Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "next_after": 90,
+        "more": false
+      },
+      "action": "reset",
+      "code": null
+    },
+    {
+      "name": "a page of another generation whose record names the app's: a reset",
+      "app": "wappie",
+      "generation": "0199b1e0-0000-7000-8000-000000000001",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000002",
+        "generation_confirmed": true,
+        "head": 90,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 90,
+            "token": {
+              "v": 1,
+              "type": "token",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "id": "0199f2a1-0000-7000-8000-000000000011",
+              "version": 90,
+              "selector": "9f3c0a7be41d2c58",
+              "hash": "7fbeaba3be098c5c5c27c61c8ca1ba44499ce7a56936fcc2c2ea9c61adf26fe6",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "name": "Nightly export",
+              "created_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "created_at": "2026-10-13T12:00:00Z",
+              "expires_at": "2027-10-13T12:00:00Z",
+              "revoked_at": null,
+              "revoked_reason": null,
+              "terms": null,
+              "reading_key": {
+                "suite": "x25519",
+                "key": "UAeNwurwNoq71FYL6Lbssg_37Ipn6bFKISmK1raORi0",
+                "fingerprint": "84bf23bd7ffb2df919c7e4e5a7867702",
+                "registered_at": "2026-10-13T12:03:00Z"
+              },
+              "items": [
+                {
+                  "id": "0199e000-0000-7000-8000-000000000004",
+                  "kind": "number",
+                  "perms": [
+                    {
+                      "perm": "read",
+                      "granted_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                      "granted_at": "2026-10-13T12:00:00Z"
+                    },
+                    {
+                      "perm": "send",
+                      "granted_by": "0199c3d4-0000-7000-8000-000000000002",
+                      "granted_at": "2026-10-14T12:00:00Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "next_after": 90,
+        "more": false
+      },
+      "action": "reset",
+      "code": null
+    },
+    {
+      "name": "another app's record of another generation, in a page of the app's: refused",
+      "app": "wappie",
+      "generation": "0199b1e0-0000-7000-8000-000000000001",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 90,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 90,
+            "token": {
+              "v": 1,
+              "type": "token",
+              "app": "mailie",
+              "generation": "0199b1e0-0000-7000-8000-000000000002",
+              "id": "0199f2a1-0000-7000-8000-000000000011",
+              "version": 90,
+              "selector": "9f3c0a7be41d2c58",
+              "hash": "7fbeaba3be098c5c5c27c61c8ca1ba44499ce7a56936fcc2c2ea9c61adf26fe6",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "name": "Nightly export",
+              "created_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "created_at": "2026-10-13T12:00:00Z",
+              "expires_at": "2027-10-13T12:00:00Z",
+              "revoked_at": null,
+              "revoked_reason": null,
+              "terms": {
+                "version": "2026-10-api-keys-2",
+                "agreed_at": "2026-10-13T12:00:00Z"
+              },
+              "reading_key": null,
+              "items": [
+                {
+                  "id": "acc_7f3a",
+                  "kind": "mailbox",
+                  "perms": [
+                    {
+                      "perm": "read",
+                      "granted_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                      "granted_at": "2026-10-13T12:00:00Z"
+                    },
+                    {
+                      "perm": "act",
+                      "granted_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                      "granted_at": "2026-10-13T12:00:00Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "next_after": 90,
+        "more": false
+      },
+      "action": "refuse",
+      "code": null
+    }
+  ]
+}

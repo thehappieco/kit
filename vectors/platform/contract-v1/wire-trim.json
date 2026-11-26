@@ -3151,6 +3151,272 @@
       "steps": null
     },
     {
+      "name": "check 1: a feed copy no held secret verifies, the GET a signed rate_limited: wait",
+      "app": "wappie",
+      "now": "2026-10-13T12:01:00Z",
+      "secrets": [
+        "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+      ],
+      "generation_confirmed": true,
+      "allow_open": true,
+      "held_at_observe": false,
+      "recorded": null,
+      "feed": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "expired",
+          "reason": "no_plan",
+          "since": "2026-09-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": "2026-10-03T12:00:00Z",
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 1,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": null,
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 1,
+          "used": 2,
+          "used_connected": 1,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 15000000000,
+          "used_bytes": 27300000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 13800000000,
+          "cap_bytes": 14550000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "off",
+          "send": "off"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": {
+          "app": "wappie",
+          "basis": {
+            "measured_at": "2026-10-13T11:52:00Z",
+            "usage_seq": 1791892320000
+          },
+          "basis_purge": {
+            "dev_9": "2026-10-20T12:00:00Z"
+          },
+          "episode": "0199a2f0-0000-7000-8000-000000000101",
+          "floor": "2026-07-15",
+          "generation": "0199b1e0-0000-7000-8000-000000000001",
+          "issued_at": "2026-10-13T12:00:00Z",
+          "mac": "v1=fe2bd03a7bd96ae3cd206491377d2e28547645f99d496302a208edf9ba401f45",
+          "not_before": "2026-10-13T12:00:00Z",
+          "order_id": "0199c3a0-0000-7000-8000-000000000101",
+          "round": 1,
+          "secret": 2,
+          "steps": [
+            {
+              "action": "purge",
+              "item": "dev_9"
+            },
+            {
+              "action": "keep",
+              "item": "dev_7",
+              "keep_bytes": 14000000000
+            }
+          ],
+          "valid_until": "2026-10-13T18:00:00Z",
+          "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+        },
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "get": "rate_limited",
+      "get_doc": null,
+      "basis": {
+        "total_bytes": 26100000000,
+        "items": {
+          "dev_7": 21000000000,
+          "dev_9": 4800000000
+        }
+      },
+      "usage": {
+        "total_bytes": 26100000000,
+        "items": {
+          "dev_7": 21000000000,
+          "dev_9": 4800000000
+        }
+      },
+      "items": {
+        "dev_7": {
+          "state": "live"
+        },
+        "dev_9": {
+          "state": "deleted",
+          "purge_at": "2026-10-20T12:00:00Z"
+        }
+      },
+      "action": "wait",
+      "code": null,
+      "steps": null
+    },
+    {
+      "name": "check 1: a feed copy no held secret verifies, the GET a signed unavailable past the copy's own valid_until: still wait, never expired",
+      "app": "wappie",
+      "now": "2026-10-13T19:00:00Z",
+      "secrets": [
+        "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+      ],
+      "generation_confirmed": true,
+      "allow_open": true,
+      "held_at_observe": false,
+      "recorded": null,
+      "feed": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "expired",
+          "reason": "no_plan",
+          "since": "2026-09-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": "2026-10-03T12:00:00Z",
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 1,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": null,
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 1,
+          "used": 2,
+          "used_connected": 1,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 15000000000,
+          "used_bytes": 27300000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 13800000000,
+          "cap_bytes": 14550000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "off",
+          "send": "off"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": {
+          "app": "wappie",
+          "basis": {
+            "measured_at": "2026-10-13T11:52:00Z",
+            "usage_seq": 1791892320000
+          },
+          "basis_purge": {
+            "dev_9": "2026-10-20T12:00:00Z"
+          },
+          "episode": "0199a2f0-0000-7000-8000-000000000101",
+          "floor": "2026-07-15",
+          "generation": "0199b1e0-0000-7000-8000-000000000001",
+          "issued_at": "2026-10-13T12:00:00Z",
+          "mac": "v1=fe2bd03a7bd96ae3cd206491377d2e28547645f99d496302a208edf9ba401f45",
+          "not_before": "2026-10-13T12:00:00Z",
+          "order_id": "0199c3a0-0000-7000-8000-000000000101",
+          "round": 1,
+          "secret": 2,
+          "steps": [
+            {
+              "action": "purge",
+              "item": "dev_9"
+            },
+            {
+              "action": "keep",
+              "item": "dev_7",
+              "keep_bytes": 14000000000
+            }
+          ],
+          "valid_until": "2026-10-13T18:00:00Z",
+          "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+        },
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "get": "unavailable",
+      "get_doc": null,
+      "basis": {
+        "total_bytes": 26100000000,
+        "items": {
+          "dev_7": 21000000000,
+          "dev_9": 4800000000
+        }
+      },
+      "usage": {
+        "total_bytes": 26100000000,
+        "items": {
+          "dev_7": 21000000000,
+          "dev_9": 4800000000
+        }
+      },
+      "items": {
+        "dev_7": {
+          "state": "live"
+        },
+        "dev_9": {
+          "state": "deleted",
+          "purge_at": "2026-10-20T12:00:00Z"
+        }
+      },
+      "action": "wait",
+      "code": null,
+      "steps": null
+    },
+    {
       "name": "check 1: a feed copy no held secret verifies, the GET a signed not_found: not_current",
       "app": "wappie",
       "now": "2026-10-13T12:01:00Z",
@@ -7256,6 +7522,465 @@
           "state": "live"
         },
         "dev_9": {
+          "state": "deleted",
+          "purge_at": "2026-10-20T12:00:00Z"
+        }
+      },
+      "action": "refused",
+      "code": "usage_moved",
+      "steps": null
+    },
+    {
+      "name": "check 5: Mailie with one mailbox, a 5 GB quota: usage moved 100 MB, the tolerance's 100 MB side",
+      "app": "mailie",
+      "now": "2026-10-13T12:01:00Z",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "generation_confirmed": true,
+      "allow_open": true,
+      "held_at_observe": false,
+      "recorded": null,
+      "feed": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "mailie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "expired",
+          "reason": "no_plan",
+          "since": "2026-09-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": "2026-10-03T12:00:00Z",
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 0,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": null,
+          "ends_at": null
+        },
+        "places": {
+          "kind": "mailbox",
+          "total": 1,
+          "used": 1,
+          "used_connected": 0,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 5000000000,
+          "used_bytes": 8200000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 3800000000,
+          "cap_bytes": 3800000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "off",
+          "send": "off"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": {
+          "app": "mailie",
+          "basis": {
+            "measured_at": "2026-10-13T11:52:00Z",
+            "usage_seq": 1791892320000
+          },
+          "basis_purge": {
+            "acc_9b21": "2026-10-20T12:00:00Z"
+          },
+          "episode": "0199a2f0-0000-7000-8000-000000000101",
+          "floor": "2026-07-15",
+          "generation": "0199b1e0-0000-7000-8000-000000000001",
+          "issued_at": "2026-10-13T12:00:00Z",
+          "mac": "v1=3d808f599b1306fcc388e8d488804a0eedb09541754345af7067c3f584262fc7",
+          "not_before": "2026-10-13T12:00:00Z",
+          "order_id": "0199c3a0-0000-7000-8000-000000000101",
+          "round": 1,
+          "secret": 2,
+          "steps": [
+            {
+              "action": "purge",
+              "item": "acc_9b21"
+            },
+            {
+              "action": "keep",
+              "item": "acc_7f3a",
+              "keep_bytes": 3000000000
+            }
+          ],
+          "valid_until": "2026-10-13T18:00:00Z",
+          "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+        },
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "get": "doc",
+      "get_doc": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "mailie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "expired",
+          "reason": "no_plan",
+          "since": "2026-09-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": "2026-10-03T12:00:00Z",
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 0,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": null,
+          "ends_at": null
+        },
+        "places": {
+          "kind": "mailbox",
+          "total": 1,
+          "used": 1,
+          "used_connected": 0,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 5000000000,
+          "used_bytes": 8200000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 3800000000,
+          "cap_bytes": 3800000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "off",
+          "send": "off"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": {
+          "app": "mailie",
+          "basis": {
+            "measured_at": "2026-10-13T11:52:00Z",
+            "usage_seq": 1791892320000
+          },
+          "basis_purge": {
+            "acc_9b21": "2026-10-20T12:00:00Z"
+          },
+          "episode": "0199a2f0-0000-7000-8000-000000000101",
+          "floor": "2026-07-15",
+          "generation": "0199b1e0-0000-7000-8000-000000000001",
+          "issued_at": "2026-10-13T12:00:00Z",
+          "mac": "v1=3d808f599b1306fcc388e8d488804a0eedb09541754345af7067c3f584262fc7",
+          "not_before": "2026-10-13T12:00:00Z",
+          "order_id": "0199c3a0-0000-7000-8000-000000000101",
+          "round": 1,
+          "secret": 2,
+          "steps": [
+            {
+              "action": "purge",
+              "item": "acc_9b21"
+            },
+            {
+              "action": "keep",
+              "item": "acc_7f3a",
+              "keep_bytes": 3000000000
+            }
+          ],
+          "valid_until": "2026-10-13T18:00:00Z",
+          "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+        },
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "basis": {
+        "total_bytes": 7000000000,
+        "items": {
+          "acc_7f3a": 6000000000,
+          "acc_9b21": 1000000000
+        }
+      },
+      "usage": {
+        "total_bytes": 7100000000,
+        "items": {
+          "acc_7f3a": 6100000000,
+          "acc_9b21": 1000000000
+        }
+      },
+      "items": {
+        "acc_7f3a": {
+          "state": "live"
+        },
+        "acc_9b21": {
+          "state": "deleted",
+          "purge_at": "2026-10-20T12:00:00Z"
+        }
+      },
+      "action": "run",
+      "code": null,
+      "steps": [
+        {
+          "item": "acc_9b21",
+          "action": "run"
+        },
+        {
+          "item": "acc_7f3a",
+          "action": "run"
+        }
+      ]
+    },
+    {
+      "name": "check 5: Mailie with one mailbox, a 5 GB quota: usage moved a byte past 100 MB",
+      "app": "mailie",
+      "now": "2026-10-13T12:01:00Z",
+      "secrets": [
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+      ],
+      "generation_confirmed": true,
+      "allow_open": true,
+      "held_at_observe": false,
+      "recorded": null,
+      "feed": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "mailie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "expired",
+          "reason": "no_plan",
+          "since": "2026-09-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": "2026-10-03T12:00:00Z",
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 0,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": null,
+          "ends_at": null
+        },
+        "places": {
+          "kind": "mailbox",
+          "total": 1,
+          "used": 1,
+          "used_connected": 0,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 5000000000,
+          "used_bytes": 8200000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 3800000000,
+          "cap_bytes": 3800000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "off",
+          "send": "off"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": {
+          "app": "mailie",
+          "basis": {
+            "measured_at": "2026-10-13T11:52:00Z",
+            "usage_seq": 1791892320000
+          },
+          "basis_purge": {
+            "acc_9b21": "2026-10-20T12:00:00Z"
+          },
+          "episode": "0199a2f0-0000-7000-8000-000000000101",
+          "floor": "2026-07-15",
+          "generation": "0199b1e0-0000-7000-8000-000000000001",
+          "issued_at": "2026-10-13T12:00:00Z",
+          "mac": "v1=3d808f599b1306fcc388e8d488804a0eedb09541754345af7067c3f584262fc7",
+          "not_before": "2026-10-13T12:00:00Z",
+          "order_id": "0199c3a0-0000-7000-8000-000000000101",
+          "round": 1,
+          "secret": 2,
+          "steps": [
+            {
+              "action": "purge",
+              "item": "acc_9b21"
+            },
+            {
+              "action": "keep",
+              "item": "acc_7f3a",
+              "keep_bytes": 3000000000
+            }
+          ],
+          "valid_until": "2026-10-13T18:00:00Z",
+          "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+        },
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "get": "doc",
+      "get_doc": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "mailie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "expired",
+          "reason": "no_plan",
+          "since": "2026-09-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": "2026-10-03T12:00:00Z",
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 0,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": null,
+          "ends_at": null
+        },
+        "places": {
+          "kind": "mailbox",
+          "total": 1,
+          "used": 1,
+          "used_connected": 0,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 5000000000,
+          "used_bytes": 8200000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 3800000000,
+          "cap_bytes": 3800000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "off",
+          "send": "off"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": {
+          "app": "mailie",
+          "basis": {
+            "measured_at": "2026-10-13T11:52:00Z",
+            "usage_seq": 1791892320000
+          },
+          "basis_purge": {
+            "acc_9b21": "2026-10-20T12:00:00Z"
+          },
+          "episode": "0199a2f0-0000-7000-8000-000000000101",
+          "floor": "2026-07-15",
+          "generation": "0199b1e0-0000-7000-8000-000000000001",
+          "issued_at": "2026-10-13T12:00:00Z",
+          "mac": "v1=3d808f599b1306fcc388e8d488804a0eedb09541754345af7067c3f584262fc7",
+          "not_before": "2026-10-13T12:00:00Z",
+          "order_id": "0199c3a0-0000-7000-8000-000000000101",
+          "round": 1,
+          "secret": 2,
+          "steps": [
+            {
+              "action": "purge",
+              "item": "acc_9b21"
+            },
+            {
+              "action": "keep",
+              "item": "acc_7f3a",
+              "keep_bytes": 3000000000
+            }
+          ],
+          "valid_until": "2026-10-13T18:00:00Z",
+          "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+        },
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "basis": {
+        "total_bytes": 7000000000,
+        "items": {
+          "acc_7f3a": 6000000000,
+          "acc_9b21": 1000000000
+        }
+      },
+      "usage": {
+        "total_bytes": 7100000001,
+        "items": {
+          "acc_7f3a": 6100000001,
+          "acc_9b21": 1000000000
+        }
+      },
+      "items": {
+        "acc_7f3a": {
+          "state": "live"
+        },
+        "acc_9b21": {
           "state": "deleted",
           "purge_at": "2026-10-20T12:00:00Z"
         }

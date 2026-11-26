@@ -604,6 +604,29 @@ func trimDecisions(out *WireTrim) error {
 		active(d)
 		d.Plan = contract.EntitlementsPlan{Source: contract.SourcePlan, Test: true, Numbers: 2, Mailboxes: 1}
 	}))
+	// mailieSmall is Mailie's order on a plan of one mailbox, its quota 5
+	// GB, so check 5's tolerance is its 100 MB side (1 % being 50 MB), with
+	// usage moved by n on the kept item and in total.
+	mailieSmall := func(name string, n int64) TrimDecision {
+		pa := purgeAt
+		raw := mustRaw(vecEnt("mailie", func(d *contract.EntitlementsDoc) {
+			expired(d)
+			d.Trim = signedOrder(vecOrder("mailie", func(o *contract.TrimOrder) {
+				o.Steps[1].KeepBytes = ptr[int64](3000000000)
+			}), SecretA, 2)
+			d.Plan = contract.EntitlementsPlan{Source: contract.SourcePlan, Test: true, Mailboxes: 1}
+			d.Places.Total = 1
+			d.Storage.QuotaBytes, d.Storage.UsedBytes = 5000000000, ptr[int64](8200000000)
+			d.Storage.AllowanceBytes = max(0, d.Storage.QuotaBytes-d.Storage.OthersBytes)
+			d.Storage.CapBytes = d.Storage.AllowanceBytes
+		}))
+		return base(name, func(c *TrimDecision) {
+			c.App, c.Feed, c.GetDoc = "mailie", raw, raw
+			c.Items = map[string]ItemNow{"acc_9b21": {State: "deleted", PurgeAt: &pa}, "acc_7f3a": {State: "live"}}
+			c.Basis = &UsageFigures{Total: 7000000000, Items: map[string]int64{"acc_9b21": 1000000000, "acc_7f3a": 6000000000}}
+			c.Usage = UsageFigures{Total: 7000000000 + n, Items: map[string]int64{"acc_9b21": 1000000000, "acc_7f3a": 6000000000 + n}}
+		})
+	}
 	movedBy := func(n int64) UsageFigures {
 		return UsageFigures{Total: usage.Total + n, Items: map[string]int64{"dev_9": 4800000000, "dev_7": 21000000000 + n}}
 	}
@@ -643,6 +666,12 @@ func trimDecisions(out *WireTrim) error {
 		{base("check 1: a feed copy no held secret verifies, the GET unanswered: wait", func(d *TrimDecision) {
 			d.Secrets, d.Get, d.GetDoc = []string{SecretB}, "none", nil
 		}), "wait", ""},
+		{base("check 1: a feed copy no held secret verifies, the GET a signed rate_limited: wait", func(d *TrimDecision) {
+			d.Secrets, d.Get, d.GetDoc = []string{SecretB}, contract.CodeRateLimited, nil
+		}), "wait", ""},
+		{base("check 1: a feed copy no held secret verifies, the GET a signed unavailable past the copy's own valid_until: still wait, never expired", func(d *TrimDecision) {
+			d.Secrets, d.Get, d.GetDoc, d.Now = []string{SecretB}, "unavailable", nil, t(7*time.Hour)
+		}), "wait", ""},
 		{base("check 1: a feed copy no held secret verifies, the GET a signed not_found: not_current", func(d *TrimDecision) {
 			d.Secrets, d.Get, d.GetDoc = []string{SecretB}, contract.CodeNotFound, nil
 		}), "refused", contract.TrimCodeNotCurrent},
@@ -679,6 +708,8 @@ func trimDecisions(out *WireTrim) error {
 			d.Usage = UsageFigures{Total: usage.Total, Items: map[string]int64{"dev_9": 4800000000 - 200000000, "dev_7": 21000000000 + 200000000}}
 		}), "refused", contract.TrimCodeUsageMoved},
 		{base("check 5: the basis report no longer held", func(d *TrimDecision) { d.Basis = nil }), "refused", contract.TrimCodeUsageMoved},
+		{mailieSmall("check 5: Mailie with one mailbox, a 5 GB quota: usage moved 100 MB, the tolerance's 100 MB side", 100000000), "run", ""},
+		{mailieSmall("check 5: Mailie with one mailbox, a 5 GB quota: usage moved a byte past 100 MB", 100000001), "refused", contract.TrimCodeUsageMoved},
 		{base("check 6: a step's item not the app's", func(d *TrimDecision) { d.Items = with(items, "dev_7", ItemNow{State: "absent"}) }), "refused", contract.TrimCodeItemUnknown},
 		{base("check 6: a purge step whose item the app purged since: done with 0, its bytes left out of check 5", func(d *TrimDecision) {
 			d.Items = with(items, "dev_9", ItemNow{State: "purged"})

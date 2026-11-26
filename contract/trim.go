@@ -116,9 +116,14 @@ func TrimStepOutcomes() []string { return slices.Clone(trimStepOutcomes) }
 // the app to the workspace's GET first, whose copy it judges from check 1
 // again (a waiting order served before a promote whose old secret the app
 // has since dropped, or a copy that verifies under nothing), never judging
-// it on its own times while no signed answer comes. Only a feed copy's
-// ErrTrimMAC leads to the GET: every other failure of check 1, on a feed's
-// copy whose MAC holds or on the GET's copy, is refused invalid_order.
+// it on its own times: while the GET has no signed answer, or a signed
+// rate_limited or unavailable, the order waits, unrecorded and with no
+// result, never expired whatever its valid_until; a signed not_found, or
+// a document that carries no trim, is not_current; only a document
+// carrying an order goes to VerifyTrimOrder, on that copy alone. Only a
+// feed copy's ErrTrimMAC leads to the GET: every other failure of check 1,
+// on a feed's copy whose MAC holds or on the GET's copy, is refused
+// invalid_order.
 var ErrTrimMAC = errors.New("contract: the trim order's mac does not hold")
 
 // ErrTrimFloor is a trim order with floor null carried by a document whose
@@ -418,7 +423,9 @@ func genericObject(canonical []byte) (map[string]any, error) {
 // from those bytes: the app runs and keeps that order only. Every error is
 // the result code invalid_order, but for a feed's copy that fails with
 // ErrTrimMAC (see ErrTrimMAC), which the app judges on the GET's copy
-// instead. In order:
+// instead. The caller checks that a GET's document carries an order
+// (doc.Trim neither absent nor null) before it calls this on that copy:
+// one that carries none is not_current, never invalid_order. In order:
 //   - a list of secrets that is empty, or holds a key that is not a
 //     secret, or an app that is no app id, is ErrTrimMAC;
 //   - a document with no order is ErrInvalid;

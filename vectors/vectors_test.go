@@ -801,8 +801,8 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 			"sections 20 (11 valid), commands 11 (4 valid), results 13 (5 valid), pages 6 (apply 1, reset 2, revoke 0, narrow 2, refuse 1)"},
 		// Kit v0.12.0's, from the platform's spec section 15 at a831000:
 		// the entitlements and usage part, and what rides its release.
-		{"wire-entitlements.json", "wire-entitlements", "kit v0.12.0", true, "3b4c66dbb94644403b190d5e76f5d9f80f6137a92484057f7de15cb8603070bb",
-			"documents 121 (34 valid), feeds 28 (10 valid), applied 21 (7 valid), actions 18 (apply 2, ignore 2, invalid 1, keep 1, refuse 9, reset 3), gets 10 (apply 1, fresh 1, ignore 1, none 2, not_found 1, refuse 3, reset 1), sequences 6, versions 4, links 17 (link 11, refuse_link 6), resets 2 (reset 2), freeze 17 (fire 7, hold 4, none 4, wait 2), caps 14, codes_after 6 (none 3, send 3), places 13 (keep 1, lift 9, stop 3), trial_stops 10 (keep 5, lift 5), cap_stops 6 (lift 4, stop 2), placed_at 9 (keep 3, set 6), link_outcomes 13 (commit 3, link_paused 1, undo_link 4, undo_pairing 5)"},
+		{"wire-entitlements.json", "wire-entitlements", "kit v0.12.0", true, "5ce256362c02af467c3fe19ff99e2bc436e4f55215fdd065803448f82de63c6c",
+			"documents 158 (34 valid), feeds 28 (10 valid), applied 21 (7 valid), actions 18 (apply 2, ignore 2, invalid 1, keep 1, refuse 9, reset 3), gets 10 (apply 1, fresh 1, ignore 1, none 2, not_found 1, refuse 3, reset 1), sequences 6, versions 4, links 17 (link 11, refuse_link 6), resets 2 (reset 2), freeze 17 (fire 7, hold 4, none 4, wait 2), caps 14, codes_after 6 (none 3, send 3), places 13 (keep 1, lift 9, stop 3), trial_stops 10 (keep 5, lift 5), cap_stops 6 (lift 4, stop 2), placed_at 9 (keep 3, set 6), link_outcomes 13 (commit 3, link_paused 1, undo_link 4, undo_pairing 5)"},
 		{"wire-usage.json", "wire-usage", "kit v0.12.0", true, "bb8787b65f459ac59a4ea3e31aa898d37fd11fdd0799291398ffb85fa8ae5ba2",
 			"answers 11 (4 valid), reports 44 (12 valid), intake 11"},
 		{"usage-dates.json", "usage-dates", "kit v0.12.0", true, "d0645f87a0c44ee8c7425d47a6e3dd7d57b213ef9308d7ef60e758b0f7f89c47",
@@ -813,8 +813,8 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 			"requests 23 (7 valid), answers 20 (7 valid)"},
 		{"wire-events-codes.json", "wire-events-codes", "kit v0.12.0", false, "2a5368ee2729ffdd6099ce86fc5f148358bff2a535c96925f1ec34dc5bbff9c8",
 			"events 38 (9 valid)"},
-		{"wire-trim.json", "wire-trim", "kit v0.12.0", true, "e8589177ad4a758e55383971b88656f191525c325952ea63a809cd36e1f20f97",
-			"answers 15 (7 valid), results 38 (14 valid), orders 40 (13 valid), decisions 43 (refused 20, resend 3, run 12, wait 8), runs 16"},
+		{"wire-trim.json", "wire-trim", "kit v0.12.0", true, "638b67f840fb2840dce2b5cc5c0ad23581998607029cc7fd7e9aeb5ceab3296b",
+			"answers 15 (7 valid), results 38 (14 valid), orders 40 (13 valid), decisions 47 (refused 21, resend 3, run 13, wait 10), runs 16"},
 		{"trim-macs.json", "trim-macs", "kit v0.12.0", true, "d9f7f4221cd06aa1dd7bb4e305201c9c62a0f6998adf0d2b841dd18ce2e776ab",
 			"macs 22 (8 valid)"},
 		{"wire-v012.json", "wire-v012", "kit v0.12.0", false, "2c0be71eff8f1deef3ebe2bc7ab6c2fc9a15bdf066dcf53bdabf062d85787d60",

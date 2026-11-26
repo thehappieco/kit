@@ -18,6 +18,7 @@ import (
 	"maps"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/thehappieco/kit/contract"
@@ -1116,7 +1117,103 @@ func entDocuments(out *WireEntitlements) error {
 		}
 		out.Documents = append(out.Documents, wireCase(c.name, c.raw, c.valid))
 	}
+	// Every member the spec never lets be null, made null alone in a valid
+	// document: one case each, a document that does not decode. items,
+	// plan, others_bytes and timeline have theirs above.
+	withItem := mustRaw(vecEnt("wappie", item(contract.TrialRunning, time.Hour)))
+	for _, doc := range []json.RawMessage{base, withItem} {
+		if !entDocValid(doc) {
+			return fmt.Errorf("contractvec: the document the null cases edit is not valid")
+		}
+	}
+	for _, path := range entNeverNull {
+		doc := base
+		if strings.HasPrefix(path, "items[]") {
+			doc = withItem
+		}
+		raw, err := nullAt(doc, strings.Split(path, ".")...)
+		if err != nil {
+			return fmt.Errorf("contractvec: %s null: %w", path, err)
+		}
+		if entDocValid(raw) {
+			return fmt.Errorf("contractvec: document %q is valid, the spec asks it refused", path+" null")
+		}
+		out.Documents = append(out.Documents, wireCase(path+" null", raw, false))
+	}
 	return nil
+}
+
+// entNeverNull are the paths of a document's members that are never null
+// (SPEC section 11.20, the platform's spec 15.2), but the four with cases
+// of their own (items, plan, storage.others_bytes and timeline): a member
+// of an array's entries is named after "[]", in its first entry.
+var entNeverNull = []string{
+	"v", "type", "app", "generation", "workspace_id", "version", "computed_at", "mode", "test_mode",
+	"state", "state.name", "state.since",
+	"plan.source", "plan.test", "plan.numbers", "plan.mailboxes", "plan.packs",
+	"places", "places.kind", "places.total",
+	"storage", "storage.quota_bytes", "storage.allowance_bytes", "storage.cap_bytes",
+	"switches", "switches.api", "switches.new_links", "switches.sync", "switches.send",
+	"requests", "links", "links.plan", "links.storage",
+	"items[].id", "items[].trial", "items[].trial_ends_at", "timeline[].at",
+}
+
+// nullAt returns raw, a compact JSON object, with the member at path made
+// null, every other byte and member order kept; a segment ending in "[]"
+// is an array member, whose first entry the path goes on into.
+func nullAt(raw json.RawMessage, path ...string) (json.RawMessage, error) {
+	if len(path) == 0 {
+		return json.RawMessage("null"), nil
+	}
+	name, inArray := strings.CutSuffix(path[0], "[]")
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+		return nil, fmt.Errorf("not an object at %s", path[0])
+	}
+	var b bytes.Buffer
+	b.WriteByte('{')
+	found := false
+	for dec.More() {
+		tok, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key := tok.(string)
+		var v json.RawMessage
+		if err := dec.Decode(&v); err != nil {
+			return nil, err
+		}
+		if key == name {
+			found = true
+			switch {
+			case !inArray:
+				if v, err = nullAt(v, path[1:]...); err != nil {
+					return nil, err
+				}
+			default:
+				var entries []json.RawMessage
+				if err := json.Unmarshal(v, &entries); err != nil || len(entries) == 0 {
+					return nil, fmt.Errorf("no entry in %s", path[0])
+				}
+				if entries[0], err = nullAt(entries[0], path[1:]...); err != nil {
+					return nil, err
+				}
+				v = mustRaw(entries)
+			}
+		}
+		if b.Len() > 1 {
+			b.WriteByte(',')
+		}
+		k, _ := json.Marshal(key)
+		b.Write(k)
+		b.WriteByte(':')
+		b.Write(v)
+	}
+	if !found {
+		return nil, fmt.Errorf("no member %s", name)
+	}
+	b.WriteByte('}')
+	return b.Bytes(), nil
 }
 
 func entFeeds(out *WireEntitlements) error {

@@ -108,11 +108,15 @@ func TrimOutcomes() []string { return slices.Clone(trimOutcomes) }
 // It returns a copy.
 func TrimStepOutcomes() []string { return slices.Clone(trimStepOutcomes) }
 
-// ErrTrimMAC is a trim order whose mac holds under none of the secrets an
-// app holds, or that has none. A feed's copy that fails so sends the app
-// to the workspace's GET first, whose copy it judges from check 1 again
-// (a waiting order served before a promote whose old secret the app has
-// since dropped); only a GET's copy that fails is refused invalid_order.
+// ErrTrimMAC is a trim order that verifies under none of the secrets an
+// app holds: its mac holds under none of them, or it has none, or one that
+// is not a string; it is not one well-formed JSON object (a member twice
+// anywhere, or what JCS does not write: a fraction, an integer past
+// 2^53−1); or it is another app's body. A feed's copy that fails so sends
+// the app to the workspace's GET first, whose copy it judges from check 1
+// again (a waiting order served before a promote whose old secret the app
+// has since dropped, or a copy that verifies under nothing); only a GET's
+// copy that fails check 1 is refused invalid_order.
 var ErrTrimMAC = errors.New("contract: the trim order's mac does not hold")
 
 // ErrTrimFloor is a trim order with floor null carried by a document whose
@@ -384,14 +388,17 @@ func genericObject(canonical []byte) (map[string]any, error) {
 // (its current and next during a rotation), and returns the order decoded
 // from those bytes: the app runs and keeps that order only. Every error is
 // the result code invalid_order, but for a feed's copy that fails with
-// ErrTrimMAC (see ErrTrimMAC). In order:
+// ErrTrimMAC (see ErrTrimMAC), which the app judges on the GET's copy
+// instead. In order:
 //   - a list of secrets that is empty, or holds a key that is not a
 //     secret, or an app that is no app id, is ErrTrimMAC;
-//   - a document with no order, or an order that is not one well-formed
-//     JSON object, names a member twice anywhere, or holds what JCS does
-//     not write (a fraction, an integer past 2^53−1), is ErrInvalid;
-//   - an order whose body names another app than app is ErrInvalid,
-//     refused before its MAC is checked;
+//   - a document with no order is ErrInvalid;
+//   - an order that is not one well-formed JSON object, names a member
+//     twice anywhere, holds what JCS does not write (a fraction, an
+//     integer past 2^53−1) or a mac that is not a string, verifies under
+//     nothing: ErrTrimMAC;
+//   - an order whose body names another app than app verifies under
+//     nothing too, before its MAC is checked: ErrTrimMAC;
 //   - an order whose mac holds under none of the secrets, or that has
 //     none, is ErrTrimMAC;
 //   - an order that does not decode or fails Validate, a document that
@@ -414,13 +421,7 @@ func VerifyTrimOrder(doc EntitlementsDoc, app string, secrets []string) (TrimOrd
 		return TrimOrder{}, invalid("trim: the document carries no order")
 	}
 	canonical, mac, bodyApp, err := canonicalSigned(raw, "trim")
-	if err != nil {
-		return TrimOrder{}, err
-	}
-	if bodyApp != app {
-		return TrimOrder{}, invalid("trim: the body names another app")
-	}
-	if !validMAC(mac) {
+	if err != nil || bodyApp != app || !validMAC(mac) {
 		return TrimOrder{}, ErrTrimMAC
 	}
 	ok := false

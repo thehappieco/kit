@@ -278,6 +278,13 @@ func fillEntitlements(app, ws string, doc contract.EntitlementsDoc) contract.Ent
 // fake fills state.since by its clock), no plan (source none), no places
 // counted, no storage, every switch on, no step to come and no item. The
 // fake fills the rest as SetEntitlements does.
+//
+// It is a fake's placeholder, outside the platform's states: the platform
+// computes active only beside a plan that grants (source plan or
+// live_move), never beside source none, which is trial or a pause there.
+// It validates and enforces nothing (observe), so an app's test may read
+// it as "some valid document"; a test that reads its state or plan as the
+// platform's sets its own (SetEntitlements, Options.DefaultEntitlements).
 func DefaultEntitlementsDoc(app string) contract.EntitlementsDoc {
 	kind, _ := contract.AppItemKind(app)
 	return contract.EntitlementsDoc{

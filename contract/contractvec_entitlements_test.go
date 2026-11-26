@@ -1121,15 +1121,21 @@ func entDocuments(out *WireEntitlements) error {
 	// document: one case each, a document that does not decode. items,
 	// plan, others_bytes and timeline have theirs above.
 	withItem := mustRaw(vecEnt("wappie", item(contract.TrialRunning, time.Hour)))
-	for _, doc := range []json.RawMessage{base, withItem} {
+	fourOff := mustRaw(vecEnt("wappie", both(active, func(d *contract.EntitlementsDoc) {
+		d.Timeline = []contract.TimelineStep{{At: at(time.Hour), Off: contract.EntitlementSwitches()}}
+	})))
+	for _, doc := range []json.RawMessage{base, withItem, fourOff} {
 		if !entDocValid(doc) {
 			return fmt.Errorf("contractvec: the document the null cases edit is not valid")
 		}
 	}
 	for _, path := range entNeverNull {
 		doc := base
-		if strings.HasPrefix(path, "items[]") {
+		switch {
+		case strings.HasPrefix(path, "items[]"):
 			doc = withItem
+		case strings.HasPrefix(path, "timeline[].") && path != "timeline[].at":
+			doc = fourOff
 		}
 		raw, err := nullAt(doc, strings.Split(path, ".")...)
 		if err != nil {
@@ -1146,7 +1152,9 @@ func entDocuments(out *WireEntitlements) error {
 // entNeverNull are the paths of a document's members that are never null
 // (SPEC section 11.20, the platform's spec 15.2), but the four with cases
 // of their own (items, plan, storage.others_bytes and timeline): a member
-// of an array's entries is named after "[]", in its first entry.
+// of an array's entries is named after "[]", in its first entry. A step's
+// switches are each only "off", never null; their cases edit a step that
+// names all four.
 var entNeverNull = []string{
 	"v", "type", "app", "generation", "workspace_id", "version", "computed_at", "mode", "test_mode",
 	"state", "state.name", "state.since",
@@ -1155,7 +1163,8 @@ var entNeverNull = []string{
 	"storage", "storage.quota_bytes", "storage.allowance_bytes", "storage.cap_bytes",
 	"switches", "switches.api", "switches.new_links", "switches.sync", "switches.send",
 	"requests", "links", "links.plan", "links.storage",
-	"items[].id", "items[].trial", "items[].trial_ends_at", "timeline[].at",
+	"items[].id", "items[].trial", "items[].trial_ends_at",
+	"timeline[].at", "timeline[].api", "timeline[].new_links", "timeline[].sync", "timeline[].send",
 }
 
 // nullAt returns raw, a compact JSON object, with the member at path made

@@ -2,10 +2,14 @@ package contract
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"io"
 	"reflect"
+	"slices"
 	"strings"
+	"sync"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -124,16 +128,22 @@ func escapedUnit(b []byte) (rune, bool) {
 // exactShape reports whether every object of raw that t's members reach
 // names its members exactly as t names them, none it does not have, and
 // every one present but those t marks omitempty or omitzero; and whether
-// every null raw holds is a pointer's. An embedded struct's members are
-// its embedder's, as encoding/json writes them; an embedded pointer to a
-// struct's are all present or none (nil), as a nil one writes none
-// (EmailAccountsSettings' MailboxLinking). A value of another shape than
-// t's is left to the decoder, which refuses it; a value whose type decodes
-// itself (json.Unmarshaler) or is kept raw is its own.
+// every null raw holds is a pointer's. A struct's members are those
+// encoding/json writes and reads for it (shapeOf): an embedded struct's
+// are its embedder's, and an embedded pointer's are present whole or not
+// at all, as a nil one writes none (EmailAccountsSettings'
+// MailboxLinking). A list's elements, an array's and a map's values are
+// held to their type the same way. A value of another shape than t's is
+// left to the decoder, which refuses it; a value whose type decodes itself
+// (json.Unmarshaler) or is kept raw is its own.
 func exactShape(raw json.RawMessage, t reflect.Type) bool {
 	for t.Kind() == reflect.Pointer {
 		if string(bytes.TrimSpace(raw)) == "null" {
 			return true
+		}
+		if t.Elem() == t {
+			// A pointer to itself (type P *P) holds nothing but null.
+			return false
 		}
 		t = t.Elem()
 	}
@@ -152,31 +162,51 @@ func exactShape(raw json.RawMessage, t reflect.Type) bool {
 		if json.Unmarshal(raw, &members) != nil {
 			return true
 		}
-		fields := map[string]shapeField{}
-		groups := 0
-		collectFields(t, 0, fields, &groups)
-		present := make([]bool, groups+1)
+		shape := shapeOf(t)
+		if shape.unsure {
+			return false
+		}
+		present := make([]bool, len(shape.parents))
 		for name, v := range members {
-			f, ok := fields[name]
+			f, ok := shape.fields[name]
 			if !ok || !exactShape(v, f.t) {
 				return false
 			}
-			present[f.group] = true
+			// A member present makes its group present, and every group
+			// that encloses it: encoding/json writes an inner embedded
+			// pointer's members only through its outer one.
+			for g := f.group; g != 0 && !present[g]; g = shape.parents[g] {
+				present[g] = true
+			}
 		}
-		for name, f := range fields {
+		for name, f := range shape.fields {
 			// A member of an embedded pointer's group is required only
-			// once one of the group's members is present.
+			// once the group is present.
 			if _, ok := members[name]; !ok && !f.optional && (f.group == 0 || present[f.group]) {
 				return false
 			}
 		}
-	case reflect.Slice:
+	case reflect.Slice, reflect.Array:
+		if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8 {
+			// A []byte is a base64 string, which the decoder reads.
+			return true
+		}
 		var elems []json.RawMessage
 		if json.Unmarshal(raw, &elems) != nil {
 			return true
 		}
 		for _, e := range elems {
 			if !exactShape(e, t.Elem()) {
+				return false
+			}
+		}
+	case reflect.Map:
+		var values map[string]json.RawMessage
+		if json.Unmarshal(raw, &values) != nil {
+			return true
+		}
+		for _, v := range values {
+			if !exactShape(v, t.Elem()) {
 				return false
 			}
 		}
@@ -219,61 +249,206 @@ func decodeExact(raw []byte, dst any, what string) error {
 }
 
 // shapeField is one member exactShape expects of an object: its type,
-// whether it may be absent, and its group: 0 for the struct's own members
-// and those of an embedded struct, else the embedded pointer it belongs to.
+// whether it may be absent, and its group: 0 for a member reached through
+// no embedded pointer, else the innermost embedded pointer it is reached
+// through.
 type shapeField struct {
 	t        reflect.Type
 	optional bool
 	group    int
 }
 
-// collectFields puts t's members into fields as encoding/json names them:
-// an embedded struct's members are its parent's, and an embedded pointer's
-// members form a group of their own, present whole or not at all. As
-// encoding/json does, a member named at a shallower depth wins over one an
-// embedded struct names deeper, whatever their order in the declaration,
-// and two members of one name at the same shallowest depth are both left
-// out, as encoding/json leaves them out (go vet refuses that only for two
-// embedded values, not for a value beside a pointer).
-func collectFields(t reflect.Type, group int, fields map[string]shapeField, groups *int) {
-	depths := map[string]int{}
-	ties := map[string]bool{}
-	collectFieldsAt(t, group, 0, fields, depths, ties, groups)
-	for name := range ties {
-		delete(fields, name)
-	}
+// shape is the members exactShape expects of a struct's object, by name,
+// and its groups' parents: parents[g] is the group enclosing group g, 0
+// for none (parents[0] is 0). unsure is a struct a field's json tag makes
+// read apart by the toolchains the kit supports (plainTag), whose every
+// object exactShape refuses.
+type shape struct {
+	fields  map[string]shapeField
+	parents []int
+	unsure  bool
 }
 
-func collectFieldsAt(t reflect.Type, group, depth int, fields map[string]shapeField, depths map[string]int, ties map[string]bool, groups *int) {
-	for i := 0; i < t.NumField(); i++ {
-		sf := t.Field(i)
-		name, opts, _ := strings.Cut(sf.Tag.Get("json"), ",")
-		if sf.Anonymous && name == "" {
-			et, g := sf.Type, group
-			if et.Kind() == reflect.Pointer {
-				et = et.Elem()
-				*groups++
-				g = *groups
-			}
-			if et.Kind() == reflect.Struct {
-				collectFieldsAt(et, g, depth+1, fields, depths, ties, groups)
-				continue
-			}
-		}
-		if name == "" || name == "-" {
-			continue
-		}
-		if d, ok := depths[name]; ok {
-			if d < depth {
-				continue
-			}
-			if d == depth {
-				ties[name] = true
-				continue
-			}
-			delete(ties, name)
-		}
-		depths[name] = depth
-		fields[name] = shapeField{sf.Type, strings.Contains(opts, "omitempty") || strings.Contains(opts, "omitzero"), group}
+// shapes caches shapeOf by struct type, so a type's members are worked out
+// once, however many objects of it are read.
+var shapes sync.Map // reflect.Type -> *shape
+
+// shapeOf gives the members encoding/json writes and reads for the struct
+// type t, chosen as its typeFields (Go 1.26) and its v2's makeStructFields
+// (Go 1.27, which v1 calls) choose them:
+//   - breadth first, one depth at a time, each struct type explored at
+//     most once, at the shallowest depth it is embedded, through the first
+//     embedding there; one a depth embeds twice gives its own members
+//     twice, so that they cancel;
+//   - an unexported field is left out, unless it embeds a struct or a
+//     pointer to one, whose exported members still count; an embedded
+//     field of another kind is a member named by its type, like an
+//     exported field with no json name;
+//   - a field tagged "-" is left out; a member is named by its tag's name,
+//     else by its Go name; an embedded struct with no tag name is
+//     embedded, one with a tag name is a member (an unexported one given a
+//     name makes the struct unsure, as plainTag's tags do);
+//   - of the members of one name, the shallowest wins, and at the same
+//     depth the one named by its tag; two left level, both tagged or both
+//     not, leave the name out altogether.
+//
+// Each embedding through a pointer opens a group: a nil pointer writes
+// none of its members, its inner groups' included.
+func shapeOf(t reflect.Type) *shape {
+	if s, ok := shapes.Load(t); ok {
+		return s.(*shape)
 	}
+	s, _ := shapes.LoadOrStore(t, computeShape(t))
+	return s.(*shape)
+}
+
+// shapeMember is a member computeShape found, before dominance.
+type shapeMember struct {
+	name   string
+	tagged bool
+	index  []int
+	field  shapeField
+}
+
+func computeShape(root reflect.Type) *shape {
+	type embedded struct {
+		t     reflect.Type
+		index []int
+		group int
+	}
+	s := &shape{fields: map[string]shapeField{}, parents: []int{0}}
+	var found []shapeMember
+	current, next := []embedded{}, []embedded{{t: root}}
+	var count, nextCount map[reflect.Type]int
+	visited := map[reflect.Type]bool{}
+	for len(next) > 0 {
+		current, next = next, current[:0]
+		count, nextCount = nextCount, map[reflect.Type]int{}
+		for _, e := range current {
+			if visited[e.t] {
+				continue
+			}
+			visited[e.t] = true
+			for i := 0; i < e.t.NumField(); i++ {
+				sf := e.t.Field(i)
+				inner := sf.Type
+				if inner.Kind() == reflect.Pointer && inner.Name() == "" {
+					inner = inner.Elem()
+				}
+				if sf.Anonymous {
+					if !sf.IsExported() && inner.Kind() != reflect.Struct {
+						continue
+					}
+				} else if !sf.IsExported() {
+					continue
+				}
+				tag := sf.Tag.Get("json")
+				if tag == "-" {
+					continue
+				}
+				name, optional, ok := plainTag(tag)
+				if !ok || name != "" && sf.Anonymous && !sf.IsExported() {
+					// An unexported embedded struct given a name is a
+					// member Go 1.27 leaves out when its type has a
+					// method of encoding/json's, and Go 1.26 never does.
+					s.unsure = true
+					continue
+				}
+				index := append(append(make([]int, 0, len(e.index)+1), e.index...), i)
+				if name != "" || !sf.Anonymous || inner.Kind() != reflect.Struct {
+					m := shapeMember{name: name, tagged: name != "", index: index, field: shapeField{sf.Type, optional, e.group}}
+					if name == "" {
+						m.name = sf.Name
+					}
+					found = append(found, m)
+					if count[e.t] > 1 {
+						// Embedded twice at this depth: a second copy, so
+						// that the name cancels below.
+						found = append(found, m)
+					}
+					continue
+				}
+				nextCount[inner]++
+				if nextCount[inner] == 1 {
+					g := e.group
+					if sf.Type.Kind() == reflect.Pointer {
+						s.parents = append(s.parents, e.group)
+						g = len(s.parents) - 1
+					}
+					next = append(next, embedded{inner, index, g})
+				}
+			}
+		}
+	}
+	slices.SortFunc(found, func(a, b shapeMember) int {
+		if c := strings.Compare(a.name, b.name); c != 0 {
+			return c
+		}
+		if c := cmp.Compare(len(a.index), len(b.index)); c != 0 {
+			return c
+		}
+		if a.tagged != b.tagged {
+			if a.tagged {
+				return -1
+			}
+			return +1
+		}
+		return slices.Compare(a.index, b.index)
+	})
+	for i := 0; i < len(found); {
+		n := 1
+		for i+n < len(found) && found[i+n].name == found[i].name {
+			n++
+		}
+		if n == 1 || len(found[i].index) != len(found[i+1].index) || found[i].tagged != found[i+1].tagged {
+			s.fields[found[i].name] = found[i].field
+		}
+		i += n
+	}
+	return s
+}
+
+// plainTag reads a field's json tag, other than "-", as both toolchains
+// read it: its name ("" for none) and whether it holds omitempty or
+// omitzero. ok is false for a tag they may read apart, or that names more
+// than a member's name and these: a name encoding/json v1 holds invalid
+// (Go 1.26 then names the member by its Go name, where Go 1.27's v2 may
+// take the name, or part of it), and an option other than omitempty,
+// omitzero and string, or an empty one (v2 reads embed, format and case,
+// and parses an option v1 never sees, as in "omitempty " or "a\b").
+func plainTag(tag string) (name string, optional, ok bool) {
+	name, opts, _ := strings.Cut(tag, ",")
+	if name != "" && !validTagName(name) {
+		return "", false, false
+	}
+	if opts == "" {
+		return name, false, true
+	}
+	for _, opt := range strings.Split(opts, ",") {
+		switch opt {
+		case "omitempty", "omitzero":
+			optional = true
+		case "string", "":
+			// "string" quotes a member's value, which the decoder reads;
+			// an empty option is the trailing comma of a name such as
+			// "-,", which both toolchains read as nothing.
+		default:
+			return "", false, false
+		}
+	}
+	return name, optional, true
+}
+
+// validTagName is encoding/json v1's isValidTag: letters, digits and the
+// punctuation it allows, none of which v2 reserves (a comma, a backslash,
+// a quote, a backtick), so v2 reads the same name.
+func validTagName(s string) bool {
+	for _, c := range s {
+		switch {
+		case strings.ContainsRune("!#$%&()*+-./:;<=>?@[]^_{|}~ ", c):
+		case !unicode.IsLetter(c) && !unicode.IsDigit(c):
+			return false
+		}
+	}
+	return true
 }

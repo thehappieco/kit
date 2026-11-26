@@ -175,10 +175,14 @@ type TrimDecision struct {
 }
 
 // trimDecide is an app's decision on an order (SPEC section 11.20), in
-// order: check 1 on the feed's copy (VerifyTrimOrder), and when no secret
-// it holds verifies that copy (ErrTrimMAC), check 4's GET first and check
-// 1 on that answer's copy (no signed answer: wait); any other failure of
-// check 1 is invalid_order. An order whose order_id has a recorded result
+// order: check 1 on the feed's copy (VerifyTrimOrder), and when that copy
+// verifies under none of the secrets it holds (ErrTrimMAC: its mac holds
+// under none, or it is not one well-formed object, names a member twice,
+// carries a mac that is no string or is another app's body), check 4's GET
+// first: no signed answer, rate_limited or unavailable, wait; a signed
+// not_found or a document with no trim, not_current; else check 1 on that
+// answer's copy, whose failure is invalid_order. Any other failure of
+// check 1 on the feed's copy is invalid_order. An order whose order_id has a recorded result
 // sends that result again. Before valid_until, it waits while its clock is
 // before not_before or the generation is not confirmed. Then check 2 (the
 // allow open and no local brake, else held), check 3 (before valid_until,
@@ -211,8 +215,13 @@ func trimDecide(c TrimDecision) (action string, code *string, steps []StepPlan, 
 	gotGet := false
 	o, verr := contract.VerifyTrimOrder(feed, c.App, c.Secrets)
 	if errors.Is(verr, contract.ErrTrimMAC) {
-		if c.Get != "doc" {
+		switch {
+		case c.Get == contract.CodeNotFound:
+			return refuse(contract.TrimCodeNotCurrent)
+		case c.Get != "doc":
 			return "wait", nil, nil, nil
+		case !carriesTrim(get):
+			return refuse(contract.TrimCodeNotCurrent)
 		}
 		gotGet = true
 		o, verr = contract.VerifyTrimOrder(get, c.App, c.Secrets)
@@ -242,7 +251,7 @@ func trimDecide(c TrimDecision) (action string, code *string, steps []StepPlan, 
 		return "", nil, nil, fmt.Errorf("contractvec: a GET %q", c.Get)
 	}
 	var other contract.TrimOrder
-	if len(get.Trim) == 0 || json.Unmarshal(get.Trim, &other) != nil || other.OrderID != o.OrderID {
+	if !carriesTrim(get) || json.Unmarshal(get.Trim, &other) != nil || other.OrderID != o.OrderID {
 		return refuse(contract.TrimCodeNotCurrent)
 	}
 	if !gotGet {
@@ -297,6 +306,13 @@ func trimDecide(c TrimDecision) (action string, code *string, steps []StepPlan, 
 	return "run", nil, steps, nil
 }
 
+// carriesTrim reports whether d carries an order: a trim neither absent
+// nor null.
+func carriesTrim(d contract.EntitlementsDoc) bool {
+	t := bytes.TrimSpace(d.Trim)
+	return len(t) > 0 && string(t) != "null"
+}
+
 // RunStep is one step of a run and what happens around it: Before, the
 // events from the end of the previous step to this one's start (none for
 // the first, which the decision started); Item, this step's item at its
@@ -325,7 +341,7 @@ type TrimRun struct {
 // effect on the order), wait (no further step or batch, until an answer),
 // or stop the order with a code.
 var runEvents = map[string]string{
-	"same": "", "batch": "", "report": "", "purged_event": "", "snapshot": "",
+	"same": "", "batch": "", "report": "", "purged_event": "", "snapshot": "", "feed_same": "",
 	"none": "wait", "rate_limited": "wait", "unavailable": "wait",
 	"expired": contract.TrimCodeExpired, "held": contract.TrimCodeHeld,
 	"other": contract.TrimCodeNotCurrent, "not_found": contract.TrimCodeNotCurrent, "no_trim": contract.TrimCodeNotCurrent,
@@ -470,8 +486,8 @@ func wireTrim() (any, error) {
 const trimDescription = "Trim orders (SPEC section 11.20), every one signed with SecretA of signatures.json for its app, generation 2, but where a case says otherwise. " +
 	"order: the file's order, Wappie's, issued at 2026-10-13T12:00:00Z: a deleted item purged, then a live one kept down to its floor; results' for_order cases are judged against it. " +
 	"orders: an order read as an app reads what the platform sends (members it does not know ignored, every member present, null only for floor), then Validate: order_id a UUIDv7; round 1 to 3; issued_at <= not_before < valid_until <= issued_at + 6 h; floor issued_at's UTC date less 90 days, or null, and then every keep step's keep_bytes 0; basis.measured_at under an hour before issued_at; 1 to 2000 steps, each item once, keep_bytes (0 to 2^53 - 1) exactly on keep; basis_purge naming exactly the purge steps' items; secret 1 or more; mac v1= and 64 lowercase hex. " +
-	"decisions: the order as the feed's document carries it (feed), what the app holds and sees, and its decision, in this order: check 1 on the feed's copy (contract.VerifyTrimOrder: the MAC under one of secrets, its app, workspace and generation the document's, and with floor null a plan source neither plan nor live_move), and when no secret it holds verifies that copy, check 4's GET first and check 1 on that answer's copy (no signed answer: wait); else refused invalid_order, recorded nowhere. An order whose order_id has a recorded result: resend, that result unchanged. Before valid_until (exclusive), wait while now is before not_before (inclusive) or generation_confirmed is false: no result, no record, no round. Then refused held (the allow shut, or a local brake holding the workspace at observe), refused expired (now at or after valid_until), check 4 (get: doc with get_doc, none, rate_limited, unavailable or not_found; no signed answer, rate_limited and unavailable wait; not_found, a document with no trim or another order_id, refused not_current; the same order_id: check 1 again on that copy, used from here), with a floor check 5 (basis, the report its basis names as the app kept it, null when it no longer does: usage_moved; else usage now within max(1 % of the GET's quota_bytes, 100 MB) of it, in total and for each step's item, a purge step whose item was purged already left out with its basis bytes; else usage_moved), check 6 (a step's item absent, or purged on a keep step: item_unknown; then per step: a purge step's item deleted with its basis_purge and a keep step's live run, else that step alone item_changed; a purge step whose item the app purged since: done with 0). steps: what a run does with each step. " +
-	"runs: an order the app took (order), and per step the events before it starts (before; none for the first) and between its batches (between): same (check 4's GET answered the same order_id), batch, report, purged_event and snapshot go on; none, rate_limited and unavailable wait, running nothing; expired, held, other, not_found, no_trim, feed_null and feed_other (the feed applied a document whose trim is null or another order) and interrupted stop the order with expired, held, not_current or interrupted; item: the step's item at its check 6 (as_ordered; changed: refused item_changed and the run goes on; purged_since: done with 0); bytes_after and at_floor (a keep step stopped at the floor above keep_bytes: partial). reported: the result the app reports, with usage_seq. " +
+	"decisions: the order as the feed's document carries it (feed), what the app holds and sees, and its decision, in this order: check 1 on the feed's copy (contract.VerifyTrimOrder: the MAC under one of secrets, its app, workspace and generation the document's, and with floor null a plan source neither plan nor live_move), and when that copy verifies under none of the secrets (contract.ErrTrimMAC: its mac holds under none, or it has none or one that is no string, or it is not one well-formed object, names a member twice or is another app's body), check 4's GET first: no signed answer, rate_limited or unavailable, wait; a signed not_found or a document with no trim, refused not_current; else check 1 on that answer's copy, only whose failure is invalid_order; any other failure of check 1 on the feed's copy (its MAC holding) is refused invalid_order; invalid_order is recorded nowhere. An order whose order_id has a recorded result: resend, that result unchanged. Before valid_until (exclusive), wait while now is before not_before (inclusive) or generation_confirmed is false: no result, no record, no round. Then refused held (the allow shut, or a local brake holding the workspace at observe), refused expired (now at or after valid_until), check 4 (get: doc with get_doc, none, rate_limited, unavailable or not_found; no signed answer, rate_limited and unavailable wait; not_found, a document with no trim or another order_id, refused not_current; the same order_id: check 1 again on that copy, used from here), with a floor check 5 (basis, the report its basis names as the app kept it, null when it no longer does: usage_moved; else usage now within max(1 % of the GET's quota_bytes, 100 MB) of it, in total and for each step's item, a purge step whose item was purged already left out with its basis bytes; else usage_moved), check 6 (a step's item absent, or purged on a keep step: item_unknown; then per step: a purge step's item deleted with its basis_purge and a keep step's live run, else that step alone item_changed; a purge step whose item the app purged since: done with 0). steps: what a run does with each step. " +
+	"runs: an order the app took (order), and per step the events before it starts (before; none for the first) and between its batches (between): same (check 4's GET answered the same order_id), feed_same (the feed applied a newer document carrying the same order_id, as after a step's own item.purged or a report), batch, report, purged_event and snapshot go on; none, rate_limited and unavailable wait, running nothing; expired, held, other, not_found, no_trim, feed_null and feed_other (the feed applied a document whose trim is null or another order) and interrupted stop the order with expired, held, not_current or interrupted; item: the step's item at its check 6 (as_ordered; changed: refused item_changed and the run goes on; purged_since: done with 0); bytes_after and at_floor (a keep step stopped at the floor above keep_bytes: partial). reported: the result the app reports, with usage_seq. " +
 	"results: a result decoded strictly, then Validate, and with for_order ValidateFor the file's order: outcome done (every step done), partial or refused; code one of not_current, expired, usage_moved, item_unknown, invalid_order, held on refused, null or one of held, expired, not_current, interrupted on partial, null on done; steps [] on refused, else each step once, outcome done, partial, refused (code item_changed) or not_run (only once the order stopped, and every step after it), bytes_after null on refused and not_run; usage_seq null exactly on refused; against the order: its order_id, its steps in its order, a purge step done at 0 bytes. " +
 	"answers: the platform's answer, read as an app reads what the platform sends, then Validate: accepted or duplicate with code null; rejected with invalid_request, not_found or conflict; order_id a UUID, or \"\" on a rejected invalid_request alone."
 
@@ -609,7 +625,7 @@ func trimDecisions(out *WireTrim) error {
 			d.Basis = &UsageFigures{Total: 25800000000, Items: map[string]int64{"acc_9b21": 4800000000, "acc_7f3a": 21000000000}}
 			d.Usage = UsageFigures{Total: 25800000000, Items: map[string]int64{"acc_9b21": 4800000000, "acc_7f3a": 21000000000}}
 		}), "run", ""},
-		{base("check 1: another app's body", func(d *TrimDecision) { d.App = "mailie" }), "refused", contract.TrimCodeInvalidOrder},
+		{base("check 1: another app's body verifies under nothing, nor does the GET's copy: invalid_order", func(d *TrimDecision) { d.App = "mailie" }), "refused", contract.TrimCodeInvalidOrder},
 		{base("check 1: a null floor beside a document whose plan.source is plan", func(d *TrimDecision) {
 			bad := planFeed(signed(noFloor))
 			d.Feed, d.GetDoc = bad, bad
@@ -627,6 +643,12 @@ func trimDecisions(out *WireTrim) error {
 		{base("check 1: a feed copy no held secret verifies, the GET unanswered: wait", func(d *TrimDecision) {
 			d.Secrets, d.Get, d.GetDoc = []string{SecretB}, "none", nil
 		}), "wait", ""},
+		{base("check 1: a feed copy no held secret verifies, the GET a signed not_found: not_current", func(d *TrimDecision) {
+			d.Secrets, d.Get, d.GetDoc = []string{SecretB}, contract.CodeNotFound, nil
+		}), "refused", contract.TrimCodeNotCurrent},
+		{base("check 1: a feed copy no held secret verifies, the GET's document carrying no trim: not_current", func(d *TrimDecision) {
+			d.Secrets, d.GetDoc = []string{SecretB}, noTrim
+		}), "refused", contract.TrimCodeNotCurrent},
 		{base("check 1: a feed copy no held secret verifies, nor the GET's copy", func(d *TrimDecision) {
 			d.Secrets = []string{SecretB}
 			d.GetDoc = planFeed(signedOrder(vecOrder("wappie", nil), SecretC, 3))
@@ -791,6 +813,15 @@ func trimRuns(out *WireTrim) error {
 		{TrimRun{Name: "the feed applies a document whose trim is null between batches: not_current", App: "wappie",
 			Order: order, Steps: []RunStep{done(0), {Before: []string{"same"}, Item: "as_ordered", Between: []string{"batch", "feed_null"}, BytesAfter: 19000000000}}},
 			want{"partial", contract.TrimCodeNotCurrent, "done partial"}},
+		{TrimRun{Name: "a purge step's own item.purged, then the feed applies a newer document carrying the same order_id: the run goes on, done", App: "wappie",
+			Order: order, Steps: []RunStep{done(0), {Before: []string{"purged_event", "feed_same", "same"}, Item: "as_ordered", BytesAfter: 14000000000}}},
+			want{"done", "", "done done"}},
+		{TrimRun{Name: "a keep step's report between batches, then a newer feed document carrying the same order_id: the run goes on, done", App: "wappie",
+			Order: order, Steps: []RunStep{done(0), {Before: []string{"same"}, Item: "as_ordered", Between: []string{"batch", "report", "feed_same", "batch"}, BytesAfter: 14000000000}}},
+			want{"done", "", "done done"}},
+		{TrimRun{Name: "the feed applies a document carrying another order after a step's item.purged: partial, not_current", App: "wappie",
+			Order: three, Steps: []RunStep{done(0), {Before: []string{"purged_event", "feed_other"}, Item: "as_ordered"}, {Item: "as_ordered"}}},
+			want{"partial", contract.TrimCodeNotCurrent, "done not_run not_run"}},
 		{TrimRun{Name: "the allow shut before step 2: held", App: "wappie",
 			Order: order, Steps: []RunStep{done(0), {Before: []string{"held"}, Item: "as_ordered"}}},
 			want{"partial", contract.TrimCodeHeld, "done not_run"}},
@@ -940,7 +971,9 @@ func trimResults(out *WireTrim) error {
 // TrimMACCase is one order as an app receives it in a document whose plan
 // source is plan_source, the secrets it holds, the order's canonical text
 // without its mac, the MAC a signer computes over that text under the
-// first secret, and whether VerifyTrimOrder takes it.
+// first secret, whether VerifyTrimOrder takes it, and whether it refuses
+// it as verifying under nothing (ErrTrimMAC), which sends a feed's copy to
+// check 4's GET first.
 type TrimMACCase struct {
 	Name       string   `json:"name"`
 	App        string   `json:"app"`
@@ -950,6 +983,7 @@ type TrimMACCase struct {
 	JCS        string   `json:"jcs"`
 	MAC        string   `json:"mac"`
 	Valid      bool     `json:"valid"`
+	MACFails   bool     `json:"mac_fails"`
 }
 
 // TrimMACs is trim-macs.json.
@@ -972,12 +1006,15 @@ func trimMACOver(key []byte, label, app string, msg []byte) string {
 }
 
 // verifyCarried is VerifyTrimOrder on order as the expired document of app
-// whose plan source is planSource carries it.
+// whose plan source is planSource carries it: its trim the order's bytes
+// as they came, even those a document's own decoding would refuse, so that
+// VerifyTrimOrder judges them.
 func verifyCarried(app, planSource, order string, secrets []string) error {
 	var d contract.EntitlementsDoc
-	if err := json.Unmarshal(carrier(app, json.RawMessage(order), planSource), &d); err != nil {
+	if err := json.Unmarshal(carrier(app, json.RawMessage(`null`), planSource), &d); err != nil {
 		return err
 	}
+	d.Trim = json.RawMessage(order)
 	_, err := contract.VerifyTrimOrder(d, app, secrets)
 	return err
 }
@@ -985,7 +1022,7 @@ func verifyCarried(app, planSource, order string, secrets []string) error {
 func trimMACs() (any, error) {
 	out := TrimMACs{
 		Format: Format, Version: 1, Kind: "trim-macs", Label: contract.TrimMACLabel,
-		Description: "The trim order's MAC (SPEC section 11.20): mac = \"v1=\" + lowercase hex(HMAC-SHA256(key = the secret's 43-character text, msg = label || \"\\n\" || app || \"\\n\" || JCS(the order as received, without mac))). order: the exact text of a document's trim as an app receives it; jcs: its canonical text without mac (RFC 8785), \"\" when it has none; mac: what a signer computes over jcs for app under the first of secrets, \"\" when jcs is; valid: whether contract.VerifyTrimOrder takes the order for app under secrets, each of which it tries, carried by an expired document of app at 2026-10-13T12:00:00Z whose plan.source is plan_source (none, or plan with one place of each kind): its MAC holds, it decodes and validates, it names the document's app, workspace and generation, and a floor null is refused beside plan or live_move. An order that is not one well-formed object, or names a member twice anywhere, or holds what JCS does not write (a fraction, an integer past 2^53 - 1), verifies under nothing.",
+		Description: "The trim order's MAC (SPEC section 11.20): mac = \"v1=\" + lowercase hex(HMAC-SHA256(key = the secret's 43-character text, msg = label || \"\\n\" || app || \"\\n\" || JCS(the order as received, without mac))). order: the exact text of a document's trim as an app receives it; jcs: its canonical text without mac (RFC 8785), \"\" when it has none; mac: what a signer computes over jcs for app under the first of secrets, \"\" when jcs is; valid: whether contract.VerifyTrimOrder takes the order for app under secrets, each of which it tries, carried by an expired document of app at 2026-10-13T12:00:00Z whose plan.source is plan_source (none, or plan with one place of each kind): its MAC holds, it decodes and validates, it names the document's app, workspace and generation, and a floor null is refused beside plan or live_move. An order that is not one well-formed object, or names a member twice anywhere, or holds what JCS does not write (a fraction, an integer past 2^53 - 1), or is another app's body, verifies under nothing. mac_fails: whether VerifyTrimOrder refuses it as verifying under none of secrets (contract.ErrTrimMAC: its mac holds under none, or it has none or one that is no string, or it verifies under nothing as above), which sends a feed's copy to check 4's GET first (wire-trim.json's decisions); every other refusal, the floor's here, is invalid_order at once.",
 	}
 	plain := string(signedOrder(vecOrder("wappie", nil), SecretA, 2))
 	add := func(name, app, planSource string, secrets []string, order string, valid bool) error {
@@ -1000,7 +1037,11 @@ func trimMACs() (any, error) {
 		if (verr == nil) != valid {
 			return fmt.Errorf("contractvec: trim mac %q verifies %v, the spec asks %v (%v)", name, verr == nil, valid, verr)
 		}
-		out.MACs = append(out.MACs, TrimMACCase{Name: name, App: app, PlanSource: planSource, Secrets: secrets, Order: order, JCS: canonical, MAC: mac, Valid: valid})
+		macFails := errors.Is(verr, contract.ErrTrimMAC)
+		if !valid && macFails == errors.Is(verr, contract.ErrTrimFloor) {
+			return fmt.Errorf("contractvec: trim mac %q fails %v: only the floor's case is no MAC failure", name, verr)
+		}
+		out.MACs = append(out.MACs, TrimMACCase{Name: name, App: app, PlanSource: planSource, Secrets: secrets, Order: order, JCS: canonical, MAC: mac, Valid: valid, MACFails: macFails})
 		return nil
 	}
 	one := []string{SecretA}
@@ -1048,6 +1089,7 @@ func trimMACs() (any, error) {
 		{"a member changed after signing", "wappie", contract.SourceNone, one, string(edit(json.RawMessage(plain), `"keep_bytes":14000000000`, `"keep_bytes":1`)), false},
 		{"no mac", "wappie", contract.SourceNone, one, strings.Replace(plain, `,"mac":"v1=`+macHex+`"`, "", 1), false},
 		{"a mac in capitals", "wappie", contract.SourceNone, one, withMAC([]byte(plain), "v1="+strings.ToUpper(macHex)), false},
+		{"a mac that is no string", "wappie", contract.SourceNone, one, strings.Replace(plain, `"mac":"v1=`+macHex+`"`, `"mac":7`, 1), false},
 		{"a member twice at the top", "wappie", contract.SourceNone, one, strings.Replace(plain, `"round":1`, `"round":1,"round":1`, 1), false},
 		{"a member twice inside steps", "wappie", contract.SourceNone, one, strings.Replace(plain, `"action":"purge"`, `"action":"purge","action":"purge"`, 1), false},
 		{"not an object", "wappie", contract.SourceNone, one, `[` + plain + `]`, false},

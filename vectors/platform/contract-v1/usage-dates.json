@@ -2,7 +2,7 @@
   "format": "thehappie-contract/vectors",
   "version": 1,
   "kind": "usage-dates",
-  "description": "The date rule (SPEC section 11.20), which both apps follow for recent_bytes and for a trim's floor. dates: a report's rows, in an abstract shape, measured at measured_at, and the figures they make. Each row is {id, kind, item, ts, of, refs, bytes}: Wappie's message (its ts; null when it has none, then undated), receipt and group_change (their own ts, a receipt of an undated message included), transcript (an AI transcript of the message of names: that message's date, undated with it), object (an attachment counted once per key: the date of the newest dated message among refs, the messages that reference it, undated when they all are; referenced from several numbers, it goes to shared_bytes and to no item); Mailie's row (its internal_date, in UTC whatever zone it is written in, never the Date header; Mailie has no undated bytes). A date after measured_at counts as measured_at. Recent is a date on or after recent_from, 00:00 UTC of the UTC date of measured_at less 90 days: whole UTC days. items: per item, its bytes, recent_bytes and undated_bytes. floors: an order's floor (issued_at's UTC date less 90 days) against recent_from of the report it was computed from, which is under an hour older: on another UTC day, the floor keeps one day less than recent_bytes counted, so the platform deletes less, never more.",
+  "description": "The date rule (SPEC section 11.20), which both apps follow for recent_bytes and for a trim's floor. dates: a report's rows, in an abstract shape, measured at measured_at, and the figures they make. Each row is {id, kind, item, ts, of, refs, bytes}: Wappie's message (its ts; null when it has none, then undated), receipt and group_change (their own ts, a receipt of an undated message included), transcript (an AI transcript of the message of names: that message's date, undated with it), object (an attachment counted once per key: the date of the newest dated message among refs, the messages that reference it, undated when they all are; referenced from several numbers, or from none (refs [], an unassigned object), it goes to shared_bytes and to no item, never undated); Mailie's row (its internal_date, in UTC whatever zone it is written in, never the Date header; Mailie has no undated bytes); and both apps' fixed (what keeps the item running and is no message, named by what: Wappie's chat, contact and group_member, Mailie's folders_row and open_draft; ts null), which takes no date and counts in the item's bytes and fixed_bytes only, never in recent_bytes or undated_bytes. A date after measured_at counts as measured_at. Recent is a date on or after recent_from, 00:00 UTC of the UTC date of measured_at less 90 days: whole UTC days. items: per item, its bytes, recent_bytes, undated_bytes and fixed_bytes. floors: an order's floor (issued_at's UTC date less 90 days) against recent_from of the report it was computed from, which is under an hour older: on another UTC day, the floor keeps one day less than recent_bytes counted, so the platform deletes less, never more.",
   "dates": [
     {
       "name": "Wappie's messages, receipts and group changes, recent and older",
@@ -50,7 +50,8 @@
         "dev_7": {
           "bytes": 3380,
           "recent_bytes": 1340,
-          "undated_bytes": 0
+          "undated_bytes": 0,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 0
@@ -94,7 +95,8 @@
         "dev_7": {
           "bytes": 1400,
           "recent_bytes": 0,
-          "undated_bytes": 780
+          "undated_bytes": 780,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 0
@@ -125,7 +127,8 @@
         "dev_7": {
           "bytes": 940,
           "recent_bytes": 40,
-          "undated_bytes": 900
+          "undated_bytes": 900,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 0
@@ -173,7 +176,8 @@
         "dev_7": {
           "bytes": 50300,
           "recent_bytes": 50100,
-          "undated_bytes": 100
+          "undated_bytes": 100,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 0
@@ -205,7 +209,8 @@
         "dev_7": {
           "bytes": 30100,
           "recent_bytes": 0,
-          "undated_bytes": 30100
+          "undated_bytes": 30100,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 0
@@ -245,15 +250,150 @@
         "dev_7": {
           "bytes": 100,
           "recent_bytes": 100,
-          "undated_bytes": 0
+          "undated_bytes": 0,
+          "fixed_bytes": 0
         },
         "dev_9": {
           "bytes": 100,
           "recent_bytes": 0,
-          "undated_bytes": 0
+          "undated_bytes": 0,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 80000
+    },
+    {
+      "name": "an object no message references (refs []): shared_bytes, never undated",
+      "app": "wappie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-10-01T00:00:00Z",
+          "bytes": 100
+        },
+        {
+          "id": "o1",
+          "kind": "object",
+          "ts": null,
+          "refs": [],
+          "bytes": 25000
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 100,
+          "recent_bytes": 100,
+          "undated_bytes": 0,
+          "fixed_bytes": 0
+        }
+      },
+      "shared_bytes": 25000
+    },
+    {
+      "name": "Wappie's fixed rows beside a dated and an undated message: in bytes and fixed_bytes only",
+      "app": "wappie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-10-01T08:00:00Z",
+          "bytes": 1000
+        },
+        {
+          "id": "m2",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": null,
+          "bytes": 500
+        },
+        {
+          "id": "c1",
+          "kind": "fixed",
+          "what": "chat",
+          "item": "dev_7",
+          "ts": null,
+          "bytes": 200
+        },
+        {
+          "id": "k1",
+          "kind": "fixed",
+          "what": "contact",
+          "item": "dev_7",
+          "ts": null,
+          "bytes": 50
+        },
+        {
+          "id": "p1",
+          "kind": "fixed",
+          "what": "group_member",
+          "item": "dev_7",
+          "ts": null,
+          "bytes": 30
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 1780,
+          "recent_bytes": 1000,
+          "undated_bytes": 500,
+          "fixed_bytes": 280
+        }
+      },
+      "shared_bytes": 0
+    },
+    {
+      "name": "Mailie's fixed rows beside rows by internal_date: in bytes and fixed_bytes only",
+      "app": "mailie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "u1",
+          "kind": "row",
+          "item": "acc_7f3a",
+          "ts": "2026-06-01T10:00:00Z",
+          "bytes": 3000
+        },
+        {
+          "id": "u2",
+          "kind": "row",
+          "item": "acc_7f3a",
+          "ts": "2026-10-10T10:00:00Z",
+          "bytes": 5000
+        },
+        {
+          "id": "f1",
+          "kind": "fixed",
+          "what": "folders_row",
+          "item": "acc_7f3a",
+          "ts": null,
+          "bytes": 400
+        },
+        {
+          "id": "d1",
+          "kind": "fixed",
+          "what": "open_draft",
+          "item": "acc_7f3a",
+          "ts": null,
+          "bytes": 1200
+        }
+      ],
+      "items": {
+        "acc_7f3a": {
+          "bytes": 9600,
+          "recent_bytes": 5000,
+          "undated_bytes": 0,
+          "fixed_bytes": 1600
+        }
+      },
+      "shared_bytes": 0
     },
     {
       "name": "Mailie's rows by internal_date in UTC",
@@ -287,7 +427,8 @@
         "acc_7f3a": {
           "bytes": 12000,
           "recent_bytes": 8000,
-          "undated_bytes": 0
+          "undated_bytes": 0,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 0
@@ -310,7 +451,8 @@
         "dev_7": {
           "bytes": 600,
           "recent_bytes": 600,
-          "undated_bytes": 0
+          "undated_bytes": 0,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 0
@@ -340,7 +482,8 @@
         "dev_7": {
           "bytes": 30,
           "recent_bytes": 10,
-          "undated_bytes": 0
+          "undated_bytes": 0,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 0
@@ -370,7 +513,8 @@
         "dev_7": {
           "bytes": 30,
           "recent_bytes": 10,
-          "undated_bytes": 0
+          "undated_bytes": 0,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 0
@@ -400,7 +544,8 @@
         "dev_7": {
           "bytes": 30,
           "recent_bytes": 20,
-          "undated_bytes": 0
+          "undated_bytes": 0,
+          "fixed_bytes": 0
         }
       },
       "shared_bytes": 0

@@ -2,7 +2,7 @@
   "format": "thehappie-contract/vectors",
   "version": 1,
   "kind": "wire-trim",
-  "description": "Trim orders (SPEC section 11.20), every one signed with SecretA of signatures.json for its app, generation 2, but where a case says otherwise. order: the file's order, Wappie's, issued at 2026-10-13T12:00:00Z: a deleted item purged, then a live one kept down to its floor; results' for_order cases are judged against it. orders: an order read as an app reads what the platform sends (members it does not know ignored, every member present, null only for floor), then Validate: order_id a UUIDv7; round 1 to 3; issued_at <= not_before < valid_until <= issued_at + 6 h; floor issued_at's UTC date less 90 days, or null, and then every keep step's keep_bytes 0; basis.measured_at under an hour before issued_at; 1 to 2000 steps, each item once, keep_bytes (0 to 2^53 - 1) exactly on keep; basis_purge naming exactly the purge steps' items; secret 1 or more; mac v1= and 64 lowercase hex. decisions: the order as the feed's document carries it (feed), what the app holds and sees, and its decision, in this order: check 1 on the feed's copy (contract.VerifyTrimOrder: the MAC under one of secrets, its app, workspace and generation the document's, and with floor null a plan source neither plan nor live_move), and when no secret it holds verifies that copy, check 4's GET first and check 1 on that answer's copy (no signed answer: wait); else refused invalid_order, recorded nowhere. An order whose order_id has a recorded result: resend, that result unchanged. Before valid_until (exclusive), wait while now is before not_before (inclusive) or generation_confirmed is false: no result, no record, no round. Then refused held (the allow shut, or a local brake holding the workspace at observe), refused expired (now at or after valid_until), check 4 (get: doc with get_doc, none, rate_limited, unavailable or not_found; no signed answer, rate_limited and unavailable wait; not_found, a document with no trim or another order_id, refused not_current; the same order_id: check 1 again on that copy, used from here), with a floor check 5 (basis, the report its basis names as the app kept it, null when it no longer does: usage_moved; else usage now within max(1 % of the GET's quota_bytes, 100 MB) of it, in total and for each step's item, a purge step whose item was purged already left out with its basis bytes; else usage_moved), check 6 (a step's item absent, or purged on a keep step: item_unknown; then per step: a purge step's item deleted with its basis_purge and a keep step's live run, else that step alone item_changed; a purge step whose item the app purged since: done with 0). steps: what a run does with each step. runs: an order the app took (order), and per step the events before it starts (before; none for the first) and between its batches (between): same (check 4's GET answered the same order_id), batch, report, purged_event and snapshot go on; none, rate_limited and unavailable wait, running nothing; expired, held, other, not_found, no_trim, feed_null and feed_other (the feed applied a document whose trim is null or another order) and interrupted stop the order with expired, held, not_current or interrupted; item: the step's item at its check 6 (as_ordered; changed: refused item_changed and the run goes on; purged_since: done with 0); bytes_after and at_floor (a keep step stopped at the floor above keep_bytes: partial). reported: the result the app reports, with usage_seq. results: a result decoded strictly, then Validate, and with for_order ValidateFor the file's order: outcome done (every step done), partial or refused; code one of not_current, expired, usage_moved, item_unknown, invalid_order, held on refused, null or one of held, expired, not_current, interrupted on partial, null on done; steps [] on refused, else each step once, outcome done, partial, refused (code item_changed) or not_run (only once the order stopped, and every step after it), bytes_after null on refused and not_run; usage_seq null exactly on refused; against the order: its order_id, its steps in its order, a purge step done at 0 bytes. answers: the platform's answer, read as an app reads what the platform sends, then Validate: accepted or duplicate with code null; rejected with invalid_request, not_found or conflict; order_id a UUID, or \"\" on a rejected invalid_request alone.",
+  "description": "Trim orders (SPEC section 11.20), every one signed with SecretA of signatures.json for its app, generation 2, but where a case says otherwise. order: the file's order, Wappie's, issued at 2026-10-13T12:00:00Z: a deleted item purged, then a live one kept down to its floor; results' for_order cases are judged against it. orders: an order read as an app reads what the platform sends (members it does not know ignored, every member present, null only for floor), then Validate: order_id a UUIDv7; round 1 to 3; issued_at <= not_before < valid_until <= issued_at + 6 h; floor issued_at's UTC date less 90 days, or null, and then every keep step's keep_bytes 0; basis.measured_at under an hour before issued_at; 1 to 2000 steps, each item once, keep_bytes (0 to 2^53 - 1) exactly on keep; basis_purge naming exactly the purge steps' items; secret 1 or more; mac v1= and 64 lowercase hex. decisions: the order as the feed's document carries it (feed), what the app holds and sees, and its decision, in this order: check 1 on the feed's copy (contract.VerifyTrimOrder: the MAC under one of secrets, its app, workspace and generation the document's, and with floor null a plan source neither plan nor live_move), and when that copy verifies under none of the secrets (contract.ErrTrimMAC: its mac holds under none, or it has none or one that is no string, or it is not one well-formed object, names a member twice or is another app's body), check 4's GET first: no signed answer, rate_limited or unavailable, wait; a signed not_found or a document with no trim, refused not_current; else check 1 on that answer's copy, only whose failure is invalid_order; any other failure of check 1 on the feed's copy (its MAC holding) is refused invalid_order; invalid_order is recorded nowhere. An order whose order_id has a recorded result: resend, that result unchanged. Before valid_until (exclusive), wait while now is before not_before (inclusive) or generation_confirmed is false: no result, no record, no round. Then refused held (the allow shut, or a local brake holding the workspace at observe), refused expired (now at or after valid_until), check 4 (get: doc with get_doc, none, rate_limited, unavailable or not_found; no signed answer, rate_limited and unavailable wait; not_found, a document with no trim or another order_id, refused not_current; the same order_id: check 1 again on that copy, used from here), with a floor check 5 (basis, the report its basis names as the app kept it, null when it no longer does: usage_moved; else usage now within max(1 % of the GET's quota_bytes, 100 MB) of it, in total and for each step's item, a purge step whose item was purged already left out with its basis bytes; else usage_moved), check 6 (a step's item absent, or purged on a keep step: item_unknown; then per step: a purge step's item deleted with its basis_purge and a keep step's live run, else that step alone item_changed; a purge step whose item the app purged since: done with 0). steps: what a run does with each step. runs: an order the app took (order), and per step the events before it starts (before; none for the first) and between its batches (between): same (check 4's GET answered the same order_id), feed_same (the feed applied a newer document carrying the same order_id, as after a step's own item.purged or a report), batch, report, purged_event and snapshot go on; none, rate_limited and unavailable wait, running nothing; expired, held, other, not_found, no_trim, feed_null and feed_other (the feed applied a document whose trim is null or another order) and interrupted stop the order with expired, held, not_current or interrupted; item: the step's item at its check 6 (as_ordered; changed: refused item_changed and the run goes on; purged_since: done with 0); bytes_after and at_floor (a keep step stopped at the floor above keep_bytes: partial). reported: the result the app reports, with usage_seq. results: a result decoded strictly, then Validate, and with for_order ValidateFor the file's order: outcome done (every step done), partial or refused; code one of not_current, expired, usage_moved, item_unknown, invalid_order, held on refused, null or one of held, expired, not_current, interrupted on partial, null on done; steps [] on refused, else each step once, outcome done, partial, refused (code item_changed) or not_run (only once the order stopped, and every step after it), bytes_after null on refused and not_run; usage_seq null exactly on refused; against the order: its order_id, its steps in its order, a purge step done at 0 bytes. answers: the platform's answer, read as an app reads what the platform sends, then Validate: accepted or duplicate with code null; rejected with invalid_request, not_found or conflict; order_id a UUID, or \"\" on a rejected invalid_request alone.",
   "order": {
     "app": "wappie",
     "basis": {
@@ -2100,7 +2100,7 @@
       ]
     },
     {
-      "name": "check 1: another app's body",
+      "name": "check 1: another app's body verifies under nothing, nor does the GET's copy: invalid_order",
       "app": "mailie",
       "now": "2026-10-13T12:01:00Z",
       "secrets": [
@@ -3148,6 +3148,333 @@
       },
       "action": "wait",
       "code": null,
+      "steps": null
+    },
+    {
+      "name": "check 1: a feed copy no held secret verifies, the GET a signed not_found: not_current",
+      "app": "wappie",
+      "now": "2026-10-13T12:01:00Z",
+      "secrets": [
+        "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+      ],
+      "generation_confirmed": true,
+      "allow_open": true,
+      "held_at_observe": false,
+      "recorded": null,
+      "feed": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "expired",
+          "reason": "no_plan",
+          "since": "2026-09-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": "2026-10-03T12:00:00Z",
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 1,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": null,
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 1,
+          "used": 2,
+          "used_connected": 1,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 15000000000,
+          "used_bytes": 27300000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 13800000000,
+          "cap_bytes": 14550000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "off",
+          "send": "off"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": {
+          "app": "wappie",
+          "basis": {
+            "measured_at": "2026-10-13T11:52:00Z",
+            "usage_seq": 1791892320000
+          },
+          "basis_purge": {
+            "dev_9": "2026-10-20T12:00:00Z"
+          },
+          "episode": "0199a2f0-0000-7000-8000-000000000101",
+          "floor": "2026-07-15",
+          "generation": "0199b1e0-0000-7000-8000-000000000001",
+          "issued_at": "2026-10-13T12:00:00Z",
+          "mac": "v1=fe2bd03a7bd96ae3cd206491377d2e28547645f99d496302a208edf9ba401f45",
+          "not_before": "2026-10-13T12:00:00Z",
+          "order_id": "0199c3a0-0000-7000-8000-000000000101",
+          "round": 1,
+          "secret": 2,
+          "steps": [
+            {
+              "action": "purge",
+              "item": "dev_9"
+            },
+            {
+              "action": "keep",
+              "item": "dev_7",
+              "keep_bytes": 14000000000
+            }
+          ],
+          "valid_until": "2026-10-13T18:00:00Z",
+          "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+        },
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "get": "not_found",
+      "get_doc": null,
+      "basis": {
+        "total_bytes": 26100000000,
+        "items": {
+          "dev_7": 21000000000,
+          "dev_9": 4800000000
+        }
+      },
+      "usage": {
+        "total_bytes": 26100000000,
+        "items": {
+          "dev_7": 21000000000,
+          "dev_9": 4800000000
+        }
+      },
+      "items": {
+        "dev_7": {
+          "state": "live"
+        },
+        "dev_9": {
+          "state": "deleted",
+          "purge_at": "2026-10-20T12:00:00Z"
+        }
+      },
+      "action": "refused",
+      "code": "not_current",
+      "steps": null
+    },
+    {
+      "name": "check 1: a feed copy no held secret verifies, the GET's document carrying no trim: not_current",
+      "app": "wappie",
+      "now": "2026-10-13T12:01:00Z",
+      "secrets": [
+        "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+      ],
+      "generation_confirmed": true,
+      "allow_open": true,
+      "held_at_observe": false,
+      "recorded": null,
+      "feed": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "expired",
+          "reason": "no_plan",
+          "since": "2026-09-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": "2026-10-03T12:00:00Z",
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 1,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": null,
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 1,
+          "used": 2,
+          "used_connected": 1,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 15000000000,
+          "used_bytes": 27300000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 13800000000,
+          "cap_bytes": 14550000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "off",
+          "send": "off"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": {
+          "app": "wappie",
+          "basis": {
+            "measured_at": "2026-10-13T11:52:00Z",
+            "usage_seq": 1791892320000
+          },
+          "basis_purge": {
+            "dev_9": "2026-10-20T12:00:00Z"
+          },
+          "episode": "0199a2f0-0000-7000-8000-000000000101",
+          "floor": "2026-07-15",
+          "generation": "0199b1e0-0000-7000-8000-000000000001",
+          "issued_at": "2026-10-13T12:00:00Z",
+          "mac": "v1=fe2bd03a7bd96ae3cd206491377d2e28547645f99d496302a208edf9ba401f45",
+          "not_before": "2026-10-13T12:00:00Z",
+          "order_id": "0199c3a0-0000-7000-8000-000000000101",
+          "round": 1,
+          "secret": 2,
+          "steps": [
+            {
+              "action": "purge",
+              "item": "dev_9"
+            },
+            {
+              "action": "keep",
+              "item": "dev_7",
+              "keep_bytes": 14000000000
+            }
+          ],
+          "valid_until": "2026-10-13T18:00:00Z",
+          "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+        },
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "get": "doc",
+      "get_doc": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "active",
+          "reason": null,
+          "since": "2026-10-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": null,
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 2,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": null,
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 2,
+          "used": 2,
+          "used_connected": 1,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 25000000000,
+          "used_bytes": 12000000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 23800000000,
+          "cap_bytes": 25050000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "on",
+          "new_links": "on",
+          "sync": "on",
+          "send": "on"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": null,
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "basis": {
+        "total_bytes": 26100000000,
+        "items": {
+          "dev_7": 21000000000,
+          "dev_9": 4800000000
+        }
+      },
+      "usage": {
+        "total_bytes": 26100000000,
+        "items": {
+          "dev_7": 21000000000,
+          "dev_9": 4800000000
+        }
+      },
+      "items": {
+        "dev_7": {
+          "state": "live"
+        },
+        "dev_9": {
+          "state": "deleted",
+          "purge_at": "2026-10-20T12:00:00Z"
+        }
+      },
+      "action": "refused",
+      "code": "not_current",
       "steps": null
     },
     {
@@ -10688,6 +11015,257 @@
             "outcome": "partial",
             "code": null,
             "bytes_after": 19000000000
+          }
+        ],
+        "usage_seq": 1791896400000
+      }
+    },
+    {
+      "name": "a purge step's own item.purged, then the feed applies a newer document carrying the same order_id: the run goes on, done",
+      "app": "wappie",
+      "order": {
+        "app": "wappie",
+        "basis": {
+          "measured_at": "2026-10-13T11:52:00Z",
+          "usage_seq": 1791892320000
+        },
+        "basis_purge": {
+          "dev_9": "2026-10-20T12:00:00Z"
+        },
+        "episode": "0199a2f0-0000-7000-8000-000000000101",
+        "floor": "2026-07-15",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "mac": "v1=fe2bd03a7bd96ae3cd206491377d2e28547645f99d496302a208edf9ba401f45",
+        "not_before": "2026-10-13T12:00:00Z",
+        "order_id": "0199c3a0-0000-7000-8000-000000000101",
+        "round": 1,
+        "secret": 2,
+        "steps": [
+          {
+            "action": "purge",
+            "item": "dev_9"
+          },
+          {
+            "action": "keep",
+            "item": "dev_7",
+            "keep_bytes": 14000000000
+          }
+        ],
+        "valid_until": "2026-10-13T18:00:00Z",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+      },
+      "steps": [
+        {
+          "before": null,
+          "item": "as_ordered",
+          "between": null,
+          "bytes_after": 0,
+          "at_floor": false
+        },
+        {
+          "before": [
+            "purged_event",
+            "feed_same",
+            "same"
+          ],
+          "item": "as_ordered",
+          "between": null,
+          "bytes_after": 14000000000,
+          "at_floor": false
+        }
+      ],
+      "usage_seq": 1791896400000,
+      "reported": {
+        "order_id": "0199c3a0-0000-7000-8000-000000000101",
+        "outcome": "done",
+        "code": null,
+        "steps": [
+          {
+            "item": "dev_9",
+            "outcome": "done",
+            "code": null,
+            "bytes_after": 0
+          },
+          {
+            "item": "dev_7",
+            "outcome": "done",
+            "code": null,
+            "bytes_after": 14000000000
+          }
+        ],
+        "usage_seq": 1791896400000
+      }
+    },
+    {
+      "name": "a keep step's report between batches, then a newer feed document carrying the same order_id: the run goes on, done",
+      "app": "wappie",
+      "order": {
+        "app": "wappie",
+        "basis": {
+          "measured_at": "2026-10-13T11:52:00Z",
+          "usage_seq": 1791892320000
+        },
+        "basis_purge": {
+          "dev_9": "2026-10-20T12:00:00Z"
+        },
+        "episode": "0199a2f0-0000-7000-8000-000000000101",
+        "floor": "2026-07-15",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "mac": "v1=fe2bd03a7bd96ae3cd206491377d2e28547645f99d496302a208edf9ba401f45",
+        "not_before": "2026-10-13T12:00:00Z",
+        "order_id": "0199c3a0-0000-7000-8000-000000000101",
+        "round": 1,
+        "secret": 2,
+        "steps": [
+          {
+            "action": "purge",
+            "item": "dev_9"
+          },
+          {
+            "action": "keep",
+            "item": "dev_7",
+            "keep_bytes": 14000000000
+          }
+        ],
+        "valid_until": "2026-10-13T18:00:00Z",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+      },
+      "steps": [
+        {
+          "before": null,
+          "item": "as_ordered",
+          "between": null,
+          "bytes_after": 0,
+          "at_floor": false
+        },
+        {
+          "before": [
+            "same"
+          ],
+          "item": "as_ordered",
+          "between": [
+            "batch",
+            "report",
+            "feed_same",
+            "batch"
+          ],
+          "bytes_after": 14000000000,
+          "at_floor": false
+        }
+      ],
+      "usage_seq": 1791896400000,
+      "reported": {
+        "order_id": "0199c3a0-0000-7000-8000-000000000101",
+        "outcome": "done",
+        "code": null,
+        "steps": [
+          {
+            "item": "dev_9",
+            "outcome": "done",
+            "code": null,
+            "bytes_after": 0
+          },
+          {
+            "item": "dev_7",
+            "outcome": "done",
+            "code": null,
+            "bytes_after": 14000000000
+          }
+        ],
+        "usage_seq": 1791896400000
+      }
+    },
+    {
+      "name": "the feed applies a document carrying another order after a step's item.purged: partial, not_current",
+      "app": "wappie",
+      "order": {
+        "app": "wappie",
+        "basis": {
+          "measured_at": "2026-10-13T11:52:00Z",
+          "usage_seq": 1791892320000
+        },
+        "basis_purge": {
+          "dev_8": "2026-10-20T12:00:00Z",
+          "dev_9": "2026-10-20T12:00:00Z"
+        },
+        "episode": "0199a2f0-0000-7000-8000-000000000101",
+        "floor": "2026-07-15",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "issued_at": "2026-10-13T12:00:00Z",
+        "mac": "v1=2bf5cbe427e37d66f8feafe711993f6a9ba8fa2b232a946d6e0b0f03241154d8",
+        "not_before": "2026-10-13T12:00:00Z",
+        "order_id": "0199c3a0-0000-7000-8000-000000000101",
+        "round": 1,
+        "secret": 2,
+        "steps": [
+          {
+            "action": "purge",
+            "item": "dev_9"
+          },
+          {
+            "action": "purge",
+            "item": "dev_8"
+          },
+          {
+            "action": "keep",
+            "item": "dev_7",
+            "keep_bytes": 14000000000
+          }
+        ],
+        "valid_until": "2026-10-13T18:00:00Z",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a"
+      },
+      "steps": [
+        {
+          "before": null,
+          "item": "as_ordered",
+          "between": null,
+          "bytes_after": 0,
+          "at_floor": false
+        },
+        {
+          "before": [
+            "purged_event",
+            "feed_other"
+          ],
+          "item": "as_ordered",
+          "between": null,
+          "bytes_after": 0,
+          "at_floor": false
+        },
+        {
+          "before": null,
+          "item": "as_ordered",
+          "between": null,
+          "bytes_after": 0,
+          "at_floor": false
+        }
+      ],
+      "usage_seq": 1791896400000,
+      "reported": {
+        "order_id": "0199c3a0-0000-7000-8000-000000000101",
+        "outcome": "partial",
+        "code": "not_current",
+        "steps": [
+          {
+            "item": "dev_9",
+            "outcome": "done",
+            "code": null,
+            "bytes_after": 0
+          },
+          {
+            "item": "dev_8",
+            "outcome": "not_run",
+            "code": null,
+            "bytes_after": null
+          },
+          {
+            "item": "dev_7",
+            "outcome": "not_run",
+            "code": null,
+            "bytes_after": null
           }
         ],
         "usage_seq": 1791896400000

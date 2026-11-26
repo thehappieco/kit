@@ -291,7 +291,7 @@ func TestEveryUsageDateVectorHolds(t *testing.T) {
 		if got := contract.RecentFrom(measured).Format(time.RFC3339); got != c.RecentFrom {
 			t.Errorf("dates %q: recent from %s, want %s", c.Name, got, c.RecentFrom)
 		}
-		items, shared, err := dateFigures(c.Rows, measured)
+		items, shared, err := dateFigures(c.App, c.Rows, measured)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -425,12 +425,28 @@ func TestEveryEntitlementsVectorHolds(t *testing.T) {
 		if trialStopAction(c) != c.Action {
 			t.Errorf("trial stop %q: %s", c.Name, trialStopAction(c))
 		}
+		ended, err := time.Parse(time.RFC3339, c.TrialEndedAt)
+		if err != nil || trialStoppedAt(c.App, ended).Format(time.RFC3339) != c.StoppedAt {
+			t.Errorf("trial stop %q: stopped at %s for an end at %s", c.Name, c.StoppedAt, c.TrialEndedAt)
+		}
 	}
 	for _, c := range f.CapStops {
 		flipped := c
 		flipped.Frozen = !c.Frozen
 		if capStopAction(c) != c.Action || capStopAction(flipped) != c.Action {
 			t.Errorf("cap stop %q: %s, frozen %v %s", c.Name, capStopAction(c), flipped.Frozen, capStopAction(flipped))
+		}
+	}
+	for _, c := range f.PlacedAt {
+		after, action, err := placedAt(c)
+		if err != nil || action != c.Action || !equalPtr(after, c.After) {
+			t.Errorf("placed_at %q: %v %s %v", c.Name, after, action, err)
+		}
+	}
+	for _, c := range f.LinkOutcomes {
+		action, code, linked, logged := linkOutcome(c)
+		if action != c.Action || !equalPtr(code, c.Code) || linked != c.Linked || logged != c.Logged {
+			t.Errorf("link outcome %q: %s %v %v %v", c.Name, action, code, linked, logged)
 		}
 	}
 	// A places lift and a cap resume each hold frozen and not.
@@ -534,6 +550,9 @@ func TestEveryTrimMACVectorHolds(t *testing.T) {
 		err := verifyCarried(c.App, c.PlanSource, c.Order, c.Secrets)
 		if (err == nil) != c.Valid {
 			t.Errorf("%q: verifies %v, want %v (%v)", c.Name, err == nil, c.Valid, err)
+		}
+		if errors.Is(err, contract.ErrTrimMAC) != c.MACFails {
+			t.Errorf("%q: a MAC failure %v, want %v (%v)", c.Name, errors.Is(err, contract.ErrTrimMAC), c.MACFails, err)
 		}
 		if !c.Valid {
 			fail++

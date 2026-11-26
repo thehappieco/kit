@@ -262,11 +262,14 @@ type EntSequence struct {
 // entSequence plays a sequence (SPEC section 11.20): each step as
 // entPageAction or entGetAction takes it; a refused document holds back
 // its workspace's freshness from pages, or every workspace the app keeps a
-// document of when its workspace_id cannot be read; a workspace is given
-// back by a valid document of it of a higher version that applies, or by
-// a GET answer that gives freshness.
+// document of when its workspace_id cannot be read: those whose document
+// it applied, and those whose document it keeps for a workspace no
+// account document names yet; a workspace is given back by a valid
+// document of it of a higher version that applies, or that it keeps for a
+// workspace not named yet, or by a GET answer that gives freshness.
 func entSequence(s EntSequence) ([]EntStep, error) {
 	held := maps.Clone(s.Held)
+	kept := map[string]int64{}
 	back := map[string]bool{}
 	var out []EntStep
 	for _, st := range s.Steps {
@@ -282,6 +285,17 @@ func entSequence(s EntSequence) ([]EntStep, error) {
 					for ws := range held {
 						back[ws] = true
 					}
+					for ws := range kept {
+						back[ws] = true
+					}
+				}
+			case "keep":
+				var f contract.EntitlementsFeed
+				_ = json.Unmarshal(st.Value, &f)
+				d, _ := f.Items[0].Document(s.App, s.Generation)
+				if d.Version > kept[d.WorkspaceID] {
+					kept[d.WorkspaceID] = d.Version
+					delete(back, d.WorkspaceID)
 				}
 			case "apply":
 				var f contract.EntitlementsFeed
@@ -291,13 +305,22 @@ func entSequence(s EntSequence) ([]EntStep, error) {
 				delete(back, d.WorkspaceID)
 			}
 		case "get":
+			version := held[st.Workspace]
+			_, isKept := kept[st.Workspace]
+			if isKept {
+				version = kept[st.Workspace]
+			}
 			action, fresh := entGetAction(EntGetCase{App: s.App, Generation: s.Generation, Workspace: st.Workspace,
-				Held: held[st.Workspace], Status: st.Status, Value: st.Value})
+				Held: version, Status: st.Status, Value: st.Value})
 			st.Action = action
 			if fresh {
 				var d contract.EntitlementsDoc
 				_ = json.Unmarshal(st.Value, &d)
-				held[st.Workspace] = d.Version
+				if isKept {
+					kept[st.Workspace] = d.Version
+				} else {
+					held[st.Workspace] = d.Version
+				}
 				delete(back, st.Workspace)
 			}
 		default:
@@ -629,26 +652,43 @@ func placesAction(before, after []string) string {
 	return "keep"
 }
 
-// TrialStopCase is an item stopped at its own trial's end, the next
-// document the app applies (its plan source, and the item's entry there:
-// null when it does not list it), and whether that lifts the stop.
+// TrialStopCase is an item of app stopped at its own trial's end: the
+// clock end the stop was for (trial_ended_at, the trial_ends_at it stopped
+// at) and when the stop took effect (stopped_at: that end in Mailie, 72
+// hours later in Wappie); the next document the app applies (its plan
+// source, and the item's entry there: null when it does not list it); and
+// whether that lifts the stop.
 type TrialStopCase struct {
-	Name       string              `json:"name"`
-	StoppedAt  string              `json:"stopped_at"`
-	PlanSource string              `json:"plan_source"`
-	Entry      *contract.ItemTrial `json:"entry"`
-	Action     string              `json:"action"`
+	Name         string              `json:"name"`
+	App          string              `json:"app"`
+	TrialEndedAt string              `json:"trial_ended_at"`
+	StoppedAt    string              `json:"stopped_at"`
+	PlanSource   string              `json:"plan_source"`
+	Entry        *contract.ItemTrial `json:"entry"`
+	Action       string              `json:"action"`
+}
+
+// trialStoppedAt is when an item's own trial stop takes effect for a clock
+// ending at end: at it in Mailie, 72 hours later in Wappie (outside the
+// freeze, which only holds it later still).
+func trialStoppedAt(app string, end time.Time) time.Time {
+	if app == "mailie" {
+		return end
+	}
+	return end.Add(72 * time.Hour)
 }
 
 // trialStopAction lifts an item's own trial stop on a document whose plan
-// source is plan or live_move, or that lists it running with a later end;
-// a document that only stops listing it lifts nothing.
+// source is plan or live_move, or that lists it running with a
+// trial_ends_at later than the clock end the stop was for (trial_ended_at,
+// never stopped_at); an entry ending at that same end, or a document that
+// only stops listing it, lifts nothing.
 func trialStopAction(c TrialStopCase) string {
-	stopped, _ := time.Parse(time.RFC3339, c.StoppedAt)
+	ended, _ := time.Parse(time.RFC3339, c.TrialEndedAt)
 	switch {
 	case c.PlanSource == contract.SourcePlan || c.PlanSource == contract.SourceLiveMove:
 		return "lift"
-	case c.Entry != nil && c.Entry.Trial == contract.TrialRunning && c.Entry.TrialEndsAt.After(stopped):
+	case c.Entry != nil && c.Entry.Trial == contract.TrialRunning && c.Entry.TrialEndsAt.After(ended):
 		return "lift"
 	}
 	return "keep"
@@ -674,27 +714,138 @@ func capStopAction(c CapStopCase) string {
 	return "stop"
 }
 
+// PlacedAtCase is an item's placed_at before an event of app's, the
+// event's time, and its placed_at after: an item's link, a mailbox's first
+// authorization, its recovery, its move into the workspace and its import
+// set it to the event's time; a relink, an imported number's first pairing
+// and a mailbox's re-authorization keep it (SPEC section 11.20).
+type PlacedAtCase struct {
+	Name   string  `json:"name"`
+	App    string  `json:"app"`
+	Event  string  `json:"event"`
+	Before *string `json:"before"`
+	At     string  `json:"at"`
+	After  *string `json:"after"`
+	Action string  `json:"action"`
+}
+
+// placedAtEvents are what each event does to an item's placed_at.
+var placedAtEvents = map[string]string{
+	"link": "set", "first_authorization": "set", "recovery": "set", "move_in": "set", "import": "set",
+	"relink": "keep", "import_first_pairing": "keep", "reauthorization": "keep",
+}
+
+// placedAt is an item's placed_at after the event.
+func placedAt(c PlacedAtCase) (*string, string, error) {
+	switch placedAtEvents[c.Event] {
+	case "set":
+		return &c.At, "set", nil
+	case "keep":
+		return c.Before, "keep", nil
+	}
+	return nil, "", fmt.Errorf("contractvec: an event %q", c.Event)
+}
+
+// LinkOutcomeCase is what an app does once a link's check answers (SPEC
+// section 11.20): a new link of app, or an imported number's first
+// pairing (link import_first_pairing), in a workspace whose document says
+// mode; the plan's places.total and the app's own count of linked,
+// not-deleted, not-pending items of its kind (an imported number holds
+// its place from the import, so it is among them); whether a signed answer
+// came after one retry, and its new_links and trial; and, on used_up, the
+// person's answer (go_on, decline, or no_answer within the flow's window).
+type LinkOutcomeCase struct {
+	Name     string `json:"name"`
+	App      string `json:"app"`
+	Link     string `json:"link"`
+	Mode     string `json:"mode"`
+	Total    int64  `json:"total"`
+	Count    int64  `json:"count"`
+	Answered bool   `json:"answered"`
+	NewLinks string `json:"new_links,omitempty"`
+	Trial    string `json:"trial,omitempty"`
+	Person   string `json:"person,omitempty"`
+	// Action is commit (the held content committed and sync started),
+	// link_paused (linked without sync: used_up and the person goes on),
+	// undo_link (a new link undone: nothing of the item kept) or
+	// undo_pairing (an imported number's pairing undone: its row,
+	// history, archive key and place kept); Code what it answers on a
+	// refusal (storage_paused, capacity_reached, or retry), null on a
+	// decline; Linked whether it sends item.linked; Logged whether it logs
+	// a refusal it holds nothing back for (observe).
+	Action string  `json:"action"`
+	Code   *string `json:"code"`
+	Linked bool    `json:"linked"`
+	Logged bool    `json:"logged"`
+}
+
+// linkOutcome is an app's outcome after a link check (SPEC section 11.20):
+// with no signed answer, retry; new_links off, storage_paused; no place by
+// its own count, which for an imported number's first pairing leaves the
+// number itself out, capacity_reached; used_up with the person declining
+// or not answering, undone with no code; used_up with the person going on,
+// linked without sync; else committed. In enforce a refusal undoes the
+// link, keeping nothing of a new one and keeping an imported number's
+// row, history, archive key and place; in observe the app logs it and
+// commits. item.linked goes only with a link that stays.
+func linkOutcome(c LinkOutcomeCase) (action string, code *string, linked, logged bool) {
+	imported := c.Link == "import_first_pairing"
+	others := c.Count
+	if imported {
+		others--
+	}
+	refusal, declined := "", false
+	switch {
+	case !c.Answered:
+		refusal = "retry"
+	case c.NewLinks == contract.SwitchOff:
+		refusal = contract.CodeStoragePaused
+	case others >= c.Total:
+		refusal = contract.CodeCapacityReached
+	case c.Trial == contract.TrialUsedUp && c.Person != "go_on":
+		declined = true
+	}
+	switch {
+	case (refusal != "" || declined) && c.Mode == contract.ModeObserve:
+		return "commit", nil, true, true
+	case refusal != "" || declined:
+		action = "undo_link"
+		if imported {
+			action = "undo_pairing"
+		}
+		if refusal != "" {
+			code = &refusal
+		}
+		return action, code, false, false
+	case c.Trial == contract.TrialUsedUp && c.Mode == contract.ModeEnforce:
+		return "link_paused", nil, true, false
+	}
+	return "commit", nil, true, false
+}
+
 // WireEntitlements is wire-entitlements.json.
 type WireEntitlements struct {
-	Format      string           `json:"format"`
-	Version     int              `json:"version"`
-	Kind        string           `json:"kind"`
-	Description string           `json:"description"`
-	Documents   []WireCase       `json:"documents"`
-	Feeds       []WireCase       `json:"feeds"`
-	Applied     []WireCase       `json:"applied"`
-	Actions     []EntPageCase    `json:"actions"`
-	Gets        []EntGetCase     `json:"gets"`
-	Sequences   []EntSequence    `json:"sequences"`
-	Versions    []VersionCase    `json:"versions"`
-	Links       []LinkCase       `json:"links"`
-	Resets      []ResetCase      `json:"resets"`
-	Freeze      []FreezeCase     `json:"freeze"`
-	Caps        []CapCase        `json:"caps"`
-	CodesAfter  []CodesAfterCase `json:"codes_after"`
-	Places      []PlacesCase     `json:"places"`
-	TrialStops  []TrialStopCase  `json:"trial_stops"`
-	CapStops    []CapStopCase    `json:"cap_stops"`
+	Format       string            `json:"format"`
+	Version      int               `json:"version"`
+	Kind         string            `json:"kind"`
+	Description  string            `json:"description"`
+	Documents    []WireCase        `json:"documents"`
+	Feeds        []WireCase        `json:"feeds"`
+	Applied      []WireCase        `json:"applied"`
+	Actions      []EntPageCase     `json:"actions"`
+	Gets         []EntGetCase      `json:"gets"`
+	Sequences    []EntSequence     `json:"sequences"`
+	Versions     []VersionCase     `json:"versions"`
+	Links        []LinkCase        `json:"links"`
+	Resets       []ResetCase       `json:"resets"`
+	Freeze       []FreezeCase      `json:"freeze"`
+	Caps         []CapCase         `json:"caps"`
+	CodesAfter   []CodesAfterCase  `json:"codes_after"`
+	Places       []PlacesCase      `json:"places"`
+	TrialStops   []TrialStopCase   `json:"trial_stops"`
+	CapStops     []CapStopCase     `json:"cap_stops"`
+	PlacedAt     []PlacedAtCase    `json:"placed_at"`
+	LinkOutcomes []LinkOutcomeCase `json:"link_outcomes"`
 }
 
 func wireEntitlements() (any, error) {
@@ -728,8 +879,10 @@ const entitlementsDescription = "The entitlements document, its feed and acknowl
 	"caps: Wappie's cap_bytes, floor(1.05 x cap_quota) - others_bytes, at least 0, cap_quota the quota_bytes but at a boundary (trial_end, ends_at, late_payment_end, buy_by) before the sync step, where it is the quota that last granted (last_granted); Mailie's, its allowance. " +
 	"codes_after: send (item.identity_updated for every linked hosted item the document's items do not list) when codes_after is set and later than the last value the app answered for the workspace, else none. " +
 	"places: the app's own count before and after a change (total, the licence bindings it counts, its items by placed_at), and frozen, whether its document is over 24 hours stale; the bindings take the first places and are never stopped, the items beyond the first total less the bindings stop; action lift, stop or keep, the same frozen or not: the app's own count is never frozen. " +
-	"trial_stops: an item stopped at its own trial end, the next document applied (plan_source, the item's entry or null); action lift (plan_source plan or live_move, or listed running with a later end), else keep. " +
-	"cap_stops: the app's total against the cap_bytes of the last applied document, and frozen, whether that document is over 24 hours stale: lift (at or below it) or stop, the same frozen or not."
+	"trial_stops: an item of app stopped at its own trial's end: trial_ended_at, the clock end the stop was for (the trial_ends_at it stopped at), and stopped_at, when the stop took effect (that end in Mailie, 72 hours later in Wappie, outside the freeze); the next document applied (plan_source, the item's entry or null); action lift (plan_source plan or live_move, or listed running with a trial_ends_at later than trial_ended_at, never compared with stopped_at), else keep: an entry ending at trial_ended_at, used_up, or a document that only stops listing the item lifts nothing. " +
+	"cap_stops: the app's total against the cap_bytes of the last applied document, and frozen, whether that document is over 24 hours stale: lift (at or below it) or stop, the same frozen or not. " +
+	"placed_at: an item's placed_at before an event of app (null for none), the event's time (at), and its placed_at after; action set (link, a mailbox's first_authorization, recovery, move_in, import: placed_at becomes at) or keep (relink, an imported number's import_first_pairing, a mailbox's reauthorization: placed_at as before). " +
+	"link_outcomes: what an app does once a link's check answers, in a workspace whose document says mode: link new, or import_first_pairing (an imported number's first pairing); total, the plan's places.total; count, the app's own count of linked, not-deleted, not-pending items of its kind, an imported number among them from its import; answered, whether a signed answer came after one retry, with its new_links and trial; person, on used_up, the person's answer (go_on, decline, no_answer within the flow's window). In order: no signed answer, code retry; new_links off, code storage_paused; no place by the app's own count, which for an imported number's first pairing leaves the number itself out (count less 1 at or above total), code capacity_reached; used_up and the person declining or not answering, code null; each undoes the link in enforce: action undo_link (a new link: nothing of the item kept) or undo_pairing (an imported number: its new link logged out and that link's registration, session and keys deleted, its row, history, archive key and place kept), linked false; in observe, action commit, logged true. Else used_up with the person going on, in enforce, link_paused (linked without sync, its place taken); else commit; linked (item.linked sent) on every link that stays."
 
 func entDocuments(out *WireEntitlements) error {
 	base := mustRaw(vecEnt("wappie", nil))
@@ -1184,6 +1337,18 @@ func entBehaviour(out *WireEntitlements) error {
 			{Source: "get", Workspace: vecTeam, Status: contract.CodeRateLimited, Value: json.RawMessage(`{"error":{"code":"rate_limited","message":"too many requests"}}`)},
 			{Source: "get", Workspace: vecTeam, Status: "200", Value: doc(50, nil)},
 		}, [][]string{{vecTeam}, {vecTeam}, {vecTeam}, {}}},
+		{"a document kept for a workspace not named yet, then a bad document whose workspace_id cannot be read: the kept one held back too, until its own newer document", []EntStep{
+			{Source: "page", Value: page(vecGeneration, 56, doc(56, inWS(vecWS3)))},
+			{Source: "page", Value: page(vecGeneration, 57, unreadable)},
+			{Source: "page", Value: page(vecGeneration, 58, doc(58, inWS(vecWS3)))},
+			{Source: "get", Workspace: vecTeam, Status: "200", Value: doc(50, nil)},
+			{Source: "get", Workspace: vecWS2, Status: "200", Value: doc(40, inWS(vecWS2))},
+		}, [][]string{{}, slices.Sorted(slices.Values([]string{vecTeam, vecWS2, vecWS3})), {vecWS2, vecTeam}, {vecWS2}, {}}},
+		{"a document kept for a workspace not named yet, then a bad document whose workspace_id cannot be read: the kept one given back by its own GET", []EntStep{
+			{Source: "page", Value: page(vecGeneration, 56, doc(56, inWS(vecWS3)))},
+			{Source: "page", Value: page(vecGeneration, 57, unreadable)},
+			{Source: "get", Workspace: vecWS3, Status: "200", Value: doc(56, inWS(vecWS3))},
+		}, [][]string{{}, slices.Sorted(slices.Values([]string{vecTeam, vecWS2, vecWS3})), {vecWS2, vecTeam}}},
 	} {
 		seq := EntSequence{Name: c.name, App: "wappie", Generation: vecGeneration, Known: known, Held: held, Steps: c.steps}
 		steps, err := entSequence(seq)
@@ -1399,13 +1564,25 @@ func entBehaviour(out *WireEntitlements) error {
 		return &contract.ItemTrial{ID: "dev_7", Trial: trial, TrialEndsAt: at(d)}
 	}
 	for _, c := range []TrialStopCase{
-		{Name: "a plan that grants lifts it", StoppedAt: t(-time.Hour), PlanSource: contract.SourcePlan, Action: "lift"},
-		{Name: "a live move lifts it", StoppedAt: t(-time.Hour), PlanSource: contract.SourceLiveMove, Action: "lift"},
-		{Name: "listed running with a later end lifts it", StoppedAt: t(-time.Hour), PlanSource: contract.SourceTrial, Entry: entry(contract.TrialRunning, 24*time.Hour), Action: "lift"},
-		{Name: "a document that only stops listing the item lifts nothing", StoppedAt: t(-time.Hour), PlanSource: contract.SourceNone, Action: "keep"},
-		{Name: "listed used_up lifts nothing", StoppedAt: t(-time.Hour), PlanSource: contract.SourceTrial, Entry: entry(contract.TrialUsedUp, -time.Hour), Action: "keep"},
-		{Name: "listed running with the same end lifts nothing", StoppedAt: t(time.Hour), PlanSource: contract.SourceTrial, Entry: entry(contract.TrialRunning, time.Hour), Action: "keep"},
+		{Name: "a plan that grants lifts it", App: "mailie", TrialEndedAt: t(-time.Hour), PlanSource: contract.SourcePlan, Action: "lift"},
+		{Name: "a live move lifts it", App: "mailie", TrialEndedAt: t(-time.Hour), PlanSource: contract.SourceLiveMove, Action: "lift"},
+		{Name: "listed running with a later end lifts it", App: "mailie", TrialEndedAt: t(-time.Hour), PlanSource: contract.SourceTrial, Entry: entry(contract.TrialRunning, 24*time.Hour), Action: "lift"},
+		{Name: "a document that only stops listing the item lifts nothing", App: "mailie", TrialEndedAt: t(-time.Hour), PlanSource: contract.SourceNone, Action: "keep"},
+		{Name: "listed used_up lifts nothing", App: "mailie", TrialEndedAt: t(-time.Hour), PlanSource: contract.SourceTrial, Entry: entry(contract.TrialUsedUp, -time.Hour), Action: "keep"},
+		{Name: "listed running with the same end lifts nothing", App: "mailie", TrialEndedAt: t(time.Hour), PlanSource: contract.SourceTrial, Entry: entry(contract.TrialRunning, time.Hour), Action: "keep"},
+		{Name: "Wappie's stop, 72 hours after the trial's end: a plan that grants lifts it", App: "wappie", TrialEndedAt: t(-72 * time.Hour), PlanSource: contract.SourcePlan, Action: "lift"},
+		{Name: "Wappie's stop, 72 hours after the trial's end: listed running with an end between the old end and the stop lifts it", App: "wappie",
+			TrialEndedAt: t(-72 * time.Hour), PlanSource: contract.SourceTrial, Entry: entry(contract.TrialRunning, -24*time.Hour), Action: "lift"},
+		{Name: "Wappie's stop, 72 hours after the trial's end: listed running with an end at the old end lifts nothing", App: "wappie",
+			TrialEndedAt: t(-72 * time.Hour), PlanSource: contract.SourceTrial, Entry: entry(contract.TrialRunning, -72*time.Hour), Action: "keep"},
+		{Name: "Wappie's stop, 72 hours after the trial's end: a document that only stops listing the item lifts nothing", App: "wappie",
+			TrialEndedAt: t(-72 * time.Hour), PlanSource: contract.SourceNone, Action: "keep"},
 	} {
+		ended, err := time.Parse(time.RFC3339, c.TrialEndedAt)
+		if err != nil {
+			return err
+		}
+		c.StoppedAt = trialStoppedAt(c.App, ended).Format(time.RFC3339)
 		if got := trialStopAction(c); got != c.Action {
 			return fmt.Errorf("contractvec: trial stop %q is %s, the spec asks %s", c.Name, got, c.Action)
 		}
@@ -1424,6 +1601,62 @@ func entBehaviour(out *WireEntitlements) error {
 			return fmt.Errorf("contractvec: cap stop %q is %s, the spec asks %s", c.Name, got, c.Action)
 		}
 		out.CapStops = append(out.CapStops, c)
+	}
+
+	earlier := t(-30 * 24 * time.Hour)
+	for _, c := range []PlacedAtCase{
+		{Name: "a number linked: placed_at its link", App: "wappie", Event: "link", At: t(0)},
+		{Name: "a mailbox first written pending, at its first authorization: placed_at that authorization", App: "mailie", Event: "first_authorization", At: t(0)},
+		{Name: "a recovery: placed_at the recovery", App: "wappie", Event: "recovery", Before: &earlier, At: t(0)},
+		{Name: "a mailbox recovered: placed_at the recovery", App: "mailie", Event: "recovery", Before: &earlier, At: t(0)},
+		{Name: "a number moved into the workspace: placed_at the move", App: "wappie", Event: "move_in", At: t(0)},
+		{Name: "a number imported: placed_at the import", App: "wappie", Event: "import", At: t(0)},
+		{Name: "a relink keeps placed_at", App: "wappie", Event: "relink", Before: &earlier, At: t(0)},
+		{Name: "an imported number's first pairing keeps the import's placed_at", App: "wappie", Event: "import_first_pairing", Before: &earlier, At: t(0)},
+		{Name: "a mailbox's re-authorization keeps placed_at", App: "mailie", Event: "reauthorization", Before: &earlier, At: t(0)},
+	} {
+		after, action, err := placedAt(c)
+		if err != nil {
+			return err
+		}
+		c.After, c.Action = after, action
+		out.PlacedAt = append(out.PlacedAt, c)
+	}
+
+	for _, c := range []LinkOutcomeCase{
+		{Name: "an imported number's first pairing, its own place the last one: the check leaves it out, committed", App: "wappie", Link: "import_first_pairing", Mode: contract.ModeEnforce,
+			Total: 2, Count: 2, Answered: true, NewLinks: contract.SwitchOn, Trial: contract.TrialNotNeeded, Action: "commit"},
+		{Name: "a new link at the same count: no place, undone", App: "wappie", Link: "new", Mode: contract.ModeEnforce,
+			Total: 2, Count: 2, Answered: true, NewLinks: contract.SwitchOn, Trial: contract.TrialNotNeeded, Action: "undo_link"},
+		{Name: "an imported number's first pairing over the places by its own count: its pairing undone, its row kept", App: "wappie", Link: "import_first_pairing", Mode: contract.ModeEnforce,
+			Total: 2, Count: 3, Answered: true, NewLinks: contract.SwitchOn, Trial: contract.TrialNotNeeded, Action: "undo_pairing"},
+		{Name: "an imported number's first pairing with new_links off: its pairing undone, its row kept", App: "wappie", Link: "import_first_pairing", Mode: contract.ModeEnforce,
+			Total: 2, Count: 1, Answered: true, NewLinks: contract.SwitchOff, Trial: contract.TrialNotNeeded, Action: "undo_pairing"},
+		{Name: "an imported number's first pairing with no signed answer after one retry: its pairing undone, its row kept", App: "wappie", Link: "import_first_pairing", Mode: contract.ModeEnforce,
+			Total: 2, Count: 1, Answered: false, Action: "undo_pairing"},
+		{Name: "an imported number's first pairing, used_up, the person declines: its pairing undone, its row kept", App: "wappie", Link: "import_first_pairing", Mode: contract.ModeEnforce,
+			Total: 2, Count: 1, Answered: true, NewLinks: contract.SwitchOn, Trial: contract.TrialUsedUp, Person: "decline", Action: "undo_pairing"},
+		{Name: "an imported number's first pairing, used_up, no answer within the window: its pairing undone, its row kept", App: "wappie", Link: "import_first_pairing", Mode: contract.ModeEnforce,
+			Total: 2, Count: 1, Answered: true, NewLinks: contract.SwitchOn, Trial: contract.TrialUsedUp, Person: "no_answer", Action: "undo_pairing"},
+		{Name: "an imported number's first pairing, used_up, the person goes on: linked without sync", App: "wappie", Link: "import_first_pairing", Mode: contract.ModeEnforce,
+			Total: 2, Count: 1, Answered: true, NewLinks: contract.SwitchOn, Trial: contract.TrialUsedUp, Person: "go_on", Action: "link_paused"},
+		{Name: "an imported number's first pairing, its trial running: committed", App: "wappie", Link: "import_first_pairing", Mode: contract.ModeEnforce,
+			Total: 2, Count: 1, Answered: true, NewLinks: contract.SwitchOn, Trial: contract.TrialRunning, Action: "commit"},
+		{Name: "a new number with new_links off: undone, nothing kept", App: "wappie", Link: "new", Mode: contract.ModeEnforce,
+			Total: 2, Count: 1, Answered: true, NewLinks: contract.SwitchOff, Trial: contract.TrialNotNeeded, Action: "undo_link"},
+		{Name: "a new mailbox, used_up, the person declines: undone, nothing kept", App: "mailie", Link: "new", Mode: contract.ModeEnforce,
+			Total: 2, Count: 1, Answered: true, NewLinks: contract.SwitchOn, Trial: contract.TrialUsedUp, Person: "decline", Action: "undo_link"},
+		{Name: "a new mailbox with no signed answer after one retry: undone, nothing kept", App: "mailie", Link: "new", Mode: contract.ModeEnforce,
+			Total: 2, Count: 1, Answered: false, Action: "undo_link"},
+		{Name: "an imported number's first pairing with new_links off, the workspace observing: logged, committed", App: "wappie", Link: "import_first_pairing", Mode: contract.ModeObserve,
+			Total: 2, Count: 1, Answered: true, NewLinks: contract.SwitchOff, Trial: contract.TrialNotNeeded, Action: "commit"},
+	} {
+		action, code, linked, logged := linkOutcome(c)
+		if action != c.Action {
+			return fmt.Errorf("contractvec: link outcome %q is %s, the spec asks %s", c.Name, action, c.Action)
+		}
+		c.Code, c.Linked, c.Logged = code, linked, logged
+		out.LinkOutcomes = append(out.LinkOutcomes, c)
 	}
 	return nil
 }

@@ -168,6 +168,8 @@ func TestSpecCitations(t *testing.T) {
 			Places     []named `json:"places"`
 			TrialStops []named `json:"trial_stops"`
 			CapStops   []named `json:"cap_stops"`
+			PlacedAt   []named `json:"placed_at"`
+			Outcomes   []named `json:"link_outcomes"`
 			Reports    []named `json:"reports"`
 			Intake     []named `json:"intake"`
 			Dates      []named `json:"dates"`
@@ -211,7 +213,7 @@ func TestSpecCitations(t *testing.T) {
 			"batches": f.Batches, "macs": f.MACs, "pairings": f.Pairings, "pages": f.Pages,
 			"gets": f.Gets, "sequences": f.Sequences, "versions": f.Versions, "links": f.Links, "resets": f.Resets,
 			"freeze": f.Freeze, "caps": f.Caps, "codes_after": f.CodesAfter, "places": f.Places, "trial_stops": f.TrialStops,
-			"cap_stops": f.CapStops, "reports": f.Reports, "intake": f.Intake, "dates": f.Dates, "floors": f.Floors,
+			"cap_stops": f.CapStops, "placed_at": f.PlacedAt, "link_outcomes": f.Outcomes, "reports": f.Reports, "intake": f.Intake, "dates": f.Dates, "floors": f.Floors,
 			"codes": f.Codes, "meet": f.Meet, "differ": f.Differ, "no_code": f.NoCode, "orders": f.Orders,
 			"decisions": f.Decisions, "runs": f.Runs,
 		} {
@@ -728,6 +730,8 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		Places     []named `json:"places"`
 		TrialStops []named `json:"trial_stops"`
 		CapStops   []named `json:"cap_stops"`
+		PlacedAt   []named `json:"placed_at"`
+		Outcomes   []named `json:"link_outcomes"`
 		Reports    []named `json:"reports"`
 		Intake     []named `json:"intake"`
 		Dates      []named `json:"dates"`
@@ -797,22 +801,22 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 			"sections 20 (11 valid), commands 11 (4 valid), results 13 (5 valid), pages 6 (apply 1, reset 2, revoke 0, narrow 2, refuse 1)"},
 		// Kit v0.12.0's, from the platform's spec section 15 at a80d9b0:
 		// the entitlements and usage part, and what rides its release.
-		{"wire-entitlements.json", "wire-entitlements", "kit v0.12.0", true, "221ce9ef0a7d49b41f2685944cac27a3dddb51d153ebd188cbb4e8bd544d6fdb",
-			"documents 121 (34 valid), feeds 28 (10 valid), applied 21 (7 valid), actions 16 (apply 2, ignore 2, invalid 1, keep 1, refuse 7, reset 3), gets 10 (apply 1, fresh 1, ignore 1, none 2, not_found 1, refuse 3, reset 1), sequences 3, versions 4, links 17 (link 11, refuse_link 6), resets 2 (reset 2), freeze 17 (fire 7, hold 4, none 4, wait 2), caps 14, codes_after 6 (none 3, send 3), places 13 (keep 1, lift 9, stop 3), trial_stops 6 (keep 3, lift 3), cap_stops 6 (lift 4, stop 2)"},
+		{"wire-entitlements.json", "wire-entitlements", "kit v0.12.0", true, "372908a2d333e3c8d03b11a40c7ab7dc9cd0306f93eda09ad4634097521a9f01",
+			"documents 121 (34 valid), feeds 28 (10 valid), applied 21 (7 valid), actions 16 (apply 2, ignore 2, invalid 1, keep 1, refuse 7, reset 3), gets 10 (apply 1, fresh 1, ignore 1, none 2, not_found 1, refuse 3, reset 1), sequences 5, versions 4, links 17 (link 11, refuse_link 6), resets 2 (reset 2), freeze 17 (fire 7, hold 4, none 4, wait 2), caps 14, codes_after 6 (none 3, send 3), places 13 (keep 1, lift 9, stop 3), trial_stops 10 (keep 5, lift 5), cap_stops 6 (lift 4, stop 2), placed_at 9 (keep 3, set 6), link_outcomes 13 (commit 3, link_paused 1, undo_link 4, undo_pairing 5)"},
 		{"wire-usage.json", "wire-usage", "kit v0.12.0", true, "bb8787b65f459ac59a4ea3e31aa898d37fd11fdd0799291398ffb85fa8ae5ba2",
 			"answers 11 (4 valid), reports 44 (12 valid), intake 11"},
-		{"usage-dates.json", "usage-dates", "kit v0.12.0", true, "898114d9ca50e998904571af88e5bef5a7a3e92dc2fb3b79d4924a2fa2f54c42",
-			"dates 11, floors 2"},
+		{"usage-dates.json", "usage-dates", "kit v0.12.0", true, "d0645f87a0c44ee8c7425d47a6e3dd7d57b213ef9308d7ef60e758b0f7f89c47",
+			"dates 14, floors 2"},
 		{"trial-codes.json", "trial-codes", "kit v0.12.0", false, "3f5096f537cd84b655dec106ec7cd601bbba80a770746be86a5332a612670bb4",
 			"codes 24, meet 10, differ 11, no_code 25"},
 		{"wire-link-check.json", "wire-link-check", "kit v0.12.0", true, "6c8c6799bd15aa318ef404466299d20bef15132df2f87d146d6ef001e63b6655",
 			"requests 23 (7 valid), answers 20 (7 valid)"},
 		{"wire-events-codes.json", "wire-events-codes", "kit v0.12.0", false, "2a5368ee2729ffdd6099ce86fc5f148358bff2a535c96925f1ec34dc5bbff9c8",
 			"events 38 (9 valid)"},
-		{"wire-trim.json", "wire-trim", "kit v0.12.0", true, "3fa9310f39a878a02c9a00cc0fa875c1c0565abe22bbe677595fd97b4262f299",
-			"answers 15 (7 valid), results 38 (14 valid), orders 40 (13 valid), decisions 40 (refused 18, resend 3, run 12, wait 7), runs 13"},
-		{"trim-macs.json", "trim-macs", "kit v0.12.0", true, "be6c586e5299c919ab4d7a8ae830bdf4d0abebf264a3066d653a67429f5e0ccf",
-			"macs 21 (8 valid)"},
+		{"wire-trim.json", "wire-trim", "kit v0.12.0", true, "f253406a9a04dc8a8bfa892c8e2376d6521fbfb0304df7035ce351447701fb72",
+			"answers 15 (7 valid), results 38 (14 valid), orders 40 (13 valid), decisions 42 (refused 20, resend 3, run 12, wait 7), runs 16"},
+		{"trim-macs.json", "trim-macs", "kit v0.12.0", true, "d9f7f4221cd06aa1dd7bb4e305201c9c62a0f6998adf0d2b841dd18ce2e776ab",
+			"macs 22 (8 valid)"},
 		{"wire-v012.json", "wire-v012", "kit v0.12.0", false, "2c0be71eff8f1deef3ebe2bc7ab6c2fc9a15bdf066dcf53bdabf062d85787d60",
 			"snapshots 15 (6 valid), sections 15 (5 valid), results 8 (4 valid)"},
 	}
@@ -940,7 +944,7 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		}{
 			{"gets", f.Gets}, {"sequences", f.Sequences}, {"versions", f.Versions}, {"links", f.Links}, {"resets", f.Resets},
 			{"freeze", f.Freeze}, {"caps", f.Caps}, {"codes_after", f.CodesAfter}, {"places", f.Places}, {"trial_stops", f.TrialStops},
-			{"cap_stops", f.CapStops}, {"reports", f.Reports}, {"intake", f.Intake}, {"dates", f.Dates}, {"floors", f.Floors},
+			{"cap_stops", f.CapStops}, {"placed_at", f.PlacedAt}, {"link_outcomes", f.Outcomes}, {"reports", f.Reports}, {"intake", f.Intake}, {"dates", f.Dates}, {"floors", f.Floors},
 			{"codes", f.Codes}, {"meet", f.Meet}, {"differ", f.Differ}, {"no_code", f.NoCode}, {"orders", f.Orders},
 			{"decisions", f.Decisions}, {"runs", f.Runs},
 		} {

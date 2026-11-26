@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -307,16 +308,28 @@ func wireUsage() (any, error) {
 // receipt and group_change (their own ts, never null), transcript (an AI
 // transcript of the message named by of, which takes that message's date,
 // undated with it), object (an attachment counted once per key: refs are
-// the messages that reference it). Mailie's: row (its internal_date, in
-// UTC whatever zone it is written in; never the Date header).
+// the messages that reference it, [] for an object no message references,
+// which goes to shared_bytes). Mailie's: row (its internal_date, in UTC
+// whatever zone it is written in; never the Date header). Both apps':
+// fixed (what keeps the item running and is no message, named by what:
+// Wappie's chat, contact and group_member, Mailie's folders_row and
+// open_draft), which takes no date and counts in bytes and fixed_bytes
+// only.
 type DateRow struct {
 	ID    string   `json:"id"`
 	Kind  string   `json:"kind"`
+	What  string   `json:"what,omitempty"`
 	Item  string   `json:"item,omitempty"`
 	TS    *string  `json:"ts"`
 	Of    string   `json:"of,omitempty"`
-	Refs  []string `json:"refs,omitempty"`
+	Refs  []string `json:"refs,omitzero"`
 	Bytes int64    `json:"bytes"`
+}
+
+// fixedRows are the fixed rows each app stores (SPEC section 11.20).
+var fixedRows = map[string][]string{
+	"wappie": {"chat", "contact", "group_member"},
+	"mailie": {"folders_row", "open_draft"},
 }
 
 // DateFigures are an item's bytes and what the date rule makes of them.
@@ -324,6 +337,7 @@ type DateFigures struct {
 	Bytes        int64 `json:"bytes"`
 	RecentBytes  int64 `json:"recent_bytes"`
 	UndatedBytes int64 `json:"undated_bytes"`
+	FixedBytes   int64 `json:"fixed_bytes"`
 }
 
 // DateCase is a report's rows measured at measured_at, and the figures
@@ -360,8 +374,8 @@ type UsageDates struct {
 	Floors      []FloorCase `json:"floors"`
 }
 
-// dateFigures applies the date rule to rows measured at measuredAt.
-func dateFigures(rows []DateRow, measuredAt time.Time) (map[string]DateFigures, int64, error) {
+// dateFigures applies the date rule to app's rows measured at measuredAt.
+func dateFigures(app string, rows []DateRow, measuredAt time.Time) (map[string]DateFigures, int64, error) {
 	type dated struct {
 		item string
 		date *time.Time
@@ -404,6 +418,14 @@ func dateFigures(rows []DateRow, measuredAt time.Time) (map[string]DateFigures, 
 		switch r.Kind {
 		case "message":
 			add(r.Item, messages[r.ID].date, r.Bytes)
+		case "fixed":
+			if !slices.Contains(fixedRows[app], r.What) || r.TS != nil {
+				return nil, 0, fmt.Errorf("contractvec: fixed row %s is %q of %s, or dated", r.ID, r.What, app)
+			}
+			f := figures[r.Item]
+			f.Bytes += r.Bytes
+			f.FixedBytes += r.Bytes
+			figures[r.Item] = f
 		case "receipt", "group_change", "row":
 			d, err := parse(r.TS)
 			if err != nil || d == nil {
@@ -446,7 +468,7 @@ func dateFigures(rows []DateRow, measuredAt time.Time) (map[string]DateFigures, 
 func usageDates() (any, error) {
 	out := UsageDates{
 		Format: Format, Version: 1, Kind: "usage-dates",
-		Description: "The date rule (SPEC section 11.20), which both apps follow for recent_bytes and for a trim's floor. dates: a report's rows, in an abstract shape, measured at measured_at, and the figures they make. Each row is {id, kind, item, ts, of, refs, bytes}: Wappie's message (its ts; null when it has none, then undated), receipt and group_change (their own ts, a receipt of an undated message included), transcript (an AI transcript of the message of names: that message's date, undated with it), object (an attachment counted once per key: the date of the newest dated message among refs, the messages that reference it, undated when they all are; referenced from several numbers, it goes to shared_bytes and to no item); Mailie's row (its internal_date, in UTC whatever zone it is written in, never the Date header; Mailie has no undated bytes). A date after measured_at counts as measured_at. Recent is a date on or after recent_from, 00:00 UTC of the UTC date of measured_at less 90 days: whole UTC days. items: per item, its bytes, recent_bytes and undated_bytes. floors: an order's floor (issued_at's UTC date less 90 days) against recent_from of the report it was computed from, which is under an hour older: on another UTC day, the floor keeps one day less than recent_bytes counted, so the platform deletes less, never more.",
+		Description: "The date rule (SPEC section 11.20), which both apps follow for recent_bytes and for a trim's floor. dates: a report's rows, in an abstract shape, measured at measured_at, and the figures they make. Each row is {id, kind, item, ts, of, refs, bytes}: Wappie's message (its ts; null when it has none, then undated), receipt and group_change (their own ts, a receipt of an undated message included), transcript (an AI transcript of the message of names: that message's date, undated with it), object (an attachment counted once per key: the date of the newest dated message among refs, the messages that reference it, undated when they all are; referenced from several numbers, or from none (refs [], an unassigned object), it goes to shared_bytes and to no item, never undated); Mailie's row (its internal_date, in UTC whatever zone it is written in, never the Date header; Mailie has no undated bytes); and both apps' fixed (what keeps the item running and is no message, named by what: Wappie's chat, contact and group_member, Mailie's folders_row and open_draft; ts null), which takes no date and counts in the item's bytes and fixed_bytes only, never in recent_bytes or undated_bytes. A date after measured_at counts as measured_at. Recent is a date on or after recent_from, 00:00 UTC of the UTC date of measured_at less 90 days: whole UTC days. items: per item, its bytes, recent_bytes, undated_bytes and fixed_bytes. floors: an order's floor (issued_at's UTC date less 90 days) against recent_from of the report it was computed from, which is under an hour older: on another UTC day, the floor keeps one day less than recent_bytes counted, so the platform deletes less, never more.",
 	}
 	ts := func(s string) *string { return &s }
 	msg := func(id, item string, t *string, n int64) DateRow {
@@ -485,6 +507,23 @@ func usageDates() (any, error) {
 			msg("m2", "dev_9", ts("2026-03-01T00:00:00Z"), 100),
 			{ID: "o1", Kind: "object", Refs: []string{"m1", "m2"}, Bytes: 80000},
 		}},
+		{Name: "an object no message references (refs []): shared_bytes, never undated", App: "wappie", MeasuredAt: "2026-10-13T12:00:00Z", Rows: []DateRow{
+			msg("m1", "dev_7", ts("2026-10-01T00:00:00Z"), 100),
+			{ID: "o1", Kind: "object", Refs: []string{}, Bytes: 25000},
+		}},
+		{Name: "Wappie's fixed rows beside a dated and an undated message: in bytes and fixed_bytes only", App: "wappie", MeasuredAt: "2026-10-13T12:00:00Z", Rows: []DateRow{
+			msg("m1", "dev_7", ts("2026-10-01T08:00:00Z"), 1000),
+			msg("m2", "dev_7", nil, 500),
+			{ID: "c1", Kind: "fixed", What: "chat", Item: "dev_7", Bytes: 200},
+			{ID: "k1", Kind: "fixed", What: "contact", Item: "dev_7", Bytes: 50},
+			{ID: "p1", Kind: "fixed", What: "group_member", Item: "dev_7", Bytes: 30},
+		}},
+		{Name: "Mailie's fixed rows beside rows by internal_date: in bytes and fixed_bytes only", App: "mailie", MeasuredAt: "2026-10-13T12:00:00Z", Rows: []DateRow{
+			{ID: "u1", Kind: "row", Item: "acc_7f3a", TS: ts("2026-06-01T10:00:00Z"), Bytes: 3000},
+			{ID: "u2", Kind: "row", Item: "acc_7f3a", TS: ts("2026-10-10T10:00:00Z"), Bytes: 5000},
+			{ID: "f1", Kind: "fixed", What: "folders_row", Item: "acc_7f3a", Bytes: 400},
+			{ID: "d1", Kind: "fixed", What: "open_draft", Item: "acc_7f3a", Bytes: 1200},
+		}},
 		{Name: "Mailie's rows by internal_date in UTC", App: "mailie", MeasuredAt: "2026-10-13T12:00:00Z", Rows: []DateRow{
 			{ID: "u1", Kind: "row", Item: "acc_7f3a", TS: ts("2026-07-14T23:30:00-03:00"), Bytes: 3000},
 			{ID: "u2", Kind: "row", Item: "acc_7f3a", TS: ts("2026-07-15T01:30:00+03:00"), Bytes: 4000},
@@ -510,7 +549,7 @@ func usageDates() (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		items, shared, err := dateFigures(c.Rows, measured)
+		items, shared, err := dateFigures(c.App, c.Rows, measured)
 		if err != nil {
 			return nil, fmt.Errorf("contractvec: dates %q: %w", c.Name, err)
 		}
@@ -521,22 +560,25 @@ func usageDates() (any, error) {
 	// The figures the spec names, so that a rule that moved is caught here
 	// rather than written.
 	want := map[string]string{
-		"Wappie's messages, receipts and group changes, recent and older":                "dev_7 3380 1340 0",
-		"an AI transcript of a dated message and of an undated one":                      "dev_7 1400 0 780",
-		"a receipt of an undated message: its own ts":                                    "dev_7 940 40 900",
-		"an object referenced on one number: its newest message's date":                  "dev_7 50300 50100 100",
-		"an object only undated messages reference: undated":                             "dev_7 30100 0 30100",
-		"an object several numbers reference: shared_bytes":                              "dev_7 100 100 0;dev_9 100 0 0;shared 80000",
-		"Mailie's rows by internal_date in UTC":                                          "acc_7f3a 12000 8000 0",
-		"a date after measured_at counts as measured_at":                                 "dev_7 600 600 0",
-		"the 90-day edge: 00:00:00 of the edge day is recent, the instant before is not": "dev_7 30 10 0",
-		"the edge with measured_at late in its UTC day: whole days":                      "dev_7 30 10 0",
-		"the edge a UTC day later: the edge day is no longer recent":                     "dev_7 30 20 0",
+		"Wappie's messages, receipts and group changes, recent and older":                          "dev_7 3380 1340 0 0",
+		"an AI transcript of a dated message and of an undated one":                                "dev_7 1400 0 780 0",
+		"a receipt of an undated message: its own ts":                                              "dev_7 940 40 900 0",
+		"an object referenced on one number: its newest message's date":                            "dev_7 50300 50100 100 0",
+		"an object only undated messages reference: undated":                                       "dev_7 30100 0 30100 0",
+		"an object several numbers reference: shared_bytes":                                        "dev_7 100 100 0 0;dev_9 100 0 0 0;shared 80000",
+		"an object no message references (refs []): shared_bytes, never undated":                   "dev_7 100 100 0 0;shared 25000",
+		"Wappie's fixed rows beside a dated and an undated message: in bytes and fixed_bytes only": "dev_7 1780 1000 500 280",
+		"Mailie's fixed rows beside rows by internal_date: in bytes and fixed_bytes only":          "acc_7f3a 9600 5000 0 1600",
+		"Mailie's rows by internal_date in UTC":                                                    "acc_7f3a 12000 8000 0 0",
+		"a date after measured_at counts as measured_at":                                           "dev_7 600 600 0 0",
+		"the 90-day edge: 00:00:00 of the edge day is recent, the instant before is not":           "dev_7 30 10 0 0",
+		"the edge with measured_at late in its UTC day: whole days":                                "dev_7 30 10 0 0",
+		"the edge a UTC day later: the edge day is no longer recent":                               "dev_7 30 20 0 0",
 	}
 	for _, c := range out.Cases {
 		var parts []string
 		for id, f := range c.Items {
-			parts = append(parts, fmt.Sprintf("%s %d %d %d", id, f.Bytes, f.RecentBytes, f.UndatedBytes))
+			parts = append(parts, fmt.Sprintf("%s %d %d %d %d", id, f.Bytes, f.RecentBytes, f.UndatedBytes, f.FixedBytes))
 		}
 		sort.Strings(parts)
 		if c.SharedBytes != 0 {

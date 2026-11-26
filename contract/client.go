@@ -352,7 +352,10 @@ func (c *Client) PutAccess(ctx context.Context, ws string, snap Snapshot) error 
 }
 
 // PostEvents sends a batch of events and returns one result per event:
-// POST /contract/v1/events.
+// POST /contract/v1/events. A raw []Event is never logged: each Event's
+// String, GoString and LogValue leave its trial codes out, but a handler
+// that encodes the slice as JSON writes them; log the batch as Events
+// (whose LogValue is its count and ids) or each Event alone.
 func (c *Client) PostEvents(ctx context.Context, events []Event) ([]EventResult, error) {
 	var r EventResults
 	if err := c.call(ctx, callTimeout, http.MethodPost, "/contract/v1/events", Events{Events: events}, &r); err != nil {

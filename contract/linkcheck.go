@@ -42,9 +42,9 @@ func LinkCheckTrials() []string { return slices.Clone(linkCheckTrials) }
 // no codes. The platform reads it strictly (DecodeStrict): codes is always
 // present, [] for none, never null.
 type LinkCheck struct {
-	Kind      string   `json:"kind"`
-	Codes     []string `json:"codes"`
-	Connected bool     `json:"connected"`
+	Kind      string     `json:"kind"`
+	Codes     TrialCodes `json:"codes"`
+	Connected bool       `json:"connected"`
 }
 
 // Validate checks a link check: a kind of number or mailbox, codes listed

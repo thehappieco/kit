@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"slices"
 	"strings"
@@ -786,5 +787,56 @@ func TestTheTrimListsAreClosed(t *testing.T) {
 		if c.get()[0] == "x" {
 			t.Error("not a copy")
 		}
+	}
+}
+
+// A document, its storage, a trim order and a trim result print ids only:
+// no storage figure, keep_bytes, bytes_after, usage_seq or MAC, in any of
+// fmt's verbs or through slog's JSON and text handlers.
+func TestTheEntitlementsPartsValuesPrintIdsOnly(t *testing.T) {
+	doc := entDoc("wappie", nil)
+	order := trimOrder("wappie", nil)
+	order.MAC = "v1=" + strings.Repeat("ab", 32)
+	result := trimResult(nil)
+	figures := []string{"25000000000", "27300000000", "1200000000", "23800000000", "25050000000",
+		"14000000000", "15200000000", "1798709100000", "1798708320000", strings.Repeat("ab", 32), "2026-10-02"}
+	for name, c := range map[string]struct {
+		v    any
+		want []string
+	}{
+		"EntitlementsDoc":     {doc, []string{"wappie", vecTeam, vecGeneration, "57", contract.ModeEnforce, contract.WorkspaceOverQuota}},
+		"EntitlementsStorage": {doc.Storage, nil},
+		"TrimOrder":           {order, []string{trimOrderID, "wappie", vecTeam, vecGeneration}},
+		"TrimResult":          {result, []string{trimOrderID, contract.TrimOutcomePartial}},
+	} {
+		var printed []string
+		for _, verb := range []string{"%v", "%+v", "%#v", "%s"} {
+			printed = append(printed, fmt.Sprintf(verb, c.v))
+		}
+		for _, h := range []func(*bytes.Buffer) slog.Handler{
+			func(b *bytes.Buffer) slog.Handler { return slog.NewJSONHandler(b, nil) },
+			func(b *bytes.Buffer) slog.Handler { return slog.NewTextHandler(b, nil) },
+		} {
+			var logged bytes.Buffer
+			slog.New(h(&logged)).Info("x", "v", c.v)
+			printed = append(printed, logged.String())
+		}
+		for _, s := range printed {
+			for _, f := range figures {
+				if strings.Contains(s, f) {
+					t.Errorf("%s: printed %s: %s", name, f, s)
+				}
+			}
+			for _, w := range c.want {
+				if !strings.Contains(s, w) {
+					t.Errorf("%s: %s is not in %s", name, w, s)
+				}
+			}
+		}
+	}
+	// The wire still carries every figure.
+	raw, err := json.Marshal(doc)
+	if err != nil || !strings.Contains(string(raw), `"quota_bytes":25000000000`) {
+		t.Fatalf("%s %v", raw, err)
 	}
 }

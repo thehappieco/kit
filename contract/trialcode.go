@@ -352,8 +352,36 @@ func validPort(s string) bool {
 
 // TrialCodes are the codes an event carries: on item.linked and
 // item.identity_updated, required, 1 to MaxTrialCodes, each once; absent
-// (nil) on every other type. Present, the list is never null.
+// (nil) on every other type. Present, the list is never null. A link
+// check's codes are TrialCodes too, [] for none.
+//
+// A code is personal data: String, GoString, Format (every verb) and
+// LogValue print only how many codes the list holds, never a code. Its
+// JSON is the list itself, so a value that holds codes and has no
+// LogValue of its own (a []Event, an app's own struct) is never logged
+// through a handler that encodes JSON.
 type TrialCodes []string
+
+// String is how many codes the list holds, never a code.
+func (c TrialCodes) String() string {
+	return "contract.TrialCodes{" + strconv.Itoa(len(c)) + " codes}"
+}
+
+// GoString is String, for %#v.
+func (c TrialCodes) GoString() string { return c.String() }
+
+// Format prints String for every verb, %q quoted, so that no verb reaches
+// a code.
+func (c TrialCodes) Format(f fmt.State, verb rune) {
+	if verb == 'q' {
+		_, _ = io.WriteString(f, strconv.Quote(c.String()))
+		return
+	}
+	_, _ = io.WriteString(f, c.String())
+}
+
+// LogValue is how many codes the list holds, never a code.
+func (c TrialCodes) LogValue() slog.Value { return slog.IntValue(len(c)) }
 
 // UnmarshalJSON reads the list, refusing null, which would read as absent,
 // and anything but strings; Validate checks its codes.

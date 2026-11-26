@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/url"
 	"reflect"
 	"slices"
@@ -164,6 +165,25 @@ type EntitlementsDoc struct {
 	Links EntitlementsLinks `json:"links"`
 }
 
+// String names the document by its app, workspace, generation, version,
+// mode and state, and prints no storage figure, place, date or order: no
+// figure of a report is ever logged (SPEC section 11.20).
+func (d EntitlementsDoc) String() string {
+	return fmt.Sprintf("contract.EntitlementsDoc{App: %q, WorkspaceID: %q, Generation: %q, Version: %d, Mode: %q, State: %q, %s}",
+		d.App, d.WorkspaceID, d.Generation, d.Version, d.Mode, d.State.Name, Ellipsis)
+}
+
+// GoString is String, for %#v.
+func (d EntitlementsDoc) GoString() string { return d.String() }
+
+// LogValue is what an app may log of a document, ids only: its app,
+// workspace, generation, version, mode and state.
+func (d EntitlementsDoc) LogValue() slog.Value {
+	return slog.GroupValue(slog.String("app", d.App), slog.String("workspace_id", d.WorkspaceID),
+		slog.String("generation", d.Generation), slog.Int64("version", d.Version),
+		slog.String("mode", d.Mode), slog.String("state", d.State.Name))
+}
+
 // EntitlementsState is a workspace's state and its dates.
 type EntitlementsState struct {
 	Name string `json:"name"`
@@ -232,6 +252,16 @@ type EntitlementsStorage struct {
 	// exactly with UsedBytes.
 	MeasuredThrough *Time `json:"measured_through"`
 }
+
+// String prints no figure: where one app alone reports, used_bytes is
+// that app's report total.
+func (EntitlementsStorage) String() string { return "contract.EntitlementsStorage{" + Ellipsis + "}" }
+
+// GoString is String, for %#v.
+func (st EntitlementsStorage) GoString() string { return st.String() }
+
+// LogValue prints no figure.
+func (EntitlementsStorage) LogValue() slog.Value { return slog.StringValue(Ellipsis) }
 
 // Switches are the four switches now, each SwitchOn or SwitchOff.
 type Switches struct {

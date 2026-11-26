@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -154,6 +155,23 @@ type TrimOrder struct {
 	// MAC, for the platform's log.
 	Secret int64  `json:"secret"`
 	MAC    string `json:"mac"`
+}
+
+// String names the order by its id, app, workspace and generation, and
+// prints no step, figure, floor or MAC.
+func (o TrimOrder) String() string {
+	return fmt.Sprintf("contract.TrimOrder{OrderID: %q, App: %q, WorkspaceID: %q, Generation: %q, %s}",
+		o.OrderID, o.App, o.WorkspaceID, o.Generation, Ellipsis)
+}
+
+// GoString is String, for %#v.
+func (o TrimOrder) GoString() string { return o.String() }
+
+// LogValue is the order's id, app, workspace and generation, never a
+// figure or its MAC.
+func (o TrimOrder) LogValue() slog.Value {
+	return slog.GroupValue(slog.String("order_id", o.OrderID), slog.String("app", o.App),
+		slog.String("workspace_id", o.WorkspaceID), slog.String("generation", o.Generation))
 }
 
 // TrimBasis names the usage report an order was computed from.
@@ -447,6 +465,20 @@ type TrimResult struct {
 	// UsageSeq is a report the app measured after the last step it ran;
 	// nil (null) exactly on refused.
 	UsageSeq *int64 `json:"usage_seq"`
+}
+
+// String names the result by its order and outcome, and prints no step,
+// figure or usage_seq.
+func (r TrimResult) String() string {
+	return fmt.Sprintf("contract.TrimResult{OrderID: %q, Outcome: %q, %s}", r.OrderID, r.Outcome, Ellipsis)
+}
+
+// GoString is String, for %#v.
+func (r TrimResult) GoString() string { return r.String() }
+
+// LogValue is the result's order and outcome, never a figure.
+func (r TrimResult) LogValue() slog.Value {
+	return slog.GroupValue(slog.String("order_id", r.OrderID), slog.String("outcome", r.Outcome))
 }
 
 // TrimStepResult is what became of one step.

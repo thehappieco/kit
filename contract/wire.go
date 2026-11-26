@@ -575,9 +575,20 @@ const (
 	MaxReaders = 5000
 )
 
-// Events is a batch of an app's events, in each workspace's order.
+// Events is a batch of an app's events, in each workspace's order. Its
+// LogValue is how many events it holds and their ids, never a trial code.
 type Events struct {
 	Events []Event `json:"events"`
+}
+
+// LogValue is the batch's count and its events' ids, never a code: an app
+// logs a batch as this, never its events' JSON.
+func (e Events) LogValue() slog.Value {
+	ids := make([]string, len(e.Events))
+	for i, ev := range e.Events {
+		ids[i] = ev.EventID
+	}
+	return slog.GroupValue(slog.Int("count", len(e.Events)), slog.Any("event_ids", ids))
 }
 
 // Event is one of 0038's events, a stranding or a move (0040), or a link or

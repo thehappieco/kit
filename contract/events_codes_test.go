@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -157,5 +158,74 @@ func TestAnEventNeverPrintsItsCodes(t *testing.T) {
 		if !strings.Contains(s, ev.EventID) || !strings.Contains(s, "item.linked") {
 			t.Errorf("printed %s", s)
 		}
+	}
+}
+
+// No trial code is printed by a TrialCodes, an Events batch, an Event or a
+// LinkCheck: not through slog's JSON or text handler, and not in any of
+// fmt's verbs; nor by the app's own struct holding TrialCodes, in fmt's
+// verbs and slog's text handler. TrialCodes' JSON is the list itself, as
+// the wire needs it, so such a struct (or a []Event) is never logged
+// through a JSON handler.
+func TestNoTrialCodeIsPrintedOrLogged(t *testing.T) {
+	ev := linked(t, nil)
+	other := linked(t, func(e *contract.Event) {
+		e.EventID = "0199d000-0000-7000-8000-000000000002"
+		e.Type = contract.EventIdentityUpdated
+		e.Codes = codes(t, 4)[2:]
+	})
+	batch := contract.Events{Events: []contract.Event{ev, other}}
+	check := contract.LinkCheck{Kind: contract.ItemMailbox, Codes: other.Codes}
+	type held struct {
+		Item  string
+		Codes contract.TrialCodes
+	}
+	secrets := append(append([]string{}, ev.Codes...), other.Codes...)
+	for name, v := range map[string]any{
+		"TrialCodes": ev.Codes, "a pointer to TrialCodes": &ev.Codes, "Events": batch, "Event": ev, "LinkCheck": check,
+		"an app's struct holding TrialCodes": held{Item: "mbx_1", Codes: ev.Codes},
+	} {
+		var printed []string
+		for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%q"} {
+			printed = append(printed, fmt.Sprintf(verb, v))
+		}
+		handlers := []func(*bytes.Buffer) slog.Handler{
+			func(b *bytes.Buffer) slog.Handler { return slog.NewTextHandler(b, nil) },
+		}
+		if _, own := v.(held); !own {
+			handlers = append(handlers, func(b *bytes.Buffer) slog.Handler { return slog.NewJSONHandler(b, nil) })
+		}
+		for _, h := range handlers {
+			var logged bytes.Buffer
+			slog.New(h(&logged)).Info("x", "v", v)
+			printed = append(printed, logged.String())
+		}
+		for _, s := range printed {
+			for _, code := range secrets {
+				if strings.Contains(s, code[:12]) {
+					t.Errorf("%s: printed a code: %s", name, s)
+				}
+			}
+		}
+	}
+	// What is printed instead: the count, and a batch's ids.
+	var logged bytes.Buffer
+	slog.New(slog.NewJSONHandler(&logged, nil)).Info("x", "batch", batch, "codes", ev.Codes)
+	for _, want := range []string{`"count":2`, ev.EventID, other.EventID, `"codes":2`} {
+		if !strings.Contains(logged.String(), want) {
+			t.Errorf("logged %s, want %s", logged.String(), want)
+		}
+	}
+	if s := fmt.Sprint(ev.Codes); s != "contract.TrialCodes{2 codes}" {
+		t.Errorf("printed %s", s)
+	}
+	// The wire still carries every code.
+	raw, err := json.Marshal(check)
+	if err != nil || !strings.Contains(string(raw), other.Codes[0]) || !strings.Contains(string(raw), other.Codes[1]) {
+		t.Fatalf("%s %v", raw, err)
+	}
+	var back contract.LinkCheck
+	if err := contract.DecodeStrict(raw, &back); err != nil || !slices.Equal(back.Codes, check.Codes) || back.Validate() != nil {
+		t.Fatalf("%v %v", back, err)
 	}
 }

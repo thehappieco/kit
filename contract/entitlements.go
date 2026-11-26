@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"reflect"
 	"slices"
@@ -665,7 +666,7 @@ func validConsoleLink(s string) bool {
 	case "https":
 		return ValidHost(host)
 	case "http":
-		return ValidHost(host) && (host == "localhost" || strings.HasSuffix(host, ".localhost"))
+		return ValidHost(host) && strings.HasSuffix(host, ".localhost")
 	}
 	return false
 }
@@ -704,6 +705,98 @@ type EntitlementsFeed struct {
 type EntitlementsFeedItem struct {
 	Seq int64           `json:"seq"`
 	Doc json.RawMessage `json:"doc"`
+}
+
+// UnmarshalJSON reads a page as an app reads what the platform sends, the
+// account feed's fixed shape: one object, no member twice, whose seven
+// members generation, generation_confirmed, head, published_through, items,
+// next_after and more are each present by its exact name and none null;
+// a member it does not know is ignored, and one named in another case
+// counts as one it does not know. So a page that never said more is false
+// gives no freshness, and one with no next_after never sends the cursor
+// back to the start. Each item is read the same way (EntitlementsFeedItem),
+// its doc kept as its bytes came and judged alone.
+func (f *EntitlementsFeed) UnmarshalJSON(b []byte) error {
+	m, ok := objectMembers(b)
+	if !ok {
+		return invalid("entitlements feed: one object, no member twice")
+	}
+	var v EntitlementsFeed
+	for _, field := range []struct {
+		name string
+		dst  any
+	}{
+		{"generation", &v.Generation}, {"generation_confirmed", &v.GenerationConfirmed}, {"head", &v.Head},
+		{"published_through", &v.PublishedThrough}, {"items", &v.Items}, {"next_after", &v.NextAfter}, {"more", &v.More},
+	} {
+		raw, ok := m[field.name]
+		if !ok || string(raw) == "null" {
+			return invalid("entitlements feed: %s is present, never null", field.name)
+		}
+		if err := json.Unmarshal(raw, field.dst); err != nil {
+			return invalid("entitlements feed: %s", field.name)
+		}
+	}
+	*f = v
+	return nil
+}
+
+// UnmarshalJSON reads an item as an app reads what the platform sends: one
+// object, no member twice, its seq present by its exact name and never
+// null, a member it does not know ignored; and its doc present by its
+// exact name, kept as its bytes came, byte for byte. A doc that does not
+// decode, null included, is a bad document refused alone (Document), never
+// the page.
+func (it *EntitlementsFeedItem) UnmarshalJSON(b []byte) error {
+	m, ok := objectMembers(b)
+	if !ok {
+		return invalid("entitlements feed: an item is one object, no member twice")
+	}
+	raw, ok := m["seq"]
+	var v EntitlementsFeedItem
+	if !ok || string(raw) == "null" || json.Unmarshal(raw, &v.Seq) != nil {
+		return invalid("entitlements feed: items[].seq is present, never null")
+	}
+	doc, ok := m["doc"]
+	if !ok {
+		return invalid("entitlements feed: items[].doc is present")
+	}
+	v.Doc = slices.Clone(doc)
+	*it = v
+	return nil
+}
+
+// objectMembers reads raw, one JSON object, into its members by their exact
+// names, each value's bytes as they came; false when raw is not one object
+// or names a member twice. It judges no value but as JSON.
+func objectMembers(raw []byte) (map[string]json.RawMessage, bool) {
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+		return nil, false
+	}
+	m := map[string]json.RawMessage{}
+	for dec.More() {
+		tok, err := dec.Token()
+		name, ok := tok.(string)
+		if err != nil || !ok {
+			return nil, false
+		}
+		if _, seen := m[name]; seen {
+			return nil, false
+		}
+		var v json.RawMessage
+		if err := dec.Decode(&v); err != nil {
+			return nil, false
+		}
+		m[name] = v
+	}
+	if tok, err := dec.Token(); err != nil || tok != json.Delim('}') {
+		return nil, false
+	}
+	if _, err := dec.Token(); err != io.EOF {
+		return nil, false
+	}
+	return m, true
 }
 
 // NewEntitlementsFeedItem is the item of d at seq, as the platform writes

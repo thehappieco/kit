@@ -73,10 +73,10 @@ const (
 
 var (
 	trimActions = []string{TrimActionPurge, TrimActionKeep}
-	// trimRefusedCodes are a refused result's codes, in the order of the
-	// app's checks (invalid_order is check 1, held check 2).
-	trimRefusedCodes = []string{TrimCodeInvalidOrder, TrimCodeHeld, TrimCodeExpired, TrimCodeNotCurrent,
-		TrimCodeUsageMoved, TrimCodeItemUnknown}
+	// trimRefusedCodes are a refused result's codes, in the spec's order
+	// (15.13's code row).
+	trimRefusedCodes = []string{TrimCodeNotCurrent, TrimCodeExpired, TrimCodeUsageMoved, TrimCodeItemUnknown,
+		TrimCodeInvalidOrder, TrimCodeHeld}
 	// trimStoppedCodes are a partial result's codes when the order stopped
 	// before its end.
 	trimStoppedCodes   = []string{TrimCodeHeld, TrimCodeExpired, TrimCodeNotCurrent, TrimCodeInterrupted}
@@ -89,9 +89,8 @@ var (
 // TrimActions are a step's actions: purge, keep. It returns a copy.
 func TrimActions() []string { return slices.Clone(trimActions) }
 
-// TrimRefusedCodes are a refused result's codes, in the order of the app's
-// checks: invalid_order, held, expired, not_current, usage_moved,
-// item_unknown. It returns a copy.
+// TrimRefusedCodes are a refused result's codes: not_current, expired,
+// usage_moved, item_unknown, invalid_order, held. It returns a copy.
 func TrimRefusedCodes() []string { return slices.Clone(trimRefusedCodes) }
 
 // TrimStoppedCodes are the codes of a partial result whose order stopped

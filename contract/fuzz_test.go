@@ -307,7 +307,7 @@ func FuzzAnEntitlementsDocumentIsAppliedOrRefusedAlone(f *testing.F) {
 func FuzzATrialIdentifierNormalizesOnceAndMakesACodeExactlyThen(f *testing.F) {
 	for _, s := range []string{
 		"+5511988887777", "+0511988887777", "A.N.A+x@GoogleMail.com", "+x@gmail.com", ".@gmail.com", "ana",
-		"imap.gmail.com/ana@gmail.com", "Imap.Example.COM./Ana", "tid/sub", "tid/sub/x", "\x00", "ÉVA@exämple.com", "a@b@c",
+		"imap.gmail.com/ana@gmail.com", "Imap.Example.COM./Ana", "imap.gmail.com:993/a@gmail.com", "[2001:DB8::1]:993/Ana", "192.0.2.10./ana", "tid/sub", "tid/sub/x", "\x00", "ÉVA@exämple.com", "a@b@c",
 	} {
 		f.Add(s)
 	}
@@ -343,7 +343,11 @@ func FuzzATrialIdentifierNormalizesOnceAndMakesACodeExactlyThen(f *testing.F) {
 		}
 		host, login, _ := strings.Cut(s, "/")
 		if kind, id, ok := IMAPIdentity(host, login); ok {
-			provider := slices.Contains(ProviderIMAPHosts(), strings.TrimSuffix(strings.ToLower(host), "."))
+			name := strings.ToLower(host)
+			if strings.Count(name, ":") == 1 {
+				name, _, _ = strings.Cut(name, ":")
+			}
+			provider := slices.Contains(ProviderIMAPHosts(), strings.TrimSuffix(name, "."))
 			if (kind == TrialKindAddress) != (provider && strings.Contains(login, "@")) {
 				t.Fatalf("%q %q: %s", host, login, kind)
 			}

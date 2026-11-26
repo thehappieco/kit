@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -16,14 +17,19 @@ import (
 	"github.com/thehappieco/kit/contract"
 )
 
-// trialKey is a fixed test key: the bytes 0x01 to 0x20.
-func trialKey(t *testing.T) contract.TrialKey {
-	t.Helper()
+// trialKeyBytes are a fixed test key's bytes: 0x01 to 0x20.
+func trialKeyBytes() []byte {
 	b := make([]byte, contract.TrialKeyLen)
 	for i := range b {
 		b[i] = byte(i + 1)
 	}
-	k, err := contract.NewTrialKey(b)
+	return b
+}
+
+// trialKey is the fixed test key of trialKeyBytes.
+func trialKey(t *testing.T) contract.TrialKey {
+	t.Helper()
+	k, err := contract.NewTrialKey(trialKeyBytes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,8 +49,8 @@ func trialCode(t *testing.T, app, kind, identifier string) string {
 // the app, the kind and the normalized identifier joined by single zero
 // bytes with no terminator, in unpadded base64url: 43 canonical characters.
 func TestATrialCodeIsTheHMACOfItsFourPartsJoinedByZeroBytes(t *testing.T) {
-	key := trialKey(t)
-	mac := hmac.New(sha256.New, key[:])
+	raw := trialKeyBytes()
+	mac := hmac.New(sha256.New, raw)
 	mac.Write([]byte("thehappie-trial/v1\x00mailie\x00address\x00ana@gmail.com"))
 	want := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 	got := trialCode(t, "mailie", contract.TrialKindAddress, "A.N.A+news@GoogleMail.com")
@@ -55,7 +61,7 @@ func TestATrialCodeIsTheHMACOfItsFourPartsJoinedByZeroBytes(t *testing.T) {
 		t.Error(contract.TrialCodeLabel)
 	}
 	for _, app := range []string{"wappie", "fakeproduct"} {
-		mac := hmac.New(sha256.New, key[:])
+		mac := hmac.New(sha256.New, raw)
 		mac.Write([]byte("thehappie-trial/v1\x00" + app + "\x00e164\x00+5511988887777"))
 		if got := trialCode(t, app, contract.TrialKindE164, "+5511988887777"); got != base64.RawURLEncoding.EncodeToString(mac.Sum(nil)) {
 			t.Errorf("%s: %s", app, got)
@@ -123,6 +129,7 @@ func TestTrialIdentifiersNormalizeOrMakeNoCode(t *testing.T) {
 		{contract.TrialKindE164, "+12", "+12"},
 		{contract.TrialKindE164, "+123456789012345", "+123456789012345"},
 		{contract.TrialKindWALID, "0012345678901234", "0012345678901234"},
+		{contract.TrialKindWALID, "123456789012345678901234567890123", "123456789012345678901234567890123"},
 		{contract.TrialKindGoogleSub, "110169484474386276334", "110169484474386276334"},
 		{contract.TrialKindGoogleSub, "Ab C", "Ab C"},
 		{contract.TrialKindMSTidSub, "9188040d-6c67-4c5b-b112-36a304b66dad/AAAAAAAAAAAAAAAAAAAAAIkzqFVrSaSaFHy782bbtaQ", "9188040d-6c67-4c5b-b112-36a304b66dad/AAAAAAAAAAAAAAAAAAAAAIkzqFVrSaSaFHy782bbtaQ"},
@@ -135,6 +142,9 @@ func TestTrialIdentifiersNormalizeOrMakeNoCode(t *testing.T) {
 		{contract.TrialKindIMAPLogin, "Mail.Example.com/Ana.Lima+X@Gmail.com", "mail.example.com/ana.lima+x@gmail.com"},
 		{contract.TrialKindIMAPLogin, "imap.mail.me.com/Ana", "imap.mail.me.com/ana"},
 		{contract.TrialKindIMAPLogin, "imap.example.com/a/b", "imap.example.com/a/b"},
+		{contract.TrialKindIMAPLogin, "imap.example.com:993/ana", "imap.example.com/ana"},
+		{contract.TrialKindIMAPLogin, "10.0.0.1/ana", "10.0.0.1/ana"},
+		{contract.TrialKindIMAPLogin, "[2001:DB8::1]:993/Ana", "2001:db8::1/ana"},
 	} {
 		got, ok := contract.NormalizeTrialIdentifier(c.kind, c.in)
 		if !ok || got != c.want {
@@ -162,7 +172,7 @@ func TestTrialIdentifiersNormalizeOrMakeNoCode(t *testing.T) {
 		{contract.TrialKindE164, "+55 11 98888-7777"},
 		{contract.TrialKindE164, "+٥٥١١٩٨٨٨٨٧٧٧٧"},
 		{contract.TrialKindWALID, ""},
-		{contract.TrialKindWALID, "123456789012345678901234567890123"},
+		{contract.TrialKindWALID, "12 34"},
 		{contract.TrialKindWALID, "1234@lid"},
 		{contract.TrialKindGoogleSub, ""},
 		{contract.TrialKindGoogleSub, "1101\x00"},
@@ -174,10 +184,10 @@ func TestTrialIdentifiersNormalizeOrMakeNoCode(t *testing.T) {
 		{contract.TrialKindIMAPLogin, "imap.example.com/"},
 		{contract.TrialKindIMAPLogin, "/ana"},
 		{contract.TrialKindIMAPLogin, "imap.gmail.com/ana@gmail.com"},
-		{contract.TrialKindIMAPLogin, "imap.example.com:993/ana"},
+		{contract.TrialKindIMAPLogin, "imap.example.com:0993/ana"},
 		{contract.TrialKindIMAPLogin, "imäp.example.com/ana"},
 		{contract.TrialKindIMAPLogin, "imap.example.com../ana"},
-		{contract.TrialKindIMAPLogin, "10.0.0.1/ana"},
+		{contract.TrialKindIMAPLogin, "fe80::1%en0/ana"},
 		{"oid", "9188040d"},
 	} {
 		if got, ok := contract.NormalizeTrialIdentifier(c.kind, c.in); ok {
@@ -212,6 +222,16 @@ func TestAnIMAPLoginIsAnAddressOnlyOnAProvidersOwnHost(t *testing.T) {
 		{"xn--imp-cla.example.com", "ana", contract.TrialKindIMAPLogin, "xn--imp-cla.example.com/ana"},
 		{"gmail.com", "ana@gmail.com", contract.TrialKindIMAPLogin, "gmail.com/ana@gmail.com"},
 		{"imap.gmail.com.example.com", "ana@gmail.com", contract.TrialKindIMAPLogin, "imap.gmail.com.example.com/ana@gmail.com"},
+		{"imap.example.com:993", "ana", contract.TrialKindIMAPLogin, "imap.example.com/ana"},
+		{"Imap.Example.com.:143", "ana", contract.TrialKindIMAPLogin, "imap.example.com/ana"},
+		{"imap.gmail.com:993", "ana@gmail.com", contract.TrialKindAddress, "ana@gmail.com"},
+		{"127.0.0.1", "ana", contract.TrialKindIMAPLogin, "127.0.0.1/ana"},
+		{"192.0.2.10:993", "Ana", contract.TrialKindIMAPLogin, "192.0.2.10/ana"},
+		{"192.0.2.10.", "ana", contract.TrialKindIMAPLogin, "192.0.2.10/ana"},
+		{"[::1]", "ana", contract.TrialKindIMAPLogin, "::1/ana"},
+		{"::1", "ana", contract.TrialKindIMAPLogin, "::1/ana"},
+		{"[2001:DB8:0:0:0:0:0:1]:993", "ana", contract.TrialKindIMAPLogin, "2001:db8::1/ana"},
+		{"[::ffff:192.0.2.10]", "ana", contract.TrialKindIMAPLogin, "192.0.2.10/ana"},
 	} {
 		kind, identifier, ok := contract.IMAPIdentity(c.host, c.login)
 		if !ok || kind != c.kind || identifier != c.identifier {
@@ -221,11 +241,21 @@ func TestAnIMAPLoginIsAnAddressOnlyOnAProvidersOwnHost(t *testing.T) {
 	for _, c := range []struct{ host, login string }{
 		{"", "ana"},
 		{"imap.example.com", ""},
-		{"imap.example.com:993", "ana"},
 		{"imäp.example.com", "ana"},
 		{"imap.example.com..", "ana"},
-		{"[::1]", "ana"},
-		{"127.0.0.1", "ana"},
+		{"imap.example.com:", "ana"},
+		{"imap.example.com:0", "ana"},
+		{"imap.example.com:0993", "ana"},
+		{"imap.example.com:65536", "ana"},
+		{"imap.example.com:993:1", "ana"},
+		{"mail_box.example.com", "ana"},
+		{"127.1", "ana"},
+		{"[192.0.2.10]", "ana"},
+		{"[::1", "ana"},
+		{"[::1]x", "ana"},
+		{"[::1]:", "ana"},
+		{"[fe80::1%en0]", "ana"},
+		{"fe80::1%en0", "ana"},
 		{"imap.example.com", "an\x00a"},
 		{"imap.gmail.com", "+x@gmail.com"},
 		{"imap.gmail.com", "@gmail.com"},
@@ -293,19 +323,55 @@ func TestTrialCodesAreMadeOnlyOfTheAppsKindsUnderAKey(t *testing.T) {
 	}
 }
 
-// The key never prints, in any verb or a structured log, and neither does
-// an identifier in an error.
+// The key never prints, in any verb or a structured log, nor when a struct
+// holds it in an exported or an unexported field, nor through
+// encoding/json; and an identifier never prints in an error.
 func TestATrialKeyNeverPrints(t *testing.T) {
 	key := trialKey(t)
-	secret := hex.EncodeToString(key[:])
+	raw := trialKeyBytes()
+	secret := hex.EncodeToString(raw)
+	decimal := strings.Trim(fmt.Sprint(raw), "[]")         // "1 2 3 … 32"
+	array := strings.ReplaceAll(fmt.Sprint(raw), " ", ",") // "[1,2,3,…,32]"
+	leaks := func(s string) bool {
+		return strings.Contains(strings.ToLower(s), secret) || strings.Contains(s, decimal) || strings.Contains(s, array) ||
+			strings.Contains(s, "1 2 3 4 5") || strings.Contains(s, "1,2,3,4,5") || strings.Contains(s, "0x1 ")
+	}
+	type inner struct {
+		app string
+		key contract.TrialKey
+	}
+	type outer struct {
+		App string
+		Key contract.TrialKey
+	}
+	in, out := inner{"wappie", key}, outer{"wappie", key}
+	var printed []string
+	for _, v := range []any{key, &key, in, &in, out, &out} {
+		printed = append(printed, fmt.Sprintf("%v|%+v|%#v|%s|%x|%X|%d|%q", v, v, v, v, v, v, v, v))
+	}
+	for _, v := range []any{key, out, &out} {
+		b, err := json.Marshal(v)
+		if err == nil {
+			t.Errorf("json.Marshal of %T wrote %s", v, b)
+		}
+		printed = append(printed, string(b))
+		if err != nil {
+			printed = append(printed, err.Error())
+		}
+	}
 	var logged bytes.Buffer
-	slog.New(slog.NewJSONHandler(&logged, nil)).Info("k", "key", key)
-	for _, s := range []string{
-		fmt.Sprint(key), fmt.Sprintf("%v %+v %#v %s %x %X", key, key, key, key, key, key), logged.String(),
-	} {
-		if strings.Contains(strings.ToLower(s), secret) || strings.Contains(s, "1 2 3 4 5") || strings.Contains(s, "0x1") {
+	l := slog.New(slog.NewJSONHandler(&logged, nil))
+	l.Info("k", "key", key, "cfg", out, "inner", in)
+	var text bytes.Buffer
+	slog.New(slog.NewTextHandler(&text, nil)).Info("k", "key", key, "cfg", out, "inner", in)
+	printed = append(printed, logged.String(), text.String())
+	for _, s := range printed {
+		if leaks(s) {
 			t.Errorf("printed %s", s)
 		}
+	}
+	if _, err := key.MarshalText(); err == nil {
+		t.Error("MarshalText wrote the key")
 	}
 	_, err := contract.TrialCode(key, "wappie", contract.TrialKindE164, "+0511988887777")
 	if err == nil || strings.Contains(err.Error(), "0511988887777") {

@@ -7,9 +7,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"hash"
+	"io"
 	"log/slog"
+	"net/netip"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -85,22 +90,27 @@ func ProviderIMAPHosts() []string { return slices.Clone(providerIMAPHosts) }
 var ErrNoCode = errors.New("contract: the identifier makes no trial code")
 
 // TrialKey is an app's K_app: 32 random bytes, a tier-2 key of the app's
-// own, which serves this HMAC alone. It is never printed or logged:
-// String, GoString and LogValue hide it. The zero key is no key.
-type TrialKey [TrialKeyLen]byte
+// own, which serves this HMAC alone. It is never printed, logged or
+// serialised: it holds only a function that makes the HMAC, its bytes
+// inside it, so that reflection reaches no byte of it (fmt shows only an
+// address for a TrialKey held in an unexported field, in every verb, and
+// encoding/json leaves such a field out); String, GoString, Format and
+// LogValue hide it, and MarshalJSON and MarshalText refuse. The zero
+// TrialKey is no key.
+type TrialKey struct{ mac func() hash.Hash }
 
 // NewTrialKey is the key of b, exactly TrialKeyLen bytes and not all zero.
 // It copies b.
 func NewTrialKey(b []byte) (TrialKey, error) {
-	var k TrialKey
 	if len(b) != TrialKeyLen {
-		return k, invalid("a trial key is %d bytes", TrialKeyLen)
+		return TrialKey{}, invalid("a trial key is %d bytes", TrialKeyLen)
 	}
+	var k [TrialKeyLen]byte
 	copy(k[:], b)
-	if k == (TrialKey{}) {
+	if k == ([TrialKeyLen]byte{}) {
 		return TrialKey{}, invalid("a trial key is not all zero")
 	}
-	return k, nil
+	return TrialKey{func() hash.Hash { return hmac.New(sha256.New, k[:]) }}, nil
 }
 
 // String hides the key.
@@ -109,8 +119,18 @@ func (TrialKey) String() string { return "contract.TrialKey{" + Ellipsis + "}" }
 // GoString is String, for %#v.
 func (k TrialKey) GoString() string { return k.String() }
 
+// Format hides the key in every verb, %x and %d included.
+func (k TrialKey) Format(f fmt.State, _ rune) { _, _ = io.WriteString(f, k.String()) }
+
 // LogValue hides the key from a structured log.
 func (TrialKey) LogValue() slog.Value { return slog.StringValue(Ellipsis) }
+
+// MarshalJSON refuses: a key is never serialised, so a struct that holds
+// one in an exported field never writes it.
+func (TrialKey) MarshalJSON() ([]byte, error) { return nil, invalid("a trial key is never serialised") }
+
+// MarshalText refuses, as MarshalJSON does.
+func (TrialKey) MarshalText() ([]byte, error) { return nil, invalid("a trial key is never serialised") }
 
 // TrialCode is the trial code of identifier, of kind, for app, under key.
 // It normalizes identifier by its kind first (NormalizeTrialIdentifier), so
@@ -119,7 +139,7 @@ func (TrialKey) LogValue() slog.Value { return slog.StringValue(Ellipsis) }
 // that is not one of app's is ErrInvalid.
 func TrialCode(key TrialKey, app, kind, identifier string) (string, error) {
 	switch {
-	case key == (TrialKey{}):
+	case key.mac == nil:
 		return "", invalid("no trial key")
 	case !slices.Contains(TrialCodeKinds(app), kind):
 		return "", invalid("the kind is not one of the app's")
@@ -128,7 +148,7 @@ func TrialCode(key TrialKey, app, kind, identifier string) (string, error) {
 	if !ok {
 		return "", ErrNoCode
 	}
-	mac := hmac.New(sha256.New, key[:])
+	mac := key.mac()
 	for i, part := range []string{TrialCodeLabel, app, kind, id} {
 		if i > 0 {
 			mac.Write([]byte{0})
@@ -145,7 +165,7 @@ func ValidTrialCode(s string) bool { return validSecret(s) }
 
 var (
 	e164RE  = regexp.MustCompile(`^\+[1-9][0-9]{1,14}$`)
-	waLIDRE = regexp.MustCompile(`^[0-9]{1,32}$`)
+	waLIDRE = regexp.MustCompile(`^[0-9]+$`)
 )
 
 // NormalizeTrialIdentifier is identifier normalized as kind's code takes
@@ -155,7 +175,7 @@ var (
 //   - e164: + and 2 to 15 ASCII digits, the first not 0, taken as given and
 //     never reformatted (no digit added or removed): the number's own
 //     phone-number JID's user part, never one a person typed.
-//   - wa_lid: the LID's user part, 1 to 32 ASCII digits, as given.
+//   - wa_lid: the LID's user part, ASCII digits, as given.
 //   - google_sub: the ID token's sub, as given.
 //   - ms_tid_sub: tid, "/", sub, as given (MSTidSub): one "/", neither half
 //     empty.
@@ -251,18 +271,23 @@ func normalizeAddress(s string) (string, bool) {
 // host "/" login, which never meets an address.
 //
 // The host is taken in ASCII, as A-labels: the caller converts a U-label
-// first, and a non-ASCII host is false. Its ASCII letters are lowercased
-// and one trailing dot dropped; a port, or anything that is not a host
-// name (ValidHost), is false. The login's ASCII letters are lowercased and
-// nothing else changes (no Gmail folding). An empty login, or one holding
-// a zero byte or invalid UTF-8, is false.
+// first, and a non-ASCII host is false. Its ASCII letters are lowercased,
+// a port (":" and 1 to 65535, with no leading zero) dropped, and one
+// trailing dot dropped. A host dialled by address is an IP literal, an
+// IPv6 one with or without its brackets: it is written as netip writes it
+// (dotted IPv4, an IPv4-mapped IPv6 address as its IPv4, IPv6 in RFC 5952
+// form without brackets), so that 2001:DB8::1 and [2001:db8::1]:993 meet;
+// one with a zone is false. Any other host is a host name (ValidHost), or
+// false. The login's ASCII letters are lowercased and nothing else changes
+// (no Gmail folding). An empty login, or one holding a zero byte or
+// invalid UTF-8, is false.
 //
 // That the TLS certificate was verified for the name dialled is the app's
 // to check, as is that the login succeeded: a code is made only once
 // ownership is proven.
 func IMAPIdentity(host, login string) (kind, identifier string, ok bool) {
-	host = strings.TrimSuffix(lowerASCII(host), ".")
-	if !ValidHost(host) || login == "" || strings.IndexByte(login, 0) >= 0 || !utf8.ValidString(login) {
+	host, ok = imapHost(host)
+	if !ok || login == "" || strings.IndexByte(login, 0) >= 0 || !utf8.ValidString(login) {
 		return "", "", false
 	}
 	if slices.Contains(providerIMAPHosts, host) && strings.Contains(login, "@") {
@@ -273,6 +298,56 @@ func IMAPIdentity(host, login string) (kind, identifier string, ok bool) {
 		return TrialKindAddress, id, true
 	}
 	return TrialKindIMAPLogin, host + "/" + lowerASCII(login), true
+}
+
+// imapHost is host as an imap_login code takes it (IMAPIdentity), or false.
+func imapHost(host string) (string, bool) {
+	host = lowerASCII(host)
+	bracketed := strings.HasPrefix(host, "[")
+	switch {
+	case bracketed:
+		end := strings.IndexByte(host, ']')
+		if end < 0 {
+			return "", false
+		}
+		rest := host[end+1:]
+		host = host[1:end]
+		if rest != "" {
+			port, ok := strings.CutPrefix(rest, ":")
+			if !ok || !validPort(port) {
+				return "", false
+			}
+		}
+	case strings.Count(host, ":") == 1:
+		name, port, _ := strings.Cut(host, ":")
+		if !validPort(port) {
+			return "", false
+		}
+		host = name
+	}
+	if a, err := netip.ParseAddr(host); err == nil {
+		if a.Zone() != "" || (bracketed && !a.Is6()) {
+			return "", false
+		}
+		return a.Unmap().String(), true
+	}
+	if bracketed {
+		return "", false
+	}
+	host = strings.TrimSuffix(host, ".")
+	if a, err := netip.ParseAddr(host); err == nil && a.Is4() {
+		return a.String(), true
+	}
+	if !ValidHost(host) {
+		return "", false
+	}
+	return host, true
+}
+
+// validPort reports whether s is a port: 1 to 65535, with no leading zero.
+func validPort(s string) bool {
+	n, err := strconv.Atoi(s)
+	return err == nil && n >= 1 && n <= 65535 && strconv.Itoa(n) == s
 }
 
 // TrialCodes are the codes an event carries: on item.linked and

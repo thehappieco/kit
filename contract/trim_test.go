@@ -775,7 +775,7 @@ func TestTheTrimListsAreClosed(t *testing.T) {
 		{contract.TrimActions, []string{"purge", "keep"}},
 		{contract.TrimOutcomes, []string{"done", "partial", "refused"}},
 		{contract.TrimStepOutcomes, []string{"done", "partial", "refused", "not_run"}},
-		{contract.TrimRefusedCodes, []string{"invalid_order", "held", "expired", "not_current", "usage_moved", "item_unknown"}},
+		{contract.TrimRefusedCodes, []string{"not_current", "expired", "usage_moved", "item_unknown", "invalid_order", "held"}},
 		{contract.TrimStoppedCodes, []string{"held", "expired", "not_current", "interrupted"}},
 	} {
 		got := c.get()

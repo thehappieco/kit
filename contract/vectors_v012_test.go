@@ -414,6 +414,12 @@ func TestEveryEntitlementsVectorHolds(t *testing.T) {
 		if !slices.Equal(before, c.StoppedBefore) || !slices.Equal(after, c.StoppedAfter) || placesAction(before, after) != c.Action {
 			t.Errorf("places %q: %v %v %s", c.Name, before, after, placesAction(before, after))
 		}
+		// The app's own count is never frozen: the same action either way.
+		flipped := c
+		flipped.Frozen = !c.Frozen
+		if a, b := placesAction(placesStopped(flipped.Before), placesStopped(flipped.After)), c.Action; a != b {
+			t.Errorf("places %q frozen %v: %s", c.Name, flipped.Frozen, a)
+		}
 	}
 	for _, c := range f.TrialStops {
 		if trialStopAction(c) != c.Action {
@@ -421,8 +427,23 @@ func TestEveryEntitlementsVectorHolds(t *testing.T) {
 		}
 	}
 	for _, c := range f.CapStops {
-		if capStopAction(c) != c.Action {
-			t.Errorf("cap stop %q: %s", c.Name, capStopAction(c))
+		flipped := c
+		flipped.Frozen = !c.Frozen
+		if capStopAction(c) != c.Action || capStopAction(flipped) != c.Action {
+			t.Errorf("cap stop %q: %s, frozen %v %s", c.Name, capStopAction(c), flipped.Frozen, capStopAction(flipped))
+		}
+	}
+	// A places lift and a cap resume each hold frozen and not.
+	for _, frozen := range []bool{false, true} {
+		places, caps := false, false
+		for _, c := range f.Places {
+			places = places || (c.Frozen == frozen && c.Action == "lift")
+		}
+		for _, c := range f.CapStops {
+			caps = caps || (c.Frozen == frozen && c.Action == "lift")
+		}
+		if !places || !caps {
+			t.Errorf("frozen %v: a places lift %v, a cap resume %v", frozen, places, caps)
 		}
 	}
 }

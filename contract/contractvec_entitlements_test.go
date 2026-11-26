@@ -456,6 +456,7 @@ type FreezeCase struct {
 	At         string  `json:"at"`
 	PlanSource *string `json:"plan_source,omitempty"`
 	Trial      *string `json:"trial,omitempty"`
+	InPlace    bool    `json:"in_place,omitempty"`
 	Now        string  `json:"now"`
 	FreshAt    string  `json:"fresh_at"`
 	StopsAt    *string `json:"stops_at"`
@@ -467,9 +468,10 @@ type FreezeCase struct {
 // stop, running or used_up alike, holds only while the plan source is
 // trial or none, and stops at the item's trial end in Mailie, 72 hours
 // later in Wappie. Wappie's place stop comes 72 hours after its own count
-// first found the item over its places. A stop fires at its time while the
-// app's freshness is under 24 hours old at that time; past that the app is
-// frozen and holds it.
+// first found the item over its places, and is cancelled (none), frozen or
+// not, once the app's own count has the item back among the first places
+// (in_place). A stop fires at its time while the app's freshness is under
+// 24 hours old at that time; past that the app is frozen and holds it.
 func freezeAction(c FreezeCase) (*string, string, error) {
 	at, err := time.Parse(time.RFC3339, c.At)
 	if err != nil {
@@ -494,6 +496,9 @@ func freezeAction(c FreezeCase) (*string, string, error) {
 			stops = at.Add(72 * time.Hour)
 		}
 	case "places":
+		if c.InPlace {
+			return nil, "none", nil
+		}
 		stops = at.Add(72 * time.Hour)
 	default:
 		return nil, "", fmt.Errorf("contractvec: a cause %q", c.Cause)
@@ -573,10 +578,13 @@ type PlacesCount struct {
 
 // PlacesCase is the app's count before and after a change, the items it
 // stops after each, and what the change does: lift (an item stopped
-// resumes), stop (an item is stopped) or keep.
+// resumes), stop (an item is stopped) or keep. Frozen is whether the
+// app's document is over 24 hours stale: the action is the same either
+// way, since the app's own count is never frozen (SPEC section 11.20).
 type PlacesCase struct {
 	Name          string      `json:"name"`
 	App           string      `json:"app"`
+	Frozen        bool        `json:"frozen"`
 	Before        PlacesCount `json:"before"`
 	After         PlacesCount `json:"after"`
 	StoppedBefore []string    `json:"stopped_before"`
@@ -648,8 +656,12 @@ func trialStopAction(c TrialStopCase) string {
 
 // CapStopCase is the app's total against the cap_bytes of the last
 // applied document, and whether capture stopped by the cap stores again.
+// Frozen is whether that document is over 24 hours stale: the action is
+// the same either way, since the cap always applies at the last applied
+// document's value and the app's own total is never frozen.
 type CapStopCase struct {
 	Name     string `json:"name"`
+	Frozen   bool   `json:"frozen"`
 	Total    int64  `json:"total_bytes"`
 	CapBytes int64  `json:"cap_bytes"`
 	Action   string `json:"action"`
@@ -704,7 +716,7 @@ func wireEntitlements() (any, error) {
 
 const entitlementsDescription = "The entitlements document, its feed and acknowledgement, and what an app does with them (SPEC section 11.20). " +
 	"documents: a document as the platform sends it, read as an app reads what the platform sends (members it does not know ignored, a member counted only as exactly named, every member present and null only where its rule allows), then Validate, which judges every time against computed_at, never the reader's clock: every type, enum and bound (timeline at most 16 steps, items at most 1000, plan counts 0 to 50); reason set exactly on over_quota and expired; deadline only on over_quota, where it may be null; expired_since set exactly on expired; trial_ends_at set on trial, allowed on over_quota, null on active, expired and closed; plan.source trial with counts 1, 1 and 0, test false and no period, none with 0, 0 and 0, test false and no period, live_move with test true; places.kind the app's and places.total the plan's count of it; places.used, used_connected, free and counted_at null together or set together, then free = max(0, total - used) and used_connected at most used; allowance_bytes = max(0, quota_bytes - others_bytes), others_bytes never null; Mailie's cap_bytes its allowance (Wappie's, floor(1.05 x cap_quota) - others_bytes, is not checked: its quota may be the one that last granted); measured_through null exactly with used_bytes; every switch off and timeline [] on closed; the timeline after computed_at in strictly rising at, each step {at, <switch>: off} naming one to four switches, each only as off; items only while state.trial_ends_at is set, each id once, running after computed_at and used_up at or before it, never not_needed; requests at or before computed_at, codes_after only while state.trial_ends_at is set; trim only with mode enforce and state expired, naming the document's app, workspace and generation, and valid as an order; links https, or http on a *.localhost host. The others_bytes 0 cases show the allowance and Wappie's cap from it: a quota_bytes of 15000000000 gives a cap_bytes of 15750000000. " +
-	"feeds: a page, read as an app reads what the platform sends, then the page's own Validate (generation, head, published_through, items at most 200 in rising seq at or below head, next_after at most head); its documents are judged one by one, so one never refuses the page. " +
+	"feeds: a page, read as an app reads what the platform sends: one object, no member twice, its seven members generation, generation_confirmed, head, published_through, items, next_after and more each present by its exact name and none null (more never read as false, next_after never as 0, a member named in another case one the app does not know), members it does not know ignored, each item {seq, doc} the same with doc kept as its bytes came (null too: a bad document, judged alone); then the page's own Validate (generation, head, published_through, items at most 200 in rising seq at or below head, next_after at most head); its documents are judged one by one, so one never refuses the page. " +
 	"applied: an acknowledgement, within 4 KiB, decoded strictly, then Validate: refused absent when none, else 1 to 20 entries, each {seq, workspace_id, code}, seq 1 to through and once, workspace_id a UUID or null, code invalid_document, another_app or another_generation. " +
 	"actions: a page of one document, the app reading it, its generation, the workspaces it holds (known) and the version it applied in each (held); action: invalid (the page does not decode or validate), reset (a page of another generation, whatever its document says), refuse (a bad document in a page of its own generation: another_app when its app reads as another app id, another_generation when its generation reads as another UUID, else invalid_document when it does not decode, fails Validate or its version is not its seq; refused is the acknowledgement's entry, its workspace_id null when that cannot be read), keep (a workspace no account document names yet: kept, counted as applied, applied once one does), ignore (a version at or below the one applied), apply; through is where the cursor goes: the page's next_after, past a refused document too. " +
 	"gets: a signed answer of the GET computed now for the workspace of the path, and the version the app applied there; status 200 or a signed refusal's code; action: not_found (the platform keeps no document: the last applied holds, frozen, and the app stops asking until a document of the workspace reaches its feed), none (any other signed refusal), refuse (a document that does not decode, fails Validate, or names another app or another workspace than the path's), reset (another generation), ignore (a lower version: a race with the feed), fresh (the same version: nothing changed), apply; fresh: whether it gives the workspace freshness (fresh and apply only). " +
@@ -712,12 +724,12 @@ const entitlementsDescription = "The entitlements document, its feed and acknowl
 	"versions: a feed item's document and a GET's answer of the same version; same: byte for byte, except a trim's secret and mac, which differ when a promote falls between the two. " +
 	"links: a link the app is asked to make: release (observe, or enforce for a release that enforces this part), held (the document applied there: its mode and new_links, null for none), fresh_minutes (its freshness, null for none), get (the GET's answer when the app asks: doc with get_doc, not_found, or none: no signed answer); asks: whether it asks the GET (no document, or freshness over 60 minutes); the workspace enforces when the document it then holds says enforce, or with none when the release enforces; action refuse_link (a retry) where it enforces and the link would be refused (no answer, or new_links off), else link; logged: a refusal it logs with ids only where it does not enforce. " +
 	"resets: what an app holds before a page of another generation and after: the cursor, the stored versions and each workspace's last answered codes_after forgotten; every last applied document (its mode, switches, timeline, places, cap and items) and the app's own per-item stop records kept. " +
-	"freeze: a stop to come and what the app does at now with its freshness last given at fresh_at: a timeline step stops at its at; an item's own trial stop (running or used_up alike) only while plan_source is trial or none, at its trial end in Mailie and 72 hours later in Wappie (none otherwise); Wappie's place stop 72 hours after its count first found the item over its places; stops_at is when; action wait (before it), fire (freshness under 24 hours old at stops_at), hold (frozen: 24 hours or more). " +
+	"freeze: a stop to come and what the app does at now with its freshness last given at fresh_at: a timeline step stops at its at; an item's own trial stop (running or used_up alike) only while plan_source is trial or none, at its trial end in Mailie and 72 hours later in Wappie (none otherwise); Wappie's place stop 72 hours after its count first found the item over its places, and cancelled (none), frozen or not, once its own count has the item back among the first places (in_place); stops_at is when; action wait (before it), fire (freshness under 24 hours old at stops_at), hold (frozen: 24 hours or more). " +
 	"caps: Wappie's cap_bytes, floor(1.05 x cap_quota) - others_bytes, at least 0, cap_quota the quota_bytes but at a boundary (trial_end, ends_at, late_payment_end, buy_by) before the sync step, where it is the quota that last granted (last_granted); Mailie's, its allowance. " +
 	"codes_after: send (item.identity_updated for every linked hosted item the document's items do not list) when codes_after is set and later than the last value the app answered for the workspace, else none. " +
-	"places: the app's own count before and after a change (total, the licence bindings it counts, its items by placed_at); the bindings take the first places and are never stopped, the items beyond the first total less the bindings stop; action lift, stop or keep. " +
+	"places: the app's own count before and after a change (total, the licence bindings it counts, its items by placed_at), and frozen, whether its document is over 24 hours stale; the bindings take the first places and are never stopped, the items beyond the first total less the bindings stop; action lift, stop or keep, the same frozen or not: the app's own count is never frozen. " +
 	"trial_stops: an item stopped at its own trial end, the next document applied (plan_source, the item's entry or null); action lift (plan_source plan or live_move, or listed running with a later end), else keep. " +
-	"cap_stops: the app's total against the cap_bytes of the last applied document: lift (at or below it, frozen or not) or stop."
+	"cap_stops: the app's total against the cap_bytes of the last applied document, and frozen, whether that document is over 24 hours stale: lift (at or below it) or stop, the same frozen or not."
 
 func entDocuments(out *WireEntitlements) error {
 	base := mustRaw(vecEnt("wappie", nil))
@@ -757,6 +769,19 @@ func entDocuments(out *WireEntitlements) error {
 		d.Timeline = []contract.TimelineStep{}
 	}
 	timeStr := func(d time.Duration) string { return at(d).Format(time.RFC3339) }
+	// most is the largest plan: 50 of each, its quota 50 x 10 GB + 50 x 5 GB
+	// + 50 x 50 GB, Wappie's places 50 with 2 used, Mailie's 50 with 1.
+	most := func(d *contract.EntitlementsDoc) {
+		d.Plan.Numbers, d.Plan.Mailboxes, d.Plan.Packs = contract.MaxPlanCount, contract.MaxPlanCount, contract.MaxPlanCount
+		d.Places.Total = contract.MaxPlanCount
+		d.Places.Free = ptr(contract.MaxPlanCount - *d.Places.Used)
+		d.Storage.QuotaBytes = 3250000000000
+		d.Storage.AllowanceBytes = d.Storage.QuotaBytes - d.Storage.OthersBytes
+		d.Storage.CapBytes = 3412500000000 - d.Storage.OthersBytes
+		if d.App == "mailie" {
+			d.Storage.CapBytes = d.Storage.AllowanceBytes
+		}
+	}
 	for _, c := range []struct {
 		name  string
 		raw   json.RawMessage
@@ -824,6 +849,13 @@ func entDocuments(out *WireEntitlements) error {
 		{"links on the development console", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) {
 			d.Links.Plan = "http://console.thehappie.localhost:8290/workspaces/" + vecTeam + "/plan"
 		})), true},
+		{"50 numbers, 50 mailboxes and 50 packs, the most", mustRaw(vecEnt("wappie", both(active, most))), true},
+		{"Mailie's 50 numbers, 50 mailboxes and 50 packs, the most", mustRaw(vecEnt("mailie", both(active, most))), true},
+		{"a plan with packs", mustRaw(vecEnt("wappie", both(active, func(d *contract.EntitlementsDoc) {
+			d.Plan.Packs = 1
+			d.Storage.QuotaBytes, d.Storage.AllowanceBytes, d.Storage.CapBytes = 75000000000, 73800000000, 77550000000
+		}))), true},
+		{"version 2^53 - 1, the most", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Version = contract.MaxSafeInteger })), true},
 		{"a member the app does not know, ignored", edit(base, `"test_mode":true`, `"test_mode":true,"advice":"buy"`), true},
 		{"v 2", edit(base, `"v":1`, `"v":2`), false},
 		{"type usage", edit(base, `"type":"entitlements"`, `"type":"usage"`), false},
@@ -853,6 +885,9 @@ func entDocuments(out *WireEntitlements) error {
 		{"none with a period", mustRaw(vecEnt("wappie", both(expired, func(d *contract.EntitlementsDoc) { d.Plan.EndsAt = ptr(at(time.Hour)) }))), false},
 		{"live_move not a test plan", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Plan.Source, d.Plan.Test = contract.SourceLiveMove, false })), false},
 		{"51 numbers", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Plan.Numbers, d.Places.Total = 51, 51 })), false},
+		{"51 mailboxes", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Plan.Mailboxes = 51 })), false},
+		{"Mailie's 51 mailboxes", mustRaw(vecEnt("mailie", func(d *contract.EntitlementsDoc) { d.Plan.Mailboxes, d.Places.Total = 51, 51 })), false},
+		{"51 packs", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Plan.Packs = 51 })), false},
 		{"packs below 0", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Plan.Packs = -1 })), false},
 		{"places of Mailie's kind in Wappie", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Places.Kind = contract.ItemMailbox })), false},
 		{"places.total not the plan's numbers", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Places.Total = 3 })), false},
@@ -912,6 +947,9 @@ func entDocuments(out *WireEntitlements) error {
 		{"a trim order that is not valid: round 4", mustRaw(vecEnt("wappie", withTrim(orderFor(func(o *contract.TrimOrder) { o.Round = 4 })))), false},
 		{"a trim that is no object", mustRaw(vecEnt("wappie", withTrim(json.RawMessage(`"purge everything"`)))), false},
 		{"a link over http to another host", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Links.Plan = "http://console.thehappie.co/plan" })), false},
+		{"a link over http to localhost itself, no *.localhost host", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) {
+			d.Links.Plan = "http://localhost:8290/workspaces/" + vecTeam + "/plan"
+		})), false},
 		{"a link with a fragment", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Links.Storage += "#top" })), false},
 		{"a link that is relative", mustRaw(vecEnt("wappie", func(d *contract.EntitlementsDoc) { d.Links.Plan = "/workspaces/" + vecTeam + "/plan" })), false},
 		{"plan null", edit(base, `"plan":{"source":"plan"`, `"plan":null,"x":{"source":"plan"`), false},
@@ -954,6 +992,19 @@ func entFeeds(out *WireEntitlements) error {
 		{"a generation that is no UUID", edit(page, `"generation":"`+vecGeneration+`","generation_confirmed"`, `"generation":"g","generation_confirmed"`), false},
 		{"items null", edit(empty, `"items":[]`, `"items":null`), false},
 		{"published_through missing", edit(page, `"published_through":"`+at(4*time.Second).Format(time.RFC3339)+`",`, ``), false},
+		{"a member the app does not know, ignored", edit(page, `"more":false`, `"more":false,"hint":1`), true},
+		{"a document null: judged alone, never refusing the page", edit(entPage(vecGeneration, 57, json.RawMessage(`{}`)), `"doc":{}`, `"doc":null`), true},
+		{"more missing: never read as false", edit(page, `,"more":false`, ``), false},
+		{"more null", edit(page, `"more":false`, `"more":null`), false},
+		{"More in capitals: a member the app does not know, and more missing", edit(page, `"more":false`, `"More":false`), false},
+		{"next_after missing: never read as 0", edit(page, `"next_after":57,`, ``), false},
+		{"generation_confirmed missing", edit(page, `"generation_confirmed":true,`, ``), false},
+		{"head missing", edit(page, `"head":57,`, ``), false},
+		{"items missing", edit(empty, `"items":[],`, ``), false},
+		{"more twice", edit(page, `"more":false`, `"more":true,"more":false`), false},
+		{"an item without its seq", edit(page, `"seq":57,`, ``), false},
+		{"an item's seq null", edit(page, `"seq":57`, `"seq":null`), false},
+		{"an item without its doc", edit(page, `"doc":`, `"x":`), false},
 	} {
 		if got := entFeedValid(c.raw); got != c.valid {
 			return fmt.Errorf("contractvec: page %q is valid %v, the spec asks %v", c.name, got, c.valid)
@@ -1249,6 +1300,8 @@ func entBehaviour(out *WireEntitlements) error {
 		{Name: "an item's trial stop in a live move: no stop", App: "wappie", Cause: "item_trial", At: t(-80 * time.Hour), PlanSource: src(contract.SourceLiveMove), Trial: src(contract.TrialUsedUp), Now: t(0), FreshAt: t(-time.Hour), Action: "none"},
 		{Name: "Wappie's place stop 72 hours after its count found the item over", App: "wappie", Cause: "places", At: t(-72 * time.Hour), Now: t(0), FreshAt: t(-time.Hour), Action: "fire"},
 		{Name: "Wappie's place stop under the freeze holds", App: "wappie", Cause: "places", At: t(-72 * time.Hour), Now: t(0), FreshAt: t(-25 * time.Hour), Action: "hold"},
+		{Name: "Wappie's pending place stop, the item back among the first places while frozen: cancelled", App: "wappie", Cause: "places", At: t(-48 * time.Hour), InPlace: true, Now: t(0), FreshAt: t(-30 * time.Hour), Action: "none"},
+		{Name: "Wappie's pending place stop, the item back among the first places: cancelled", App: "wappie", Cause: "places", At: t(-48 * time.Hour), InPlace: true, Now: t(0), FreshAt: t(-time.Hour), Action: "none"},
 	} {
 		stops, action, err := freezeAction(c)
 		if err != nil {
@@ -1268,6 +1321,7 @@ func entBehaviour(out *WireEntitlements) error {
 		{Name: "a set ends_at, before the sync step: the ended plan's quota", App: "wappie", Boundary: "ends_at", LastGranted: 25000000000, OthersBytes: 1200000000, BeforeSyncStep: true, CapBytes: 25050000000},
 		{Name: "a set ends_at, after the sync step", App: "wappie", Boundary: "ends_at", LastGranted: 25000000000, OthersBytes: 1200000000, CapBytes: 0},
 		{Name: "the 14 days' end, before the sync step", App: "wappie", Boundary: "late_payment_end", LastGranted: 10000000000, BeforeSyncStep: true, CapBytes: 10500000000},
+		{Name: "the 14 days' end, after the sync step", App: "wappie", Boundary: "late_payment_end", LastGranted: 10000000000, CapBytes: 0},
 		{Name: "buy_by, before the sync step", App: "wappie", Boundary: "buy_by", LastGranted: 60000000000, OthersBytes: 500000000, BeforeSyncStep: true, CapBytes: 62500000000},
 		{Name: "buy_by, after the sync step", App: "wappie", Boundary: "buy_by", LastGranted: 60000000000, OthersBytes: 500000000, CapBytes: 0},
 		{Name: "a quota episode: the quota itself", App: "wappie", QuotaBytes: 25000000000, OthersBytes: 1200000000, CapBytes: 25050000000},
@@ -1301,6 +1355,11 @@ func entBehaviour(out *WireEntitlements) error {
 	for _, c := range []PlacesCase{
 		{Name: "a deletion frees a place: the stopped item resumes", App: "wappie",
 			Before: PlacesCount{Total: 2, Items: three}, After: PlacesCount{Total: 2, Items: []Placed{three[1], three[2]}}, Action: "lift"},
+		{Name: "a deletion frees a place while frozen: the stopped item resumes", App: "wappie", Frozen: true,
+			Before: PlacesCount{Total: 2, Items: three}, After: PlacesCount{Total: 2, Items: []Placed{three[1], three[2]}}, Action: "lift"},
+		{Name: "a purge frees a place while frozen", App: "mailie", Frozen: true,
+			Before: PlacesCount{Total: 1, Items: []Placed{p("acc_1", -48*time.Hour), p("acc_2", -24*time.Hour)}},
+			After:  PlacesCount{Total: 1, Items: []Placed{p("acc_2", -24*time.Hour)}}, Action: "lift"},
 		{Name: "a purge frees a place", App: "mailie",
 			Before: PlacesCount{Total: 1, Items: []Placed{p("acc_1", -48*time.Hour), p("acc_2", -24*time.Hour)}},
 			After:  PlacesCount{Total: 1, Items: []Placed{p("acc_2", -24*time.Hour)}}, Action: "lift"},
@@ -1332,7 +1391,7 @@ func entBehaviour(out *WireEntitlements) error {
 		out.Places = append(out.Places, c)
 	}
 	// The earliest placed_at resumes first.
-	if !slices.Equal(out.Places[4].StoppedAfter, []string{"dev_3"}) {
+	if !slices.Equal(out.Places[6].StoppedAfter, []string{"dev_3"}) || out.Places[6].Name != "one place freed: the earliest placed_at resumes first" {
 		return fmt.Errorf("contractvec: the earliest placed_at does not resume first")
 	}
 
@@ -1355,8 +1414,11 @@ func entBehaviour(out *WireEntitlements) error {
 
 	for _, c := range []CapStopCase{
 		{Name: "back at the cap: stores again", Total: 15750000000, CapBytes: 15750000000, Action: "lift"},
-		{Name: "below the cap: stores again, frozen or not", Total: 15000000000, CapBytes: 15750000000, Action: "lift"},
+		{Name: "back at the cap while frozen: stores again", Frozen: true, Total: 15750000000, CapBytes: 15750000000, Action: "lift"},
+		{Name: "below the cap: stores again", Total: 15000000000, CapBytes: 15750000000, Action: "lift"},
+		{Name: "below the cap while frozen: stores again", Frozen: true, Total: 15000000000, CapBytes: 15750000000, Action: "lift"},
 		{Name: "a byte over the cap: stores nothing new", Total: 15750000001, CapBytes: 15750000000, Action: "stop"},
+		{Name: "a byte over the cap while frozen: stops at once all the same", Frozen: true, Total: 15750000001, CapBytes: 15750000000, Action: "stop"},
 	} {
 		if got := capStopAction(c); got != c.Action {
 			return fmt.Errorf("contractvec: cap stop %q is %s, the spec asks %s", c.Name, got, c.Action)

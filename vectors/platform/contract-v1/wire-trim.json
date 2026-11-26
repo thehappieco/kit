@@ -2,7 +2,7 @@
   "format": "thehappie-contract/vectors",
   "version": 1,
   "kind": "wire-trim",
-  "description": "Trim orders (SPEC section 11.20), every one signed with SecretA of signatures.json for its app, generation 2, but where a case says otherwise. order: the file's order, Wappie's, issued at 2026-10-13T12:00:00Z: a deleted item purged, then a live one kept down to its floor; results' for_order cases are judged against it. orders: an order read as an app reads what the platform sends (members it does not know ignored, every member present, null only for floor), then Validate: order_id a UUIDv7; round 1 to 3; issued_at <= not_before < valid_until <= issued_at + 6 h; floor issued_at's UTC date less 90 days, or null, and then every keep step's keep_bytes 0; basis.measured_at under an hour before issued_at; 1 to 2000 steps, each item once, keep_bytes (0 to 2^53 - 1) exactly on keep; basis_purge naming exactly the purge steps' items; secret 1 or more; mac v1= and 64 lowercase hex. decisions: the order as the feed's document carries it (feed), what the app holds and sees, and its decision, in this order: check 1 on the feed's copy (contract.VerifyTrimOrder: the MAC under one of secrets, its app, workspace and generation the document's, and with floor null a plan source neither plan nor live_move), and when no secret it holds verifies that copy, check 4's GET first and check 1 on that answer's copy (no signed answer: wait); else refused invalid_order, recorded nowhere. An order whose order_id has a recorded result: resend, that result unchanged. Before valid_until (exclusive), wait while now is before not_before (inclusive) or generation_confirmed is false: no result, no record, no round. Then refused held (the allow shut, or a local brake holding the workspace at observe), refused expired (now at or after valid_until), check 4 (get: doc with get_doc, none, rate_limited, unavailable or not_found; no signed answer, rate_limited and unavailable wait; not_found, a document with no trim or another order_id, refused not_current; the same order_id: check 1 again on that copy, used from here), with a floor check 5 (basis, the report its basis names as the app kept it, null when it no longer does: usage_moved; else usage now within max(1 % of the GET's quota_bytes, 100 MB) of it, in total and for each step's item, a purge step whose item was purged already left out with its basis bytes; else usage_moved), check 6 (a step's item absent, or purged on a keep step: item_unknown; then per step: a purge step's item deleted with its basis_purge and a keep step's live run, else that step alone item_changed; a purge step whose item the app purged since: done with 0). steps: what a run does with each step. runs: an order the app took (order), and per step the events before it starts (before; none for the first) and between its batches (between): same (check 4's GET answered the same order_id), batch, report, purged_event and snapshot go on; none, rate_limited and unavailable wait, running nothing; expired, held, other, not_found, no_trim, feed_null and feed_other (the feed applied a document whose trim is null or another order) and interrupted stop the order with expired, held, not_current or interrupted; item: the step's item at its check 6 (as_ordered; changed: refused item_changed and the run goes on; purged_since: done with 0); bytes_after and at_floor (a keep step stopped at the floor above keep_bytes: partial). reported: the result the app reports, with usage_seq. results: a result decoded strictly, then Validate, and with for_order ValidateFor the file's order: outcome done (every step done), partial or refused; code one of invalid_order, held, expired, not_current, usage_moved, item_unknown on refused, null or one of held, expired, not_current, interrupted on partial, null on done; steps [] on refused, else each step once, outcome done, partial, refused (code item_changed) or not_run (only once the order stopped, and every step after it), bytes_after null on refused and not_run; usage_seq null exactly on refused; against the order: its order_id, its steps in its order, a purge step done at 0 bytes. answers: the platform's answer, read as an app reads what the platform sends, then Validate: accepted or duplicate with code null; rejected with invalid_request, not_found or conflict; order_id a UUID, or \"\" on a rejected invalid_request alone.",
+  "description": "Trim orders (SPEC section 11.20), every one signed with SecretA of signatures.json for its app, generation 2, but where a case says otherwise. order: the file's order, Wappie's, issued at 2026-10-13T12:00:00Z: a deleted item purged, then a live one kept down to its floor; results' for_order cases are judged against it. orders: an order read as an app reads what the platform sends (members it does not know ignored, every member present, null only for floor), then Validate: order_id a UUIDv7; round 1 to 3; issued_at <= not_before < valid_until <= issued_at + 6 h; floor issued_at's UTC date less 90 days, or null, and then every keep step's keep_bytes 0; basis.measured_at under an hour before issued_at; 1 to 2000 steps, each item once, keep_bytes (0 to 2^53 - 1) exactly on keep; basis_purge naming exactly the purge steps' items; secret 1 or more; mac v1= and 64 lowercase hex. decisions: the order as the feed's document carries it (feed), what the app holds and sees, and its decision, in this order: check 1 on the feed's copy (contract.VerifyTrimOrder: the MAC under one of secrets, its app, workspace and generation the document's, and with floor null a plan source neither plan nor live_move), and when no secret it holds verifies that copy, check 4's GET first and check 1 on that answer's copy (no signed answer: wait); else refused invalid_order, recorded nowhere. An order whose order_id has a recorded result: resend, that result unchanged. Before valid_until (exclusive), wait while now is before not_before (inclusive) or generation_confirmed is false: no result, no record, no round. Then refused held (the allow shut, or a local brake holding the workspace at observe), refused expired (now at or after valid_until), check 4 (get: doc with get_doc, none, rate_limited, unavailable or not_found; no signed answer, rate_limited and unavailable wait; not_found, a document with no trim or another order_id, refused not_current; the same order_id: check 1 again on that copy, used from here), with a floor check 5 (basis, the report its basis names as the app kept it, null when it no longer does: usage_moved; else usage now within max(1 % of the GET's quota_bytes, 100 MB) of it, in total and for each step's item, a purge step whose item was purged already left out with its basis bytes; else usage_moved), check 6 (a step's item absent, or purged on a keep step: item_unknown; then per step: a purge step's item deleted with its basis_purge and a keep step's live run, else that step alone item_changed; a purge step whose item the app purged since: done with 0). steps: what a run does with each step. runs: an order the app took (order), and per step the events before it starts (before; none for the first) and between its batches (between): same (check 4's GET answered the same order_id), batch, report, purged_event and snapshot go on; none, rate_limited and unavailable wait, running nothing; expired, held, other, not_found, no_trim, feed_null and feed_other (the feed applied a document whose trim is null or another order) and interrupted stop the order with expired, held, not_current or interrupted; item: the step's item at its check 6 (as_ordered; changed: refused item_changed and the run goes on; purged_since: done with 0); bytes_after and at_floor (a keep step stopped at the floor above keep_bytes: partial). reported: the result the app reports, with usage_seq. results: a result decoded strictly, then Validate, and with for_order ValidateFor the file's order: outcome done (every step done), partial or refused; code one of not_current, expired, usage_moved, item_unknown, invalid_order, held on refused, null or one of held, expired, not_current, interrupted on partial, null on done; steps [] on refused, else each step once, outcome done, partial, refused (code item_changed) or not_run (only once the order stopped, and every step after it), bytes_after null on refused and not_run; usage_seq null exactly on refused; against the order: its order_id, its steps in its order, a purge step done at 0 bytes. answers: the platform's answer, read as an app reads what the platform sends, then Validate: accepted or duplicate with code null; rejected with invalid_request, not_found or conflict; order_id a UUID, or \"\" on a rejected invalid_request alone.",
   "order": {
     "app": "wappie",
     "basis": {
@@ -11117,24 +11117,12 @@
       "valid": true
     },
     {
-      "name": "refused invalid_order",
+      "name": "refused not_current",
       "for_order": true,
       "value": {
         "order_id": "0199c3a0-0000-7000-8000-000000000101",
         "outcome": "refused",
-        "code": "invalid_order",
-        "steps": [],
-        "usage_seq": null
-      },
-      "valid": true
-    },
-    {
-      "name": "refused held",
-      "for_order": true,
-      "value": {
-        "order_id": "0199c3a0-0000-7000-8000-000000000101",
-        "outcome": "refused",
-        "code": "held",
+        "code": "not_current",
         "steps": [],
         "usage_seq": null
       },
@@ -11147,18 +11135,6 @@
         "order_id": "0199c3a0-0000-7000-8000-000000000101",
         "outcome": "refused",
         "code": "expired",
-        "steps": [],
-        "usage_seq": null
-      },
-      "valid": true
-    },
-    {
-      "name": "refused not_current",
-      "for_order": true,
-      "value": {
-        "order_id": "0199c3a0-0000-7000-8000-000000000101",
-        "outcome": "refused",
-        "code": "not_current",
         "steps": [],
         "usage_seq": null
       },
@@ -11183,6 +11159,30 @@
         "order_id": "0199c3a0-0000-7000-8000-000000000101",
         "outcome": "refused",
         "code": "item_unknown",
+        "steps": [],
+        "usage_seq": null
+      },
+      "valid": true
+    },
+    {
+      "name": "refused invalid_order",
+      "for_order": true,
+      "value": {
+        "order_id": "0199c3a0-0000-7000-8000-000000000101",
+        "outcome": "refused",
+        "code": "invalid_order",
+        "steps": [],
+        "usage_seq": null
+      },
+      "valid": true
+    },
+    {
+      "name": "refused held",
+      "for_order": true,
+      "value": {
+        "order_id": "0199c3a0-0000-7000-8000-000000000101",
+        "outcome": "refused",
+        "code": "held",
         "steps": [],
         "usage_seq": null
       },

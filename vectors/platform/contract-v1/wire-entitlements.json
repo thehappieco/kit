@@ -2,7 +2,7 @@
   "format": "thehappie-contract/vectors",
   "version": 1,
   "kind": "wire-entitlements",
-  "description": "The entitlements document, its feed and acknowledgement, and what an app does with them (SPEC section 11.20). documents: a document as the platform sends it, read as an app reads what the platform sends (members it does not know ignored, a member counted only as exactly named, every member present and null only where its rule allows), then Validate, which judges every time against computed_at, never the reader's clock: every type, enum and bound (timeline at most 16 steps, items at most 1000, plan counts 0 to 50); reason set exactly on over_quota and expired; deadline only on over_quota, where it may be null; expired_since set exactly on expired; trial_ends_at set on trial, allowed on over_quota, null on active, expired and closed; plan.source trial with counts 1, 1 and 0, test false and no period, none with 0, 0 and 0, test false and no period, live_move with test true; places.kind the app's and places.total the plan's count of it; places.used, used_connected, free and counted_at null together or set together, then free = max(0, total - used) and used_connected at most used; allowance_bytes = max(0, quota_bytes - others_bytes), others_bytes never null; Mailie's cap_bytes its allowance (Wappie's, floor(1.05 x cap_quota) - others_bytes, is not checked: its quota may be the one that last granted); measured_through null exactly with used_bytes; every switch off and timeline [] on closed; the timeline after computed_at in strictly rising at, each step {at, <switch>: off} naming one to four switches, each only as off; items only while state.trial_ends_at is set, each id once, running after computed_at and used_up at or before it, never not_needed; requests at or before computed_at, codes_after only while state.trial_ends_at is set; trim only with mode enforce and state expired, naming the document's app, workspace and generation, and valid as an order; links https, or http on a *.localhost host. The others_bytes 0 cases show the allowance and Wappie's cap from it: a quota_bytes of 15000000000 gives a cap_bytes of 15750000000. feeds: a page, read as an app reads what the platform sends, then the page's own Validate (generation, head, published_through, items at most 200 in rising seq at or below head, next_after at most head); its documents are judged one by one, so one never refuses the page. applied: an acknowledgement, within 4 KiB, decoded strictly, then Validate: refused absent when none, else 1 to 20 entries, each {seq, workspace_id, code}, seq 1 to through and once, workspace_id a UUID or null, code invalid_document, another_app or another_generation. actions: a page of one document, the app reading it, its generation, the workspaces it holds (known) and the version it applied in each (held); action: invalid (the page does not decode or validate), reset (a page of another generation, whatever its document says), refuse (a bad document in a page of its own generation: another_app when its app reads as another app id, another_generation when its generation reads as another UUID, else invalid_document when it does not decode, fails Validate or its version is not its seq; refused is the acknowledgement's entry, its workspace_id null when that cannot be read), keep (a workspace no account document names yet: kept, counted as applied, applied once one does), ignore (a version at or below the one applied), apply; through is where the cursor goes: the page's next_after, past a refused document too. gets: a signed answer of the GET computed now for the workspace of the path, and the version the app applied there; status 200 or a signed refusal's code; action: not_found (the platform keeps no document: the last applied holds, frozen, and the app stops asking until a document of the workspace reaches its feed), none (any other signed refusal), refuse (a document that does not decode, fails Validate, or names another app or another workspace than the path's), reset (another generation), ignore (a lower version: a race with the feed), fresh (the same version: nothing changed), apply; fresh: whether it gives the workspace freshness (fresh and apply only). sequences: pages and GET answers in turn; held_back: after each step, the workspaces whose freshness from pages is held back: a refused document's, or every workspace the app keeps a document of when its workspace_id cannot be read; each until a valid document of it of a higher version applies from a page, or a GET answer gives it freshness. versions: a feed item's document and a GET's answer of the same version; same: byte for byte, except a trim's secret and mac, which differ when a promote falls between the two. links: a link the app is asked to make: release (observe, or enforce for a release that enforces this part), held (the document applied there: its mode and new_links, null for none), fresh_minutes (its freshness, null for none), get (the GET's answer when the app asks: doc with get_doc, not_found, or none: no signed answer); asks: whether it asks the GET (no document, or freshness over 60 minutes); the workspace enforces when the document it then holds says enforce, or with none when the release enforces; action refuse_link (a retry) where it enforces and the link would be refused (no answer, or new_links off), else link; logged: a refusal it logs with ids only where it does not enforce. resets: what an app holds before a page of another generation and after: the cursor, the stored versions and each workspace's last answered codes_after forgotten; every last applied document (its mode, switches, timeline, places, cap and items) and the app's own per-item stop records kept. freeze: a stop to come and what the app does at now with its freshness last given at fresh_at: a timeline step stops at its at; an item's own trial stop (running or used_up alike) only while plan_source is trial or none, at its trial end in Mailie and 72 hours later in Wappie (none otherwise); Wappie's place stop 72 hours after its count first found the item over its places; stops_at is when; action wait (before it), fire (freshness under 24 hours old at stops_at), hold (frozen: 24 hours or more). caps: Wappie's cap_bytes, floor(1.05 x cap_quota) - others_bytes, at least 0, cap_quota the quota_bytes but at a boundary (trial_end, ends_at, late_payment_end, buy_by) before the sync step, where it is the quota that last granted (last_granted); Mailie's, its allowance. codes_after: send (item.identity_updated for every linked hosted item the document's items do not list) when codes_after is set and later than the last value the app answered for the workspace, else none. places: the app's own count before and after a change (total, the licence bindings it counts, its items by placed_at); the bindings take the first places and are never stopped, the items beyond the first total less the bindings stop; action lift, stop or keep. trial_stops: an item stopped at its own trial end, the next document applied (plan_source, the item's entry or null); action lift (plan_source plan or live_move, or listed running with a later end), else keep. cap_stops: the app's total against the cap_bytes of the last applied document: lift (at or below it, frozen or not) or stop.",
+  "description": "The entitlements document, its feed and acknowledgement, and what an app does with them (SPEC section 11.20). documents: a document as the platform sends it, read as an app reads what the platform sends (members it does not know ignored, a member counted only as exactly named, every member present and null only where its rule allows), then Validate, which judges every time against computed_at, never the reader's clock: every type, enum and bound (timeline at most 16 steps, items at most 1000, plan counts 0 to 50); reason set exactly on over_quota and expired; deadline only on over_quota, where it may be null; expired_since set exactly on expired; trial_ends_at set on trial, allowed on over_quota, null on active, expired and closed; plan.source trial with counts 1, 1 and 0, test false and no period, none with 0, 0 and 0, test false and no period, live_move with test true; places.kind the app's and places.total the plan's count of it; places.used, used_connected, free and counted_at null together or set together, then free = max(0, total - used) and used_connected at most used; allowance_bytes = max(0, quota_bytes - others_bytes), others_bytes never null; Mailie's cap_bytes its allowance (Wappie's, floor(1.05 x cap_quota) - others_bytes, is not checked: its quota may be the one that last granted); measured_through null exactly with used_bytes; every switch off and timeline [] on closed; the timeline after computed_at in strictly rising at, each step {at, <switch>: off} naming one to four switches, each only as off; items only while state.trial_ends_at is set, each id once, running after computed_at and used_up at or before it, never not_needed; requests at or before computed_at, codes_after only while state.trial_ends_at is set; trim only with mode enforce and state expired, naming the document's app, workspace and generation, and valid as an order; links https, or http on a *.localhost host. The others_bytes 0 cases show the allowance and Wappie's cap from it: a quota_bytes of 15000000000 gives a cap_bytes of 15750000000. feeds: a page, read as an app reads what the platform sends: one object, no member twice, its seven members generation, generation_confirmed, head, published_through, items, next_after and more each present by its exact name and none null (more never read as false, next_after never as 0, a member named in another case one the app does not know), members it does not know ignored, each item {seq, doc} the same with doc kept as its bytes came (null too: a bad document, judged alone); then the page's own Validate (generation, head, published_through, items at most 200 in rising seq at or below head, next_after at most head); its documents are judged one by one, so one never refuses the page. applied: an acknowledgement, within 4 KiB, decoded strictly, then Validate: refused absent when none, else 1 to 20 entries, each {seq, workspace_id, code}, seq 1 to through and once, workspace_id a UUID or null, code invalid_document, another_app or another_generation. actions: a page of one document, the app reading it, its generation, the workspaces it holds (known) and the version it applied in each (held); action: invalid (the page does not decode or validate), reset (a page of another generation, whatever its document says), refuse (a bad document in a page of its own generation: another_app when its app reads as another app id, another_generation when its generation reads as another UUID, else invalid_document when it does not decode, fails Validate or its version is not its seq; refused is the acknowledgement's entry, its workspace_id null when that cannot be read), keep (a workspace no account document names yet: kept, counted as applied, applied once one does), ignore (a version at or below the one applied), apply; through is where the cursor goes: the page's next_after, past a refused document too. gets: a signed answer of the GET computed now for the workspace of the path, and the version the app applied there; status 200 or a signed refusal's code; action: not_found (the platform keeps no document: the last applied holds, frozen, and the app stops asking until a document of the workspace reaches its feed), none (any other signed refusal), refuse (a document that does not decode, fails Validate, or names another app or another workspace than the path's), reset (another generation), ignore (a lower version: a race with the feed), fresh (the same version: nothing changed), apply; fresh: whether it gives the workspace freshness (fresh and apply only). sequences: pages and GET answers in turn; held_back: after each step, the workspaces whose freshness from pages is held back: a refused document's, or every workspace the app keeps a document of when its workspace_id cannot be read; each until a valid document of it of a higher version applies from a page, or a GET answer gives it freshness. versions: a feed item's document and a GET's answer of the same version; same: byte for byte, except a trim's secret and mac, which differ when a promote falls between the two. links: a link the app is asked to make: release (observe, or enforce for a release that enforces this part), held (the document applied there: its mode and new_links, null for none), fresh_minutes (its freshness, null for none), get (the GET's answer when the app asks: doc with get_doc, not_found, or none: no signed answer); asks: whether it asks the GET (no document, or freshness over 60 minutes); the workspace enforces when the document it then holds says enforce, or with none when the release enforces; action refuse_link (a retry) where it enforces and the link would be refused (no answer, or new_links off), else link; logged: a refusal it logs with ids only where it does not enforce. resets: what an app holds before a page of another generation and after: the cursor, the stored versions and each workspace's last answered codes_after forgotten; every last applied document (its mode, switches, timeline, places, cap and items) and the app's own per-item stop records kept. freeze: a stop to come and what the app does at now with its freshness last given at fresh_at: a timeline step stops at its at; an item's own trial stop (running or used_up alike) only while plan_source is trial or none, at its trial end in Mailie and 72 hours later in Wappie (none otherwise); Wappie's place stop 72 hours after its count first found the item over its places, and cancelled (none), frozen or not, once its own count has the item back among the first places (in_place); stops_at is when; action wait (before it), fire (freshness under 24 hours old at stops_at), hold (frozen: 24 hours or more). caps: Wappie's cap_bytes, floor(1.05 x cap_quota) - others_bytes, at least 0, cap_quota the quota_bytes but at a boundary (trial_end, ends_at, late_payment_end, buy_by) before the sync step, where it is the quota that last granted (last_granted); Mailie's, its allowance. codes_after: send (item.identity_updated for every linked hosted item the document's items do not list) when codes_after is set and later than the last value the app answered for the workspace, else none. places: the app's own count before and after a change (total, the licence bindings it counts, its items by placed_at), and frozen, whether its document is over 24 hours stale; the bindings take the first places and are never stopped, the items beyond the first total less the bindings stop; action lift, stop or keep, the same frozen or not: the app's own count is never frozen. trial_stops: an item stopped at its own trial end, the next document applied (plan_source, the item's entry or null); action lift (plan_source plan or live_move, or listed running with a later end), else keep. cap_stops: the app's total against the cap_bytes of the last applied document, and frozen, whether that document is over 24 hours stale: lift (at or below it) or stop, the same frozen or not.",
   "documents": [
     {
       "name": "the spec's document: Wappie over its quota, a plan, one step to come",
@@ -2166,6 +2166,275 @@
       "valid": true
     },
     {
+      "name": "50 numbers, 50 mailboxes and 50 packs, the most",
+      "value": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "active",
+          "reason": null,
+          "since": "2026-10-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": null,
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 50,
+          "mailboxes": 50,
+          "packs": 50,
+          "period_end": "2026-11-11T12:00:00Z",
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 50,
+          "used": 2,
+          "used_connected": 1,
+          "free": 48,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 3250000000000,
+          "used_bytes": 12000000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 3248800000000,
+          "cap_bytes": 3411300000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "on",
+          "new_links": "on",
+          "sync": "on",
+          "send": "on"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": null,
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "Mailie's 50 numbers, 50 mailboxes and 50 packs, the most",
+      "value": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "mailie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "active",
+          "reason": null,
+          "since": "2026-10-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": null,
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 50,
+          "mailboxes": 50,
+          "packs": 50,
+          "period_end": "2026-11-11T12:00:00Z",
+          "ends_at": null
+        },
+        "places": {
+          "kind": "mailbox",
+          "total": 50,
+          "used": 1,
+          "used_connected": 0,
+          "free": 49,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 3250000000000,
+          "used_bytes": 12000000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 3248800000000,
+          "cap_bytes": 3248800000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "on",
+          "new_links": "on",
+          "sync": "on",
+          "send": "on"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": null,
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "a plan with packs",
+      "value": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "active",
+          "reason": null,
+          "since": "2026-10-03T12:00:00Z",
+          "deadline": null,
+          "expired_since": null,
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 2,
+          "mailboxes": 1,
+          "packs": 1,
+          "period_end": "2026-11-11T12:00:00Z",
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 2,
+          "used": 2,
+          "used_connected": 1,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 75000000000,
+          "used_bytes": 12000000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 73800000000,
+          "cap_bytes": 77550000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "on",
+          "new_links": "on",
+          "sync": "on",
+          "send": "on"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": null,
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "version 2^53 - 1, the most",
+      "value": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 9007199254740991,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "over_quota",
+          "reason": "over_quota",
+          "since": "2026-10-11T11:00:00Z",
+          "deadline": "2026-11-10T12:00:00Z",
+          "expired_since": null,
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 2,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": "2026-11-11T12:00:00Z",
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 2,
+          "used": 2,
+          "used_connected": 1,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 25000000000,
+          "used_bytes": 27300000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 23800000000,
+          "cap_bytes": 25050000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "on",
+          "send": "off"
+        },
+        "timeline": [
+          {
+            "at": "2026-10-14T11:00:00Z",
+            "sync": "off"
+          }
+        ],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": null,
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "valid": true
+    },
+    {
       "name": "a member the app does not know, ignored",
       "value": {
         "v": 1,
@@ -4177,6 +4446,214 @@
         "places": {
           "kind": "number",
           "total": 51,
+          "used": 2,
+          "used_connected": 1,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 25000000000,
+          "used_bytes": 27300000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 23800000000,
+          "cap_bytes": 25050000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "on",
+          "send": "off"
+        },
+        "timeline": [
+          {
+            "at": "2026-10-14T11:00:00Z",
+            "sync": "off"
+          }
+        ],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": null,
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "51 mailboxes",
+      "value": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "over_quota",
+          "reason": "over_quota",
+          "since": "2026-10-11T11:00:00Z",
+          "deadline": "2026-11-10T12:00:00Z",
+          "expired_since": null,
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 2,
+          "mailboxes": 51,
+          "packs": 0,
+          "period_end": "2026-11-11T12:00:00Z",
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 2,
+          "used": 2,
+          "used_connected": 1,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 25000000000,
+          "used_bytes": 27300000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 23800000000,
+          "cap_bytes": 25050000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "on",
+          "send": "off"
+        },
+        "timeline": [
+          {
+            "at": "2026-10-14T11:00:00Z",
+            "sync": "off"
+          }
+        ],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": null,
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "Mailie's 51 mailboxes",
+      "value": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "mailie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "over_quota",
+          "reason": "over_quota",
+          "since": "2026-10-11T11:00:00Z",
+          "deadline": "2026-11-10T12:00:00Z",
+          "expired_since": null,
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 2,
+          "mailboxes": 51,
+          "packs": 0,
+          "period_end": "2026-11-11T12:00:00Z",
+          "ends_at": null
+        },
+        "places": {
+          "kind": "mailbox",
+          "total": 51,
+          "used": 1,
+          "used_connected": 0,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 25000000000,
+          "used_bytes": 27300000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 23800000000,
+          "cap_bytes": 23800000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "off",
+          "send": "off"
+        },
+        "timeline": [],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": null,
+        "links": {
+          "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "51 packs",
+      "value": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "over_quota",
+          "reason": "over_quota",
+          "since": "2026-10-11T11:00:00Z",
+          "deadline": "2026-11-10T12:00:00Z",
+          "expired_since": null,
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 2,
+          "mailboxes": 1,
+          "packs": 51,
+          "period_end": "2026-11-11T12:00:00Z",
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 2,
           "used": 2,
           "used_connected": 1,
           "free": 0,
@@ -7831,6 +8308,77 @@
         "trim": null,
         "links": {
           "plan": "http://console.thehappie.co/plan",
+          "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "a link over http to localhost itself, no *.localhost host",
+      "value": {
+        "v": 1,
+        "type": "entitlements",
+        "app": "wappie",
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "version": 57,
+        "computed_at": "2026-10-13T12:00:00Z",
+        "mode": "enforce",
+        "test_mode": true,
+        "state": {
+          "name": "over_quota",
+          "reason": "over_quota",
+          "since": "2026-10-11T11:00:00Z",
+          "deadline": "2026-11-10T12:00:00Z",
+          "expired_since": null,
+          "trial_ends_at": null,
+          "buy_by": null
+        },
+        "plan": {
+          "source": "plan",
+          "test": true,
+          "numbers": 2,
+          "mailboxes": 1,
+          "packs": 0,
+          "period_end": "2026-11-11T12:00:00Z",
+          "ends_at": null
+        },
+        "places": {
+          "kind": "number",
+          "total": 2,
+          "used": 2,
+          "used_connected": 1,
+          "free": 0,
+          "counted_at": "2026-10-13T11:58:00Z"
+        },
+        "storage": {
+          "quota_bytes": 25000000000,
+          "used_bytes": 27300000000,
+          "others_bytes": 1200000000,
+          "allowance_bytes": 23800000000,
+          "cap_bytes": 25050000000,
+          "measured_through": "2026-10-13T11:40:00Z"
+        },
+        "switches": {
+          "api": "off",
+          "new_links": "off",
+          "sync": "on",
+          "send": "off"
+        },
+        "timeline": [
+          {
+            "at": "2026-10-14T11:00:00Z",
+            "sync": "off"
+          }
+        ],
+        "items": [],
+        "requests": {
+          "usage_after": null,
+          "codes_after": null
+        },
+        "trim": null,
+        "links": {
+          "plan": "http://localhost:8290/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
           "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
         }
       },
@@ -11655,6 +12203,957 @@
           {
             "seq": 57,
             "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "next_after": 57,
+        "more": false
+      },
+      "valid": false
+    },
+    {
+      "name": "a member the app does not know, ignored",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 57,
+            "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "next_after": 57,
+        "more": false,
+        "hint": 1
+      },
+      "valid": true
+    },
+    {
+      "name": "a document null: judged alone, never refusing the page",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 57,
+            "doc": null
+          }
+        ],
+        "next_after": 57,
+        "more": false
+      },
+      "valid": true
+    },
+    {
+      "name": "more missing: never read as false",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 57,
+            "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "next_after": 57
+      },
+      "valid": false
+    },
+    {
+      "name": "more null",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 57,
+            "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "next_after": 57,
+        "more": null
+      },
+      "valid": false
+    },
+    {
+      "name": "More in capitals: a member the app does not know, and more missing",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 57,
+            "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "next_after": 57,
+        "More": false
+      },
+      "valid": false
+    },
+    {
+      "name": "next_after missing: never read as 0",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 57,
+            "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "more": false
+      },
+      "valid": false
+    },
+    {
+      "name": "generation_confirmed missing",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 57,
+            "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "next_after": 57,
+        "more": false
+      },
+      "valid": false
+    },
+    {
+      "name": "head missing",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 57,
+            "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "next_after": 57,
+        "more": false
+      },
+      "valid": false
+    },
+    {
+      "name": "items missing",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "next_after": 57,
+        "more": false
+      },
+      "valid": false
+    },
+    {
+      "name": "more twice",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 57,
+            "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "next_after": 57,
+        "more": true,
+        "more": false
+      },
+      "valid": false
+    },
+    {
+      "name": "an item without its seq",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "next_after": 57,
+        "more": false
+      },
+      "valid": false
+    },
+    {
+      "name": "an item's seq null",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": null,
+            "doc": {
+              "v": 1,
+              "type": "entitlements",
+              "app": "wappie",
+              "generation": "0199b1e0-0000-7000-8000-000000000001",
+              "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+              "version": 57,
+              "computed_at": "2026-10-13T12:00:00Z",
+              "mode": "enforce",
+              "test_mode": true,
+              "state": {
+                "name": "over_quota",
+                "reason": "over_quota",
+                "since": "2026-10-11T11:00:00Z",
+                "deadline": "2026-11-10T12:00:00Z",
+                "expired_since": null,
+                "trial_ends_at": null,
+                "buy_by": null
+              },
+              "plan": {
+                "source": "plan",
+                "test": true,
+                "numbers": 2,
+                "mailboxes": 1,
+                "packs": 0,
+                "period_end": "2026-11-11T12:00:00Z",
+                "ends_at": null
+              },
+              "places": {
+                "kind": "number",
+                "total": 2,
+                "used": 2,
+                "used_connected": 1,
+                "free": 0,
+                "counted_at": "2026-10-13T11:58:00Z"
+              },
+              "storage": {
+                "quota_bytes": 25000000000,
+                "used_bytes": 27300000000,
+                "others_bytes": 1200000000,
+                "allowance_bytes": 23800000000,
+                "cap_bytes": 25050000000,
+                "measured_through": "2026-10-13T11:40:00Z"
+              },
+              "switches": {
+                "api": "off",
+                "new_links": "off",
+                "sync": "on",
+                "send": "off"
+              },
+              "timeline": [
+                {
+                  "at": "2026-10-14T11:00:00Z",
+                  "sync": "off"
+                }
+              ],
+              "items": [],
+              "requests": {
+                "usage_after": null,
+                "codes_after": null
+              },
+              "trim": null,
+              "links": {
+                "plan": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/plan",
+                "storage": "https://console.thehappie.co/workspaces/01a034b7-d09c-7121-b7f8-41f210a9244a/storage"
+              }
+            }
+          }
+        ],
+        "next_after": 57,
+        "more": false
+      },
+      "valid": false
+    },
+    {
+      "name": "an item without its doc",
+      "value": {
+        "generation": "0199b1e0-0000-7000-8000-000000000001",
+        "generation_confirmed": true,
+        "head": 57,
+        "published_through": "2026-10-13T12:00:04Z",
+        "items": [
+          {
+            "seq": 57,
+            "x": {
               "v": 1,
               "type": "entitlements",
               "app": "wappie",
@@ -16411,6 +17910,28 @@
       "fresh_at": "2026-10-12T11:00:00Z",
       "stops_at": "2026-10-13T12:00:00Z",
       "action": "hold"
+    },
+    {
+      "name": "Wappie's pending place stop, the item back among the first places while frozen: cancelled",
+      "app": "wappie",
+      "cause": "places",
+      "at": "2026-10-11T12:00:00Z",
+      "in_place": true,
+      "now": "2026-10-13T12:00:00Z",
+      "fresh_at": "2026-10-12T06:00:00Z",
+      "stops_at": null,
+      "action": "none"
+    },
+    {
+      "name": "Wappie's pending place stop, the item back among the first places: cancelled",
+      "app": "wappie",
+      "cause": "places",
+      "at": "2026-10-11T12:00:00Z",
+      "in_place": true,
+      "now": "2026-10-13T12:00:00Z",
+      "fresh_at": "2026-10-13T11:00:00Z",
+      "stops_at": null,
+      "action": "none"
     }
   ],
   "caps": [
@@ -16473,6 +17994,16 @@
       "others_bytes": 0,
       "before_sync_step": true,
       "cap_bytes": 10500000000
+    },
+    {
+      "name": "the 14 days' end, after the sync step",
+      "app": "wappie",
+      "boundary": "late_payment_end",
+      "quota_bytes": 0,
+      "last_granted": 10000000000,
+      "others_bytes": 0,
+      "before_sync_step": false,
+      "cap_bytes": 0
     },
     {
       "name": "buy_by, before the sync step",
@@ -16587,6 +18118,7 @@
     {
       "name": "a deletion frees a place: the stopped item resumes",
       "app": "wappie",
+      "frozen": false,
       "before": {
         "total": 2,
         "bindings": 0,
@@ -16626,8 +18158,85 @@
       "action": "lift"
     },
     {
+      "name": "a deletion frees a place while frozen: the stopped item resumes",
+      "app": "wappie",
+      "frozen": true,
+      "before": {
+        "total": 2,
+        "bindings": 0,
+        "items": [
+          {
+            "id": "dev_1",
+            "placed_at": "2026-10-10T12:00:00Z"
+          },
+          {
+            "id": "dev_2",
+            "placed_at": "2026-10-11T12:00:00Z"
+          },
+          {
+            "id": "dev_3",
+            "placed_at": "2026-10-12T12:00:00Z"
+          }
+        ]
+      },
+      "after": {
+        "total": 2,
+        "bindings": 0,
+        "items": [
+          {
+            "id": "dev_2",
+            "placed_at": "2026-10-11T12:00:00Z"
+          },
+          {
+            "id": "dev_3",
+            "placed_at": "2026-10-12T12:00:00Z"
+          }
+        ]
+      },
+      "stopped_before": [
+        "dev_3"
+      ],
+      "stopped_after": [],
+      "action": "lift"
+    },
+    {
+      "name": "a purge frees a place while frozen",
+      "app": "mailie",
+      "frozen": true,
+      "before": {
+        "total": 1,
+        "bindings": 0,
+        "items": [
+          {
+            "id": "acc_1",
+            "placed_at": "2026-10-11T12:00:00Z"
+          },
+          {
+            "id": "acc_2",
+            "placed_at": "2026-10-12T12:00:00Z"
+          }
+        ]
+      },
+      "after": {
+        "total": 1,
+        "bindings": 0,
+        "items": [
+          {
+            "id": "acc_2",
+            "placed_at": "2026-10-12T12:00:00Z"
+          }
+        ]
+      },
+      "stopped_before": [
+        "acc_2"
+      ],
+      "stopped_after": [],
+      "action": "lift"
+    },
+    {
       "name": "a purge frees a place",
       "app": "mailie",
+      "frozen": false,
       "before": {
         "total": 1,
         "bindings": 0,
@@ -16661,6 +18270,7 @@
     {
       "name": "a move out frees a place",
       "app": "wappie",
+      "frozen": false,
       "before": {
         "total": 2,
         "bindings": 0,
@@ -16702,6 +18312,7 @@
     {
       "name": "a higher total frees a place",
       "app": "wappie",
+      "frozen": false,
       "before": {
         "total": 2,
         "bindings": 0,
@@ -16747,6 +18358,7 @@
     {
       "name": "one place freed: the earliest placed_at resumes first",
       "app": "wappie",
+      "frozen": false,
       "before": {
         "total": 1,
         "bindings": 0,
@@ -16795,6 +18407,7 @@
     {
       "name": "a licence binding released frees a place",
       "app": "wappie",
+      "frozen": false,
       "before": {
         "total": 2,
         "bindings": 1,
@@ -16832,6 +18445,7 @@
     {
       "name": "a reserved binding expired frees a place",
       "app": "wappie",
+      "frozen": false,
       "before": {
         "total": 3,
         "bindings": 2,
@@ -16880,6 +18494,7 @@
     {
       "name": "a licence binding counted: the hosted items placed last stop",
       "app": "wappie",
+      "frozen": false,
       "before": {
         "total": 3,
         "bindings": 0,
@@ -16925,6 +18540,7 @@
     {
       "name": "bindings over the total stop every hosted item",
       "app": "wappie",
+      "frozen": false,
       "before": {
         "total": 2,
         "bindings": 0,
@@ -16963,6 +18579,7 @@
     {
       "name": "a link within the places stops nothing",
       "app": "mailie",
+      "frozen": false,
       "before": {
         "total": 2,
         "bindings": 0,
@@ -16994,6 +18611,7 @@
     {
       "name": "a recovery over the places comes back stopped",
       "app": "mailie",
+      "frozen": false,
       "before": {
         "total": 1,
         "bindings": 0,
@@ -17084,18 +18702,42 @@
   "cap_stops": [
     {
       "name": "back at the cap: stores again",
+      "frozen": false,
       "total_bytes": 15750000000,
       "cap_bytes": 15750000000,
       "action": "lift"
     },
     {
-      "name": "below the cap: stores again, frozen or not",
+      "name": "back at the cap while frozen: stores again",
+      "frozen": true,
+      "total_bytes": 15750000000,
+      "cap_bytes": 15750000000,
+      "action": "lift"
+    },
+    {
+      "name": "below the cap: stores again",
+      "frozen": false,
+      "total_bytes": 15000000000,
+      "cap_bytes": 15750000000,
+      "action": "lift"
+    },
+    {
+      "name": "below the cap while frozen: stores again",
+      "frozen": true,
       "total_bytes": 15000000000,
       "cap_bytes": 15750000000,
       "action": "lift"
     },
     {
       "name": "a byte over the cap: stores nothing new",
+      "frozen": false,
+      "total_bytes": 15750000001,
+      "cap_bytes": 15750000000,
+      "action": "stop"
+    },
+    {
+      "name": "a byte over the cap while frozen: stops at once all the same",
+      "frozen": true,
       "total_bytes": 15750000001,
       "cap_bytes": 15750000000,
       "action": "stop"

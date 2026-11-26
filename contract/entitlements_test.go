@@ -465,6 +465,7 @@ func TestEntitlementsValidateChecksEveryRule(t *testing.T) {
 			d.Links.Plan = "http://console.thehappie.localhost:8290/workspaces/" + vecTeam + "/plan"
 		}), true},
 		{"an http link off localhost", wappie(func(d *contract.EntitlementsDoc) { d.Links.Plan = "http://console.thehappie.co/plan" }), false},
+		{"an http link on localhost itself", wappie(func(d *contract.EntitlementsDoc) { d.Links.Plan = "http://localhost:8290/plan" }), false},
 		{"a relative link", wappie(func(d *contract.EntitlementsDoc) { d.Links.Storage = "/workspaces/x/storage" }), false},
 		{"a link with user information", wappie(func(d *contract.EntitlementsDoc) { d.Links.Storage = "https://me@console.thehappie.co/" }), false},
 		{"a link with a fragment", wappie(func(d *contract.EntitlementsDoc) { d.Links.Storage = "https://console.thehappie.co/#x" }), false},
@@ -842,5 +843,52 @@ func TestMailiesSyncRefusalsTakeTheEntitlementCodes(t *testing.T) {
 		if err := result(c.code).ValidateFor("mailie", c.kind); (err == nil) != c.ok {
 			t.Errorf("Mailie's %s refused %s: %v, want ok %v", c.kind, c.code, err, c.ok)
 		}
+	}
+}
+
+// A feed page is read in its fixed shape: every member by its exact name,
+// none null but a doc, no member twice; and each doc is kept as its bytes
+// came, whitespace and escapes included, so that 15.7's byte-for-byte rule
+// holds.
+func TestAnEntitlementsFeedPageIsReadInItsFixedShapeAndKeepsEachDocAsItCame(t *testing.T) {
+	doc := `{ "app" : "wappie", "note": "<a><" }`
+	page := `{"generation":"` + vecGeneration + `","generation_confirmed":true,"head":7,"published_through":"2026-10-13T12:00:00Z",` +
+		`"items":[{"seq":7,"doc":` + doc + `,"extra":1}],"next_after":7,"more":false,"hint":"x"}`
+	var f contract.EntitlementsFeed
+	if err := json.Unmarshal([]byte(page), &f); err != nil || f.Validate() != nil {
+		t.Fatalf("%v %v", err, f.Validate())
+	}
+	if string(f.Items[0].Doc) != doc || f.Head != 7 || f.NextAfter != 7 || !f.GenerationConfirmed || f.More {
+		t.Fatalf("%+v %s", f, f.Items[0].Doc)
+	}
+	for _, bad := range []struct{ old, new string }{
+		{`,"more":false`, ``},
+		{`"more":false`, `"more":null`},
+		{`"more":false`, `"More":false`},
+		{`"next_after":7,`, ``},
+		{`"generation_confirmed":true,`, ``},
+		{`"head":7,`, `"head":7,"head":7,`},
+		{`"seq":7,`, ``},
+		{`"seq":7,`, `"Seq":7,`},
+		{`"seq":7,`, `"seq":null,`},
+		{`"doc":`, `"Doc":`},
+		{`"items":[{`, `"items":[{"seq":7,`},
+	} {
+		raw := strings.Replace(page, bad.old, bad.new, 1)
+		if raw == page {
+			t.Fatalf("%q is not in the page", bad.old)
+		}
+		var f contract.EntitlementsFeed
+		if err := json.Unmarshal([]byte(raw), &f); err == nil {
+			t.Errorf("%s -> %s: read", bad.old, bad.new)
+		}
+	}
+	// A null doc is a bad document, refused alone, never the page.
+	var nullDoc contract.EntitlementsFeed
+	if err := json.Unmarshal([]byte(strings.Replace(page, doc, "null", 1)), &nullDoc); err != nil || nullDoc.Validate() != nil {
+		t.Fatal(err)
+	}
+	if _, r := nullDoc.Items[0].Document("wappie", vecGeneration); r == nil || r.Code != contract.RefusedInvalidDocument {
+		t.Fatalf("%+v", r)
 	}
 }

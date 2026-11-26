@@ -87,7 +87,7 @@ func trialOf(r TrialRef) (kind, identifier, code string, err error) {
 func trialCodesFile() (any, error) {
 	out := TrialCodesFile{
 		Format: Format, Version: 1, Kind: "trial-codes", Label: contract.TrialCodeLabel, KeyHex: vecTrialKeyHex,
-		Description: "Trial codes (SPEC section 11.20): code = base64url-nopad(HMAC-SHA256(key = K_app, msg = label || 0x00 || app || 0x00 || kind || 0x00 || identifier)), each part's UTF-8 bytes joined by single zero bytes, no terminator; K_app is key_hex's 32 bytes themselves. An identity is {app, kind, input}, or for an IMAP login {app, kind, host, input}: the host as dialled and the login, whose kind and identifier are IMAPIdentity's (an address for a login with @ on a provider's own host, imap.gmail.com, imap.googlemail.com and imap.mail.me.com; else an imap_login, host/login). identifier is the input normalized by its kind: e164 a + and 2 to 15 ASCII digits, the first not 0, never reformatted; wa_lid ASCII digits; google_sub as given; ms_tid_sub tid/sub as given; address with ASCII letters lowercased and nothing else changed, the domain after the last @, and for gmail.com and googlemail.com only the domain gmail.com, the local part cut at its first + and its dots removed; imap_login the host lowercased with no trailing dot, /, the login with its ASCII letters lowercased and nothing else changed. codes: identities with their identifier and code. meet: pairs whose codes are equal. differ: pairs whose codes differ. no_code: identities that make no code (an empty identifier, one holding a zero byte, an address with no @ or with an empty local part or domain once normalized, an e164 out of its form).",
+		Description: "Trial codes (SPEC section 11.20): code = base64url-nopad(HMAC-SHA256(key = K_app, msg = label || 0x00 || app || 0x00 || kind || 0x00 || identifier)), each part's UTF-8 bytes joined by single zero bytes, no terminator; K_app is key_hex's 32 bytes themselves. An identity is {app, kind, input}, or for an IMAP login {app, kind, host, input}: the host as dialled and the login, whose kind and identifier are IMAPIdentity's (an address for a login with @ on a provider's own host, imap.gmail.com, imap.googlemail.com and imap.mail.me.com; else an imap_login, host/login). identifier is the input normalized by its kind: e164 a + and 2 to 15 ASCII digits, the first not 0, never reformatted; wa_lid ASCII digits; google_sub as given; ms_tid_sub tid/sub as given; address with ASCII letters lowercased and nothing else changed, the domain after the last @, and for gmail.com and googlemail.com only the domain gmail.com, the local part cut at its first + and its dots removed; imap_login the host lowercased with no port and no trailing dot, an IP literal written as Go's netip writes it (dotted IPv4, an IPv4-mapped address as its IPv4, IPv6 in RFC 5952 form without brackets), /, the login with its ASCII letters lowercased and nothing else changed. codes: identities with their identifier and code. meet: pairs whose codes are equal. differ: pairs whose codes differ. no_code: identities that make no code (an empty identifier, one holding a zero byte, an address with no @ or with an empty local part or domain once normalized, an e164 out of its form, an IMAP host that is neither a host name nor an IP literal, or with a zone or a port out of 1 to 65535).",
 	}
 	ref := func(app, kind, input string) TrialRef { return TrialRef{App: app, Kind: kind, Input: input} }
 	imap := func(host, login, kind string) TrialRef {
@@ -124,6 +124,10 @@ func trialCodesFile() (any, error) {
 		{"an IMAP login with no @ on iCloud's own host: an imap_login", imap("imap.mail.me.com", "AnaSilva", contract.TrialKindIMAPLogin), "imap.mail.me.com/anasilva"},
 		{"an IMAP login with no @ on another host", imap("mail.example.org", "ana_silva-01", contract.TrialKindIMAPLogin), "mail.example.org/ana_silva-01"},
 		{"an IMAP login written as its identifier", ref("mailie", contract.TrialKindIMAPLogin, "IMAP.Example.com/John.Doe@Example.com"), "imap.example.com/john.doe@example.com"},
+		{"an imap_login with a port: the port dropped", ref("mailie", contract.TrialKindIMAPLogin, "mail.example.org:993/ana"), "mail.example.org/ana"},
+		{"an IMAP login on a host dialled with its port", imap("Mail.Example.org:993", "Ana", contract.TrialKindIMAPLogin), "mail.example.org/ana"},
+		{"an IMAP login on an IPv4 host", imap("192.0.2.10:993", "Ana", contract.TrialKindIMAPLogin), "192.0.2.10/ana"},
+		{"an IMAP login on an IPv6 host: no brackets, RFC 5952 form", imap("[2001:DB8:0:0:0:0:0:1]:993", "ana", contract.TrialKindIMAPLogin), "2001:db8::1/ana"},
 	} {
 		kind, id, code, err := trialOf(c.r)
 		if err != nil {
@@ -164,6 +168,10 @@ func trialCodesFile() (any, error) {
 			imap("imap.gmail.com", "j.doe@gmail.com", contract.TrialKindAddress)},
 		{"an IMAP host with capitals and a trailing dot", imap("Mail.Example.org.", "Ana", contract.TrialKindIMAPLogin),
 			imap("mail.example.org", "ana", contract.TrialKindIMAPLogin)},
+		{"an IMAP host with and without its port", imap("mail.example.org:993", "ana", contract.TrialKindIMAPLogin),
+			imap("mail.example.org", "ana", contract.TrialKindIMAPLogin)},
+		{"an IPv6 host in brackets and bare", imap("[2001:DB8::1]", "ana", contract.TrialKindIMAPLogin),
+			imap("2001:db8::1", "ana", contract.TrialKindIMAPLogin)},
 	})
 	if err != nil {
 		return nil, err
@@ -181,6 +189,8 @@ func trialCodesFile() (any, error) {
 			addr("ana@icloud.com")},
 		{"a non-ASCII capital is not folded", addr("élodie@exemple.fr"), addr("Élodie@exemple.fr")},
 		{"+551188887777 and +5511988887777: no ninth digit added or removed", e164("+551188887777"), e164("+5511988887777")},
+		{"one login on a host's IP address and on its name", imap("192.0.2.10", "ana", contract.TrialKindIMAPLogin),
+			imap("mail.example.org", "ana", contract.TrialKindIMAPLogin)},
 	})
 	if err != nil {
 		return nil, err
@@ -210,7 +220,8 @@ func trialCodesFile() (any, error) {
 		{"a tid and sub with an empty sub", ref("mailie", contract.TrialKindMSTidSub, "9188040d-6c67-4c5b-b112-36a304b66dad/")},
 		{"an imap_login whose login has @ on a provider's own host: an address, never an imap_login", ref("mailie", contract.TrialKindIMAPLogin, "imap.gmail.com/jdoe@gmail.com")},
 		{"an imap_login with no host", ref("mailie", contract.TrialKindIMAPLogin, "/ana")},
-		{"an imap_login with a port", ref("mailie", contract.TrialKindIMAPLogin, "mail.example.org:993/ana")},
+		{"an imap_login with a port of 0", ref("mailie", contract.TrialKindIMAPLogin, "mail.example.org:0/ana")},
+		{"an IMAP login on an IPv6 host with a zone", imap("fe80::1%en0", "ana", contract.TrialKindIMAPLogin)},
 		{"an IMAP login on a host that is no host name", imap("mail_example.org", "ana", contract.TrialKindIMAPLogin)},
 		{"an empty IMAP login", imap("mail.example.org", "", contract.TrialKindIMAPLogin)},
 		{"an IMAP login +x@gmail.com on imap.gmail.com", imap("imap.gmail.com", "+x@gmail.com", contract.TrialKindAddress)},

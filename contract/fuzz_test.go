@@ -390,3 +390,47 @@ func FuzzAUsageReportThatValidatesHoldsItsSum(f *testing.F) {
 		}
 	})
 }
+
+// A trim order verifies only under the MAC SignTrimOrder writes for it,
+// with the trim's own label: whatever the bytes, an order SignTrimOrder
+// signs passes the MAC check under that secret alone, its mac is the trim
+// signature of its canonical text, never a command's, and the bytes as
+// given pass the MAC check only when their mac is that one.
+func FuzzATrimOrderVerifiesOnlyUnderItsMAC(f *testing.F) {
+	const secret, other = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8", "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+	for _, s := range []string{
+		`{"order_id":"0199c3a0-0000-7000-8000-000000000001","app":"wappie","round":1,"steps":[{"item":"dev_9","action":"purge"}],"issued_at":"2026-12-31T09:20:00.120Z"}`,
+		`{"app":"wappie","mac":"v1=00","secret":1,"a":[1,2,{"b":null}]}`, `{"app":"mailie","a":1}`, `{"app":"wappie","a":" é"}`,
+		`{"app":"wappie","a":1,"a":2}`, `{"app":"wappie","a":"\ud800"}`, `{"app":"wappie"}`, `{}`, `[]`, `null`, `{"app":"wappie","a":1.5}`,
+	} {
+		f.Add([]byte(s))
+	}
+	f.Fuzz(func(t *testing.T, raw []byte) {
+		verify := func(b []byte, s string) error {
+			_, err := VerifyTrimOrder(EntitlementsDoc{App: "wappie", Trim: b}, "wappie", []string{s})
+			return err
+		}
+		signed, err := SignTrimOrder(raw, "wappie", secret, 2)
+		if err != nil {
+			if verify(raw, secret) == nil {
+				t.Fatal("an order SignTrimOrder refuses verifies")
+			}
+			return
+		}
+		if err := verify(signed, secret); err == nil || errors.Is(err, ErrTrimMAC) {
+			// The empty document fails after the MAC, never at it.
+			t.Fatalf("a signed order fails its MAC check: %v", err)
+		}
+		if !errors.Is(verify(signed, other), ErrTrimMAC) {
+			t.Fatal("a signed order passes the MAC check under another secret")
+		}
+		canonical, mac, _, cerr := canonicalSigned(signed, "trim")
+		if cerr != nil || trimMAC(canonical, "wappie", secret) != mac || commandMAC(canonical, "wappie", secret) == mac {
+			t.Fatal("the mac SignTrimOrder writes is not its canonical text's trim MAC")
+		}
+		given, carried, _, _ := canonicalSigned(raw, "trim")
+		if !errors.Is(verify(raw, secret), ErrTrimMAC) != (carried == trimMAC(given, "wappie", secret)) {
+			t.Fatal("the given bytes pass the MAC check other than by their own mac")
+		}
+	})
+}

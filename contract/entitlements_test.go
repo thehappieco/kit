@@ -158,8 +158,7 @@ func TestEntitlementsDocumentsRoundTrip(t *testing.T) {
 		"expired with a trim": entDoc("wappie", func(d *contract.EntitlementsDoc) {
 			d.State = contract.EntitlementsState{Name: contract.WorkspaceExpired, Reason: ptr(contract.ReasonNoPlan),
 				Since: *entAt(-40 * 24 * time.Hour), ExpiredSince: entAt(-10 * 24 * time.Hour)}
-			d.Trim = json.RawMessage(`{"order_id":"0199f000-0000-7000-8000-000000000001","app":"wappie","workspace_id":"` + vecTeam +
-				`","generation":"` + vecGeneration + `","floor":null,"note":"<&>"}`)
+			d.Trim = bytes.Replace(entTrimRefs("wappie", vecTeam, vecGeneration), []byte(`"app":"wappie"`), []byte(`"app":"wappie","note":"<&>"`), 1)
 		}),
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -193,7 +192,7 @@ func TestEntitlementsDocumentsRoundTrip(t *testing.T) {
 
 // The trim order's bytes are kept as they came, for its MAC.
 func TestADocumentKeepsItsTrimOrderAsItCame(t *testing.T) {
-	order := `{"app" : "wappie","workspace_id":"` + vecTeam + `", "generation":"` + vecGeneration + `", "x": "<&>"}`
+	order := strings.Replace(string(entTrimRefs("wappie", vecTeam, vecGeneration)), `"app":"wappie",`, `"app" : "wappie", "x": "<&>" ,`, 1)
 	raw := entEdit(t, entRaw(t, entDoc("wappie", func(d *contract.EntitlementsDoc) {
 		d.State = contract.EntitlementsState{Name: contract.WorkspaceExpired, Reason: ptr(contract.ReasonNoPlan),
 			Since: *entAt(-40 * 24 * time.Hour), ExpiredSince: entAt(-10 * 24 * time.Hour)}
@@ -501,8 +500,17 @@ func entItems(n int) []contract.ItemTrial {
 	return items
 }
 
+// entTrimRefs is a valid trim order, signed, naming app, ws and generation.
 func entTrimRefs(app, ws, generation string) json.RawMessage {
-	return json.RawMessage(fmt.Sprintf(`{"app":%q,"workspace_id":%q,"generation":%q}`, app, ws, generation))
+	o := trimOrder(app, func(o *contract.TrimOrder) { o.WorkspaceID, o.Generation = ws, generation })
+	raw, err := json.Marshal(o)
+	if err != nil {
+		panic(err)
+	}
+	if raw, err = contract.SignTrimOrder(raw, app, SecretA, 2); err != nil {
+		panic(err)
+	}
+	return raw
 }
 
 func entExpired(mut func(*contract.EntitlementsDoc)) contract.EntitlementsDoc {

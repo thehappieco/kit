@@ -3,6 +3,7 @@ package contract
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"reflect"
 	"slices"
@@ -608,13 +609,11 @@ func (d EntitlementsDoc) validRequests() error {
 	return nil
 }
 
-// trimRefs are what a document's trim order must share with it.
-type trimRefs struct {
-	App         string `json:"app"`
-	WorkspaceID string `json:"workspace_id"`
-	Generation  string `json:"generation"`
-}
-
+// validTrim holds a trim order to mode enforce and state expired, to the
+// document's app, workspace and generation, and to TrimOrder's Validate.
+// It never checks the order's mac (VerifyTrimOrder does), nor its floor
+// against the plan: a document whose order fails only that is applied,
+// its switches included, and the order alone is refused invalid_order.
 func (d EntitlementsDoc) validTrim() error {
 	raw := bytes.TrimSpace(d.Trim)
 	if len(raw) == 0 || string(raw) == "null" {
@@ -626,9 +625,15 @@ func (d EntitlementsDoc) validTrim() error {
 	if raw[0] != '{' {
 		return invalid("trim")
 	}
-	var refs trimRefs
-	if decodeSent(raw, &refs, "trim") != nil || refs.App != d.App || refs.WorkspaceID != d.WorkspaceID || refs.Generation != d.Generation {
+	var o TrimOrder
+	if err := json.Unmarshal(raw, &o); err != nil {
+		return invalid("trim: it does not decode")
+	}
+	if o.App != d.App || o.WorkspaceID != d.WorkspaceID || o.Generation != d.Generation {
 		return invalid("trim names the document's app, workspace and generation")
+	}
+	if err := o.Validate(); err != nil {
+		return fmt.Errorf("trim: %w", err)
 	}
 	return nil
 }

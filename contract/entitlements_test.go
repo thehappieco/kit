@@ -530,6 +530,32 @@ func entItem(t *testing.T, seq int64, raw []byte) contract.EntitlementsFeedItem 
 	return contract.EntitlementsFeedItem{Seq: seq, Doc: raw}
 }
 
+// A feed item writes its document as the platform writes the GET's: with
+// no HTML escaping, so a console link with an & is written as it is and
+// the item's bytes are the GET's (SPEC section 11.20).
+func TestAFeedItemWritesItsDocumentWithNoHTMLEscaping(t *testing.T) {
+	d := entDoc("wappie", func(d *contract.EntitlementsDoc) {
+		d.Links.Plan = "https://console.thehappie.co/workspaces/" + vecTeam + "/plan?from=wappie&tab=places"
+	})
+	item, err := contract.NewEntitlementsFeedItem(d.Version, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var get bytes.Buffer
+	enc := json.NewEncoder(&get)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(d); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(item.Doc, bytes.TrimSuffix(get.Bytes(), []byte("\n"))) || !bytes.Contains(item.Doc, []byte("from=wappie&tab=places")) {
+		t.Fatalf("the item's document %s", item.Doc)
+	}
+	back, refused := item.Document("wappie", d.Generation)
+	if refused != nil || back.Links.Plan != d.Links.Plan {
+		t.Fatalf("read back: %+v %v", back.Links, refused)
+	}
+}
+
 // A page is checked alone; each document is judged alone, a bad one
 // refused with its code and, when it reads, its workspace.
 func TestTheEntitlementsFeedJudgesEachDocumentAlone(t *testing.T) {

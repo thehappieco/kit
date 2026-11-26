@@ -8,12 +8,16 @@ package contracttest
 //
 // Where the platform does more, the fake is simpler:
 //   - it computes no document: a test sets each one (SetEntitlements), and
-//     the fake fills its generation, its version (the feed's seq) and, when
-//     the test leaves it zero, its computed_at, validates it, and publishes
-//     it unless it is the same document as the latest published (equal
-//     without version, generation, computed_at and places.counted_at). Its
-//     storage figures count, where the platform's threshold may leave them
-//     unpublished: a test that sets new figures means them published;
+//     the fake fills its computed_at once, when the test leaves it zero, by
+//     its clock at that moment, then its generation and its version (the
+//     feed's seq) at each publish, validates it, and publishes it unless it
+//     is the same document as the latest published (equal without version,
+//     generation, computed_at and places.counted_at). A document published
+//     again (a new generation, a workspace named again after a restore)
+//     keeps the computed_at it was set with, so its timeline stays after
+//     it however far the clock moved. Its storage figures count, where the
+//     platform's threshold may leave them unpublished: a test that sets new
+//     figures means them published;
 //   - a workspace named to an app with no document the test set gets a
 //     default one at once (Options.DefaultEntitlements, else
 //     DefaultEntitlementsDoc), as the platform always has a document for a
@@ -21,9 +25,10 @@ package contracttest
 //     exists but is not named yet is kept and published at naming;
 //   - the GET answers the latest document the test set, published again
 //     only when the latest published is not it (a bad one of
-//     PublishRawEntitlements, or one of another generation); it answers
-//     unavailable only through Refuse, or when the hook's document does
-//     not validate;
+//     PublishRawEntitlements, one of another generation, or one held by
+//     HoldPublishing); it answers unavailable only through Refuse, or when
+//     the document does not validate as served (the hook's, or one a new
+//     generation or a naming could not publish: EntitlementsError);
 //   - the link check's place and new_links come from the document the test
 //     set, and its trial from the clocks it sets (SetTrialClock), judged on
 //     whenever the document says the workspace is on trial
@@ -45,6 +50,7 @@ import (
 	"time"
 
 	"github.com/thehappieco/kit/contract"
+	"github.com/thehappieco/kit/jcs"
 )
 
 // The entitlements part's calls, as Refuse and Corrupt name them (kit
@@ -80,6 +86,8 @@ type entitlementsApp struct {
 	entHead   int64
 	entInputs map[string]*entInput    // what the test set, by workspace
 	entPub    map[string]entPublished // the latest published, by workspace
+	entMarks  map[string]time.Time    // held changes, by workspace (HoldPublishing)
+	entErrs   map[string]error        // the last publish that failed, by workspace
 	entWake   chan struct{}
 	entPolls  chan struct{}
 	entAcks   []contract.EntitlementsApplied
@@ -112,7 +120,11 @@ type trimRecord struct {
 	result *contract.TrimResult
 }
 
-// keptUsage is a report kept, and its text as the fake compares a retry.
+// keptUsage is a report kept, and its text as the fake compares a retry:
+// the JCS text of the body the app sent (RFC 8785), so a retry written
+// otherwise (members in another order, other spaces, numbers or strings
+// escaped otherwise) is the same report, as the platform judges it
+// (wire-usage.json's intake).
 type keptUsage struct {
 	u    contract.Usage
 	text []byte
@@ -127,6 +139,7 @@ type bucket struct {
 func newEntitlementsApp(longPolls int) entitlementsApp {
 	return entitlementsApp{
 		entInputs: map[string]*entInput{}, entPub: map[string]entPublished{},
+		entMarks: map[string]time.Time{}, entErrs: map[string]error{},
 		entWake: make(chan struct{}), entPolls: make(chan struct{}, longPolls),
 		entUsage: map[string]keptUsage{}, entSent: map[string]contract.Usage{}, linkRate: map[string]*bucket{},
 		orders: map[string]*trimRecord{},
@@ -135,13 +148,14 @@ func newEntitlementsApp(longPolls int) entitlementsApp {
 
 // resetEntitlements is Restore's: the feed starts again from 0 with no
 // document in it, and the acknowledgements, reports, link check counts,
-// orders and results go, as a backup from before them holds none. The
-// documents the test set stay, as the directory does, without their orders,
-// and are published again once their workspaces are named to the app
-// again.
+// orders and results go, as a backup from before them holds none, and so
+// do the changes HoldPublishing held and the publish errors. The documents
+// the test set stay, as the directory does, without their orders, and are
+// published again once their workspaces are named to the app again.
 func (a *entitlementsApp) resetEntitlements() {
 	a.entHead = 0
 	a.entPub = map[string]entPublished{}
+	a.entMarks, a.entErrs = map[string]time.Time{}, map[string]error{}
 	a.entAcks = nil
 	a.entUsage, a.linkRate, a.orders = map[string]keptUsage{}, map[string]*bucket{}, map[string]*trimRecord{}
 	for _, in := range a.entInputs {
@@ -197,11 +211,15 @@ func matchEntitlements(method, rest string) (route, string, bool) {
 // document's version, its seq in the feed. The workspace must exist
 // (ErrUnknown otherwise); one not named to app yet keeps the document,
 // validated, which is published the moment it is named (the version
-// returned is then 0). The fake fills V, Type, App and
-// WorkspaceID when they are empty (ErrInvalid for another app or
-// workspace), places.kind when empty, the console's two links when empty,
-// a nil timeline or items as [], and computed_at, when zero, by its clock;
-// it sets generation and version itself. Trim must be empty: an order is
+// returned is then 0). While app's publishing is held (HoldPublishing),
+// the document is validated and kept, not published: the feed's
+// published_through stays at the first change held, the GET publishes it,
+// and Release publishes it (the version returned is then 0 too). The fake
+// fills V, Type, App and WorkspaceID when they are empty (ErrInvalid for
+// another app or workspace), places.kind when empty, the console's two
+// links when empty, a nil timeline or items as [], and computed_at, when
+// zero, by its clock now, once: every later publish of this document keeps
+// it; it sets generation and version itself. Trim must be empty: an order is
 // issued with IssueTrimOrder. The order issued into the workspace's
 // document stays while the new document is still enforce and expired with
 // the same plan, and goes otherwise, as the platform drops an order at a
@@ -218,6 +236,9 @@ func (p *Platform) SetEntitlements(app, ws string, doc contract.EntitlementsDoc)
 		return 0, ErrInvalid
 	}
 	doc = fillEntitlements(app, ws, doc)
+	if doc.ComputedAt.IsZero() {
+		doc.ComputedAt = contract.T(atMicroseconds(p.now()))
+	}
 	in := &entInput{doc: doc}
 	if old := st.entInputs[ws]; old != nil && old.order != nil && doc.Mode == contract.ModeEnforce &&
 		doc.State.Name == contract.WorkspaceExpired && samePlan(doc.Plan, old.doc.Plan) {
@@ -232,7 +253,7 @@ func (p *Platform) SetEntitlements(app, ws string, doc contract.EntitlementsDoc)
 	}
 	prev := st.entInputs[ws]
 	st.entInputs[ws] = in
-	pub, err := p.publishEntitlementsLocked(st, ws)
+	pub, err := p.publishEntitlementsLocked(st, ws, false)
 	if err != nil {
 		if prev == nil {
 			delete(st.entInputs, ws)
@@ -241,6 +262,7 @@ func (p *Platform) SetEntitlements(app, ws string, doc contract.EntitlementsDoc)
 		}
 		return 0, ErrInvalid
 	}
+	delete(st.entErrs, ws)
 	return pub.seq, nil
 }
 
@@ -301,8 +323,8 @@ func DefaultEntitlementsDoc(app string) contract.EntitlementsDoc {
 // defaultEntInputLocked gives the workspace ws, named to st's app with no
 // document the test set, its default one: the hook's, else
 // DefaultEntitlementsDoc, filled as SetEntitlements fills a document and
-// its state.since, when zero, by the fake's clock. It is kept only when it
-// validates; nil otherwise.
+// its state.since and computed_at, when zero, by the fake's clock. It is
+// kept only when it validates; nil otherwise.
 func (p *Platform) defaultEntInputLocked(st *appState, ws string) *entInput {
 	doc := DefaultEntitlementsDoc(st.id)
 	if p.defaultEnt != nil {
@@ -314,6 +336,9 @@ func (p *Platform) defaultEntInputLocked(st *appState, ws string) *entInput {
 	doc = fillEntitlements(st.id, ws, doc)
 	if doc.State.Since.IsZero() {
 		doc.State.Since = contract.T(atMicroseconds(p.now()))
+	}
+	if doc.ComputedAt.IsZero() {
+		doc.ComputedAt = contract.T(atMicroseconds(p.now()))
 	}
 	in := &entInput{doc: doc}
 	if _, err := p.entCandidateLocked(st, in); err != nil {
@@ -369,8 +394,11 @@ func (p *Platform) Entitlements(app, ws string) (contract.EntitlementsDoc, bool)
 // is not named to the app, or it is the same document as the latest
 // published in this generation. A document that does not validate is not
 // published, and is an error; a default one that does not validate
-// publishes nothing.
-func (p *Platform) publishEntitlementsLocked(st *appState, ws string) (entPublished, error) {
+// publishes nothing. While the app's publishing is held, a document that
+// differs from the latest published is marked instead, at the first such
+// change, unless now: the GETs publish whatever the publisher does, and
+// Release. A publish clears the workspace's mark and its last error.
+func (p *Platform) publishEntitlementsLocked(st *appState, ws string, now bool) (entPublished, error) {
 	if !st.named[ws] {
 		return entPublished{}, nil
 	}
@@ -385,21 +413,74 @@ func (p *Platform) publishEntitlementsLocked(st *appState, ws string) (entPublis
 		return entPublished{}, err
 	}
 	if old, ok := st.entPub[ws]; ok && old.raw == nil && old.doc.Generation == p.generation && sameEntitlements(old, cand) {
+		delete(st.entMarks, ws)
+		delete(st.entErrs, ws)
 		return old, nil
+	}
+	if st.held && !now {
+		if _, marked := st.entMarks[ws]; !marked {
+			st.entMarks[ws] = atMicroseconds(p.now())
+		}
+		return entPublished{}, nil
 	}
 	st.entHead = cand.seq
 	st.entPub[ws] = cand
+	delete(st.entMarks, ws)
+	delete(st.entErrs, ws)
 	st.wakeEntitlements()
 	return cand, nil
 }
 
+// republishEntitlementsLocked publishes the workspace's document where no
+// caller answers for it (a naming, a new generation, a trim result kept,
+// Release): an error is kept for EntitlementsError and the GET, never
+// dropped. A published document of another generation that is not
+// replaced (it failed, or the publisher is held) leaves the feed, rather
+// than ride the new generation's pages.
+func (p *Platform) republishEntitlementsLocked(st *appState, ws string, now bool) {
+	if _, err := p.publishEntitlementsLocked(st, ws, now); err != nil {
+		st.entErrs[ws] = err
+	}
+	if old, ok := st.entPub[ws]; ok && old.raw == nil && old.doc.Generation != p.generation {
+		delete(st.entPub, ws)
+	}
+}
+
+// EntitlementsError is the error the fake met when it last published the
+// document of the workspace ws for app where no call answered for it: a
+// naming, a new generation, a trim result kept, Release, or the GET, which
+// then answered unavailable. nil when there is none, or a publish of the
+// workspace's document succeeded since, or the test set a new one.
+func (p *Platform) EntitlementsError(app, ws string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	st := p.apps[app]
+	if st == nil {
+		return ErrUnknown
+	}
+	return st.entErrs[ws]
+}
+
+// releaseEntitlementsLocked publishes every document held for app's
+// workspaces, in their order, and forgets the marks: the publisher runs
+// again, so published_through is now again.
+func (p *Platform) releaseEntitlementsLocked(st *appState) {
+	ws := make([]string, 0, len(st.entMarks))
+	for id := range st.entMarks {
+		ws = append(ws, id)
+	}
+	slices.Sort(ws)
+	for _, id := range ws {
+		p.republishEntitlementsLocked(st, id, true)
+	}
+	st.entMarks = map[string]time.Time{}
+}
+
 // entCandidateLocked is the document in as the feed's next seq would
-// publish it now, validated as served.
+// publish it now, validated as served. Its computed_at is the one it was
+// set with: never the clock's now.
 func (p *Platform) entCandidateLocked(st *appState, in *entInput) (entPublished, error) {
 	cand := entPublished{doc: in.doc, order: in.order}
-	if cand.doc.ComputedAt.IsZero() {
-		cand.doc.ComputedAt = contract.T(atMicroseconds(p.now()))
-	}
 	cand.doc.Generation = p.generation
 	cand.seq = st.entHead + 1
 	cand.doc.Version = cand.seq
@@ -471,19 +552,21 @@ func (p *Platform) publishNamedEntitlementsLocked(st *appState) {
 	}
 	slices.Sort(ws)
 	for _, id := range ws {
-		_, _ = p.publishEntitlementsLocked(st, id)
+		p.republishEntitlementsLocked(st, id, false)
 	}
 }
 
 // newGenerationEntitlementsLocked is NewGeneration's: the orders the
 // documents carry are dropped (their records stay, so a result for one is
-// still judged), the acknowledgements kept go, and every document is
-// published again under the new generation.
+// still judged), the acknowledgements kept and the changes held go, and
+// every document is published again under the new generation (held again
+// while the app's publishing is held).
 func (p *Platform) newGenerationEntitlementsLocked(st *appState) {
 	for _, in := range st.entInputs {
 		in.order = nil
 	}
 	st.entAcks = nil
+	st.entMarks = map[string]time.Time{}
 	p.publishNamedEntitlementsLocked(st)
 }
 
@@ -548,9 +631,16 @@ func (p *Platform) readEntitlementsFeed(rq *request, after int64) (contract.Enti
 	if after > app.entHead {
 		return contract.EntitlementsFeed{}, woken, refusal(contract.CodeGone, "the cursor is past the entitlements feed's head: take every document again"), false
 	}
+	// published_through is the oldest change held, or now.
+	through := p.now()
+	for _, at := range app.entMarks {
+		if at.Before(through) {
+			through = at
+		}
+	}
 	f := contract.EntitlementsFeed{
 		Generation: p.generation, GenerationConfirmed: p.confirmed, Head: app.entHead,
-		PublishedThrough: contract.T(p.now()), Items: []contract.EntitlementsFeedItem{},
+		PublishedThrough: contract.T(through), Items: []contract.EntitlementsFeedItem{},
 	}
 	var pubs []entPublished
 	for _, pub := range app.entPub {
@@ -591,10 +681,11 @@ func (p *Platform) readEntitlementsFeed(rq *request, after int64) (contract.Enti
 
 // entitlementsDoc answers GET /contract/v1/workspaces/{id}/entitlements: the
 // document the test set, published again first when the latest published is
-// not it, or its default one when the test set none; not_found for a
-// workspace not named to the app, a closed personal workspace and a team
-// closed past its 30 days; unavailable only when a default document does
-// not validate (or through Refuse).
+// not it (whether or not the app's publishing is held), or its default one
+// when the test set none; not_found for a workspace not named to the app, a
+// closed personal workspace and a team closed past its 30 days; unavailable
+// only when the document does not validate as served, its error kept for
+// EntitlementsError (or through Refuse).
 func (p *Platform) entitlementsDoc(rq *request) answer {
 	if ans, ok := noBody(rq); !ok {
 		return ans
@@ -605,7 +696,10 @@ func (p *Platform) entitlementsDoc(rq *request) answer {
 	if w == nil || !rq.app.named[rq.arg] || p.closedPast(w) {
 		return refusal(contract.CodeNotFound, "not found")
 	}
-	pub, err := p.publishEntitlementsLocked(rq.app, rq.arg)
+	pub, err := p.publishEntitlementsLocked(rq.app, rq.arg, true)
+	if err != nil {
+		rq.app.entErrs[rq.arg] = err
+	}
 	if err != nil || rq.app.entInputs[rq.arg] == nil {
 		return refusal(contract.CodeUnavailable, "try again")
 	}
@@ -664,7 +758,7 @@ func (p *Platform) putUsage(rq *request) answer {
 		u.App != rq.app.id || u.WorkspaceID != rq.arg {
 		return refusal(contract.CodeInvalid, "the report is not valid")
 	}
-	text, err := json.Marshal(u)
+	text, err := canonicalJSON(rq.body)
 	if err != nil {
 		return refusal(contract.CodeInvalid, "the report is not valid")
 	}
@@ -799,6 +893,17 @@ func (p *Platform) linkCheck(rq *request) answer {
 	return answer{status: http.StatusOK, body: a}
 }
 
+// canonicalJSON is raw's JCS text (RFC 8785), its numbers read as written.
+func canonicalJSON(raw []byte) ([]byte, error) {
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	var v any
+	if err := dec.Decode(&v); err != nil {
+		return nil, err
+	}
+	return jcs.Marshal(v)
+}
+
 // allowLinkCheck spends one of the workspace's link checks with codes.
 func (a *entitlementsApp) allowLinkCheck(ws string, now time.Time) bool {
 	b := a.linkRate[ws]
@@ -870,7 +975,7 @@ func (p *Platform) IssueTrimOrder(app, ws string, o contract.TrimOrder) (string,
 	}
 	prev := in.order
 	in.order = &o
-	if _, err := p.publishEntitlementsLocked(st, ws); err != nil {
+	if _, err := p.publishEntitlementsLocked(st, ws, false); err != nil {
 		in.order = prev
 		return "", ErrInvalid
 	}
@@ -922,7 +1027,7 @@ func (p *Platform) postTrimResult(rq *request) answer {
 	rec.result = &r
 	if in := rq.app.entInputs[rec.order.WorkspaceID]; in != nil && in.order != nil && in.order.OrderID == r.OrderID {
 		in.order = nil
-		_, _ = p.publishEntitlementsLocked(rq.app, rec.order.WorkspaceID)
+		p.republishEntitlementsLocked(rq.app, rec.order.WorkspaceID, false)
 	}
 	return answer{status: http.StatusOK, body: trimAnswer(r.OrderID, contract.OutcomeAccepted, "")}
 }

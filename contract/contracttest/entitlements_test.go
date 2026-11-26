@@ -7,6 +7,7 @@ package contracttest_test
 // results) is judged as the platform judges it.
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/thehappieco/kit/contract"
 	"github.com/thehappieco/kit/contract/contracttest"
+	"github.com/thehappieco/kit/vectors"
 )
 
 const episodeID = "0199a2f0-0000-7000-8000-000000000001"
@@ -818,4 +820,279 @@ func TestTheEntitlementsLimitsAreTheContractsOfTheSameName(t *testing.T) {
 	if contracttest.UsageReportBodyLimit == contract.UsageBodyLimit {
 		t.Error("the usage report's limit is the token part's")
 	}
+}
+
+// The feed's document and the GET's are the same bytes, a console link
+// with an & included: neither is HTML-escaped (SPEC section 11.20).
+func TestTheFeedsDocumentIsTheGETsByteForByte(t *testing.T) {
+	h, c, _, team := entSetup(t, contracttest.Options{})
+	d := activeDoc(h.clock.Now())
+	d.Links.Plan = "https://console.thehappie.co/workspaces/" + team + "/plan?from=wappie&tab=places"
+	v, err := h.p.SetEntitlements("wappie", team, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := entFeed(t, c, v-1)
+	if len(f.Items) != 1 || f.Items[0].Seq != v {
+		t.Fatalf("the feed: %+v", f)
+	}
+	status, body, err := c.Do(t.Context(), http.MethodGet, "/contract/v1/workspaces/"+team+"/entitlements", nil)
+	if err != nil || status != http.StatusOK {
+		t.Fatalf("GET: %d %v", status, err)
+	}
+	if !bytes.Equal(f.Items[0].Doc, body) {
+		t.Fatalf("the feed's document\n%s\nis not the GET's\n%s", f.Items[0].Doc, body)
+	}
+	if !bytes.Contains(body, []byte("from=wappie&tab=places")) {
+		t.Fatalf("the link is escaped: %s", body)
+	}
+}
+
+// HoldPublishing holds the entitlements publisher as it holds the others:
+// a document set while held is not in the feed, whose published_through
+// stays at the first change held; the GET publishes it and clears its
+// mark; Release publishes the others; a new generation forgets the marks,
+// and its documents, held again, leave no document of the old generation
+// in the feed.
+func TestHoldPublishingHoldsTheEntitlementsFeed(t *testing.T) {
+	h, c, personal, team := entSetup(t, contracttest.Options{})
+	ctx := t.Context()
+	start := h.clock.Now()
+	head := entFeed(t, c, 0).Head
+	if err := h.p.HoldPublishing("wappie"); err != nil {
+		t.Fatal(err)
+	}
+	h.clock.Add(time.Minute)
+	held := h.clock.Now()
+	if v, err := h.p.SetEntitlements("wappie", team, activeDoc(start)); err != nil || v != 0 {
+		t.Fatalf("set while held: %d %v", v, err)
+	}
+	if v, err := h.p.SetEntitlements("wappie", personal, trialDoc(start)); err != nil || v != 0 {
+		t.Fatalf("set while held: %d %v", v, err)
+	}
+	// One that does not validate is still refused while held.
+	bad := activeDoc(start)
+	bad.Places.Free = i64(2)
+	if _, err := h.p.SetEntitlements("wappie", team, bad); !errors.Is(err, contracttest.ErrInvalid) {
+		t.Fatalf("a bad document while held: %v", err)
+	}
+	h.clock.Add(time.Minute)
+	f := entFeed(t, c, head)
+	if len(f.Items) != 0 || f.Head != head || !f.PublishedThrough.Equal(held) {
+		t.Fatalf("the feed while held: %+v", f)
+	}
+	// The GET publishes the team's at once, and its mark goes; the personal
+	// workspace's still holds published_through.
+	got, _, err := c.EntitlementsDoc(ctx, team)
+	if err != nil || got.Plan.Source != contract.SourcePlan || got.Version != head+1 {
+		t.Fatalf("GET while held: %+v %v", got.Version, err)
+	}
+	if f := entFeed(t, c, head); len(f.Items) != 1 || f.Items[0].Seq != head+1 || !f.PublishedThrough.Equal(held) {
+		t.Fatalf("the feed after the GET: %+v", f)
+	}
+	// Release publishes the personal workspace's, and published_through is
+	// now again.
+	if err := h.p.Release("wappie"); err != nil {
+		t.Fatal(err)
+	}
+	f = entFeed(t, c, head+1)
+	if len(f.Items) != 1 || document(t, f, 0).WorkspaceID != personal || !f.PublishedThrough.Equal(h.clock.Now()) {
+		t.Fatalf("the feed after Release: %+v", f)
+	}
+	// Held again, a new generation: its documents are held from its own
+	// time, and the old generation's leave the feed.
+	if err := h.p.HoldPublishing("wappie"); err != nil {
+		t.Fatal(err)
+	}
+	h.clock.Add(time.Minute)
+	if _, err := h.p.SetEntitlements("wappie", team, expiredDoc(start)); err != nil {
+		t.Fatal(err)
+	}
+	h.clock.Add(time.Minute)
+	gen := h.p.NewGeneration()
+	f = entFeed(t, c, 0)
+	if f.Generation != gen || len(f.Items) != 0 || !f.PublishedThrough.Equal(h.clock.Now()) {
+		t.Fatalf("a new generation while held: %+v", f)
+	}
+	if err := h.p.Release("wappie"); err != nil {
+		t.Fatal(err)
+	}
+	f = entFeed(t, c, 0)
+	if len(f.Items) != 2 {
+		t.Fatalf("after Release: %+v", f)
+	}
+	for i := range f.Items {
+		if d := document(t, f, i); d.Generation != gen {
+			t.Fatalf("a document of another generation: %+v", d)
+		}
+	}
+	// Restore forgets the marks too.
+	if err := h.p.HoldPublishing("wappie"); err != nil {
+		t.Fatal(err)
+	}
+	h.clock.Add(time.Minute)
+	if _, err := h.p.SetEntitlements("wappie", team, activeDoc(start)); err != nil {
+		t.Fatal(err)
+	}
+	h.p.Restore()
+	h.clock.Add(time.Minute)
+	if f := entFeed(t, c, 0); len(f.Items) != 0 || !f.PublishedThrough.Equal(h.clock.Now()) {
+		t.Fatalf("after a restore: %+v", f)
+	}
+}
+
+// A document keeps the computed_at it was set with: published again by a
+// new generation, or at a naming after a restore, once the clock passed a
+// step of its timeline, it is still valid, and no publish failed.
+func TestADocumentPublishedAgainKeepsItsComputedAt(t *testing.T) {
+	h, c, personal, team := entSetup(t, contracttest.Options{})
+	ctx := t.Context()
+	set := h.clock.Now()
+	d := activeDoc(set)
+	d.Timeline = []contract.TimelineStep{{At: *tAt(set, time.Hour), Off: []string{contract.SwitchSend}}}
+	if _, err := h.p.SetEntitlements("wappie", team, d); err != nil {
+		t.Fatal(err)
+	}
+	check := func(when string, f contract.EntitlementsFeed) {
+		t.Helper()
+		var found bool
+		for i := range f.Items {
+			doc := document(t, f, i)
+			if doc.WorkspaceID != team {
+				continue
+			}
+			found = true
+			if !doc.ComputedAt.Equal(set) || len(doc.Timeline) != 1 {
+				t.Fatalf("%s: %+v", when, doc)
+			}
+		}
+		if !found {
+			t.Fatalf("%s: no document of the team: %+v", when, f)
+		}
+		for _, ws := range []string{personal, team} {
+			if err := h.p.EntitlementsError("wappie", ws); err != nil {
+				t.Fatalf("%s: a publish failed: %v", when, err)
+			}
+		}
+		if got, _, err := c.EntitlementsDoc(ctx, team); err != nil || !got.ComputedAt.Equal(set) {
+			t.Fatalf("%s: GET %+v %v", when, got, err)
+		}
+	}
+	h.clock.Add(2 * time.Hour)
+	gen := h.p.NewGeneration()
+	f := entFeed(t, c, 0)
+	if f.Generation != gen {
+		t.Fatalf("the generation: %+v", f)
+	}
+	check("after a new generation", f)
+	h.clock.Add(2 * time.Hour)
+	h.p.Restore()
+	if _, err := c.Subscribe(ctx, anaSub); err != nil {
+		t.Fatal(err)
+	}
+	check("named again after a restore", entFeed(t, c, 0))
+}
+
+// wireUsage is the intake of wire-usage.json (SPEC section 11.20).
+type wireUsage struct {
+	Reports []struct {
+		Now int64 `json:"now"`
+	} `json:"reports"`
+	Intake []struct {
+		Name string `json:"name"`
+		Held *struct {
+			Body json.RawMessage `json:"body"`
+		} `json:"held"`
+		Mode      string          `json:"mode"`
+		Workspace string          `json:"workspace"`
+		Value     json.RawMessage `json:"value"`
+		Kept      bool            `json:"kept"`
+	} `json:"intake"`
+}
+
+// The fake keeps a usage report as wire-usage.json's intake says, a retry
+// judged by the JCS text of the body sent: each case replayed through it,
+// its workspace the fake's, at the vectors' clock.
+func TestTheFakeKeepsUsageAsTheIntakeVectorsSay(t *testing.T) {
+	raw, err := vectors.FS.ReadFile("platform/contract-v1/wire-usage.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var w wireUsage
+	if err := json.Unmarshal(raw, &w); err != nil || len(w.Intake) == 0 || len(w.Reports) == 0 {
+		t.Fatalf("wire-usage.json: %v", err)
+	}
+	now := time.Unix(w.Reports[0].Now, 0).UTC()
+	for _, c := range w.Intake {
+		t.Run(c.Name, func(t *testing.T) {
+			h, client, personal, team := entSetup(t, contracttest.Options{UsageValidateOnly: c.Mode == "validate"})
+			ctx := t.Context()
+			ws := team
+			switch c.Workspace {
+			case "open":
+				h.clock.Add(now.Sub(h.clock.Now()))
+			case "closed_personal":
+				h.clock.Add(now.Sub(h.clock.Now()))
+				if _, err := h.p.AddAccount(bobSub); err != nil {
+					t.Fatal(err)
+				}
+				var err error
+				if ws, err = bobPersonal(t, h); err != nil {
+					t.Fatal(err)
+				}
+				if err := h.p.CloseAccount(bobSub); err != nil {
+					t.Fatal(err)
+				}
+			case "closed_team_past":
+				h.clock.Add(now.Add(-contracttest.ClosedTeamRetention - time.Hour).Sub(h.clock.Now()))
+				if err := h.p.CloseTeam(team); err != nil {
+					t.Fatal(err)
+				}
+				h.clock.Add(now.Sub(h.clock.Now()))
+			default:
+				t.Fatalf("workspace %q", c.Workspace)
+			}
+			_ = personal
+			put := func(body json.RawMessage) bool {
+				t.Helper()
+				if !bytes.Contains(body, []byte(teamID)) {
+					t.Fatalf("a body without the vectors' workspace written plainly: %s", body)
+				}
+				status, answer, err := client.Do(ctx, http.MethodPut, "/contract/v1/workspaces/"+ws+"/usage",
+					bytes.ReplaceAll(body, []byte(teamID), []byte(ws)))
+				if err != nil || status != http.StatusOK {
+					t.Fatalf("PUT: %d %s %v", status, answer, err)
+				}
+				var a contract.UsageAnswer
+				if err := json.Unmarshal(answer, &a); err != nil || a.Validate() != nil {
+					t.Fatalf("the answer %s: %v", answer, err)
+				}
+				return a.Kept
+			}
+			if c.Held != nil {
+				if kept := put(c.Held.Body); kept != (c.Mode == "keep") {
+					t.Fatalf("the held report kept %t", kept)
+				}
+			}
+			if kept := put(c.Value); kept != c.Kept {
+				t.Fatalf("kept %t, want %t", kept, c.Kept)
+			}
+		})
+	}
+}
+
+// bobPersonal names bob's personal workspace to wappie, by his sign-in,
+// and returns its id.
+func bobPersonal(t *testing.T, h *harness) (string, error) {
+	t.Helper()
+	doc, err := h.p.Client("wappie").Subscribe(t.Context(), bobSub)
+	if err != nil {
+		return "", err
+	}
+	for _, w := range doc.Workspaces {
+		if w.Kind == contract.KindPersonal {
+			return w.ID, nil
+		}
+	}
+	return "", errors.New("bob has no personal workspace")
 }

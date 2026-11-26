@@ -1339,7 +1339,7 @@ func (p *Platform) publishLocked(app *appState, sub string) contract.AccountDoc 
 	defer func() {
 		for _, ws := range newlyNamed {
 			p.publishWorkspaceTokensLocked(app, ws)
-			_, _ = p.publishEntitlementsLocked(app, ws)
+			p.republishEntitlementsLocked(app, ws, false)
 		}
 	}()
 	stored, ok := app.docs[sub]
@@ -1445,7 +1445,15 @@ func storedLen(d contract.AccountDoc) int {
 // published, so an app's freshness grows old while the feed still answers
 // (SPEC section 11.17). PUT and GET still compute an account's document now
 // and publish it, the account's held changes with it, as the platform's
-// do. Release starts the publisher again.
+// do. The token feed and the entitlements feed are held alike (sections
+// 11.18 and 11.20): a token's change, and an entitlements document that
+// SetEntitlements, IssueTrimOrder, a naming, a new generation or a trim
+// result would publish, is marked by its token or workspace at its first
+// change instead; each feed's published_through is the earliest of now and
+// its marks; a GET of the token, selector or workspace publishes it at once
+// and clears its mark. NewGeneration and Restore forget the entitlements
+// marks (a new generation's documents are held again, at their own time).
+// Release starts the publisher again.
 func (p *Platform) HoldPublishing(app string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -1458,7 +1466,8 @@ func (p *Platform) HoldPublishing(app string) error {
 }
 
 // Release starts app's publisher again: every change held is published at
-// once, and published_through is now again.
+// once (accounts, tokens and entitlements documents), and published_through
+// is now again.
 func (p *Platform) Release(app string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -1468,6 +1477,7 @@ func (p *Platform) Release(app string) error {
 	}
 	st.held = false
 	p.releaseTokensLocked(st)
+	p.releaseEntitlementsLocked(st)
 	for sub := range st.marks {
 		p.publishLocked(st, sub)
 	}

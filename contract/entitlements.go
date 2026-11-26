@@ -914,16 +914,18 @@ func objectMembers(raw []byte) (map[string]json.RawMessage, bool) {
 }
 
 // NewEntitlementsFeedItem is the item of d at seq, as the platform writes
-// it. d's version is its seq.
+// it: with no HTML escaping, so the feed's document is byte for byte the
+// GET's, which the platform writes so too (SPEC section 11.20), and a link
+// with an & in it is written as it is. d's version is its seq.
 func NewEntitlementsFeedItem(seq int64, d EntitlementsDoc) (EntitlementsFeedItem, error) {
 	if d.Version != seq {
 		return EntitlementsFeedItem{}, invalid("a document's version is its seq")
 	}
-	raw, err := json.Marshal(d)
+	raw, err := marshalPlain(d)
 	if err != nil {
 		return EntitlementsFeedItem{}, err
 	}
-	return EntitlementsFeedItem{Seq: seq, Doc: raw}, nil
+	return EntitlementsFeedItem{Seq: seq, Doc: json.RawMessage(raw)}, nil
 }
 
 // Validate checks a page of the entitlements feed itself: its generation,

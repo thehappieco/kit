@@ -231,14 +231,20 @@ type shapeField struct {
 // an embedded struct's members are its parent's, and an embedded pointer's
 // members form a group of their own, present whole or not at all. As
 // encoding/json does, a member named at a shallower depth wins over one an
-// embedded struct names deeper, whatever their order in the declaration.
-// (Two members of one name at one depth, which encoding/json leaves out,
-// are a struct go vet refuses; none is declared here.)
+// embedded struct names deeper, whatever their order in the declaration,
+// and two members of one name at the same shallowest depth are both left
+// out, as encoding/json leaves them out (go vet refuses that only for two
+// embedded values, not for a value beside a pointer).
 func collectFields(t reflect.Type, group int, fields map[string]shapeField, groups *int) {
-	collectFieldsAt(t, group, 0, fields, map[string]int{}, groups)
+	depths := map[string]int{}
+	ties := map[string]bool{}
+	collectFieldsAt(t, group, 0, fields, depths, ties, groups)
+	for name := range ties {
+		delete(fields, name)
+	}
 }
 
-func collectFieldsAt(t reflect.Type, group, depth int, fields map[string]shapeField, depths map[string]int, groups *int) {
+func collectFieldsAt(t reflect.Type, group, depth int, fields map[string]shapeField, depths map[string]int, ties map[string]bool, groups *int) {
 	for i := 0; i < t.NumField(); i++ {
 		sf := t.Field(i)
 		name, opts, _ := strings.Cut(sf.Tag.Get("json"), ",")
@@ -250,15 +256,22 @@ func collectFieldsAt(t reflect.Type, group, depth int, fields map[string]shapeFi
 				g = *groups
 			}
 			if et.Kind() == reflect.Struct {
-				collectFieldsAt(et, g, depth+1, fields, depths, groups)
+				collectFieldsAt(et, g, depth+1, fields, depths, ties, groups)
 				continue
 			}
 		}
 		if name == "" || name == "-" {
 			continue
 		}
-		if d, ok := depths[name]; ok && d <= depth {
-			continue
+		if d, ok := depths[name]; ok {
+			if d < depth {
+				continue
+			}
+			if d == depth {
+				ties[name] = true
+				continue
+			}
+			delete(ties, name)
 		}
 		depths[name] = depth
 		fields[name] = shapeField{sf.Type, strings.Contains(opts, "omitempty") || strings.Contains(opts, "omitzero"), group}

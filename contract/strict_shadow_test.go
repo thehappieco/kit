@@ -74,3 +74,30 @@ func TestTheStrictReadingShadowsAnEmbeddedPointersMemberWithoutRequiringItsGroup
 		t.Errorf("DecodeStrict refused or misread the group present whole: %+v, %v", w, err)
 	}
 }
+
+type tieValue struct {
+	X int `json:"x"`
+}
+
+// TiePointer is exported only because encoding/json cannot set an embedded
+// pointer to an unexported struct.
+type TiePointer struct {
+	X string `json:"x"`
+}
+
+// shadowTie names x at one depth through a value and through a pointer,
+// which go vet allows; encoding/json leaves x out altogether.
+type shadowTie struct {
+	tieValue
+	*TiePointer
+	Y int `json:"y"`
+}
+
+func TestTheStrictReadingLeavesOutAMemberAValueAndAPointerNameAtOneDepth(t *testing.T) {
+	if err := DecodeStrict([]byte(`{"y":1}`), &shadowTie{}); err != nil {
+		t.Errorf("DecodeStrict required a member encoding/json leaves out: %v", err)
+	}
+	if err := DecodeStrict([]byte(`{"x":1,"y":1}`), &shadowTie{}); !errors.Is(err, ErrInvalid) {
+		t.Errorf("DecodeStrict took a member encoding/json leaves out: %v", err)
+	}
+}

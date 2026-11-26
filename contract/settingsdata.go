@@ -194,7 +194,12 @@ type NumberRow struct {
 	// owner, else null.
 	MoveOut      *MoveOut `json:"move_out"`
 	RecoveryOpen bool     `json:"recovery_open"`
-	// Bytes is null until the privacy text names it.
+	// Bytes is null until the privacy text names it. The platform clears
+	// it on intake.
+	//
+	// Deprecated: bytes per item cross the contract only in the usage
+	// report (Usage, kit v0.12.0). The member stays on the wire, and
+	// Validate is unchanged.
 	Bytes *int64 `json:"bytes"`
 }
 

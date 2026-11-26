@@ -299,3 +299,94 @@ func FuzzAnEntitlementsDocumentIsAppliedOrRefusedAlone(f *testing.F) {
 		}
 	})
 }
+
+// A trial identifier normalizes to itself again, and makes a valid code
+// exactly when it normalizes: never a code for what makes none, never
+// ErrInvalid for an identifier, and an IMAP login on a provider's own host
+// is an address only with @.
+func FuzzATrialIdentifierNormalizesOnceAndMakesACodeExactlyThen(f *testing.F) {
+	for _, s := range []string{
+		"+5511988887777", "+0511988887777", "A.N.A+x@GoogleMail.com", "+x@gmail.com", ".@gmail.com", "ana",
+		"imap.gmail.com/ana@gmail.com", "Imap.Example.COM./Ana", "tid/sub", "tid/sub/x", "\x00", "ÉVA@exämple.com", "a@b@c",
+	} {
+		f.Add(s)
+	}
+	key, err := NewTrialKey([]byte("0123456789abcdef0123456789abcdef"))
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Fuzz(func(t *testing.T, s string) {
+		for _, kind := range append(TrialCodeKinds("wappie"), TrialCodeKinds("mailie")...) {
+			app := "mailie"
+			if kind == TrialKindE164 || kind == TrialKindWALID {
+				app = "wappie"
+			}
+			id, ok := NormalizeTrialIdentifier(kind, s)
+			code, err := TrialCode(key, app, kind, s)
+			switch {
+			case ok != (err == nil):
+				t.Fatalf("%s %q: normalized %v, code error %v", kind, s, ok, err)
+			case !ok && (!errors.Is(err, ErrNoCode) || code != ""):
+				t.Fatalf("%s %q: %q %v", kind, s, code, err)
+			case !ok:
+				continue
+			case !ValidTrialCode(code) || id == "" || strings.IndexByte(id, 0) >= 0 || !utf8.ValidString(id):
+				t.Fatalf("%s %q: %q %q", kind, s, id, code)
+			}
+			again, ok := NormalizeTrialIdentifier(kind, id)
+			if !ok || again != id {
+				t.Fatalf("%s %q: %q normalizes to %q %v", kind, s, id, again, ok)
+			}
+			if same, _ := TrialCode(key, app, kind, id); same != code {
+				t.Fatalf("%s %q: the normalized identifier makes another code", kind, s)
+			}
+		}
+		host, login, _ := strings.Cut(s, "/")
+		if kind, id, ok := IMAPIdentity(host, login); ok {
+			provider := slices.Contains(ProviderIMAPHosts(), strings.TrimSuffix(strings.ToLower(host), "."))
+			if (kind == TrialKindAddress) != (provider && strings.Contains(login, "@")) {
+				t.Fatalf("%q %q: %s", host, login, kind)
+			}
+			if again, ok := NormalizeTrialIdentifier(kind, id); !ok || again != id {
+				t.Fatalf("%q %q: %s %q does not normalize to itself", host, login, kind, id)
+			}
+		}
+	})
+}
+
+// Whatever a usage report's bytes, the platform reads it strictly and
+// Validate holds the exact sum: nothing panics, and a report that passes
+// decodes again to itself.
+func FuzzAUsageReportThatValidatesHoldsItsSum(f *testing.F) {
+	for _, s := range []string{
+		`{"v":1,"type":"usage","app":"wappie","workspace_id":"01a034b7-d09c-7121-b7f8-41f210a9244a","usage_seq":1,"rule_version":"wappie-storage/1","measured_at":"2026-12-03T09:40:00Z","total_bytes":3,"shared_bytes":1,"items":[{"id":"d","state":"active","purge_at":null,"bytes":2,"recent_bytes":1,"undated_bytes":0,"fixed_bytes":1}]}`,
+		`{"v":1,"type":"usage","app":"mailie","workspace_id":"01a034b7-d09c-7121-b7f8-41f210a9244a","usage_seq":1,"rule_version":"mailie-usage/1","measured_at":"2026-12-03T09:40:00Z","total_bytes":0,"shared_bytes":0,"items":[]}`,
+		`{"total_bytes":9007199254740993}`, `null`, `{`,
+	} {
+		f.Add([]byte(s))
+	}
+	f.Fuzz(func(t *testing.T, b []byte) {
+		var u Usage
+		if DecodeStrict(b, &u) != nil || u.Validate() != nil {
+			return
+		}
+		sum := u.SharedBytes
+		for _, it := range u.Items {
+			sum += it.Bytes
+			if it.RecentBytes+it.UndatedBytes+it.FixedBytes > it.Bytes {
+				t.Fatalf("parts over bytes: %s", b)
+			}
+		}
+		if sum != u.TotalBytes || sum > MaxSafeInteger {
+			t.Fatalf("the sum: %s", b)
+		}
+		raw, err := json.Marshal(u)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var again Usage
+		if DecodeStrict(raw, &again) != nil || !reflect.DeepEqual(again, u) {
+			t.Fatalf("does not decode again: %s", raw)
+		}
+	})
+}

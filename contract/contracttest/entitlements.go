@@ -14,10 +14,16 @@ package contracttest
 //     without version, generation, computed_at and places.counted_at). Its
 //     storage figures count, where the platform's threshold may leave them
 //     unpublished: a test that sets new figures means them published;
+//   - a workspace named to an app with no document the test set gets a
+//     default one at once (Options.DefaultEntitlements, else
+//     DefaultEntitlementsDoc), as the platform always has a document for a
+//     named workspace; a document the test sets for a workspace that
+//     exists but is not named yet is kept and published at naming;
 //   - the GET answers the latest document the test set, published again
 //     only when the latest published is not it (a bad one of
-//     PublishRawEntitlements, or one of another generation); with none set
-//     for a named workspace it answers a signed unavailable;
+//     PublishRawEntitlements, or one of another generation); it answers
+//     unavailable only through Refuse, or when the hook's document does
+//     not validate;
 //   - the link check's place and new_links come from the document the test
 //     set, and its trial from the clocks it sets (SetTrialClock), judged on
 //     whenever the document says the workspace is on trial
@@ -55,7 +61,7 @@ const (
 // The body limits of the entitlements part's calls.
 const (
 	EntitlementsAppliedLimit = contract.EntitlementsAppliedLimit
-	UsageBodyLimit           = contract.UsageReportBodyLimit
+	UsageReportBodyLimit     = contract.UsageReportBodyLimit
 	LinkCheckBodyLimit       = contract.LinkCheckBodyLimit
 	TrimResultBodyLimit      = contract.TrimResultBodyLimit
 )
@@ -77,9 +83,10 @@ type entitlementsApp struct {
 	entWake   chan struct{}
 	entPolls  chan struct{}
 	entAcks   []contract.EntitlementsApplied
-	entUsage  map[string]keptUsage   // by workspace
-	linkRate  map[string]*bucket     // link checks with codes, by workspace
-	orders    map[string]*trimRecord // by order_id
+	entUsage  map[string]keptUsage      // by workspace
+	entSent   map[string]contract.Usage // the last answered, kept or not, by workspace
+	linkRate  map[string]*bucket        // link checks with codes, by workspace
+	orders    map[string]*trimRecord    // by order_id
 }
 
 // entInput is a workspace's document as the test set it, with no version
@@ -121,7 +128,8 @@ func newEntitlementsApp(longPolls int) entitlementsApp {
 	return entitlementsApp{
 		entInputs: map[string]*entInput{}, entPub: map[string]entPublished{},
 		entWake: make(chan struct{}), entPolls: make(chan struct{}, longPolls),
-		entUsage: map[string]keptUsage{}, linkRate: map[string]*bucket{}, orders: map[string]*trimRecord{},
+		entUsage: map[string]keptUsage{}, entSent: map[string]contract.Usage{}, linkRate: map[string]*bucket{},
+		orders: map[string]*trimRecord{},
 	}
 }
 
@@ -171,7 +179,7 @@ func matchEntitlements(method, rest string) (route, string, bool) {
 		case tail == "entitlements" && method == http.MethodGet:
 			return route{CallEntitlementsDoc, SmallBodyLimit, (*Platform).entitlementsDoc}, ws, true
 		case tail == "usage" && method == http.MethodPut:
-			return route{CallUsage, UsageBodyLimit, (*Platform).putUsage}, ws, true
+			return route{CallUsage, UsageReportBodyLimit, (*Platform).putUsage}, ws, true
 		case tail == "link-check" && method == http.MethodPost:
 			return route{CallLinkCheck, LinkCheckBodyLimit, (*Platform).linkCheck}, ws, true
 		}
@@ -186,8 +194,10 @@ func matchEntitlements(method, rest string) (route, string, bool) {
 // SetEntitlements sets the document of the workspace ws for app, as the
 // platform would compute it, and publishes it to app's entitlements feed
 // unless it is the same document as the latest published. It returns the
-// document's version, its seq in the feed. The workspace must be one named
-// to app (ErrUnknown otherwise), the fake fills V, Type, App and
+// document's version, its seq in the feed. The workspace must exist
+// (ErrUnknown otherwise); one not named to app yet keeps the document,
+// validated, which is published the moment it is named (the version
+// returned is then 0). The fake fills V, Type, App and
 // WorkspaceID when they are empty (ErrInvalid for another app or
 // workspace), places.kind when empty, the console's two links when empty,
 // a nil timeline or items as [], and computed_at, when zero, by its clock;
@@ -201,12 +211,42 @@ func (p *Platform) SetEntitlements(app, ws string, doc contract.EntitlementsDoc)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	st := p.apps[app]
-	if st == nil || p.workspaces[ws] == nil || !st.named[ws] {
+	if st == nil || p.workspaces[ws] == nil {
 		return 0, ErrUnknown
 	}
 	if len(bytes.TrimSpace(doc.Trim)) != 0 || (doc.App != "" && doc.App != app) || (doc.WorkspaceID != "" && doc.WorkspaceID != ws) {
 		return 0, ErrInvalid
 	}
+	doc = fillEntitlements(app, ws, doc)
+	in := &entInput{doc: doc}
+	if old := st.entInputs[ws]; old != nil && old.order != nil && doc.Mode == contract.ModeEnforce &&
+		doc.State.Name == contract.WorkspaceExpired && samePlan(doc.Plan, old.doc.Plan) {
+		in.order = old.order
+	}
+	if !st.named[ws] {
+		if _, err := p.entCandidateLocked(st, in); err != nil {
+			return 0, ErrInvalid
+		}
+		st.entInputs[ws] = in
+		return 0, nil
+	}
+	prev := st.entInputs[ws]
+	st.entInputs[ws] = in
+	pub, err := p.publishEntitlementsLocked(st, ws)
+	if err != nil {
+		if prev == nil {
+			delete(st.entInputs, ws)
+		} else {
+			st.entInputs[ws] = prev
+		}
+		return 0, ErrInvalid
+	}
+	return pub.seq, nil
+}
+
+// fillEntitlements fills what SetEntitlements fills of a document the test
+// set for app's workspace ws.
+func fillEntitlements(app, ws string, doc contract.EntitlementsDoc) contract.EntitlementsDoc {
 	doc.App, doc.WorkspaceID, doc.Trim = app, ws, nil
 	if doc.V == 0 {
 		doc.V = contract.EntitlementsV
@@ -229,23 +269,51 @@ func (p *Platform) SetEntitlements(app, ws string, doc contract.EntitlementsDoc)
 	if doc.Links.Storage == "" {
 		doc.Links.Storage = "https://console.thehappie.co/workspaces/" + ws + "/storage"
 	}
+	return doc
+}
+
+// DefaultEntitlementsDoc is the document the fake publishes for a
+// workspace named to app when the test set none and Options has no
+// DefaultEntitlements: observe, active since the moment it is named (the
+// fake fills state.since by its clock), no plan (source none), no places
+// counted, no storage, every switch on, no step to come and no item. The
+// fake fills the rest as SetEntitlements does.
+func DefaultEntitlementsDoc(app string) contract.EntitlementsDoc {
+	kind, _ := contract.AppItemKind(app)
+	return contract.EntitlementsDoc{
+		Mode:     contract.ModeObserve,
+		State:    contract.EntitlementsState{Name: contract.WorkspaceActive},
+		Plan:     contract.EntitlementsPlan{Source: contract.SourceNone},
+		Places:   contract.EntitlementsPlaces{Kind: kind},
+		Switches: contract.Switches{API: contract.SwitchOn, NewLinks: contract.SwitchOn, Sync: contract.SwitchOn, Send: contract.SwitchOn},
+		Timeline: []contract.TimelineStep{},
+		Items:    []contract.ItemTrial{},
+	}
+}
+
+// defaultEntInputLocked gives the workspace ws, named to st's app with no
+// document the test set, its default one: the hook's, else
+// DefaultEntitlementsDoc, filled as SetEntitlements fills a document and
+// its state.since, when zero, by the fake's clock. It is kept only when it
+// validates; nil otherwise.
+func (p *Platform) defaultEntInputLocked(st *appState, ws string) *entInput {
+	doc := DefaultEntitlementsDoc(st.id)
+	if p.defaultEnt != nil {
+		doc = p.defaultEnt(st.id, ws)
+	}
+	if len(bytes.TrimSpace(doc.Trim)) != 0 || (doc.App != "" && doc.App != st.id) || (doc.WorkspaceID != "" && doc.WorkspaceID != ws) {
+		return nil
+	}
+	doc = fillEntitlements(st.id, ws, doc)
+	if doc.State.Since.IsZero() {
+		doc.State.Since = contract.T(atMicroseconds(p.now()))
+	}
 	in := &entInput{doc: doc}
-	if old := st.entInputs[ws]; old != nil && old.order != nil && doc.Mode == contract.ModeEnforce &&
-		doc.State.Name == contract.WorkspaceExpired && samePlan(doc.Plan, old.doc.Plan) {
-		in.order = old.order
+	if _, err := p.entCandidateLocked(st, in); err != nil {
+		return nil
 	}
-	prev := st.entInputs[ws]
 	st.entInputs[ws] = in
-	pub, err := p.publishEntitlementsLocked(st, ws)
-	if err != nil {
-		if prev == nil {
-			delete(st.entInputs, ws)
-		} else {
-			st.entInputs[ws] = prev
-		}
-		return 0, ErrInvalid
-	}
-	return pub.seq, nil
+	return in
 }
 
 // PublishRawEntitlements publishes raw, one JSON value, as the next
@@ -290,22 +358,42 @@ func (p *Platform) Entitlements(app, ws string) (contract.EntitlementsDoc, bool)
 }
 
 // publishEntitlementsLocked publishes the workspace's document as the test
-// set it, unless the workspace is not named to the app, the test set none,
-// or it is the same document as the latest published in this generation.
-// A document that does not validate is not published, and is an error.
+// set it, or its default one when the test set none, unless the workspace
+// is not named to the app, or it is the same document as the latest
+// published in this generation. A document that does not validate is not
+// published, and is an error; a default one that does not validate
+// publishes nothing.
 func (p *Platform) publishEntitlementsLocked(st *appState, ws string) (entPublished, error) {
-	in := st.entInputs[ws]
-	if in == nil || !st.named[ws] {
+	if !st.named[ws] {
 		return entPublished{}, nil
 	}
+	in := st.entInputs[ws]
+	if in == nil {
+		if in = p.defaultEntInputLocked(st, ws); in == nil {
+			return entPublished{}, nil
+		}
+	}
+	cand, err := p.entCandidateLocked(st, in)
+	if err != nil {
+		return entPublished{}, err
+	}
+	if old, ok := st.entPub[ws]; ok && old.raw == nil && old.doc.Generation == p.generation && sameEntitlements(old, cand) {
+		return old, nil
+	}
+	st.entHead = cand.seq
+	st.entPub[ws] = cand
+	st.wakeEntitlements()
+	return cand, nil
+}
+
+// entCandidateLocked is the document in as the feed's next seq would
+// publish it now, validated as served.
+func (p *Platform) entCandidateLocked(st *appState, in *entInput) (entPublished, error) {
 	cand := entPublished{doc: in.doc, order: in.order}
 	if cand.doc.ComputedAt.IsZero() {
 		cand.doc.ComputedAt = contract.T(atMicroseconds(p.now()))
 	}
 	cand.doc.Generation = p.generation
-	if old, ok := st.entPub[ws]; ok && old.raw == nil && old.doc.Generation == p.generation && sameEntitlements(old, cand) {
-		return old, nil
-	}
 	cand.seq = st.entHead + 1
 	cand.doc.Version = cand.seq
 	served, err := p.servedDocLocked(st, cand, st.current, st.secretNo)
@@ -315,9 +403,6 @@ func (p *Platform) publishEntitlementsLocked(st *appState, ws string) (entPublis
 	if err := served.Validate(); err != nil {
 		return entPublished{}, err
 	}
-	st.entHead = cand.seq
-	st.entPub[ws] = cand
-	st.wakeEntitlements()
 	return cand, nil
 }
 
@@ -499,9 +584,10 @@ func (p *Platform) readEntitlementsFeed(rq *request, after int64) (contract.Enti
 
 // entitlementsDoc answers GET /contract/v1/workspaces/{id}/entitlements: the
 // document the test set, published again first when the latest published is
-// not it; not_found for a workspace not named to the app, a closed personal
-// workspace and a team closed past its 30 days; unavailable when the test
-// set no document.
+// not it, or its default one when the test set none; not_found for a
+// workspace not named to the app, a closed personal workspace and a team
+// closed past its 30 days; unavailable only when a default document does
+// not validate (or through Refuse).
 func (p *Platform) entitlementsDoc(rq *request) answer {
 	if ans, ok := noBody(rq); !ok {
 		return ans
@@ -512,11 +598,8 @@ func (p *Platform) entitlementsDoc(rq *request) answer {
 	if w == nil || !rq.app.named[rq.arg] || p.closedPast(w) {
 		return refusal(contract.CodeNotFound, "not found")
 	}
-	if rq.app.entInputs[rq.arg] == nil {
-		return refusal(contract.CodeUnavailable, "try again")
-	}
 	pub, err := p.publishEntitlementsLocked(rq.app, rq.arg)
-	if err != nil {
+	if err != nil || rq.app.entInputs[rq.arg] == nil {
 		return refusal(contract.CodeUnavailable, "try again")
 	}
 	d, err := p.servedDocLocked(rq.app, pub, rq.secret, rq.secretNo)
@@ -584,6 +667,7 @@ func (p *Platform) putUsage(rq *request) answer {
 	if w == nil || !rq.app.named[rq.arg] {
 		return refusal(contract.CodeNotFound, "not found")
 	}
+	rq.app.entSent[rq.arg] = u
 	kept := false
 	held, ok := rq.app.entUsage[rq.arg]
 	switch {
@@ -595,6 +679,23 @@ func (p *Platform) putUsage(rq *request) answer {
 		kept = bytes.Equal(held.text, text)
 	}
 	return answer{status: http.StatusOK, body: contract.UsageAnswer{Accepted: true, Kept: kept}}
+}
+
+// UsageSent is the last usage report of the workspace ws that app sent and
+// the fake answered 200, whatever kept answered: under
+// Options.UsageValidateOnly, for a lower usage_seq, and for a closed
+// workspace too, so that a test sees what the app sent where Usage holds
+// nothing. It is what the app sent, not what the platform keeps, so a
+// Restore leaves it. False when there is none.
+func (p *Platform) UsageSent(app, ws string) (contract.Usage, bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	st := p.apps[app]
+	if st == nil {
+		return contract.Usage{}, false
+	}
+	u, ok := st.entSent[ws]
+	return u, ok
 }
 
 // Usage is the latest usage report of the workspace ws that app sent and
@@ -631,7 +732,8 @@ func (p *Platform) SetTrialClock(code string, endsAt time.Time) error {
 // strictly, else invalid_request; with codes, at most LinkChecksPerMinute
 // a minute per workspace, else rate_limited; valid for the app's kind, else
 // invalid_request; for a workspace named to the app the platform still
-// keeps, else not_found; with a document the test set, else unavailable.
+// keeps, else not_found; from the document the test set, or its default
+// one, else unavailable.
 func (p *Platform) linkCheck(rq *request) answer {
 	var lc contract.LinkCheck
 	if err := decodeContract(rq.body, &lc); err != nil {
@@ -651,6 +753,9 @@ func (p *Platform) linkCheck(rq *request) answer {
 		return refusal(contract.CodeNotFound, "not found")
 	}
 	in := rq.app.entInputs[rq.arg]
+	if in == nil {
+		in = p.defaultEntInputLocked(rq.app, rq.arg)
+	}
 	if in == nil {
 		return refusal(contract.CodeUnavailable, "try again")
 	}
@@ -719,14 +824,14 @@ func (a *entitlementsApp) allowLinkCheck(ws string, now time.Time) bool {
 // as ErrInvalid, an order that does not validate, one with floor null
 // beside a plan source plan or live_move, an order_id issued before, and a
 // document that is not enforce and expired; ErrUnknown for a workspace
-// with no document. It returns the order_id. The order is the
+// not named to the app, or with no document. It returns the order_id. The order is the
 // workspace's until a result for it is kept, the test sets a document that
 // drops it, or a new generation or a restore drops it.
 func (p *Platform) IssueTrimOrder(app, ws string, o contract.TrimOrder) (string, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	st := p.apps[app]
-	if st == nil || st.entInputs[ws] == nil {
+	if st == nil || st.entInputs[ws] == nil || !st.named[ws] {
 		return "", ErrUnknown
 	}
 	in := st.entInputs[ws]

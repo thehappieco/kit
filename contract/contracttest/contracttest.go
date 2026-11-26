@@ -198,6 +198,14 @@ type Options struct {
 	// none, as the platform does while it only validates them
 	// (PLATFORM_CONTRACT_USAGE=validate, all of E0).
 	UsageValidateOnly bool
+	// DefaultEntitlements, when not nil, is the document the fake publishes
+	// for a workspace the moment it is named to app, when the test set
+	// none (SetEntitlements), as the platform always has a document for a
+	// named workspace. It is called with the fake's lock held, so it must
+	// not call the Platform. The fake fills it as SetEntitlements does; one
+	// that does not validate publishes nothing, and the GET then answers
+	// unavailable. When nil, the default is DefaultEntitlementsDoc(app).
+	DefaultEntitlements func(app, ws string) contract.EntitlementsDoc
 }
 
 // Corruption is how Corrupt spoils an answer.
@@ -237,6 +245,7 @@ type Platform struct {
 	selectorRate float64
 	strictLabels bool
 	usageOnly    bool
+	defaultEnt   func(app, ws string) contract.EntitlementsDoc
 	server       *httptest.Server
 	drain        chan struct{}
 	drainOnce    sync.Once
@@ -329,8 +338,9 @@ func New(opts Options) (*Platform, error) {
 	}
 	p := &Platform{
 		now: opts.Now, perSecond: float64(opts.PerSecond), selectorRate: float64(opts.SelectorPerSecond),
-		strictLabels: opts.StrictLabels, usageOnly: opts.UsageValidateOnly, drain: make(chan struct{}),
-		apps: map[string]*appState{}, accounts: map[string]*account{}, closed: map[string]bool{}, workspaces: map[string]*workspace{},
+		strictLabels: opts.StrictLabels, usageOnly: opts.UsageValidateOnly, defaultEnt: opts.DefaultEntitlements,
+		drain: make(chan struct{}),
+		apps:  map[string]*appState{}, accounts: map[string]*account{}, closed: map[string]bool{}, workspaces: map[string]*workspace{},
 		generation: newUUID(), confirmed: true, tokens: map[string]*token{}, selectors: map[string]string{},
 		trialClocks: map[string]time.Time{},
 	}

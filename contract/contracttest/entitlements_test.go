@@ -7,9 +7,11 @@ package contracttest_test
 // results) is judged as the platform judges it.
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -116,24 +118,29 @@ func TestAnAppFollowsItsWorkspacesEntitlementsThroughTheirFeed(t *testing.T) {
 	h, c, personal, team := entSetup(t, contracttest.Options{})
 	ctx := t.Context()
 	now := h.clock.Now()
-	if v, err := h.p.SetEntitlements("wappie", personal, trialDoc(now)); err != nil || v != 1 {
+	// Each workspace named to the app has its default document already, as
+	// the platform has one for every named workspace: seq 1 and 2.
+	if f := entFeed(t, c, 0); len(f.Items) != 2 || f.Head != 2 {
+		t.Fatalf("the default documents: %+v", f)
+	}
+	if v, err := h.p.SetEntitlements("wappie", personal, trialDoc(now)); err != nil || v != 3 {
 		t.Fatalf("the personal workspace's: %d %v", v, err)
 	}
-	if v, err := h.p.SetEntitlements("wappie", team, activeDoc(now)); err != nil || v != 2 {
+	if v, err := h.p.SetEntitlements("wappie", team, activeDoc(now)); err != nil || v != 4 {
 		t.Fatalf("the team's: %d %v", v, err)
 	}
 	f := entFeed(t, c, 0)
 	gen, _ := h.p.Generation()
-	if len(f.Items) != 2 || f.Head != 2 || f.NextAfter != 2 || f.More || f.Generation != gen || !f.GenerationConfirmed {
+	if len(f.Items) != 2 || f.Head != 4 || f.NextAfter != 4 || f.More || f.Generation != gen || !f.GenerationConfirmed {
 		t.Fatalf("the feed: %+v", f)
 	}
 	d := document(t, f, 1)
-	if d.WorkspaceID != team || d.Version != 2 || d.Places.Kind != contract.ItemNumber || !d.ComputedAt.Equal(now) || d.Trim != nil {
+	if d.WorkspaceID != team || d.Version != 4 || d.Places.Kind != contract.ItemNumber || !d.ComputedAt.Equal(now) || d.Trim != nil {
 		t.Fatalf("the team's document: %+v", d)
 	}
 	// The GET answers the latest, as published, with the time it signed.
 	got, signedAt, err := c.EntitlementsDoc(ctx, team)
-	if err != nil || got.Version != 2 || !signedAt.Equal(now.Truncate(time.Second)) {
+	if err != nil || got.Version != 4 || !signedAt.Equal(now.Truncate(time.Second)) {
 		t.Fatalf("GET: %+v %v %v", got.Version, signedAt, err)
 	}
 	// The same document again publishes nothing, a later computed_at or
@@ -141,31 +148,31 @@ func TestAnAppFollowsItsWorkspacesEntitlementsThroughTheirFeed(t *testing.T) {
 	h.clock.Add(time.Minute)
 	same := activeDoc(now)
 	same.Places.CountedAt = tAt(now, time.Second)
-	if v, err := h.p.SetEntitlements("wappie", team, same); err != nil || v != 2 {
+	if v, err := h.p.SetEntitlements("wappie", team, same); err != nil || v != 4 {
 		t.Fatalf("the same document: %d %v", v, err)
 	}
 	changed := activeDoc(now)
 	changed.Switches.Send = contract.SwitchOff
-	if v, err := h.p.SetEntitlements("wappie", team, changed); err != nil || v != 3 {
+	if v, err := h.p.SetEntitlements("wappie", team, changed); err != nil || v != 5 {
 		t.Fatalf("a switch off: %d %v", v, err)
 	}
-	f = entFeed(t, c, 2)
-	if len(f.Items) != 1 || document(t, f, 0).Switches.Send != contract.SwitchOff || f.NextAfter != 3 {
-		t.Fatalf("the feed after 2: %+v", f)
+	f = entFeed(t, c, 4)
+	if len(f.Items) != 1 || document(t, f, 0).Switches.Send != contract.SwitchOff || f.NextAfter != 5 {
+		t.Fatalf("the feed after 4: %+v", f)
 	}
 	// Each workspace's latest only.
-	if f := entFeed(t, c, 0); len(f.Items) != 2 || f.Items[0].Seq != 1 || f.Items[1].Seq != 3 {
+	if f := entFeed(t, c, 0); len(f.Items) != 2 || f.Items[0].Seq != 3 || f.Items[1].Seq != 5 {
 		t.Fatalf("the feed from 0: %+v", f)
 	}
-	if _, err := c.Entitlements(ctx, 4, 0); err == nil {
+	if _, err := c.Entitlements(ctx, 6, 0); err == nil {
 		t.Fatal("a cursor past the head is not gone")
 	} else {
 		mustRefusal(t, err, contract.CodeGone)
 	}
-	// A workspace not named to the app, another app's document and one that
+	// A workspace that does not exist, another app's document and one that
 	// does not validate are refused, and change nothing.
 	if _, err := h.p.SetEntitlements("wappie", teamID, activeDoc(now)); !errors.Is(err, contracttest.ErrUnknown) {
-		t.Errorf("a workspace not named: %v", err)
+		t.Errorf("a workspace that does not exist: %v", err)
 	}
 	other := activeDoc(now)
 	other.App = "mailie"
@@ -177,24 +184,122 @@ func TestAnAppFollowsItsWorkspacesEntitlementsThroughTheirFeed(t *testing.T) {
 	if _, err := h.p.SetEntitlements("wappie", team, bad); !errors.Is(err, contracttest.ErrInvalid) {
 		t.Errorf("one that does not validate: %v", err)
 	}
-	if got, _, err := c.EntitlementsDoc(ctx, team); err != nil || got.Version != 3 {
+	if got, _, err := c.EntitlementsDoc(ctx, team); err != nil || got.Version != 5 {
 		t.Fatalf("after the refusals: %+v %v", got.Version, err)
 	}
-	// A workspace not named to the app is not_found; one named whose
-	// document the test never set, unavailable.
+	// A workspace not named to the app is not_found.
 	if _, _, err := c.EntitlementsDoc(ctx, teamID); err == nil {
 		t.Fatal("a workspace not named")
 	} else {
 		mustRefusal(t, err, contract.CodeNotFound)
 	}
-	other2, err := h.p.AddTeam("Vendas", anaSub)
+}
+
+// A team named to the app while it follows its owner has a document at
+// once: the GET right after the team is added is a valid signed document,
+// the default one (observe, active, no plan, no places, no storage, every
+// switch on, nothing to come), never unavailable.
+func TestAWorkspaceNamedWhileTheAppFollowsHasADocumentAtOnce(t *testing.T) {
+	h, c, _, _ := entSetup(t, contracttest.Options{})
+	ctx := t.Context()
+	vendas, err := h.p.AddTeam("Vendas", anaSub)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := c.EntitlementsDoc(ctx, other2); err == nil {
-		t.Fatal("no document set")
+	d, _, err := c.EntitlementsDoc(ctx, vendas)
+	if err != nil {
+		t.Fatalf("the GET right after the team was named: %v", err)
+	}
+	on := contract.Switches{API: contract.SwitchOn, NewLinks: contract.SwitchOn, Sync: contract.SwitchOn, Send: contract.SwitchOn}
+	if d.Version != 3 || d.Mode != contract.ModeObserve || d.State.Name != contract.WorkspaceActive || d.Plan.Source != contract.SourceNone ||
+		d.Places.Total != 0 || d.Places.Used != nil || d.Places.Free != nil || d.Storage.QuotaBytes != 0 || d.Storage.UsedBytes != nil ||
+		d.Switches != on || len(d.Timeline) != 0 || len(d.Items) != 0 || d.Trim != nil || d.ValidateFor("wappie", vendas) != nil {
+		t.Fatalf("the default document: %+v", d)
+	}
+	// It came through the feed too, the same version.
+	if f := entFeed(t, c, 2); len(f.Items) != 1 || document(t, f, 0).WorkspaceID != vendas || f.Items[0].Seq != 3 {
+		t.Fatalf("the feed: %+v", f)
+	}
+	// So does the link check, from that document.
+	if a, err := c.LinkCheck(ctx, vendas, contract.LinkCheck{Kind: contract.ItemNumber}); err != nil ||
+		a.Trial != contract.TrialNotNeeded || a.Place != nil || a.Switches.NewLinks != contract.SwitchOn {
+		t.Fatalf("the link check: %+v %v", a, err)
+	}
+}
+
+// A document the test sets for a workspace that exists but is not named
+// to the app yet is kept, and published the moment the workspace is named;
+// before it, the GET is not_found.
+func TestADocumentSetBeforeTheWorkspaceIsNamedIsPublishedAtNaming(t *testing.T) {
+	h, c, _, _ := entSetup(t, contracttest.Options{})
+	ctx := t.Context()
+	now := h.clock.Now()
+	if err := h.p.HoldPublishing("wappie"); err != nil {
+		t.Fatal(err)
+	}
+	vendas, err := h.p.AddTeam("Vendas", anaSub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h.p.Named("wappie", vendas) {
+		t.Fatal("named while held")
+	}
+	if v, err := h.p.SetEntitlements("wappie", vendas, activeDoc(now)); err != nil || v != 0 {
+		t.Fatalf("set before naming: %d %v", v, err)
+	}
+	bad := activeDoc(now)
+	bad.Places.Free = i64(2)
+	if _, err := h.p.SetEntitlements("wappie", vendas, bad); !errors.Is(err, contracttest.ErrInvalid) {
+		t.Errorf("one that does not validate, before naming: %v", err)
+	}
+	if _, _, err := c.EntitlementsDoc(ctx, vendas); err == nil {
+		t.Fatal("a workspace not named yet")
+	} else {
+		mustRefusal(t, err, contract.CodeNotFound)
+	}
+	if f := entFeed(t, c, 0); f.Head != 2 {
+		t.Fatalf("published before naming: %+v", f)
+	}
+	if err := h.p.Release("wappie"); err != nil {
+		t.Fatal(err)
+	}
+	d, _, err := c.EntitlementsDoc(ctx, vendas)
+	if err != nil || d.Version != 3 || d.Plan.Source != contract.SourcePlan || d.Places.Free == nil || *d.Places.Free != 1 {
+		t.Fatalf("the document set before naming: %+v %v", d, err)
+	}
+}
+
+// Options.DefaultEntitlements gives the document a named workspace gets
+// when the test set none; one that does not validate publishes nothing,
+// and the GET is then unavailable.
+func TestTheDefaultDocumentComesFromTheHook(t *testing.T) {
+	var spoil atomic.Bool
+	h, c, personal, _ := entSetup(t, contracttest.Options{DefaultEntitlements: func(app, ws string) contract.EntitlementsDoc {
+		d := activeDoc(time.Date(2026, 12, 1, 12, 0, 0, 0, time.UTC))
+		if spoil.Load() {
+			d.Places.Free = i64(2) // does not validate
+		}
+		return d
+	}})
+	ctx := t.Context()
+	if d, _, err := c.EntitlementsDoc(ctx, personal); err != nil || d.Plan.Source != contract.SourcePlan || d.Plan.Numbers != 2 {
+		t.Fatalf("the hook's document: %+v %v", d, err)
+	}
+	spoil.Store(true)
+	vendas, err := h.p.AddTeam("Vendas", anaSub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := c.EntitlementsDoc(ctx, vendas); err == nil {
+		t.Fatal("the hook's document does not validate")
 	} else {
 		mustRefusal(t, err, contract.CodeUnavailable)
+	}
+	if _, err := h.p.SetEntitlements("wappie", vendas, activeDoc(h.clock.Now())); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := c.EntitlementsDoc(ctx, vendas); err != nil {
+		t.Fatalf("once the test set one: %v", err)
 	}
 }
 
@@ -202,7 +307,8 @@ func TestAnEntitlementsLongPollAnswersWhenADocumentIsPublished(t *testing.T) {
 	h, c, personal, _ := entSetup(t, contracttest.Options{LongPolls: 1})
 	got := make(chan contract.EntitlementsFeed, 1)
 	go func() {
-		f, err := c.Entitlements(t.Context(), 0, 10)
+		// After the two default documents of the setup's workspaces.
+		f, err := c.Entitlements(t.Context(), 2, 10)
 		if err != nil {
 			t.Error(err)
 		}
@@ -210,7 +316,7 @@ func TestAnEntitlementsLongPollAnswersWhenADocumentIsPublished(t *testing.T) {
 	}()
 	time.Sleep(200 * time.Millisecond) // the first takes its place
 	// Once one waits, a second is refused: one waits at a time here.
-	if _, err := c.Entitlements(t.Context(), 0, 10); err == nil {
+	if _, err := c.Entitlements(t.Context(), 2, 10); err == nil {
 		t.Fatal("a second long-poll waits too")
 	} else {
 		mustRefusal(t, err, contract.CodeRateLimited)
@@ -220,7 +326,7 @@ func TestAnEntitlementsLongPollAnswersWhenADocumentIsPublished(t *testing.T) {
 	}
 	select {
 	case f := <-got:
-		if len(f.Items) != 1 || f.Items[0].Seq != 1 {
+		if len(f.Items) != 1 || f.Items[0].Seq != 3 {
 			t.Fatalf("woken with %+v", f)
 		}
 	case <-time.After(5 * time.Second):
@@ -246,7 +352,7 @@ func TestABadDocumentIsAcknowledgedAsRefusedAndTheGETPublishesAgain(t *testing.T
 		t.Fatalf("the feed: %+v", f)
 	}
 	_, refused := f.Items[1].Document("wappie", f.Generation)
-	if refused == nil || refused.Code != contract.RefusedAnotherApp || *refused.WorkspaceID != personal || refused.Seq != 2 {
+	if refused == nil || refused.Code != contract.RefusedAnotherApp || *refused.WorkspaceID != personal || refused.Seq != 4 {
 		t.Fatalf("the bad document: %+v", refused)
 	}
 	ack := contract.EntitlementsApplied{Generation: f.Generation, Through: f.NextAfter, Refused: contract.EntitlementsRefusals{*refused}}
@@ -254,26 +360,25 @@ func TestABadDocumentIsAcknowledgedAsRefusedAndTheGETPublishesAgain(t *testing.T
 		t.Fatal(err)
 	}
 	acks := h.p.EntitlementsApplied("wappie")
-	if len(acks) != 1 || acks[0].Through != 2 || len(acks[0].Refused) != 1 || acks[0].Refused[0].Code != contract.RefusedAnotherApp {
+	if len(acks) != 1 || acks[0].Through != 4 || len(acks[0].Refused) != 1 || acks[0].Refused[0].Code != contract.RefusedAnotherApp {
 		t.Fatalf("the acknowledgements: %+v", acks)
 	}
 	for name, a := range map[string]contract.EntitlementsApplied{
-		"past the head":      {Generation: f.Generation, Through: 3},
+		"past the head":      {Generation: f.Generation, Through: 5},
 		"another generation": {Generation: "0199b1e0-0000-7000-8000-0000000000ff", Through: 1},
 	} {
 		mustRefusal(t, c.EntitlementsApplied(ctx, a), contract.CodeGone)
 		_ = name
 	}
-	// The personal workspace has no document of the test's: unavailable.
-	if _, _, err := c.EntitlementsDoc(ctx, personal); err == nil {
-		t.Fatal("no document set")
-	} else {
-		mustRefusal(t, err, contract.CodeUnavailable)
+	// The personal workspace has no document of the test's: the GET
+	// publishes its default one again over the bad one.
+	if d, _, err := c.EntitlementsDoc(ctx, personal); err != nil || d.Version != 5 || d.Plan.Source != contract.SourceNone {
+		t.Fatalf("the default document again: %+v %v", d.Version, err)
 	}
 	if _, err := h.p.SetEntitlements("wappie", personal, trialDoc(now)); err != nil {
 		t.Fatal(err)
 	}
-	if d, _, err := c.EntitlementsDoc(ctx, personal); err != nil || d.Version != 3 {
+	if d, _, err := c.EntitlementsDoc(ctx, personal); err != nil || d.Version != 6 {
 		t.Fatalf("the GET after the bad one: %+v %v", d.Version, err)
 	}
 	if _, err := h.p.PublishRawEntitlements("wappie", personal, []byte(`{`)); !errors.Is(err, contracttest.ErrInvalid) {
@@ -284,7 +389,7 @@ func TestABadDocumentIsAcknowledgedAsRefusedAndTheGETPublishesAgain(t *testing.T
 	}
 	// The latest in the feed is the bad one; the GET publishes the test's
 	// document again over it.
-	if d, _, err := c.EntitlementsDoc(ctx, personal); err != nil || d.Version != 5 {
+	if d, _, err := c.EntitlementsDoc(ctx, personal); err != nil || d.Version != 8 {
 		t.Fatalf("the GET after a second bad one: %+v %v", d.Version, err)
 	}
 }
@@ -356,7 +461,7 @@ func TestAUsageReportIsKeptByItsSeq(t *testing.T) {
 }
 
 func TestUsageValidateOnlyKeepsNoReport(t *testing.T) {
-	h, c, _, team := entSetup(t, contracttest.Options{UsageValidateOnly: true})
+	h, c, personal, team := entSetup(t, contracttest.Options{UsageValidateOnly: true})
 	now := h.clock.Now()
 	u := contract.Usage{V: contract.UsageV, Type: contract.UsageType, App: "wappie", WorkspaceID: team, UsageSeq: now.UnixMilli(),
 		RuleVersion: "wappie-storage/1", MeasuredAt: contract.T(now), Items: []contract.UsageItem{}}
@@ -365,6 +470,36 @@ func TestUsageValidateOnlyKeepsNoReport(t *testing.T) {
 	}
 	if _, ok := h.p.Usage("wappie", team); ok {
 		t.Fatal("a report kept")
+	}
+	// UsageSent shows what the app sent, kept or not: its usage_seq rises
+	// across answers of kept false.
+	if sent, ok := h.p.UsageSent("wappie", team); !ok || sent.UsageSeq != u.UsageSeq || sent.RuleVersion != "wappie-storage/1" {
+		t.Fatalf("the report sent: %v %t", sent, ok)
+	}
+	u.UsageSeq++
+	if kept, err := c.PutUsage(t.Context(), team, u); err != nil || kept {
+		t.Fatalf("%t %v", kept, err)
+	}
+	if sent, ok := h.p.UsageSent("wappie", team); !ok || sent.UsageSeq != u.UsageSeq {
+		t.Fatalf("the second report sent: %v %t", sent, ok)
+	}
+	// One that does not validate, refused invalid_request, is not a report
+	// the fake answered.
+	bad := u
+	bad.UsageSeq++
+	bad.TotalBytes = 1
+	raw, err := json.Marshal(bad)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := "/contract/v1/workspaces/" + team + "/usage"
+	h.wantSigned(t, h.send(t, call{method: http.MethodPut, target: target, body: string(raw), app: "wappie"}),
+		call{method: http.MethodPut, target: target, app: "wappie"}, http.StatusBadRequest, contract.CodeInvalid)
+	if sent, _ := h.p.UsageSent("wappie", team); sent.UsageSeq != u.UsageSeq {
+		t.Fatalf("after a bad one: %v", sent)
+	}
+	if _, ok := h.p.UsageSent("wappie", personal); ok {
+		t.Fatal("a workspace with no report sent")
 	}
 }
 
@@ -460,8 +595,11 @@ func TestATrimOrderRidesItsDocumentAndItsResultEndsIt(t *testing.T) {
 	h, c, _, team := entSetup(t, contracttest.Options{})
 	ctx := t.Context()
 	now := h.clock.Now()
-	if _, err := h.p.IssueTrimOrder("wappie", team, noPlanOrder(now)); !errors.Is(err, contracttest.ErrUnknown) {
-		t.Errorf("an order with no document: %v", err)
+	if _, err := h.p.IssueTrimOrder("wappie", teamID, noPlanOrder(now)); !errors.Is(err, contracttest.ErrUnknown) {
+		t.Errorf("an order in a workspace not named: %v", err)
+	}
+	if _, err := h.p.IssueTrimOrder("wappie", team, noPlanOrder(now)); !errors.Is(err, contracttest.ErrInvalid) {
+		t.Errorf("an order in the default document: %v", err)
 	}
 	if _, err := h.p.SetEntitlements("wappie", team, activeDoc(now)); err != nil {
 		t.Fatal(err)
@@ -650,8 +788,8 @@ func TestTheEntitlementsCallsCanBeRefusedAndCorrupted(t *testing.T) {
 	if _, _, err := c.EntitlementsDoc(ctx, personal); !errors.Is(err, contract.ErrUnverified) {
 		t.Fatalf("a corrupted refusal: %v", err)
 	}
-	if d, _, err := c.EntitlementsDoc(ctx, personal); err != nil || d.Version != 1 {
-		t.Fatalf("the next GET: %v", err)
+	if d, _, err := c.EntitlementsDoc(ctx, personal); err != nil || d.Version != 3 {
+		t.Fatalf("the next GET: %v %v", d.Version, err)
 	}
 	target := "/contract/v1/workspaces/" + personal + "/entitlements?after=0"
 	h.wantSigned(t, h.send(t, call{method: http.MethodGet, target: target, app: "wappie"}),
@@ -659,3 +797,25 @@ func TestTheEntitlementsCallsCanBeRefusedAndCorrupted(t *testing.T) {
 }
 
 func i64(n int64) *int64 { return &n }
+
+// Each body limit of the entitlements part has the value of the contract's
+// constant of the same name; the usage report's is UsageReportBodyLimit,
+// 1 MiB, never the token part's usage call's 256 KiB (UsageBodyLimit).
+func TestTheEntitlementsLimitsAreTheContractsOfTheSameName(t *testing.T) {
+	for _, l := range []struct {
+		name                 string
+		fake, contract, want int
+	}{
+		{"EntitlementsAppliedLimit", contracttest.EntitlementsAppliedLimit, contract.EntitlementsAppliedLimit, 4 << 10},
+		{"UsageReportBodyLimit", contracttest.UsageReportBodyLimit, contract.UsageReportBodyLimit, 1 << 20},
+		{"LinkCheckBodyLimit", contracttest.LinkCheckBodyLimit, contract.LinkCheckBodyLimit, 4 << 10},
+		{"TrimResultBodyLimit", contracttest.TrimResultBodyLimit, contract.TrimResultBodyLimit, 512 << 10},
+	} {
+		if l.fake != l.want || l.contract != l.want {
+			t.Errorf("%s is %d here and %d in the contract, not %d", l.name, l.fake, l.contract, l.want)
+		}
+	}
+	if contracttest.UsageReportBodyLimit == contract.UsageBodyLimit {
+		t.Error("the usage report's limit is the token part's")
+	}
+}

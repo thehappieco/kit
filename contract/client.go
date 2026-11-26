@@ -73,6 +73,11 @@ const (
 // tests shorten them.
 var callTimeout, feedGrace = CallTimeout, FeedGrace
 
+// trimResultBodyLimit is the bound PostTrimResult holds a body to; the
+// package's tests lower it, since no valid result reaches
+// TrimResultBodyLimit.
+var trimResultBodyLimit = TrimResultBodyLimit
+
 // defaultHTTP is the client of a Client whose HTTP is nil. An answer is its
 // request's, so a redirect is never followed: its answer, unsigned for the
 // request, fails.
@@ -103,6 +108,14 @@ const MaxAnswer = 8 << 20
 // one asked for: the app ignores it.
 var ErrUnverified = errors.New("contract: the answer is not the platform's")
 
+// ErrForeignDocument means a signed answer of Client.EntitlementsDoc held
+// a valid document of another app or another workspace than the one asked
+// for. It also matches ErrUnverified, and not ErrInvalid: the app ignores
+// it, applies nothing of it, and logs it with ids only (its app and the
+// path's workspace_id), as the platform's spec asks; the client logs
+// nothing. Its text names no id.
+var ErrForeignDocument = fmt.Errorf("contract: an entitlements document of another app or workspace: %w", ErrUnverified)
+
 // Refusal is a signed refusal: the platform's code and message, and the
 // HTTP status it came with (which an app never acts on alone).
 type Refusal struct {
@@ -117,11 +130,12 @@ func (r *Refusal) Error() string {
 
 // Do sends one signed request and returns the verified answer's status and
 // body. target is the raw path and query. It gives up after CallTimeout, or,
-// for a feed (a GET of /contract/v1/feed, /contract/v1/tokens or
-// /contract/v1/commands), after MaxWait seconds and FeedGrace.
+// for a GET of one of the four feeds, each a long-poll
+// (/contract/v1/feed, /contract/v1/tokens, /contract/v1/commands and
+// /contract/v1/entitlements), after MaxWait seconds and FeedGrace.
 func (c *Client) Do(ctx context.Context, method, target string, body []byte) (int, []byte, error) {
 	timeout := callTimeout
-	if path, _, _ := strings.Cut(target, "?"); method == http.MethodGet && (path == "/contract/v1/feed" || path == "/contract/v1/tokens" || path == "/contract/v1/commands") {
+	if path, _, _ := strings.Cut(target, "?"); method == http.MethodGet && feedPaths[path] {
 		timeout = MaxWait*time.Second + feedGrace
 	}
 	return c.do(ctx, timeout, method, target, body)
@@ -638,9 +652,11 @@ func (c *Client) Entitlements(ctx context.Context, after int64, wait int) (Entit
 // document's freshness counts (SPEC section 11.20) when it is of the app's
 // generation and at or above the version the app applied there. A ws that
 // is no UUID is refused before anything is sent. A document that does not
-// decode or validate, or that names another app or another workspace than
-// ws, is ErrUnverified, whatever its signature: the app logs it with ids
-// only, and applies nothing of it. Its generation is the app's to judge:
+// decode or validate is ErrUnverified (and ErrInvalid), and a valid one
+// that names another app or another workspace than ws is
+// ErrForeignDocument (which matches ErrUnverified too), whatever its
+// signature: the app applies nothing of either, and logs the second with
+// ids only (its app and ws); the client logs nothing. Its generation is the app's to judge:
 // another one is a reset. A workspace not named to the app, a closed
 // personal workspace and a closed team past its 30 days are a *Refusal
 // not_found. The order the document carries, if any, stays as it came
@@ -654,8 +670,11 @@ func (c *Client) EntitlementsDoc(ctx context.Context, ws string) (EntitlementsDo
 	if err != nil {
 		return EntitlementsDoc{}, time.Time{}, err
 	}
-	if err := d.ValidateFor(c.App, ws); err != nil {
+	if err := d.Validate(); err != nil {
 		return EntitlementsDoc{}, time.Time{}, fmt.Errorf("%w: %w", ErrUnverified, err)
+	}
+	if d.App != c.App || d.WorkspaceID != ws {
+		return EntitlementsDoc{}, time.Time{}, ErrForeignDocument
 	}
 	return d, signedAt, nil
 }
@@ -681,8 +700,9 @@ func (c *Client) EntitlementsApplied(ctx context.Context, ack EntitlementsApplie
 // one that fails ValidateAt on the app's clock; Items is sent [] when nil.
 // It returns whether the platform holds a report of this usage_seq with
 // this body after the request (kept), and false with no error otherwise:
-// both count as delivered. An answer that is not exactly
-// {"accepted": true, "kept": bool} is ErrUnverified. No error carries a
+// both count as delivered. An answer without both accepted true and kept a
+// boolean, by their exact names, is ErrUnverified; a member it does not
+// know is ignored. No error carries a
 // figure of the report.
 func (c *Client) PutUsage(ctx context.Context, ws string, u Usage) (bool, error) {
 	if !ValidUUID(ws) {
@@ -749,7 +769,9 @@ func (c *Client) LinkCheck(ctx context.Context, ws string, req LinkCheck) (LinkC
 
 // PostTrimResult sends what became of a trim order:
 // POST /contract/v1/trim/results. It refuses, before it sends anything, a
-// result that fails Validate; Steps is sent [] when nil. The answer is the
+// result that fails Validate, and one whose body is over
+// TrimResultBodyLimit (ErrInvalid; no valid result is); Steps is sent []
+// when nil. The answer is the
 // platform's signed 200 for this result: accepted, duplicate, or rejected
 // with invalid_request, not_found or conflict, each of which ends the
 // result's delivery. An answer that does not validate, or names another
@@ -765,6 +787,9 @@ func (c *Client) PostTrimResult(ctx context.Context, r TrimResult) (TrimResultAn
 	body, err := marshalPlain(r)
 	if err != nil {
 		return TrimResultAnswer{}, invalid("trim result")
+	}
+	if len(body) > trimResultBodyLimit {
+		return TrimResultAnswer{}, invalid("trim result: over %d bytes", trimResultBodyLimit)
 	}
 	// The answer carries a code of its own, which is no refusal: only a
 	// status other than 200 refuses the request.

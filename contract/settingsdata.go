@@ -152,8 +152,10 @@ const (
 type NumbersSettings struct {
 	// CanLink: a number can be linked now (places, pause, plan).
 	CanLink bool `json:"can_link"`
-	// PlacesFree are the free places in the plan or trial; null until
-	// entitlements reach Wappie.
+	// PlacesFree are the free places in the plan or trial, or null unless
+	// Wappie enforces a document there: the workspace enforces and the
+	// last entitlements document Wappie applied for it says enforce (SPEC
+	// section 11.20). An observe document never fills it.
 	PlacesFree    *int64                `json:"places_free"`
 	StoragePaused bool                  `json:"storage_paused"`
 	Pending       []PendingRegistration `json:"pending"`
@@ -837,7 +839,8 @@ type MailboxLinking struct {
 	// CanLink: a mailbox can be linked now (places, pause, plan).
 	CanLink bool
 	// PlacesFree are the free places, or null unless Mailie enforces a
-	// document.
+	// document there: the workspace enforces and the last entitlements
+	// document Mailie applied for it says enforce (SPEC section 11.20).
 	PlacesFree *int64
 }
 

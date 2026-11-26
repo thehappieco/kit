@@ -105,8 +105,9 @@ func usageKept(c IntakeCase) bool {
 	return false
 }
 
-// usageAnswerValid is what an app makes of the answer: exactly its two
-// members, each a boolean, accepted true.
+// usageAnswerValid is what an app makes of the answer: its two members by
+// their exact names, each a boolean, accepted true, and members it does not
+// know ignored.
 func usageAnswerValid(raw []byte) bool {
 	var a contract.UsageAnswer
 	return json.Unmarshal(raw, &a) == nil && a.Validate() == nil
@@ -142,7 +143,7 @@ func vecUsage(app string, mut func(*contract.Usage)) contract.Usage {
 func wireUsage() (any, error) {
 	out := WireUsage{
 		Format: Format, Version: 1, Kind: "wire-usage",
-		Description: "The usage report (SPEC section 11.20), PUT /contract/v1/workspaces/{id}/usage. reports: a body and the platform's clock now (Unix seconds); valid: within 1 MiB, decoded strictly (every member present, none null but purge_at, none twice or unknown, names exactly as written), then ValidateAt(now): v 1, type usage, an app the part knows, a UUID workspace_id, usage_seq 1 to 2^53 - 1 and at most a day (in milliseconds) ahead of now, rule_version ^[a-z][a-z0-9-]{0,31}/[1-9][0-9]{0,5}$, measured_at at most 60 s after now, every integer 0 to 2^53 - 1, total_bytes exactly the sum of items[].bytes and shared_bytes, at most 2000 items each id once, state active, sync_paused or deleted, purge_at set exactly on deleted, recent_bytes + undated_bytes + fixed_bytes at most bytes, and in Mailie shared_bytes and every undated_bytes 0. An empty report, items [] and totals 0, is valid. intake: a valid report and what the platform holds; kept: the answer's kept, true when, after the request, the platform holds a report of this usage_seq with this body (the same JSON value; a retry of the held report is answered as its first send), false while the platform only validates (mode validate), for a closed personal workspace or a closed team past its 30 days, a lower usage_seq, or an equal one with another body. answers: the platform's 200, exactly {\"accepted\": true, \"kept\": a boolean}, read strictly.",
+		Description: "The usage report (SPEC section 11.20), PUT /contract/v1/workspaces/{id}/usage. reports: a body and the platform's clock now (Unix seconds); valid: within 1 MiB, decoded strictly (every member present, none null but purge_at, none twice or unknown, names exactly as written), then ValidateAt(now): v 1, type usage, an app the part knows, a UUID workspace_id, usage_seq 1 to 2^53 - 1 and at most a day (in milliseconds) ahead of now, rule_version ^[a-z][a-z0-9-]{0,31}/[1-9][0-9]{0,5}$, measured_at at most 60 s after now, every integer 0 to 2^53 - 1, total_bytes exactly the sum of items[].bytes and shared_bytes, at most 2000 items each id once, state active, sync_paused or deleted, purge_at set exactly on deleted, recent_bytes + undated_bytes + fixed_bytes at most bytes, and in Mailie shared_bytes and every undated_bytes 0. An empty report, items [] and totals 0, is valid. intake: a valid report and what the platform holds; kept: the answer's kept, true when, after the request, the platform holds a report of this usage_seq with this body (the same JSON value; a retry of the held report is answered as its first send), false while the platform only validates (mode validate), for a closed personal workspace or a closed team past its 30 days, a lower usage_seq, or an equal one with another body. answers: the platform's 200, {\"accepted\": true, \"kept\": a boolean}, read as an app reads what the platform sends: both members present by their exact names, each a boolean, neither null, none twice, and a member the app does not know ignored.",
 	}
 	now := Now.Unix()
 	base := mustRaw(vecUsage("wappie", nil))
@@ -287,7 +288,7 @@ func wireUsage() (any, error) {
 		{"no kept", `{"accepted":true}`, false},
 		{"kept null", `{"accepted":true,"kept":null}`, false},
 		{"kept as text", `{"accepted":true,"kept":"true"}`, false},
-		{"a member the part does not know", `{"accepted":true,"kept":true,"usage_seq":1}`, false},
+		{"a member the part does not know, ignored", `{"accepted":true,"kept":true,"usage_seq":1}`, true},
 		{"kept twice", `{"accepted":true,"kept":true,"kept":false}`, false},
 		{"kept written Kept", `{"accepted":true,"Kept":true}`, false},
 		{"not an object", `[true,true]`, false},

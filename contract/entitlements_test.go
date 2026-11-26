@@ -871,7 +871,6 @@ func TestAnEntitlementsFeedPageIsReadInItsFixedShapeAndKeepsEachDocAsItCame(t *t
 		{`"seq":7,`, ``},
 		{`"seq":7,`, `"Seq":7,`},
 		{`"seq":7,`, `"seq":null,`},
-		{`"doc":`, `"Doc":`},
 		{`"items":[{`, `"items":[{"seq":7,`},
 	} {
 		raw := strings.Replace(page, bad.old, bad.new, 1)
@@ -890,5 +889,20 @@ func TestAnEntitlementsFeedPageIsReadInItsFixedShapeAndKeepsEachDocAsItCame(t *t
 	}
 	if _, r := nullDoc.Items[0].Document("wappie", vecGeneration); r == nil || r.Code != contract.RefusedInvalidDocument {
 		t.Fatalf("%+v", r)
+	}
+	// So is a missing doc, or one named in another case (a member the app
+	// does not know): Doc nil, refused invalid_document with no
+	// workspace_id, and the page read.
+	for _, name := range []string{`"x":`, `"Doc":`} {
+		var f contract.EntitlementsFeed
+		if err := json.Unmarshal([]byte(strings.Replace(page, `"doc":`, name, 1)), &f); err != nil || f.Validate() != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if f.Items[0].Doc != nil {
+			t.Fatalf("%s: doc %s", name, f.Items[0].Doc)
+		}
+		if _, r := f.Items[0].Document("wappie", vecGeneration); r == nil || r.Code != contract.RefusedInvalidDocument || r.WorkspaceID != nil || r.Seq != 7 {
+			t.Fatalf("%s: %+v", name, r)
+		}
 	}
 }

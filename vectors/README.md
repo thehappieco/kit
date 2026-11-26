@@ -240,7 +240,7 @@ Every dispatcher fails on a case for its language whose op it does not handle.
 | | `trial_stops`, `cap_stops` | `name`, an item's trial stop (`stopped_at`, `plan_source`, `entry`) or the app's total against `cap_bytes` with `frozen` (the same action either way); `action` (`lift`, `keep`, `stop`) |
 | `wire-usage` (`wire-usage.json`, kit v0.12.0) | `reports` | `name`, `now` (the platform's clock, Unix seconds), `value` (a body); `valid`: within 1 MiB, decoded strictly as `contract.Usage`, and its `ValidateAt(now)` |
 | | `intake` | `name`, `held` (`{usage_seq, body}` or `null`), `mode` (`keep`, `validate`), `workspace` (`open`, `closed_personal`, `closed_team_past`), `value`; `kept`, the answer's |
-| | `answers` | `name`, `value`; `valid`: exactly `{"accepted": true, "kept": a boolean}` (`contract.UsageAnswer`) |
+| | `answers` | `name`, `value`; `valid`: `{"accepted": true, "kept": a boolean}`, both by their exact names, neither `null`, a member the app does not know ignored (`contract.UsageAnswer`) |
 | `usage-dates` (`usage-dates.json`, kit v0.12.0) | `dates` | `name`, `app`, `measured_at`, `recent_from`, `rows` (each `id`, `kind`, `item`, `ts`, `of`, `refs`, `bytes`); `items` (per item `bytes`, `recent_bytes`, `undated_bytes`), `shared_bytes` |
 | | `floors` | `name`, `measured_at`, `issued_at`, `recent_from`, `floor` (`contract.TrimFloor`), `days_less` |
 | `trial-codes` (`trial-codes.json`, kit v0.12.0; also `label` and `key_hex`, K_app) | `codes` | `name`, `app`, `kind`, `host` (an IMAP login's, read through `contract.IMAPIdentity`), `input`; `identifier` (normalized), `code` (`contract.TrialCode`) |

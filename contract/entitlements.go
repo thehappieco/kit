@@ -743,10 +743,10 @@ func (f *EntitlementsFeed) UnmarshalJSON(b []byte) error {
 
 // UnmarshalJSON reads an item as an app reads what the platform sends: one
 // object, no member twice, its seq present by its exact name and never
-// null, a member it does not know ignored; and its doc present by its
-// exact name, kept as its bytes came, byte for byte. A doc that does not
-// decode, null included, is a bad document refused alone (Document), never
-// the page.
+// null, a member it does not know ignored; and its doc, by its exact name,
+// kept as its bytes came, byte for byte. A doc that does not decode, null
+// or missing included (Doc nil), is a bad document refused alone
+// (Document: invalid_document, with no workspace_id), never the page.
 func (it *EntitlementsFeedItem) UnmarshalJSON(b []byte) error {
 	m, ok := objectMembers(b)
 	if !ok {
@@ -757,11 +757,9 @@ func (it *EntitlementsFeedItem) UnmarshalJSON(b []byte) error {
 	if !ok || string(raw) == "null" || json.Unmarshal(raw, &v.Seq) != nil {
 		return invalid("entitlements feed: items[].seq is present, never null")
 	}
-	doc, ok := m["doc"]
-	if !ok {
-		return invalid("entitlements feed: items[].doc is present")
+	if doc, ok := m["doc"]; ok {
+		v.Doc = slices.Clone(doc)
 	}
-	v.Doc = slices.Clone(doc)
 	*it = v
 	return nil
 }

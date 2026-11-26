@@ -192,8 +192,9 @@ func (u Usage) LogValue() slog.Value {
 		slog.Int64("usage_seq", u.UsageSeq), slog.String("rule_version", u.RuleVersion))
 }
 
-// UsageAnswer is the platform's signed 200 to a usage report: exactly
-// {"accepted": true, "kept": bool}. Kept is true when, after the request,
+// UsageAnswer is the platform's signed 200 to a usage report:
+// {"accepted": true, "kept": bool}, members the app does not know ignored.
+// Kept is true when, after the request,
 // the platform holds a report of this usage_seq with this body (a retry of
 // the held report is answered as its first send), and false otherwise:
 // while the platform only validates, for a lower usage_seq or an equal one
@@ -208,11 +209,13 @@ type UsageAnswer struct {
 // usageAnswerWire is UsageAnswer without its own UnmarshalJSON.
 type usageAnswerWire UsageAnswer
 
-// UnmarshalJSON reads the answer strictly: exactly its two members, each a
-// boolean, none null. Validate checks that it is accepted.
+// UnmarshalJSON reads the answer as an app reads what the platform sends
+// (SPEC section 11.17's rule): one well-formed JSON object, both members
+// present by their exact names, each a boolean, neither null, and members
+// it does not know ignored. Validate checks that it is accepted.
 func (a *UsageAnswer) UnmarshalJSON(b []byte) error {
 	var w usageAnswerWire
-	if err := decodeExact(b, &w, "usage answer"); err != nil {
+	if err := decodeSent(b, &w, "usage answer"); err != nil {
 		return err
 	}
 	*a = UsageAnswer(w)

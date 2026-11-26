@@ -1,8 +1,10 @@
 package contract_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -47,15 +49,31 @@ func TestTheEntitlementsGETTakesOnlyTheAppsDocumentOfItsWorkspace(t *testing.T) 
 	if _, _, err := c.EntitlementsDoc(t.Context(), "0199b1e0-0000-7000-8000-0000000000ff"); !errors.Is(err, contract.ErrUnverified) {
 		t.Errorf("another workspace's document: %v", err)
 	}
-	for name, body := range map[string]any{
-		"another app's":        entDoc("mailie", nil),
-		"one that is no valid": entDoc("wappie", func(d *contract.EntitlementsDoc) { d.Version = 0 }),
-		"one missing a member": map[string]any{"v": 1},
+	if _, _, err := c.EntitlementsDoc(t.Context(), "0199b1e0-0000-7000-8000-0000000000ff"); !errors.Is(err, contract.ErrForeignDocument) {
+		t.Errorf("another workspace's document is not ErrForeignDocument: %v", err)
+	}
+	for name, body := range map[string]struct {
+		body    any
+		foreign bool
+	}{
+		"another app's":        {entDoc("mailie", nil), true},
+		"one that is no valid": {entDoc("wappie", func(d *contract.EntitlementsDoc) { d.Version = 0 }), false},
+		"one missing a member": {map[string]any{"v": 1}, false},
 	} {
-		other := platformAnswering(t, clientSecret, "wappie", body)
+		other := platformAnswering(t, clientSecret, "wappie", body.body)
 		c := &contract.Client{App: "wappie", Secret: clientSecret, Base: other.URL}
-		if d, at, err := c.EntitlementsDoc(t.Context(), vecTeam); !errors.Is(err, contract.ErrUnverified) || d.Version != 0 || !at.IsZero() {
+		d, at, err := c.EntitlementsDoc(t.Context(), vecTeam)
+		if !errors.Is(err, contract.ErrUnverified) || d.Version != 0 || !at.IsZero() {
 			t.Errorf("%s document: %v", name, err)
+		}
+		// A foreign document is told apart from a bad one by its own
+		// sentinel, never by its text; it is not ErrInvalid, and names no
+		// id.
+		if errors.Is(err, contract.ErrForeignDocument) != body.foreign || errors.Is(err, contract.ErrInvalid) == body.foreign {
+			t.Errorf("%s document: %v", name, err)
+		}
+		if strings.Contains(err.Error(), vecTeam) {
+			t.Errorf("%s document: the error names the workspace: %v", name, err)
 		}
 	}
 }
@@ -118,15 +136,16 @@ func TestAnEntitlementsCallSendsNothingThatIsNotValid(t *testing.T) {
 	}
 }
 
-// A usage report's answer is exactly {"accepted": true, "kept": bool}; kept
-// false is delivered as well as kept true.
-func TestAUsageAnswerIsExactlyAcceptedAndKept(t *testing.T) {
+// A usage report's answer is {"accepted": true, "kept": bool}, a member the
+// app does not know ignored; kept false is delivered as well as kept true.
+func TestAUsageAnswerIsAcceptedAndKeptWithUnknownMembersIgnored(t *testing.T) {
 	for body, want := range map[string]any{
 		`{"accepted":true,"kept":true}`:         true,
 		`{"accepted":true,"kept":false}`:        false,
 		`{"accepted":true}`:                     contract.ErrUnverified,
 		`{"accepted":false,"kept":true}`:        contract.ErrUnverified,
-		`{"accepted":true,"kept":true,"x":1}`:   contract.ErrUnverified,
+		`{"accepted":true,"kept":true,"x":1}`:   true,
+		`{"accepted":true,"Kept":true}`:         contract.ErrUnverified,
 		`{"accepted":true,"kept":null}`:         contract.ErrUnverified,
 		`{"code":"not_found","message":"gone"}`: "not_found",
 	} {
@@ -292,5 +311,90 @@ func TestAnEntitlementsTransportErrorNamesNoWorkspace(t *testing.T) {
 		if err == nil || strings.Contains(err.Error(), vecTeam) || strings.Contains(err.Error(), base) || !strings.Contains(err.Error(), route) {
 			t.Errorf("%s: %v", route, err)
 		}
+	}
+}
+
+// Do gives every GET of the four feeds, the entitlements feed included, the
+// long-poll's bound (MaxWait seconds and FeedGrace), and every other call
+// CallTimeout.
+func TestDoWaitsOnEveryFeedAsALongPoll(t *testing.T) {
+	defer contract.ShortenTimeouts(100*time.Millisecond, 5*time.Second)()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(400 * time.Millisecond)
+		body := []byte(`{}`)
+		contract.SignAnswer(w.Header(), clientSecret, "wappie", r.Method, r.RequestURI, r.Header.Get(contract.HeaderNonce), body, time.Now())
+		_, _ = w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+	c := &contract.Client{App: "wappie", Secret: clientSecret, Base: srv.URL}
+	for _, path := range []string{"/contract/v1/feed", "/contract/v1/tokens", "/contract/v1/commands", "/contract/v1/entitlements"} {
+		if status, _, err := c.Do(t.Context(), http.MethodGet, path+"?after=0&wait=25", nil); err != nil || status != http.StatusOK {
+			t.Errorf("GET %s?wait=25: %d %v", path, status, err)
+		}
+	}
+	for _, call := range []struct{ method, target string }{
+		{http.MethodGet, "/contract/v1/workspaces/" + vecTeam + "/entitlements"},
+		{http.MethodPost, "/contract/v1/entitlements"},
+		{http.MethodGet, "/contract/v1/entitlements/applied?wait=25"},
+	} {
+		if _, _, err := c.Do(t.Context(), call.method, call.target, nil); !errors.Is(err, context.DeadlineExceeded) {
+			t.Errorf("%s %s: %v, want CallTimeout", call.method, call.target, err)
+		}
+	}
+}
+
+// worstTrimResult is the largest valid result: MaxTrimSteps steps of
+// 64-character item ids, each step outcome and code that writes longest,
+// and the highest usage_seq.
+func worstTrimResult(t *testing.T) contract.TrimResult {
+	t.Helper()
+	var biggest contract.TrimResult
+	size := 0
+	for _, step := range []func(id string) contract.TrimStepResult{
+		func(id string) contract.TrimStepResult {
+			return contract.TrimStepResult{Item: id, Outcome: contract.TrimOutcomePartial, BytesAfter: ptr[int64](contract.MaxSafeInteger)}
+		},
+		func(id string) contract.TrimStepResult {
+			return contract.TrimStepResult{Item: id, Outcome: contract.TrimOutcomeRefused, Code: ptr(contract.TrimCodeItemChanged)}
+		},
+	} {
+		r := contract.TrimResult{OrderID: trimOrderID, Outcome: contract.TrimOutcomePartial, UsageSeq: ptr[int64](contract.MaxSafeInteger)}
+		for i := range contract.MaxTrimSteps {
+			r.Steps = append(r.Steps, step(fmt.Sprintf("%064d", i)))
+		}
+		if err := r.Validate(); err != nil {
+			t.Fatal(err)
+		}
+		raw, err := json.Marshal(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(raw) > size {
+			biggest, size = r, len(raw)
+		}
+	}
+	return biggest
+}
+
+// The largest valid result fits TrimResultBodyLimit (and not the 256 KiB
+// it once was), and PostTrimResult sends it; a body over the bound
+// PostTrimResult holds it to is refused, ErrInvalid, before anything is
+// sent.
+func TestTheLargestValidTrimResultFitsItsBodyLimit(t *testing.T) {
+	r := worstTrimResult(t)
+	raw, _ := json.Marshal(r)
+	if len(raw) > contract.TrimResultBodyLimit || len(raw) <= 256<<10 {
+		t.Fatalf("the largest valid result is %d bytes, the limit %d", len(raw), contract.TrimResultBodyLimit)
+	}
+	var sent []byte
+	srv := platformAnsweringRaw(t, clientSecret, "wappie", http.StatusOK, `{"order_id":"`+trimOrderID+`","outcome":"accepted","code":null}`, &sent)
+	c := &contract.Client{App: "wappie", Secret: clientSecret, Base: srv.URL}
+	if _, err := c.PostTrimResult(t.Context(), r); err != nil || len(sent) != len(raw) {
+		t.Fatalf("sent %d bytes: %v", len(sent), err)
+	}
+	defer contract.LowerTrimResultBodyLimit(len(raw) - 1)()
+	sent = nil
+	if _, err := c.PostTrimResult(t.Context(), r); !errors.Is(err, contract.ErrInvalid) || sent != nil {
+		t.Fatalf("a body over the limit: %v, sent %d bytes", err, len(sent))
 	}
 }

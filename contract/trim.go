@@ -28,8 +28,9 @@ const (
 	TrimMACLabel = "thehappie-platform-trim/v1"
 
 	// TrimResultBodyLimit is the body limit of
-	// POST /contract/v1/trim/results.
-	TrimResultBodyLimit = 256 << 10
+	// POST /contract/v1/trim/results: 512 KiB, which holds the largest
+	// valid result, MaxTrimSteps steps of 64-character item ids.
+	TrimResultBodyLimit = 512 << 10
 
 	// MaxTrimSteps is the most steps one order holds.
 	MaxTrimSteps = 2000

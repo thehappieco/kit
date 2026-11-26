@@ -9,3 +9,11 @@ func ShortenTimeouts(call, grace time.Duration) (restore func()) {
 	callTimeout, feedGrace = call, grace
 	return func() { callTimeout, feedGrace = oldCall, oldGrace }
 }
+
+// LowerTrimResultBodyLimit sets the bound PostTrimResult holds a body to,
+// and returns what puts it back.
+func LowerTrimResultBodyLimit(n int) (restore func()) {
+	old := trimResultBodyLimit
+	trimResultBodyLimit = n
+	return func() { trimResultBodyLimit = old }
+}

@@ -230,11 +230,15 @@ func TestAUsageReportNeverPrintsAFigure(t *testing.T) {
 	}
 }
 
-// The answer is exactly {"accepted": true, "kept": bool}, read strictly.
-func TestAUsageAnswerIsReadStrictly(t *testing.T) {
+// The answer is {"accepted": true, "kept": bool}, read as an app reads
+// what the platform sends: both members by their exact names, neither null,
+// and a member the app does not know ignored.
+func TestAUsageAnswerIsReadAsTheAppReadsWhatThePlatformSends(t *testing.T) {
 	for raw, want := range map[string]contract.UsageAnswer{
-		`{"accepted": true, "kept": true}`:  {Accepted: true, Kept: true},
-		`{"kept": false, "accepted": true}`: {Accepted: true},
+		`{"accepted": true, "kept": true}`:                  {Accepted: true, Kept: true},
+		`{"kept": false, "accepted": true}`:                 {Accepted: true},
+		`{"accepted": true, "kept": true, "why": "closed"}`: {Accepted: true, Kept: true},
+		`{"accepted": true, "kept": false, "Kept": true}`:   {Accepted: true},
 	} {
 		var a contract.UsageAnswer
 		if err := json.Unmarshal([]byte(raw), &a); err != nil || a != want || a.Validate() != nil {
@@ -242,8 +246,8 @@ func TestAUsageAnswerIsReadStrictly(t *testing.T) {
 		}
 	}
 	for _, raw := range []string{
-		`{"accepted": true}`, `{"accepted": true, "kept": null}`, `{"accepted": true, "kept": true, "why": "closed"}`,
-		`{"Accepted": true, "kept": true}`, `{"accepted": true, "kept": "true"}`, `{"accepted": true, "kept": true, "kept": false}`,
+		`{"accepted": true}`, `{"accepted": true, "kept": null}`,
+		`{"Accepted": true, "kept": true}`, `{"accepted": true, "Kept": true}`, `{"accepted": true, "kept": "true"}`, `{"accepted": true, "kept": true, "kept": false}`,
 		`null`, `[]`,
 	} {
 		var a contract.UsageAnswer

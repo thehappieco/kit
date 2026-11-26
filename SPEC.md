@@ -1527,7 +1527,7 @@ Vectors: `platform/thcseal-v1/thcseal-v1.json`, 26 cases: 5 envelopes that open 
 | Entitlements | `entitlements` per (app, workspace), version 1; read as an app reads what the platform sends, every member present; at most 16 timeline steps and 1000 items; plan counts 0 to 50; a feed page of at most 200 documents; an acknowledgement of 4 KiB listing at most 20 refused documents (section 11.20) |
 | Usage | `usage` per (app, workspace), version 1, 1 MiB, read strictly; at most 2000 items; `usage_seq` at most a day ahead and `measured_at` at most 60 s ahead of the platform's clock; recent from 00:00 UTC of `measured_at`'s UTC date less 90 days (section 11.20) |
 | Trial code | 43 unpadded base64url characters of HMAC-SHA256 under K_app's 32 bytes of `thehappie-trial/v1` \|\| `0x00` \|\| app \|\| `0x00` \|\| kind \|\| `0x00` \|\| identifier; kinds `e164`, `wa_lid`, `google_sub`, `ms_tid_sub`, `address`, `imap_login`; at most 4 on a link check or an event; a link check 4 KiB, 30 a minute per (app, workspace) with codes (section 11.20) |
-| Trim order | `v1=` and lowercase hex HMAC-SHA256, keyed with the secret's 43 characters, of `thehappie-platform-trim/v1` \|\| `\n` \|\| app \|\| `\n` \|\| the JCS text of the order as received, without `mac`; round 1 to 3; at most 6 hours valid; a basis under an hour old; 1 to 2000 steps; a result of 256 KiB (section 11.20) |
+| Trim order | `v1=` and lowercase hex HMAC-SHA256, keyed with the secret's 43 characters, of `thehappie-platform-trim/v1` \|\| `\n` \|\| app \|\| `\n` \|\| the JCS text of the order as received, without `mac`; round 1 to 3; at most 6 hours valid; a basis under an hour old; 1 to 2000 steps; a result of 512 KiB (section 11.20) |
 
 ## Appendix D. The Mailie profile
 

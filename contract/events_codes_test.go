@@ -186,7 +186,7 @@ func TestNoTrialCodeIsPrintedOrLogged(t *testing.T) {
 		"an app's struct holding TrialCodes": held{Item: "mbx_1", Codes: ev.Codes},
 	} {
 		var printed []string
-		for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%q"} {
+		for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%q", "%d", "%o", "%t", "%x", "%X", "%b", "%e"} {
 			printed = append(printed, fmt.Sprintf(verb, v))
 		}
 		handlers := []func(*bytes.Buffer) slog.Handler{
@@ -218,6 +218,14 @@ func TestNoTrialCodeIsPrintedOrLogged(t *testing.T) {
 	}
 	if s := fmt.Sprint(ev.Codes); s != "contract.TrialCodes{2 codes}" {
 		t.Errorf("printed %s", s)
+	}
+	if s, want := fmt.Sprintf("%x", batch), `contract.Events{2 events: "`+ev.EventID+`", "`+other.EventID+`"}`; s != want {
+		t.Errorf("printed %s, want %s", s, want)
+	}
+	for _, v := range []any{ev, check} {
+		if fmt.Sprintf("%d", v) != fmt.Sprint(v) {
+			t.Errorf("%T: %%d printed %s, not its String", v, fmt.Sprintf("%d", v))
+		}
 	}
 	// The wire still carries every code.
 	raw, err := json.Marshal(check)

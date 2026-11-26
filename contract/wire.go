@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -581,6 +582,21 @@ type Events struct {
 	Events []Event `json:"events"`
 }
 
+// String is the batch's count and its events' ids, never a code.
+func (e Events) String() string {
+	ids := make([]string, len(e.Events))
+	for i, ev := range e.Events {
+		ids[i] = strconv.Quote(ev.EventID)
+	}
+	return fmt.Sprintf("contract.Events{%d events: %s}", len(e.Events), strings.Join(ids, ", "))
+}
+
+// GoString is String, for %#v.
+func (e Events) GoString() string { return e.String() }
+
+// Format prints String in every verb of fmt.
+func (e Events) Format(f fmt.State, verb rune) { formatAs(f, verb, e.String()) }
+
 // LogValue is the batch's count and its events' ids, never a code: an app
 // logs a batch as this, never its events' JSON.
 func (e Events) LogValue() slog.Value {
@@ -628,6 +644,10 @@ func (ev Event) String() string {
 
 // GoString is String, for %#v.
 func (ev Event) GoString() string { return ev.String() }
+
+// Format prints String in every verb of fmt, so no verb walks the event's
+// fields.
+func (ev Event) Format(f fmt.State, verb rune) { formatAs(f, verb, ev.String()) }
 
 // LogValue is the event's id, workspace, type and item, never its codes.
 func (ev Event) LogValue() slog.Value {

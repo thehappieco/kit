@@ -89,6 +89,9 @@ func (c LinkCheck) String() string {
 // GoString is String, for %#v.
 func (c LinkCheck) GoString() string { return c.String() }
 
+// Format prints String in every verb of fmt.
+func (c LinkCheck) Format(f fmt.State, verb rune) { formatAs(f, verb, c.String()) }
+
 // LogValue is the check's kind, how many codes it carries and whether the
 // item is connected, never a code.
 func (c LinkCheck) LogValue() slog.Value {

@@ -263,3 +263,39 @@ func FuzzASettingsDocumentThatValidatesReadsAgainTheSame(f *testing.F) {
 		}
 	})
 }
+
+// A document of the entitlements feed is either applied, valid and the
+// app's own of the page's generation at its seq, or refused alone with one
+// of the three codes; never both, and nothing panics.
+func FuzzAnEntitlementsDocumentIsAppliedOrRefusedAlone(f *testing.F) {
+	const gen = "0199b1e0-0000-7000-8000-000000000001"
+	for _, s := range []string{
+		`{"v":1,"type":"entitlements","app":"wappie","generation":"` + gen + `"}`,
+		`{"app":"mailie","workspace_id":"01a034b7-d09c-7121-b7f8-41f210a9244a"}`,
+		`{"generation":"0199b1e0-0000-7000-8000-000000000002"}`,
+		`{"timeline":[{"at":"2026-12-04T09:12:00Z","sync":"off"}],"trim":{"app":"wappie"}}`,
+		`null`, `[]`, `{`, `{"v":1,"v":2}`,
+	} {
+		f.Add([]byte(s))
+	}
+	f.Fuzz(func(t *testing.T, b []byte) {
+		d, r := EntitlementsFeedItem{Seq: 7, Doc: b}.Document("wappie", gen)
+		if r != nil {
+			if !oneOf(r.Code, entitlementsRefusals) || r.Seq != 7 || !subOrNull(r.WorkspaceID) {
+				t.Fatalf("refused %+v", r)
+			}
+			return
+		}
+		if d.Validate() != nil || d.App != "wappie" || d.Generation != gen || d.Version != 7 {
+			t.Fatalf("applied %+v", d)
+		}
+		raw, err := json.Marshal(d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var again EntitlementsDoc
+		if json.Unmarshal(raw, &again) != nil || again.Validate() != nil {
+			t.Fatalf("an applied document does not decode again: %s", raw)
+		}
+	})
+}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"slices"
+	"strconv"
 )
 
 // The settings part's sections (SPEC section 11.19), one data type per
@@ -811,9 +812,101 @@ type EmailAccountsSettings struct {
 	// Availability is usable, withheld (Mailie's team gate) or closed.
 	Availability string `json:"availability"`
 	// LinkMinRole is who may link a mailbox here, or null for nobody.
-	LinkMinRole *string      `json:"link_min_role"`
-	Texts       TeamTexts    `json:"texts"`
-	Items       []MailboxRow `json:"items"`
+	LinkMinRole *string   `json:"link_min_role"`
+	Texts       TeamTexts `json:"texts"`
+	// Linking, when not nil, is the section's storage_paused, can_link and
+	// places_free (kit v0.12.0), which come all three or none. nil is
+	// absent, a section from before them: the console then holds nothing
+	// back on them and draws no free places. Mailie sends them only once
+	// the platform's release that knows them is live.
+	Linking *MailboxLinking `json:"-"`
+	Items   []MailboxRow    `json:"items"`
+}
+
+// MailboxLinking are Mailie's three members that mean what Wappie's
+// numbers section's do, following the entitlements document (kit v0.12.0).
+// CanLink sits beside the section's link_min_role, never in its place.
+type MailboxLinking struct {
+	// StoragePaused: nothing new is stored in the workspace now.
+	StoragePaused bool
+	// CanLink: a mailbox can be linked now (places, pause, plan).
+	CanLink bool
+	// PlacesFree are the free places, or null unless Mailie enforces a
+	// document.
+	PlacesFree *int64
+}
+
+// emailAccountsWire is EmailAccountsSettings on the wire, with Linking's
+// three members flat and optional.
+type emailAccountsWire struct {
+	Availability  string          `json:"availability"`
+	LinkMinRole   *string         `json:"link_min_role"`
+	Texts         TeamTexts       `json:"texts"`
+	StoragePaused *bool           `json:"storage_paused,omitempty"`
+	CanLink       *bool           `json:"can_link,omitempty"`
+	PlacesFree    json.RawMessage `json:"places_free,omitempty"`
+	Items         []MailboxRow    `json:"items"`
+}
+
+// MarshalJSON writes the section with Linking's three members flat, or
+// none of them when Linking is nil.
+func (s EmailAccountsSettings) MarshalJSON() ([]byte, error) {
+	w := emailAccountsWire{Availability: s.Availability, LinkMinRole: s.LinkMinRole, Texts: s.Texts, Items: s.Items}
+	if l := s.Linking; l != nil {
+		w.StoragePaused, w.CanLink, w.PlacesFree = &l.StoragePaused, &l.CanLink, json.RawMessage("null")
+		if l.PlacesFree != nil {
+			w.PlacesFree = strconv.AppendInt(nil, *l.PlacesFree, 10)
+		}
+	}
+	var b bytes.Buffer
+	enc := json.NewEncoder(&b)
+	// The caller's encoder escapes HTML or not: this one never does.
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(w); err != nil {
+		return nil, err
+	}
+	return bytes.TrimSuffix(b.Bytes(), []byte("\n")), nil
+}
+
+// UnmarshalJSON reads the section strictly, as DecodeStrict reads a body:
+// storage_paused, can_link and places_free all three or none; the first
+// two never null, places_free an integer or null.
+func (s *EmailAccountsSettings) UnmarshalJSON(b []byte) error {
+	var w emailAccountsWire
+	if err := decodeExact(b, &w, "data"); err != nil {
+		return err
+	}
+	var members map[string]json.RawMessage
+	if json.Unmarshal(b, &members) != nil {
+		return invalid("data")
+	}
+	n := 0
+	for _, name := range []string{"storage_paused", "can_link", "places_free"} {
+		if _, ok := members[name]; ok {
+			n++
+		}
+	}
+	v := EmailAccountsSettings{Availability: w.Availability, LinkMinRole: w.LinkMinRole, Texts: w.Texts, Items: w.Items}
+	switch n {
+	case 0:
+	case 3:
+		if w.StoragePaused == nil || w.CanLink == nil {
+			return invalid("storage_paused and can_link are true or false, never null")
+		}
+		l := &MailboxLinking{StoragePaused: *w.StoragePaused, CanLink: *w.CanLink}
+		if raw := bytes.TrimSpace(w.PlacesFree); string(raw) != "null" {
+			var free int64
+			if json.Unmarshal(raw, &free) != nil {
+				return invalid("places_free")
+			}
+			l.PlacesFree = &free
+		}
+		v.Linking = l
+	default:
+		return invalid("storage_paused, can_link and places_free come all three or none")
+	}
+	*s = v
+	return nil
 }
 
 // TeamTexts is the team sync text's revision Mailie accepts now.
@@ -902,6 +995,8 @@ func (s *EmailAccountsSettings) validate(string) error {
 		return invalid("link_min_role")
 	case !ValidRevision(s.Texts.TeamSync):
 		return invalid("texts.team_sync")
+	case s.Linking != nil && s.Linking.PlacesFree != nil && (*s.Linking.PlacesFree < 0 || *s.Linking.PlacesFree > MaxSafeInteger):
+		return invalid("places_free")
 	case s.Items == nil || len(s.Items) > MaxSectionItems:
 		return invalid("items")
 	}

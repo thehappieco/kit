@@ -313,6 +313,17 @@ type Item struct {
 	// app that reports tokens sends ItemTokens{} for an item none holds.
 	// A token is never in People, Protected or OtherBackups.
 	Tokens ItemTokens `json:"tokens,omitzero"`
+	// Server: the item lives on a customer's own server connected to the
+	// cloud (kit v0.12.0). Optional, present only as true. It protects
+	// nobody, so its Protected is always []; it is never in a usage report
+	// or a trim order. Its People and HoldsKey are reported truthfully, and
+	// its OtherBackups count the server's own holders.
+	Server TrueFlag `json:"server,omitzero"`
+	// Pending: a mailbox whose first authorization never completed,
+	// whatever its state, which takes no place (kit v0.12.0). Optional,
+	// present only as true, on a mailbox only and never beside Server. A
+	// re-authorization never makes a mailbox pending.
+	Pending TrueFlag `json:"pending,omitzero"`
 }
 
 // MaxOrdinal is an item's highest ordinal, and MaxItemTokens the most
@@ -463,6 +474,14 @@ func (it Item) validate() error {
 	}
 	if it.Ordinal != 0 && (it.Ordinal < 1 || it.Ordinal > MaxOrdinal) {
 		return invalid("items[].ordinal")
+	}
+	switch {
+	case bool(it.Server) && len(it.Protected) != 0:
+		return invalid("items[].protected is [] on an item with server: a connected item protects nobody")
+	case bool(it.Pending) && it.Kind != ItemMailbox:
+		return invalid("items[].pending is a mailbox's")
+	case bool(it.Pending) && bool(it.Server):
+		return invalid("items[].pending is never beside server")
 	}
 	if it.Tokens != nil {
 		if len(it.Tokens) > MaxItemTokens {

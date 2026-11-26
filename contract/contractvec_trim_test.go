@@ -717,6 +717,10 @@ func trimDecisions(out *WireTrim) error {
 			d.Feed = planFeed(json.RawMessage(withMAC(signed(nil), "v1="+strings.Repeat("ab", 32))))
 			d.Secrets, d.Get, d.GetDoc = one, "none", nil
 		}), "wait", ""},
+		{base("a forged feed copy under no held secret past its own valid_until, the GET unanswered: still wait, never expired, nothing recorded", func(d *TrimDecision) {
+			d.Feed = planFeed(json.RawMessage(withMAC(signed(nil), "v1="+strings.Repeat("ab", 32))))
+			d.Secrets, d.Get, d.GetDoc, d.Now = one, "none", nil, t(7*time.Hour)
+		}), "wait", ""},
 	} {
 		action, code, steps, err := trimDecide(c.d)
 		if err != nil {

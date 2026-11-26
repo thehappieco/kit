@@ -1243,6 +1243,8 @@ func entBehaviour(out *WireEntitlements) error {
 	}
 	page := func(gen string, seq int64, raw json.RawMessage) json.RawMessage { return entPage(gen, seq, raw) }
 	unreadable := edit(doc(57, nil), `"workspace_id":"`+vecTeam+`"`, `"workspace_id":7`)
+	noDoc := edit(page(vecGeneration, 57, doc(57, nil)), `"doc":`, `"x":`)
+	nullDoc := edit(page(vecGeneration, 57, json.RawMessage(`{}`)), `"doc":{}`, `"doc":null`)
 	for _, c := range []struct {
 		name   string
 		value  json.RawMessage
@@ -1266,6 +1268,8 @@ func entBehaviour(out *WireEntitlements) error {
 		{"a document of another generation in a page of the app's: refused another_generation, never a reset", page(vecGeneration, 57,
 			doc(57, func(d *contract.EntitlementsDoc) { d.Generation = vecGeneration2 })), known, "refuse"},
 		{"a bad document whose workspace_id cannot be read: refused with workspace_id null", page(vecGeneration, 57, unreadable), known, "refuse"},
+		{"an item without its doc: refused invalid_document with workspace_id null", noDoc, known, "refuse"},
+		{"an item whose doc is null: refused invalid_document with workspace_id null", nullDoc, known, "refuse"},
 		{"a page of another generation: a reset, whatever its document", page(vecGeneration2, 3, doc(3, func(d *contract.EntitlementsDoc) { d.Generation = vecGeneration2 })), known, "reset"},
 		{"a page of another generation whose document names the app's generation: a reset", page(vecGeneration2, 57, doc(57, nil)), known, "reset"},
 		{"a page of another generation whose document is bad: a reset", page(vecGeneration2, 57, json.RawMessage(`{"v":1}`)), known, "reset"},
@@ -1349,6 +1353,11 @@ func entBehaviour(out *WireEntitlements) error {
 			{Source: "page", Value: page(vecGeneration, 57, unreadable)},
 			{Source: "get", Workspace: vecWS3, Status: "200", Value: doc(56, inWS(vecWS3))},
 		}, [][]string{{}, slices.Sorted(slices.Values([]string{vecTeam, vecWS2, vecWS3})), {vecWS2, vecTeam}}},
+		{"an item without its doc holds back every workspace until its own GET or document", []EntStep{
+			{Source: "page", Value: noDoc},
+			{Source: "get", Workspace: vecTeam, Status: "200", Value: doc(50, nil)},
+			{Source: "page", Value: page(vecGeneration, 58, doc(58, inWS(vecWS2)))},
+		}, [][]string{{vecWS2, vecTeam}, {vecWS2}, {}}},
 	} {
 		seq := EntSequence{Name: c.name, App: "wappie", Generation: vecGeneration, Known: known, Held: held, Steps: c.steps}
 		steps, err := entSequence(seq)

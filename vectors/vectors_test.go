@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -154,7 +156,30 @@ func TestSpecCitations(t *testing.T) {
 			// The relink's lists, and the token feed's pages (kit v0.11.0).
 			Pairings []named `json:"pairings"`
 			Pages    []named `json:"pages"`
-			Clean    []struct {
+			// The entitlements and usage part's lists (kit v0.12.0).
+			Gets       []named `json:"gets"`
+			Sequences  []named `json:"sequences"`
+			Versions   []named `json:"versions"`
+			Links      []named `json:"links"`
+			Resets     []named `json:"resets"`
+			Freeze     []named `json:"freeze"`
+			Caps       []named `json:"caps"`
+			CodesAfter []named `json:"codes_after"`
+			Places     []named `json:"places"`
+			TrialStops []named `json:"trial_stops"`
+			CapStops   []named `json:"cap_stops"`
+			Reports    []named `json:"reports"`
+			Intake     []named `json:"intake"`
+			Dates      []named `json:"dates"`
+			Floors     []named `json:"floors"`
+			Codes      []named `json:"codes"`
+			Meet       []named `json:"meet"`
+			Differ     []named `json:"differ"`
+			NoCode     []named `json:"no_code"`
+			Orders     []named `json:"orders"`
+			Decisions  []named `json:"decisions"`
+			Runs       []named `json:"runs"`
+			Clean      []struct {
 				Raw string `json:"raw"`
 			} `json:"clean"`
 			Hints []struct {
@@ -184,6 +209,11 @@ func TestSpecCitations(t *testing.T) {
 			"records": f.Records, "feeds": f.Feeds, "applied": f.Applied, "usage": f.Usage, "actions": f.Actions,
 			"sections": f.Sections, "persons": f.Persons, "commands": f.Commands, "results": f.Results,
 			"batches": f.Batches, "macs": f.MACs, "pairings": f.Pairings, "pages": f.Pages,
+			"gets": f.Gets, "sequences": f.Sequences, "versions": f.Versions, "links": f.Links, "resets": f.Resets,
+			"freeze": f.Freeze, "caps": f.Caps, "codes_after": f.CodesAfter, "places": f.Places, "trial_stops": f.TrialStops,
+			"cap_stops": f.CapStops, "reports": f.Reports, "intake": f.Intake, "dates": f.Dates, "floors": f.Floors,
+			"codes": f.Codes, "meet": f.Meet, "differ": f.Differ, "no_code": f.NoCode, "orders": f.Orders,
+			"decisions": f.Decisions, "runs": f.Runs,
 		} {
 			for _, c := range cases {
 				ids = append(ids, list+"/"+c.Name)
@@ -635,19 +665,20 @@ func TestMailieKeySchemeFiles(t *testing.T) {
 	}
 }
 
-// The contract's files (SPEC sections 11.17 to 11.19): the first four are
+// The contract's files (SPEC sections 11.17 to 11.20): the first four are
 // the platform's, captured at the commits PROVENANCE.md records, and the
 // five of kit v0.9.0 and the three of kit v0.10.0 the kit's own, written
-// from the platform's design at 509cc65, and the two of kit v0.11.0 the
-// kit's own too, written from the platform's spec of the relink (14.13) at
-// 958c3b4 and its logs. Each has the sha256 recorded there, so a copy from
-// another commit or an edit fails here even after `make manifest` has
-// recorded it. Their directory holds exactly these fourteen; each is valid
-// UTF-8 ending with exactly one newline, ASCII only where it says so, in the platform's
-// contract format with its kind, and with its counts of cases, of each
-// check's result and of the cases that must be refused, under unique
-// names. contract's own tests run every case and write the fourteen files
-// again byte for byte.
+// from the platform's design at 509cc65, the two of kit v0.11.0 the kit's
+// own too, written from the platform's spec of the relink (14.13) at
+// 958c3b4 and its logs, and the nine of kit v0.12.0 the kit's own, written
+// from the platform's spec section 15 at a80d9b0. Each has the sha256
+// recorded there, so a copy from another commit or an edit fails here even
+// after `make manifest` has recorded it. Their directory holds exactly
+// these twenty-three; each is valid UTF-8 ending with exactly one newline,
+// ASCII only where it says so, in the platform's contract format with its
+// kind, and with its counts of cases, of each check's result and of the
+// cases that must be refused, under unique names. contract's own tests run
+// every case and write the twenty-three files again byte for byte.
 func TestPlatformContractVectorFiles(t *testing.T) {
 	type named struct {
 		Name   string `json:"name"`
@@ -685,7 +716,30 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		MACs      []named `json:"macs"`
 		Pairings  []named `json:"pairings"`
 		Pages     []named `json:"pages"`
-		Classes   []struct {
+		// Kit v0.12.0's lists: the entitlements and usage part.
+		Gets       []named `json:"gets"`
+		Sequences  []named `json:"sequences"`
+		Versions   []named `json:"versions"`
+		Links      []named `json:"links"`
+		Resets     []named `json:"resets"`
+		Freeze     []named `json:"freeze"`
+		Caps       []named `json:"caps"`
+		CodesAfter []named `json:"codes_after"`
+		Places     []named `json:"places"`
+		TrialStops []named `json:"trial_stops"`
+		CapStops   []named `json:"cap_stops"`
+		Reports    []named `json:"reports"`
+		Intake     []named `json:"intake"`
+		Dates      []named `json:"dates"`
+		Floors     []named `json:"floors"`
+		Codes      []named `json:"codes"`
+		Meet       []named `json:"meet"`
+		Differ     []named `json:"differ"`
+		NoCode     []named `json:"no_code"`
+		Orders     []named `json:"orders"`
+		Decisions  []named `json:"decisions"`
+		Runs       []named `json:"runs"`
+		Classes    []struct {
 			Code       string `json:"code"`
 			Tightening bool   `json:"tightening"`
 			Class      string `json:"class"`
@@ -741,6 +795,26 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 			"answers 7 (2 valid), commands 13 (5 valid), results 34 (20 valid), pairings 32 (9 valid), classes 6 (retry 0, final 6)"},
 		{"wire-v011.json", "wire-v011", "kit v0.11.0", false, "f73724b022b5ccd3673d95708b7a642361c63f05ef9947d7357094e008e60b4c",
 			"sections 20 (11 valid), commands 11 (4 valid), results 13 (5 valid), pages 6 (apply 1, reset 2, revoke 0, narrow 2, refuse 1)"},
+		// Kit v0.12.0's, from the platform's spec section 15 at a80d9b0:
+		// the entitlements and usage part, and what rides its release.
+		{"wire-entitlements.json", "wire-entitlements", "kit v0.12.0", true, "c88c82ad3af179f66c40ebf2166bb53deee53ad178611b056f8d38d37cd117b3",
+			"documents 113 (30 valid), feeds 15 (7 valid), applied 21 (7 valid), actions 16 (apply 2, ignore 2, invalid 1, keep 1, refuse 7, reset 3), gets 10 (apply 1, fresh 1, ignore 1, none 2, not_found 1, refuse 3, reset 1), sequences 3, versions 4, links 17 (link 11, refuse_link 6), resets 2 (reset 2), freeze 15 (fire 7, hold 4, none 2, wait 2), caps 13, codes_after 6 (none 3, send 3), places 11 (keep 1, lift 7, stop 3), trial_stops 6 (keep 3, lift 3), cap_stops 3 (lift 2, stop 1)"},
+		{"wire-usage.json", "wire-usage", "kit v0.12.0", true, "eb756a6fb7a32d18f3c8a08c746be4f4a1ea2124097cd2e6c16ae14031c184d0",
+			"answers 11 (3 valid), reports 44 (12 valid), intake 11"},
+		{"usage-dates.json", "usage-dates", "kit v0.12.0", true, "898114d9ca50e998904571af88e5bef5a7a3e92dc2fb3b79d4924a2fa2f54c42",
+			"dates 11, floors 2"},
+		{"trial-codes.json", "trial-codes", "kit v0.12.0", false, "8d63eacf26296326cf9636dbdc1b0ba11f815799885228e32e05482058478b9d",
+			"codes 20, meet 8, differ 10, no_code 24"},
+		{"wire-link-check.json", "wire-link-check", "kit v0.12.0", true, "6c8c6799bd15aa318ef404466299d20bef15132df2f87d146d6ef001e63b6655",
+			"requests 23 (7 valid), answers 20 (7 valid)"},
+		{"wire-events-codes.json", "wire-events-codes", "kit v0.12.0", false, "2a5368ee2729ffdd6099ce86fc5f148358bff2a535c96925f1ec34dc5bbff9c8",
+			"events 38 (9 valid)"},
+		{"wire-trim.json", "wire-trim", "kit v0.12.0", true, "8b8f410aee057bb7693d4f286b8ecd67278349cc6122aaf3b54d1d8c333d8097",
+			"answers 15 (7 valid), results 38 (14 valid), orders 40 (13 valid), decisions 40 (refused 18, resend 3, run 12, wait 7), runs 13"},
+		{"trim-macs.json", "trim-macs", "kit v0.12.0", true, "be6c586e5299c919ab4d7a8ae830bdf4d0abebf264a3066d653a67429f5e0ccf",
+			"macs 21 (8 valid)"},
+		{"wire-v012.json", "wire-v012", "kit v0.12.0", false, "2c0be71eff8f1deef3ebe2bc7ab6c2fc9a15bdf066dcf53bdabf062d85787d60",
+			"snapshots 15 (6 valid), sections 15 (5 valid), results 8 (4 valid)"},
 	}
 	entries, err := fs.ReadDir(vectors.FS, "platform/contract-v1")
 	if err != nil {
@@ -789,7 +863,20 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 				}
 				results[c.Result]++
 			}
+			actions := map[string]int{}
+			for _, c := range cases {
+				if c.Action != "" {
+					actions[c.Action]++
+				}
+			}
 			switch {
+			case strings.HasPrefix(w.commit, "kit v0.12") && len(actions) > 0:
+				// Kit v0.12.0's lists: each action's count, by name.
+				var parts []string
+				for _, a := range slices.Sorted(maps.Keys(actions)) {
+					parts = append(parts, fmt.Sprintf("%s %d", a, actions[a]))
+				}
+				counts = append(counts, fmt.Sprintf("%s %d (%s)", name, len(cases), strings.Join(parts, ", ")))
 			case name == "reading_keys":
 				counts = append(counts, fmt.Sprintf("%s %d (ok %d, encoding %d, not_canonical %d, low_order %d, fingerprint %d)", name, len(cases),
 					results["ok"], results["encoding"], results["not_canonical"], results["low_order"], results["fingerprint"]))
@@ -847,6 +934,18 @@ func TestPlatformContractVectorFiles(t *testing.T) {
 		list("macs", f.MACs)
 		list("pairings", f.Pairings)
 		list("pages", f.Pages)
+		for _, l := range []struct {
+			name  string
+			cases []named
+		}{
+			{"gets", f.Gets}, {"sequences", f.Sequences}, {"versions", f.Versions}, {"links", f.Links}, {"resets", f.Resets},
+			{"freeze", f.Freeze}, {"caps", f.Caps}, {"codes_after", f.CodesAfter}, {"places", f.Places}, {"trial_stops", f.TrialStops},
+			{"cap_stops", f.CapStops}, {"reports", f.Reports}, {"intake", f.Intake}, {"dates", f.Dates}, {"floors", f.Floors},
+			{"codes", f.Codes}, {"meet", f.Meet}, {"differ", f.Differ}, {"no_code", f.NoCode}, {"orders", f.Orders},
+			{"decisions", f.Decisions}, {"runs", f.Runs},
+		} {
+			list(l.name, l.cases)
+		}
 		if len(f.Classes) > 0 {
 			classes := map[string]int{}
 			for _, c := range f.Classes {

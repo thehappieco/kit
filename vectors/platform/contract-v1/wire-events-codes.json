@@ -1,0 +1,886 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "wire-events-codes",
+  "description": "The events item.linked and item.identity_updated (SPEC sections 11.17 and 11.20), each decoded strictly, as a body of events is, then Event's Validate. codes, required on both, lists 1 to 4 trial codes, each once, each 43 base64url characters that are the one canonical spelling of 32 bytes (the last character's low two bits zero); every other type carries no codes, not even []. readers is [] on both. item.linked's actor_kind is person, its actor the person who linked or moved it, or null; item.identity_updated takes any actor_kind. Neither carries purge_at, person, cause or stop. The codes are made under the key of trial-codes.json.",
+  "events": [
+    {
+      "name": "a number linked, with its phone number's and its LID's codes",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a mailbox linked by Google's sign-in: its sub's and its address's codes",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "acc_7f3a",
+          "kind": "mailbox",
+          "label": null,
+          "hint": "j…@gmail.com"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "ChPXIP4n-m8mUzvbstjle-05Z4UdocJDCEQ2Oh2xb5Q",
+          "cBm2kxoKSETIUC00hkA3ZYHGRWdygS8NwG14od9W0Vo"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "item.linked with one code",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "item.linked with four codes, its most",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw",
+          "1CdUAGmsmtP0PshsiUR-MpnbxShlwp77B2uZcyfsupk",
+          "1apIms0PmpIQu9IX0ngt_rX7psyEC20867QCRn6KlE0"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "item.linked with no actor: a person no longer known",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": null,
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "item.identity_updated: a LID seen after pairing, the app the actor",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": null,
+        "actor_kind": "app",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "item.identity_updated by a person's re-authorization",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "item.identity_updated by a key's act",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "key",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "item.identity_updated with four codes",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw",
+          "1CdUAGmsmtP0PshsiUR-MpnbxShlwp77B2uZcyfsupk",
+          "1apIms0PmpIQu9IX0ngt_rX7psyEC20867QCRn6KlE0"
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "item.linked with no codes",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": []
+      },
+      "valid": false
+    },
+    {
+      "name": "item.linked with codes []",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": []
+      },
+      "valid": false
+    },
+    {
+      "name": "item.linked with codes null",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": null
+      },
+      "valid": false
+    },
+    {
+      "name": "item.identity_updated with no codes",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": []
+      },
+      "valid": false
+    },
+    {
+      "name": "item.identity_updated with codes []",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": []
+      },
+      "valid": false
+    },
+    {
+      "name": "item.linked with five codes",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw",
+          "1CdUAGmsmtP0PshsiUR-MpnbxShlwp77B2uZcyfsupk",
+          "1apIms0PmpIQu9IX0ngt_rX7psyEC20867QCRn6KlE0",
+          "I_e_vnzX7ROEQOCr2TwXvNQ0VuZEoc61R-fihiL3UUA"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.identity_updated with five codes",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw",
+          "1CdUAGmsmtP0PshsiUR-MpnbxShlwp77B2uZcyfsupk",
+          "1apIms0PmpIQu9IX0ngt_rX7psyEC20867QCRn6KlE0",
+          "I_e_vnzX7ROEQOCr2TwXvNQ0VuZEoc61R-fihiL3UUA"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.linked with a code twice",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.identity_updated with a code twice",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a code that is not canonical: its last character's low bits set",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYB"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a code of 42 characters",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtY"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a code of 44 characters",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYwA"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a code in base64 with padding",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw="
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a code with base64's + and /",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "+/4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a code that is no string",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          7
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a code written null",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          null
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "codes written Codes",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "Codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "codes on item.deleted",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.deleted",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+        ],
+        "purge_at": "2026-11-12T12:00:00Z",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "codes [] on item.deleted",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.deleted",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+        ],
+        "purge_at": "2026-11-12T12:00:00Z",
+        "codes": []
+      },
+      "valid": false
+    },
+    {
+      "name": "codes on item.recovered",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.recovered",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+        ],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.linked with a reader",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+        ],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.identity_updated with a reader",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [
+          "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+        ],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.linked with readers null",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": null,
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.linked by a key",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "key",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.linked by the app",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": null,
+        "actor_kind": "app",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.identity_updated by an actor kind the part does not know",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": null,
+        "actor_kind": "operator",
+        "readers": [],
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.linked with purge_at",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "purge_at": "2026-11-12T12:00:00Z",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.identity_updated with stop",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.identity_updated",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "stop": "pause",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "item.linked with a person",
+      "value": {
+        "event_id": "0199d000-0000-7000-8000-000000000031",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "type": "item.linked",
+        "occurred_at": "2026-10-13T12:00:00Z",
+        "item": {
+          "id": "0199e000-0000-7000-8000-000000000004",
+          "kind": "number",
+          "label": "Vendas",
+          "hint": "…5678"
+        },
+        "actor": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+        "actor_kind": "person",
+        "readers": [],
+        "person": "0199c3d4-0000-7000-8000-000000000002",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    }
+  ]
+}

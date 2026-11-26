@@ -1,0 +1,538 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "wire-link-check",
+  "description": "The link check (SPEC section 11.20), POST /contract/v1/workspaces/{id}/link-check. requests: a body of app's, within 4 KiB, decoded strictly (kind, codes and connected, each present, none null, none twice or unknown, names exactly as written), then ValidateFor(app): kind the app's (number for Wappie and the reference app, mailbox for Mailie); codes 0 to 4 trial codes, each once, each 43 base64url characters that are the one canonical spelling of 32 bytes, [] for none; none beside connected true. answers: the platform's answer, read as an app reads what the platform sends (members it does not know ignored, every member present, null only for place and trial_ends_at), then Validate: place free, none or null; trial not_needed, used_up or running; trial_ends_at set exactly on running, after computed_at; switches.new_links on or off.",
+  "requests": [
+    {
+      "name": "a number paired: its phone number's and its LID's codes",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ],
+        "connected": false
+      },
+      "valid": true
+    },
+    {
+      "name": "the place alone: no codes",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [],
+        "connected": false
+      },
+      "valid": true
+    },
+    {
+      "name": "four codes, the most",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw",
+          "1CdUAGmsmtP0PshsiUR-MpnbxShlwp77B2uZcyfsupk",
+          "1apIms0PmpIQu9IX0ngt_rX7psyEC20867QCRn6KlE0"
+        ],
+        "connected": false
+      },
+      "valid": true
+    },
+    {
+      "name": "a mailbox authorized: its tid and sub's and its address's codes",
+      "app": "mailie",
+      "value": {
+        "kind": "mailbox",
+        "codes": [
+          "AMI51HLeGpiQ256z9KslCrL6naRpZY1ZwySrfnJMI08",
+          "WgT3-VesbEaEJetAJe0G0p_PeGlWBCzW0hW_jIBofMA"
+        ],
+        "connected": false
+      },
+      "valid": true
+    },
+    {
+      "name": "Mailie before it starts a link at the provider: the place alone",
+      "app": "mailie",
+      "value": {
+        "kind": "mailbox",
+        "codes": [],
+        "connected": false
+      },
+      "valid": true
+    },
+    {
+      "name": "a server's number being connected: no codes",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [],
+        "connected": true
+      },
+      "valid": true
+    },
+    {
+      "name": "the reference app's number",
+      "app": "fakeproduct",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY"
+        ],
+        "connected": false
+      },
+      "valid": true
+    },
+    {
+      "name": "codes on a connected item",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY"
+        ],
+        "connected": true
+      },
+      "valid": false
+    },
+    {
+      "name": "five codes",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw",
+          "1CdUAGmsmtP0PshsiUR-MpnbxShlwp77B2uZcyfsupk",
+          "1apIms0PmpIQu9IX0ngt_rX7psyEC20867QCRn6KlE0",
+          "I_e_vnzX7ROEQOCr2TwXvNQ0VuZEoc61R-fihiL3UUA"
+        ],
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "a code twice",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY"
+        ],
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "a code that is not canonical",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYB"
+        ],
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "a code of 42 characters",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtY"
+        ],
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "a code of 44 characters",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYwA"
+        ],
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "codes null",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": null,
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "no codes member",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "no connected member",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a mailbox for Wappie",
+      "app": "wappie",
+      "value": {
+        "kind": "mailbox",
+        "codes": [],
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "a number for Mailie",
+      "app": "mailie",
+      "value": {
+        "kind": "number",
+        "codes": [],
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "a kind the part does not know",
+      "app": "wappie",
+      "value": {
+        "kind": "phone",
+        "codes": [],
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "an unknown member",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ],
+        "connected": false,
+        "label": "Vendas"
+      },
+      "valid": false
+    },
+    {
+      "name": "kind written Kind",
+      "app": "wappie",
+      "value": {
+        "Kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ],
+        "connected": false
+      },
+      "valid": false
+    },
+    {
+      "name": "connected as text",
+      "app": "wappie",
+      "value": {
+        "kind": "number",
+        "codes": [
+          "FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY",
+          "P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"
+        ],
+        "connected": "false"
+      },
+      "valid": false
+    },
+    {
+      "name": "over 4 KiB: its members spaced out",
+      "app": "wappie",
+      "value": {"kind":                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        "number","codes":["FSvFNgvQdAepoo4D6thE3hm7PyTxWHL4CXGHuH_hMPY","P-4sHNtpsmgPgdn7YpoOqGZeCZaD_iWbRpZT8heQtYw"],"connected":false},
+      "valid": false
+    }
+  ],
+  "answers": [
+    {
+      "name": "a free place, no trial needed",
+      "value": {
+        "place": "free",
+        "trial": "not_needed",
+        "trial_ends_at": null,
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a clock a link would start: running, computed_at plus 360 h",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial_ends_at": "2026-10-28T12:00:00Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a clock that ended: used_up",
+      "value": {
+        "place": "free",
+        "trial": "used_up",
+        "trial_ends_at": null,
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "no place, new links off",
+      "value": {
+        "place": "none",
+        "trial": "not_needed",
+        "trial_ends_at": null,
+        "switches": {
+          "new_links": "off"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "place null: the platform's count unknown",
+      "value": {
+        "place": null,
+        "trial": "not_needed",
+        "trial_ends_at": null,
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "a member the app does not know, ignored",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial_ends_at": "2026-10-28T12:00:00Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "advice": "buy",
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "running a second after computed_at",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial_ends_at": "2026-10-13T12:00:01Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "trial_ends_at on not_needed",
+      "value": {
+        "place": "free",
+        "trial": "not_needed",
+        "trial_ends_at": "2026-10-28T12:00:00Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "trial_ends_at on used_up",
+      "value": {
+        "place": "free",
+        "trial": "used_up",
+        "trial_ends_at": "2026-10-13T11:00:00Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "running without trial_ends_at",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial_ends_at": null,
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "running at computed_at",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial_ends_at": "2026-10-13T12:00:00Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "running before computed_at",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial_ends_at": "2026-10-13T11:59:59Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "a place the part does not know",
+      "value": {
+        "place": "some",
+        "trial": "running",
+        "trial_ends_at": "2026-10-28T12:00:00Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "a trial the part does not know",
+      "value": {
+        "place": "free",
+        "trial": "pending",
+        "trial_ends_at": "2026-10-28T12:00:00Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "new_links null",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial_ends_at": "2026-10-28T12:00:00Z",
+        "switches": {
+          "new_links": null
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "new_links in capitals",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial_ends_at": "2026-10-28T12:00:00Z",
+        "switches": {
+          "new_links": "ON"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "no trial_ends_at member",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "no switches",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial_ends_at": "2026-10-28T12:00:00Z",
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "computed_at null",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial_ends_at": "2026-10-28T12:00:00Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": null
+      },
+      "valid": false
+    },
+    {
+      "name": "a member twice",
+      "value": {
+        "place": "free",
+        "trial": "running",
+        "trial": "used_up",
+        "trial_ends_at": "2026-10-28T12:00:00Z",
+        "switches": {
+          "new_links": "on"
+        },
+        "computed_at": "2026-10-13T12:00:00Z"
+      },
+      "valid": false
+    }
+  ]
+}

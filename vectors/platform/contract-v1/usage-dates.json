@@ -1,0 +1,427 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "usage-dates",
+  "description": "The date rule (SPEC section 11.20), which both apps follow for recent_bytes and for a trim's floor. dates: a report's rows, in an abstract shape, measured at measured_at, and the figures they make. Each row is {id, kind, item, ts, of, refs, bytes}: Wappie's message (its ts; null when it has none, then undated), receipt and group_change (their own ts, a receipt of an undated message included), transcript (an AI transcript of the message of names: that message's date, undated with it), object (an attachment counted once per key: the date of the newest dated message among refs, the messages that reference it, undated when they all are; referenced from several numbers, it goes to shared_bytes and to no item); Mailie's row (its internal_date, in UTC whatever zone it is written in, never the Date header; Mailie has no undated bytes). A date after measured_at counts as measured_at. Recent is a date on or after recent_from, 00:00 UTC of the UTC date of measured_at less 90 days: whole UTC days. items: per item, its bytes, recent_bytes and undated_bytes. floors: an order's floor (issued_at's UTC date less 90 days) against recent_from of the report it was computed from, which is under an hour older: on another UTC day, the floor keeps one day less than recent_bytes counted, so the platform deletes less, never more.",
+  "dates": [
+    {
+      "name": "Wappie's messages, receipts and group changes, recent and older",
+      "app": "wappie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-10-01T08:00:00Z",
+          "bytes": 1000
+        },
+        {
+          "id": "m2",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-06-01T08:00:00Z",
+          "bytes": 2000
+        },
+        {
+          "id": "r1",
+          "kind": "receipt",
+          "item": "dev_7",
+          "ts": "2026-10-01T08:00:05Z",
+          "bytes": 40
+        },
+        {
+          "id": "r2",
+          "kind": "receipt",
+          "item": "dev_7",
+          "ts": "2026-06-01T08:00:05Z",
+          "bytes": 40
+        },
+        {
+          "id": "g1",
+          "kind": "group_change",
+          "item": "dev_7",
+          "ts": "2026-08-01T00:00:00Z",
+          "bytes": 300
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 3380,
+          "recent_bytes": 1340,
+          "undated_bytes": 0
+        }
+      },
+      "shared_bytes": 0
+    },
+    {
+      "name": "an AI transcript of a dated message and of an undated one",
+      "app": "wappie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-05-20T10:00:00Z",
+          "bytes": 500
+        },
+        {
+          "id": "m2",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": null,
+          "bytes": 700
+        },
+        {
+          "id": "t1",
+          "kind": "transcript",
+          "ts": null,
+          "of": "m1",
+          "bytes": 120
+        },
+        {
+          "id": "t2",
+          "kind": "transcript",
+          "ts": null,
+          "of": "m2",
+          "bytes": 80
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 1400,
+          "recent_bytes": 0,
+          "undated_bytes": 780
+        }
+      },
+      "shared_bytes": 0
+    },
+    {
+      "name": "a receipt of an undated message: its own ts",
+      "app": "wappie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": null,
+          "bytes": 900
+        },
+        {
+          "id": "r1",
+          "kind": "receipt",
+          "item": "dev_7",
+          "ts": "2026-10-12T09:00:00Z",
+          "of": "m1",
+          "bytes": 40
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 940,
+          "recent_bytes": 40,
+          "undated_bytes": 900
+        }
+      },
+      "shared_bytes": 0
+    },
+    {
+      "name": "an object referenced on one number: its newest message's date",
+      "app": "wappie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-04-01T00:00:00Z",
+          "bytes": 100
+        },
+        {
+          "id": "m2",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-09-30T00:00:00Z",
+          "bytes": 100
+        },
+        {
+          "id": "m3",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": null,
+          "bytes": 100
+        },
+        {
+          "id": "o1",
+          "kind": "object",
+          "ts": null,
+          "refs": [
+            "m1",
+            "m2",
+            "m3"
+          ],
+          "bytes": 50000
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 50300,
+          "recent_bytes": 50100,
+          "undated_bytes": 100
+        }
+      },
+      "shared_bytes": 0
+    },
+    {
+      "name": "an object only undated messages reference: undated",
+      "app": "wappie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": null,
+          "bytes": 100
+        },
+        {
+          "id": "o1",
+          "kind": "object",
+          "ts": null,
+          "refs": [
+            "m1"
+          ],
+          "bytes": 30000
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 30100,
+          "recent_bytes": 0,
+          "undated_bytes": 30100
+        }
+      },
+      "shared_bytes": 0
+    },
+    {
+      "name": "an object several numbers reference: shared_bytes",
+      "app": "wappie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-10-01T00:00:00Z",
+          "bytes": 100
+        },
+        {
+          "id": "m2",
+          "kind": "message",
+          "item": "dev_9",
+          "ts": "2026-03-01T00:00:00Z",
+          "bytes": 100
+        },
+        {
+          "id": "o1",
+          "kind": "object",
+          "ts": null,
+          "refs": [
+            "m1",
+            "m2"
+          ],
+          "bytes": 80000
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 100,
+          "recent_bytes": 100,
+          "undated_bytes": 0
+        },
+        "dev_9": {
+          "bytes": 100,
+          "recent_bytes": 0,
+          "undated_bytes": 0
+        }
+      },
+      "shared_bytes": 80000
+    },
+    {
+      "name": "Mailie's rows by internal_date in UTC",
+      "app": "mailie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "u1",
+          "kind": "row",
+          "item": "acc_7f3a",
+          "ts": "2026-07-14T23:30:00-03:00",
+          "bytes": 3000
+        },
+        {
+          "id": "u2",
+          "kind": "row",
+          "item": "acc_7f3a",
+          "ts": "2026-07-15T01:30:00+03:00",
+          "bytes": 4000
+        },
+        {
+          "id": "u3",
+          "kind": "row",
+          "item": "acc_7f3a",
+          "ts": "2026-10-10T10:00:00Z",
+          "bytes": 5000
+        }
+      ],
+      "items": {
+        "acc_7f3a": {
+          "bytes": 12000,
+          "recent_bytes": 8000,
+          "undated_bytes": 0
+        }
+      },
+      "shared_bytes": 0
+    },
+    {
+      "name": "a date after measured_at counts as measured_at",
+      "app": "wappie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2027-01-01T00:00:00Z",
+          "bytes": 600
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 600,
+          "recent_bytes": 600,
+          "undated_bytes": 0
+        }
+      },
+      "shared_bytes": 0
+    },
+    {
+      "name": "the 90-day edge: 00:00:00 of the edge day is recent, the instant before is not",
+      "app": "wappie",
+      "measured_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-07-15T00:00:00Z",
+          "bytes": 10
+        },
+        {
+          "id": "m2",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-07-14T23:59:59.999Z",
+          "bytes": 20
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 30,
+          "recent_bytes": 10,
+          "undated_bytes": 0
+        }
+      },
+      "shared_bytes": 0
+    },
+    {
+      "name": "the edge with measured_at late in its UTC day: whole days",
+      "app": "wappie",
+      "measured_at": "2026-10-13T23:59:59Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-07-15T00:00:00Z",
+          "bytes": 10
+        },
+        {
+          "id": "m2",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-07-14T23:59:59.999Z",
+          "bytes": 20
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 30,
+          "recent_bytes": 10,
+          "undated_bytes": 0
+        }
+      },
+      "shared_bytes": 0
+    },
+    {
+      "name": "the edge a UTC day later: the edge day is no longer recent",
+      "app": "wappie",
+      "measured_at": "2026-10-14T00:00:00Z",
+      "recent_from": "2026-07-16T00:00:00Z",
+      "rows": [
+        {
+          "id": "m1",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-07-15T00:00:00Z",
+          "bytes": 10
+        },
+        {
+          "id": "m2",
+          "kind": "message",
+          "item": "dev_7",
+          "ts": "2026-07-16T00:00:00Z",
+          "bytes": 20
+        }
+      ],
+      "items": {
+        "dev_7": {
+          "bytes": 30,
+          "recent_bytes": 20,
+          "undated_bytes": 0
+        }
+      },
+      "shared_bytes": 0
+    }
+  ],
+  "floors": [
+    {
+      "name": "an order issued the same UTC day as its report: the floor is recent_from",
+      "measured_at": "2026-10-13T11:20:00Z",
+      "issued_at": "2026-10-13T12:00:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "floor": "2026-07-15",
+      "days_less": 0
+    },
+    {
+      "name": "an order issued the UTC day after its report: one day less kept",
+      "measured_at": "2026-10-13T23:50:00Z",
+      "issued_at": "2026-10-14T00:10:00Z",
+      "recent_from": "2026-07-15T00:00:00Z",
+      "floor": "2026-07-16",
+      "days_less": 1
+    }
+  ]
+}

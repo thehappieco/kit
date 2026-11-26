@@ -1,0 +1,1701 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "wire-v012",
+  "description": "What kit v0.12.0 adds beside the entitlements and usage part (SPEC sections 11.17 and 11.19). snapshots: access snapshots, decoded strictly, then Validate: an item's optional server (it lives on a customer's own server connected to the cloud) and pending (a mailbox whose first authorization never completed), each present only as true, never false or null; a server item's protected is [] (a connected item protects nobody); pending is a mailbox's only and never beside server. sections: Mailie's email-accounts with its three optional header members storage_paused, can_link and places_free, all three or none; storage_paused and can_link true or false, never null; places_free an integer 0 or more, or null. results: Mailie's item.sync_now and item.sync_resume refused capacity_reached (an item the plan's places leave stopped), its item.sync_now refused storage_paused, and the same codes on Mailie's kinds that answer neither, decoded strictly, then ValidateFor(app, kind).",
+  "snapshots": [
+    {
+      "name": "a number on a connected server: server true, protected []",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [],
+            "server": true
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a mailbox on a connected server, its key holders reported",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [],
+            "server": true
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a mailbox pending its first authorization",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "sync_paused",
+            "reason": "needs_reauth",
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "pending": true
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a pending mailbox that is active",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "pending": true
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "neither member: a hosted item, linked",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          },
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "a hosted number and a connected one",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ]
+          },
+          {
+            "id": "dev_9",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [],
+            "server": true
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "name": "server false",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [],
+            "server": false
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "server null",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [],
+            "server": null
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "server as text",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [],
+            "server": "true"
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "server written Server",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [],
+            "Server": true
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a server item that protects its reader",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "server": true
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "pending false",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "sync_paused",
+            "reason": "needs_reauth",
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "pending": false
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "pending null",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "sync_paused",
+            "reason": "needs_reauth",
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "pending": null
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "pending on a number",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "0199e000-0000-7000-8000-000000000004",
+            "kind": "number",
+            "label": "Vendas",
+            "hint": "…5678",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [
+              "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20"
+            ],
+            "pending": true
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "pending beside server",
+      "value": {
+        "v": 1,
+        "snapshot_seq": 1791892800000,
+        "items": [
+          {
+            "id": "acc_7f3a",
+            "kind": "mailbox",
+            "label": null,
+            "hint": "j…@gmail.com",
+            "state": "active",
+            "reason": null,
+            "purge_at": null,
+            "other_backups": 0,
+            "people": [
+              {
+                "sub": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                "can": [
+                  "read"
+                ],
+                "reads": true,
+                "waiting": false,
+                "enrolled": true,
+                "holds_key": true
+              }
+            ],
+            "protected": [],
+            "server": true,
+            "pending": true
+          }
+        ]
+      },
+      "valid": false
+    }
+  ],
+  "sections": [
+    {
+      "name": "all three: Mailie enforces a document with two places free",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": false,
+          "can_link": true,
+          "places_free": 2,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "none: a section from before them",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "places_free 0: every place taken, so no link",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": false,
+          "can_link": false,
+          "places_free": 0,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "places_free null: Mailie enforces no document",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": false,
+          "can_link": true,
+          "places_free": null,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "storage_paused: the workspace stores nothing new",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": true,
+          "can_link": false,
+          "places_free": 1,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "storage_paused alone",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": false,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "can_link alone",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "can_link": true,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "places_free alone",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "places_free": 2,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "storage_paused and can_link without places_free",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": false,
+          "can_link": true,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "can_link and places_free without storage_paused",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "can_link": true,
+          "places_free": 2,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "storage_paused null",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": null,
+          "can_link": true,
+          "places_free": 2,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "can_link null",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": false,
+          "can_link": null,
+          "places_free": 2,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "places_free below 0",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": false,
+          "can_link": true,
+          "places_free": -1,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "places_free as text",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": false,
+          "can_link": true,
+          "places_free": "2",
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "can_link twice",
+      "value": {
+        "v": 1,
+        "type": "settings",
+        "app": "mailie",
+        "section": "email-accounts",
+        "producer": "mailie",
+        "workspace_id": "01a034b7-d09c-7121-b7f8-41f210a9244a",
+        "state_seq": 1791892800000,
+        "snapshot_seq": 1791892800000,
+        "measured_at": "2026-10-13T12:00:00Z",
+        "truncated": false,
+        "accepts": [
+          "item.sync_now",
+          "item.sync_stop",
+          "item.sync_resume",
+          "item.lift_hold",
+          "item.team_sync_on",
+          "item.team_sync_off",
+          "item.remove",
+          "item.recover",
+          "item.purge",
+          "item.removed_index_off"
+        ],
+        "data": {
+          "availability": "usable",
+          "link_min_role": "admin",
+          "texts": {
+            "team_sync": "2026-10-sync-3"
+          },
+          "storage_paused": false,
+          "can_link": true,
+          "can_link": false,
+          "places_free": 2,
+          "items": [
+            {
+              "id": "acc_7f3a",
+              "provider": "google",
+              "sign_in": "oauth",
+              "status": "connected",
+              "reason": null,
+              "connected_at": "2026-10-12T12:00:00Z",
+              "linked_by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+              "key_epoch": 1,
+              "copy_of_sent": false,
+              "no_reader": false,
+              "sync": {
+                "mode": "team",
+                "on": true,
+                "agreement": {
+                  "by": "0199a0c2-7d3e-7b51-9f0a-2c4e6b8d1f20",
+                  "at": "2026-10-12T12:00:00Z",
+                  "revision": "2026-10-sync-3",
+                  "bound": false
+                },
+                "paused": null,
+                "held": false,
+                "indexed": "complete",
+                "last_sync_at": "2026-10-13T11:59:00Z"
+              },
+              "removed": null
+            }
+          ]
+        }
+      },
+      "valid": false
+    }
+  ],
+  "results": [
+    {
+      "name": "Mailie's sync now of a mailbox the places leave stopped: capacity_reached",
+      "app": "mailie",
+      "kind": "item.sync_now",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "capacity_reached",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "Mailie's resume of a mailbox the places leave stopped: capacity_reached",
+      "app": "mailie",
+      "kind": "item.sync_resume",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "capacity_reached",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "Mailie's sync now while the workspace stores nothing new: storage_paused",
+      "app": "mailie",
+      "kind": "item.sync_now",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "storage_paused",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "Wappie's resume of a number the places leave stopped: capacity_reached",
+      "app": "wappie",
+      "kind": "item.sync_resume",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "capacity_reached",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "Mailie's resume refused storage_paused",
+      "app": "mailie",
+      "kind": "item.sync_resume",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "storage_paused",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "Mailie's pause refused capacity_reached",
+      "app": "mailie",
+      "kind": "item.sync_stop",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "capacity_reached",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "Mailie's rename refused capacity_reached",
+      "app": "mailie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "capacity_reached",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "Mailie's rename refused storage_paused",
+      "app": "mailie",
+      "kind": "item.rename",
+      "value": {
+        "id": "0199f3c4-0000-7000-8000-000000000021",
+        "outcome": "refused",
+        "code": "storage_paused",
+        "retry_after": null,
+        "state_seq": 1791892800000,
+        "detail": null,
+        "at": "2026-10-13T12:00:01Z"
+      },
+      "valid": false
+    }
+  ]
+}

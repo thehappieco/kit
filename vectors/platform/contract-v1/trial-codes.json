@@ -1,0 +1,571 @@
+{
+  "format": "thehappie-contract/vectors",
+  "version": 1,
+  "kind": "trial-codes",
+  "description": "Trial codes (SPEC section 11.20): code = base64url-nopad(HMAC-SHA256(key = K_app, msg = label || 0x00 || app || 0x00 || kind || 0x00 || identifier)), each part's UTF-8 bytes joined by single zero bytes, no terminator; K_app is key_hex's 32 bytes themselves. An identity is {app, kind, input}, or for an IMAP login {app, kind, host, input}: the host as dialled and the login, whose kind and identifier are IMAPIdentity's (an address for a login with @ on a provider's own host, imap.gmail.com, imap.googlemail.com and imap.mail.me.com; else an imap_login, host/login). identifier is the input normalized by its kind: e164 a + and 2 to 15 ASCII digits, the first not 0, never reformatted; wa_lid ASCII digits; google_sub as given; ms_tid_sub tid/sub as given; address with ASCII letters lowercased and nothing else changed, the domain after the last @, and for gmail.com and googlemail.com only the domain gmail.com, the local part cut at its first + and its dots removed; imap_login the host lowercased with no trailing dot, /, the login with its ASCII letters lowercased and nothing else changed. codes: identities with their identifier and code. meet: pairs whose codes are equal. differ: pairs whose codes differ. no_code: identities that make no code (an empty identifier, one holding a zero byte, an address with no @ or with an empty local part or domain once normalized, an e164 out of its form).",
+  "label": "thehappie-trial/v1",
+  "key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "codes": [
+    {
+      "name": "a number's own phone number",
+      "app": "wappie",
+      "kind": "e164",
+      "input": "+5511988887777",
+      "identifier": "+5511988887777",
+      "code": "__2vrBlM3MUdKlpWvyS0TJmaaZOpMo-4FWtqUTvXKQE"
+    },
+    {
+      "name": "a number's LID",
+      "app": "wappie",
+      "kind": "wa_lid",
+      "input": "185412945698817",
+      "identifier": "185412945698817",
+      "code": "iNQX4kEcoB3K8ABywtpb-n0UR5MPlUlFF2XxWmnS6CU"
+    },
+    {
+      "name": "the reference app's number",
+      "app": "fakeproduct",
+      "kind": "e164",
+      "input": "+5511988887777",
+      "identifier": "+5511988887777",
+      "code": "x66SKyebg1ABUtV5ScMAT-ad56SV1F1EIZOea9xAb5M"
+    },
+    {
+      "name": "the shortest e164: + and 2 digits",
+      "app": "wappie",
+      "kind": "e164",
+      "input": "+12",
+      "identifier": "+12",
+      "code": "iQFKDEcYdnYamMj4JQFjPJATdJWeNKq5b29zU3F9i8c"
+    },
+    {
+      "name": "the longest e164: + and 15 digits",
+      "app": "wappie",
+      "kind": "e164",
+      "input": "+123456789012345",
+      "identifier": "+123456789012345",
+      "code": "JiqHmNVvhGwAsGtD3aXKmh4aYX3V1ihiJuIdMGhUFIk"
+    },
+    {
+      "name": "a Google account's sub",
+      "app": "mailie",
+      "kind": "google_sub",
+      "input": "110248495921238986420",
+      "identifier": "110248495921238986420",
+      "code": "ChPXIP4n-m8mUzvbstjle-05Z4UdocJDCEQ2Oh2xb5Q"
+    },
+    {
+      "name": "a Microsoft account's tid and sub",
+      "app": "mailie",
+      "kind": "ms_tid_sub",
+      "input": "9188040d-6c67-4c5b-b112-36a304b66dad/AAAAAAAAAAAAAAAAAAAAAIkzqFVrSaSaFHy782bbtaQ",
+      "identifier": "9188040d-6c67-4c5b-b112-36a304b66dad/AAAAAAAAAAAAAAAAAAAAAIkzqFVrSaSaFHy782bbtaQ",
+      "code": "AMI51HLeGpiQ256z9KslCrL6naRpZY1ZwySrfnJMI08"
+    },
+    {
+      "name": "an address",
+      "app": "mailie",
+      "kind": "address",
+      "input": "ana@contoso.com",
+      "identifier": "ana@contoso.com",
+      "code": "WgT3-VesbEaEJetAJe0G0p_PeGlWBCzW0hW_jIBofMA"
+    },
+    {
+      "name": "a Gmail address with dots and a +tag",
+      "app": "mailie",
+      "kind": "address",
+      "input": "J.Doe+news@Gmail.com",
+      "identifier": "jdoe@gmail.com",
+      "code": "cBm2kxoKSETIUC00hkA3ZYHGRWdygS8NwG14od9W0Vo"
+    },
+    {
+      "name": "a+b+c@gmail.com: cut at its first +",
+      "app": "mailie",
+      "kind": "address",
+      "input": "a+b+c@gmail.com",
+      "identifier": "a@gmail.com",
+      "code": "ifWef-K047Zow4pFinsHwaRDQK0XVwTy6iCSMEeIqSw"
+    },
+    {
+      "name": "googlemail.com folded to gmail.com",
+      "app": "mailie",
+      "kind": "address",
+      "input": "j.doe@googlemail.com",
+      "identifier": "jdoe@gmail.com",
+      "code": "cBm2kxoKSETIUC00hkA3ZYHGRWdygS8NwG14od9W0Vo"
+    },
+    {
+      "name": "another domain's dots and +tag kept",
+      "app": "mailie",
+      "kind": "address",
+      "input": "J.Doe+news@Example.com",
+      "identifier": "j.doe+news@example.com",
+      "code": "pnyvQ6rcGjsnkASwy2VaDSQpTEEurfi1bMBz1a34Idk"
+    },
+    {
+      "name": "ASCII letters alone lowercased: a non-ASCII letter left as given",
+      "app": "mailie",
+      "kind": "address",
+      "input": "ÉLodie@Exemple.FR",
+      "identifier": "Élodie@exemple.fr",
+      "code": "z9BJ0QmMrSWcumkRtGoOaqYHPOJzYUs3joDCw-PBijE"
+    },
+    {
+      "name": "the domain after the last @",
+      "app": "mailie",
+      "kind": "address",
+      "input": "\"a@b\"@example.com",
+      "identifier": "\"a@b\"@example.com",
+      "code": "f9dggYk3YkPTCrQSHCPaBSoobCuh5maz0HKB8xicAc4"
+    },
+    {
+      "name": "an IMAP login with @ on imap.gmail.com: an address",
+      "app": "mailie",
+      "kind": "address",
+      "host": "imap.gmail.com",
+      "input": "J.Doe+x@gmail.com",
+      "identifier": "jdoe@gmail.com",
+      "code": "cBm2kxoKSETIUC00hkA3ZYHGRWdygS8NwG14od9W0Vo"
+    },
+    {
+      "name": "an IMAP login with @ on iCloud's own host: an address",
+      "app": "mailie",
+      "kind": "address",
+      "host": "IMAP.mail.me.com.",
+      "input": "Ana@iCloud.com",
+      "identifier": "ana@icloud.com",
+      "code": "5I0CCLE3dQz36KDf8EzUuxSUHm5FvQ28DMXaQomjTA0"
+    },
+    {
+      "name": "an IMAP login on another host: host and login lowercased, the login's non-letters kept",
+      "app": "mailie",
+      "kind": "imap_login",
+      "host": "IMAP.Example.COM.",
+      "input": "John.Doe+tag@Example.com",
+      "identifier": "imap.example.com/john.doe+tag@example.com",
+      "code": "O4OhjSCVw5UEgMm8gt5lpm9Fk-SH2Oia4E6udNOpETU"
+    },
+    {
+      "name": "an IMAP login with no @ on iCloud's own host: an imap_login",
+      "app": "mailie",
+      "kind": "imap_login",
+      "host": "imap.mail.me.com",
+      "input": "AnaSilva",
+      "identifier": "imap.mail.me.com/anasilva",
+      "code": "jHNBknFHcRhrdQ2redqsqX3ssz96hw0zj-eXWhfR-AM"
+    },
+    {
+      "name": "an IMAP login with no @ on another host",
+      "app": "mailie",
+      "kind": "imap_login",
+      "host": "mail.example.org",
+      "input": "ana_silva-01",
+      "identifier": "mail.example.org/ana_silva-01",
+      "code": "XUbHG1bQmAlFUlyby0OH4YOhPolQ1hDsrpvfiyBCzFA"
+    },
+    {
+      "name": "an IMAP login written as its identifier",
+      "app": "mailie",
+      "kind": "imap_login",
+      "input": "IMAP.Example.com/John.Doe@Example.com",
+      "identifier": "imap.example.com/john.doe@example.com",
+      "code": "eWQinzeMSJYDjibiP24Bw00oxm5ilacnlh12evuq-4A"
+    }
+  ],
+  "meet": [
+    {
+      "name": "googlemail.com and gmail.com",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "jdoe@googlemail.com"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "jdoe@gmail.com"
+      }
+    },
+    {
+      "name": "a Gmail dot",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "j.doe@gmail.com"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "jdoe@gmail.com"
+      }
+    },
+    {
+      "name": "a Gmail +tag",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "jdoe+shop@gmail.com"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "jdoe@gmail.com"
+      }
+    },
+    {
+      "name": "a+b+c@gmail.com and a@gmail.com",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "a+b+c@gmail.com"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "a@gmail.com"
+      }
+    },
+    {
+      "name": "ASCII capitals",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "Ana@Contoso.COM"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "ana@contoso.com"
+      }
+    },
+    {
+      "name": "an address from Google's sign-in and from imap.gmail.com",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "j.doe@gmail.com"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "host": "imap.gmail.com",
+        "input": "JDoe@gmail.com"
+      }
+    },
+    {
+      "name": "an address from imap.googlemail.com and from imap.gmail.com",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "host": "imap.googlemail.com",
+        "input": "jdoe@googlemail.com"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "host": "imap.gmail.com",
+        "input": "j.doe@gmail.com"
+      }
+    },
+    {
+      "name": "an IMAP host with capitals and a trailing dot",
+      "a": {
+        "app": "mailie",
+        "kind": "imap_login",
+        "host": "Mail.Example.org.",
+        "input": "Ana"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "imap_login",
+        "host": "mail.example.org",
+        "input": "ana"
+      }
+    }
+  ],
+  "differ": [
+    {
+      "name": "another app",
+      "a": {
+        "app": "wappie",
+        "kind": "e164",
+        "input": "+5511988887777"
+      },
+      "b": {
+        "app": "fakeproduct",
+        "kind": "e164",
+        "input": "+5511988887777"
+      }
+    },
+    {
+      "name": "another kind",
+      "a": {
+        "app": "mailie",
+        "kind": "google_sub",
+        "input": "ana@contoso.com"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "ana@contoso.com"
+      }
+    },
+    {
+      "name": "a number and its digits as a LID",
+      "a": {
+        "app": "wappie",
+        "kind": "e164",
+        "input": "+5511988887777"
+      },
+      "b": {
+        "app": "wappie",
+        "kind": "wa_lid",
+        "input": "5511988887777"
+      }
+    },
+    {
+      "name": "another domain's dot",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "j.doe@example.com"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "jdoe@example.com"
+      }
+    },
+    {
+      "name": "a +tag at another domain",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "jdoe+shop@example.com"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "jdoe@example.com"
+      }
+    },
+    {
+      "name": "victim@gmail.com as an address and as an imap_login on another host",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "victim@gmail.com"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "imap_login",
+        "host": "imap.attacker.example",
+        "input": "victim@gmail.com"
+      }
+    },
+    {
+      "name": "one login without @ on two hosts",
+      "a": {
+        "app": "mailie",
+        "kind": "imap_login",
+        "host": "mail.example.org",
+        "input": "ana"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "imap_login",
+        "host": "imap.example.net",
+        "input": "ana"
+      }
+    },
+    {
+      "name": "a login without @ on imap.mail.me.com and that name with @icloud.com",
+      "a": {
+        "app": "mailie",
+        "kind": "imap_login",
+        "host": "imap.mail.me.com",
+        "input": "ana"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "ana@icloud.com"
+      }
+    },
+    {
+      "name": "a non-ASCII capital is not folded",
+      "a": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "élodie@exemple.fr"
+      },
+      "b": {
+        "app": "mailie",
+        "kind": "address",
+        "input": "Élodie@exemple.fr"
+      }
+    },
+    {
+      "name": "+551188887777 and +5511988887777: no ninth digit added or removed",
+      "a": {
+        "app": "wappie",
+        "kind": "e164",
+        "input": "+551188887777"
+      },
+      "b": {
+        "app": "wappie",
+        "kind": "e164",
+        "input": "+5511988887777"
+      }
+    }
+  ],
+  "no_code": [
+    {
+      "name": "+x@gmail.com: the local part empty once cut at its +",
+      "app": "mailie",
+      "kind": "address",
+      "input": "+x@gmail.com"
+    },
+    {
+      "name": ".@gmail.com: the local part empty once its dots go",
+      "app": "mailie",
+      "kind": "address",
+      "input": ".@gmail.com"
+    },
+    {
+      "name": "an address with no @",
+      "app": "mailie",
+      "kind": "address",
+      "input": "ana.contoso.com"
+    },
+    {
+      "name": "an address with an empty domain",
+      "app": "mailie",
+      "kind": "address",
+      "input": "ana@"
+    },
+    {
+      "name": "an address with an empty local part",
+      "app": "mailie",
+      "kind": "address",
+      "input": "@contoso.com"
+    },
+    {
+      "name": "an empty address",
+      "app": "mailie",
+      "kind": "address",
+      "input": ""
+    },
+    {
+      "name": "an empty sub",
+      "app": "mailie",
+      "kind": "google_sub",
+      "input": ""
+    },
+    {
+      "name": "an empty LID",
+      "app": "wappie",
+      "kind": "wa_lid",
+      "input": ""
+    },
+    {
+      "name": "a sub holding a zero byte",
+      "app": "mailie",
+      "kind": "google_sub",
+      "input": "1102484959\u000021238986420"
+    },
+    {
+      "name": "an address holding a zero byte",
+      "app": "mailie",
+      "kind": "address",
+      "input": "ana\u0000@contoso.com"
+    },
+    {
+      "name": "an e164 with a leading 0",
+      "app": "wappie",
+      "kind": "e164",
+      "input": "+05511988887777"
+    },
+    {
+      "name": "an e164 of 16 digits",
+      "app": "wappie",
+      "kind": "e164",
+      "input": "+1234567890123456"
+    },
+    {
+      "name": "an e164 of one digit",
+      "app": "wappie",
+      "kind": "e164",
+      "input": "+1"
+    },
+    {
+      "name": "an e164 without its +",
+      "app": "wappie",
+      "kind": "e164",
+      "input": "5511988887777"
+    },
+    {
+      "name": "an e164 with a space",
+      "app": "wappie",
+      "kind": "e164",
+      "input": "+55 11 98888 7777"
+    },
+    {
+      "name": "a LID with a letter",
+      "app": "wappie",
+      "kind": "wa_lid",
+      "input": "18541294569881a"
+    },
+    {
+      "name": "a tid and sub without their /",
+      "app": "mailie",
+      "kind": "ms_tid_sub",
+      "input": "9188040d-6c67-4c5b-b112-36a304b66dad"
+    },
+    {
+      "name": "a tid and sub with an empty sub",
+      "app": "mailie",
+      "kind": "ms_tid_sub",
+      "input": "9188040d-6c67-4c5b-b112-36a304b66dad/"
+    },
+    {
+      "name": "an imap_login whose login has @ on a provider's own host: an address, never an imap_login",
+      "app": "mailie",
+      "kind": "imap_login",
+      "input": "imap.gmail.com/jdoe@gmail.com"
+    },
+    {
+      "name": "an imap_login with no host",
+      "app": "mailie",
+      "kind": "imap_login",
+      "input": "/ana"
+    },
+    {
+      "name": "an imap_login with a port",
+      "app": "mailie",
+      "kind": "imap_login",
+      "input": "mail.example.org:993/ana"
+    },
+    {
+      "name": "an IMAP login on a host that is no host name",
+      "app": "mailie",
+      "kind": "imap_login",
+      "host": "mail_example.org",
+      "input": "ana"
+    },
+    {
+      "name": "an empty IMAP login",
+      "app": "mailie",
+      "kind": "imap_login",
+      "host": "mail.example.org",
+      "input": ""
+    },
+    {
+      "name": "an IMAP login +x@gmail.com on imap.gmail.com",
+      "app": "mailie",
+      "kind": "address",
+      "host": "imap.gmail.com",
+      "input": "+x@gmail.com"
+    }
+  ]
+}

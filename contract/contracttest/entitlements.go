@@ -28,7 +28,8 @@ package contracttest
 //     PublishRawEntitlements, one of another generation, or one held by
 //     HoldPublishing); it answers unavailable only through Refuse, or when
 //     the document does not validate as served (the hook's, or one a new
-//     generation or a naming could not publish: EntitlementsError);
+//     generation or a naming could not publish), its error then kept for
+//     EntitlementsError;
 //   - the link check's place and new_links come from the document the test
 //     set, and its trial from the clocks it sets (SetTrialClock), judged on
 //     whenever the document says the workspace is on trial
@@ -324,14 +325,15 @@ func DefaultEntitlementsDoc(app string) contract.EntitlementsDoc {
 // document the test set, its default one: the hook's, else
 // DefaultEntitlementsDoc, filled as SetEntitlements fills a document and
 // its state.since and computed_at, when zero, by the fake's clock. It is
-// kept only when it validates; nil otherwise.
-func (p *Platform) defaultEntInputLocked(st *appState, ws string) *entInput {
+// kept only when it validates; otherwise it is nil with the reason, which
+// the callers keep for EntitlementsError.
+func (p *Platform) defaultEntInputLocked(st *appState, ws string) (*entInput, error) {
 	doc := DefaultEntitlementsDoc(st.id)
 	if p.defaultEnt != nil {
 		doc = p.defaultEnt(st.id, ws)
 	}
 	if len(bytes.TrimSpace(doc.Trim)) != 0 || (doc.App != "" && doc.App != st.id) || (doc.WorkspaceID != "" && doc.WorkspaceID != ws) {
-		return nil
+		return nil, ErrInvalid
 	}
 	doc = fillEntitlements(st.id, ws, doc)
 	if doc.State.Since.IsZero() {
@@ -342,10 +344,10 @@ func (p *Platform) defaultEntInputLocked(st *appState, ws string) *entInput {
 	}
 	in := &entInput{doc: doc}
 	if _, err := p.entCandidateLocked(st, in); err != nil {
-		return nil
+		return nil, err
 	}
 	st.entInputs[ws] = in
-	return in
+	return in, nil
 }
 
 // PublishRawEntitlements publishes raw, one JSON value, as the next
@@ -392,9 +394,8 @@ func (p *Platform) Entitlements(app, ws string) (contract.EntitlementsDoc, bool)
 // publishEntitlementsLocked publishes the workspace's document as the test
 // set it, or its default one when the test set none, unless the workspace
 // is not named to the app, or it is the same document as the latest
-// published in this generation. A document that does not validate is not
-// published, and is an error; a default one that does not validate
-// publishes nothing. While the app's publishing is held, a document that
+// published in this generation. A document that does not validate, the
+// default one included, is not published, and is an error. While the app's publishing is held, a document that
 // differs from the latest published is marked instead, at the first such
 // change, unless now: the GETs publish whatever the publisher does, and
 // Release. A publish clears the workspace's mark and its last error.
@@ -404,8 +405,9 @@ func (p *Platform) publishEntitlementsLocked(st *appState, ws string, now bool) 
 	}
 	in := st.entInputs[ws]
 	if in == nil {
-		if in = p.defaultEntInputLocked(st, ws); in == nil {
-			return entPublished{}, nil
+		var err error
+		if in, err = p.defaultEntInputLocked(st, ws); err != nil {
+			return entPublished{}, err
 		}
 	}
 	cand, err := p.entCandidateLocked(st, in)
@@ -448,9 +450,11 @@ func (p *Platform) republishEntitlementsLocked(st *appState, ws string, now bool
 
 // EntitlementsError is the error the fake met when it last published the
 // document of the workspace ws for app where no call answered for it: a
-// naming, a new generation, a trim result kept, Release, or the GET, which
-// then answered unavailable. nil when there is none, or a publish of the
-// workspace's document succeeded since, or the test set a new one.
+// naming, a new generation, a trim result kept, Release, or the GET or the
+// link check, which then answered unavailable. A default document (the
+// hook's, else DefaultEntitlementsDoc) that does not validate is such an
+// error too. nil when there is none, or a publish of the workspace's
+// document succeeded since, or the test set a new one.
 func (p *Platform) EntitlementsError(app, ws string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -699,8 +703,6 @@ func (p *Platform) entitlementsDoc(rq *request) answer {
 	pub, err := p.publishEntitlementsLocked(rq.app, rq.arg, true)
 	if err != nil {
 		rq.app.entErrs[rq.arg] = err
-	}
-	if err != nil || rq.app.entInputs[rq.arg] == nil {
 		return refusal(contract.CodeUnavailable, "try again")
 	}
 	d, err := p.servedDocLocked(rq.app, pub, rq.secret, rq.secretNo)
@@ -855,10 +857,11 @@ func (p *Platform) linkCheck(rq *request) answer {
 	}
 	in := rq.app.entInputs[rq.arg]
 	if in == nil {
-		in = p.defaultEntInputLocked(rq.app, rq.arg)
-	}
-	if in == nil {
-		return refusal(contract.CodeUnavailable, "try again")
+		var err error
+		if in, err = p.defaultEntInputLocked(rq.app, rq.arg); err != nil {
+			rq.app.entErrs[rq.arg] = err
+			return refusal(contract.CodeUnavailable, "try again")
+		}
 	}
 	d := in.doc
 	computed := contract.T(atMicroseconds(now))

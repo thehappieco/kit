@@ -203,8 +203,9 @@ type Options struct {
 	// none (SetEntitlements), as the platform always has a document for a
 	// named workspace. It is called with the fake's lock held, so it must
 	// not call the Platform. The fake fills it as SetEntitlements does; one
-	// that does not validate publishes nothing, and the GET then answers
-	// unavailable. When nil, the default is DefaultEntitlementsDoc(app).
+	// that does not validate publishes nothing, the GET and the link check
+	// then answer unavailable, and EntitlementsError gives the reason. When
+	// nil, the default is DefaultEntitlementsDoc(app).
 	DefaultEntitlements func(app, ws string) contract.EntitlementsDoc
 }
 

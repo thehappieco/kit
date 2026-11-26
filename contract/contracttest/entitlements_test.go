@@ -273,7 +273,7 @@ func TestADocumentSetBeforeTheWorkspaceIsNamedIsPublishedAtNaming(t *testing.T) 
 
 // Options.DefaultEntitlements gives the document a named workspace gets
 // when the test set none; one that does not validate publishes nothing,
-// and the GET is then unavailable.
+// the GET is then unavailable, and EntitlementsError says why.
 func TestTheDefaultDocumentComesFromTheHook(t *testing.T) {
 	var spoil atomic.Bool
 	h, c, personal, _ := entSetup(t, contracttest.Options{DefaultEntitlements: func(app, ws string) contract.EntitlementsDoc {
@@ -292,16 +292,25 @@ func TestTheDefaultDocumentComesFromTheHook(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := h.p.EntitlementsError("wappie", vendas); err == nil {
+		t.Fatal("the naming's failed publish of the hook's document is not kept")
+	}
 	if _, _, err := c.EntitlementsDoc(ctx, vendas); err == nil {
 		t.Fatal("the hook's document does not validate")
 	} else {
 		mustRefusal(t, err, contract.CodeUnavailable)
+	}
+	if err := h.p.EntitlementsError("wappie", vendas); err == nil {
+		t.Fatal("the GET answered unavailable with no error kept")
 	}
 	if _, err := h.p.SetEntitlements("wappie", vendas, activeDoc(h.clock.Now())); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := c.EntitlementsDoc(ctx, vendas); err != nil {
 		t.Fatalf("once the test set one: %v", err)
+	}
+	if err := h.p.EntitlementsError("wappie", vendas); err != nil {
+		t.Fatalf("an error kept after the test set a document that publishes: %v", err)
 	}
 }
 

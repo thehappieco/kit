@@ -134,6 +134,13 @@ func AppItemKind(app string) (string, bool) {
 // member it does not know is ignored, a member counts only as exactly
 // named, and a member missing, or null where it may not be, makes the
 // document one that does not decode, never one read as null.
+//
+// It prints and logs its ids alone (String, GoString, Format, LogValue).
+// slog calls LogValue only on the value logged itself: a slice of
+// documents, or an app's own struct holding one, goes through a JSON
+// handler as JSON, every figure and the trim order included, so an app
+// logs a document itself, or its ids, never a slice of them or a struct
+// holding one.
 type EntitlementsDoc struct {
 	V          int    `json:"v"`
 	Type       string `json:"type"`
@@ -175,6 +182,10 @@ func (d EntitlementsDoc) String() string {
 
 // GoString is String, for %#v.
 func (d EntitlementsDoc) GoString() string { return d.String() }
+
+// Format prints String for every verb, %q quoted, so that no verb walks
+// the document's figures or its trim order.
+func (d EntitlementsDoc) Format(f fmt.State, verb rune) { formatAs(f, verb, d.String()) }
 
 // LogValue is what an app may log of a document, ids only: its app,
 // workspace, generation, version, mode and state.
@@ -259,6 +270,9 @@ func (EntitlementsStorage) String() string { return "contract.EntitlementsStorag
 
 // GoString is String, for %#v.
 func (st EntitlementsStorage) GoString() string { return st.String() }
+
+// Format prints String for every verb, %q quoted: no figure.
+func (st EntitlementsStorage) Format(f fmt.State, verb rune) { formatAs(f, verb, st.String()) }
 
 // LogValue prints no figure.
 func (EntitlementsStorage) LogValue() slog.Value { return slog.StringValue(Ellipsis) }
@@ -719,6 +733,12 @@ func (d EntitlementsDoc) ValidateFor(app, workspaceID string) error {
 // that changed after a cursor, each workspace's latest version, oldest
 // first. It has the account feed's grammar and members, with each doc kept
 // as it came.
+//
+// Its JSON is the wire, each document whole; String, GoString, Format and
+// LogValue print only its generation, head, next_after, more and how many
+// items it holds. slog calls LogValue only on the value logged itself, so
+// a page inside a slice or an app's own struct is never logged through a
+// JSON handler, which would write every document.
 type EntitlementsFeed struct {
 	Generation          string                 `json:"generation"`
 	GenerationConfirmed bool                   `json:"generation_confirmed"`
@@ -732,9 +752,75 @@ type EntitlementsFeed struct {
 // EntitlementsFeedItem is one document and its place in the feed. The
 // document is kept as it came, and judged on its own (Document), so that
 // one document never refuses its page.
+//
+// Its Doc is the document's raw JSON, figures, places and trim order
+// included: String, GoString, Format and LogValue print only its seq, and
+// the document's app and workspace_id where they read as an app id and a
+// UUID. slog calls LogValue only on the value logged itself, so an item
+// inside a slice or an app's own struct is never logged through a JSON
+// handler.
 type EntitlementsFeedItem struct {
 	Seq int64           `json:"seq"`
 	Doc json.RawMessage `json:"doc"`
+}
+
+// String names the page by its generation, head, next_after and more, and
+// counts its items: no document.
+func (f EntitlementsFeed) String() string {
+	return fmt.Sprintf("contract.EntitlementsFeed{Generation: %q, Head: %d, NextAfter: %d, More: %t, Items: %d}",
+		f.Generation, f.Head, f.NextAfter, f.More, len(f.Items))
+}
+
+// GoString is String, for %#v.
+func (f EntitlementsFeed) GoString() string { return f.String() }
+
+// Format prints String for every verb, %q quoted: no document.
+func (f EntitlementsFeed) Format(s fmt.State, verb rune) { formatAs(s, verb, f.String()) }
+
+// LogValue is the page's generation, head, next_after, more and item
+// count, never a document.
+func (f EntitlementsFeed) LogValue() slog.Value {
+	return slog.GroupValue(slog.String("generation", f.Generation), slog.Int64("head", f.Head),
+		slog.Int64("next_after", f.NextAfter), slog.Bool("more", f.More), slog.Int("items", len(f.Items)))
+}
+
+// ids are the document's app and workspace_id where each reads as an app
+// id and a UUID, else "".
+func (it EntitlementsFeedItem) ids() (app, workspaceID string) {
+	if a, ok := readMember(it.Doc, "app"); ok && ValidApp(a) {
+		app = a
+	}
+	if ws, ok := readMember(it.Doc, "workspace_id"); ok && ValidUUID(ws) {
+		workspaceID = ws
+	}
+	return app, workspaceID
+}
+
+// String names the item by its seq, and its document's app and workspace
+// where they read as ids: no figure, place or order.
+func (it EntitlementsFeedItem) String() string {
+	app, ws := it.ids()
+	return fmt.Sprintf("contract.EntitlementsFeedItem{Seq: %d, App: %q, WorkspaceID: %q, %s}", it.Seq, app, ws, Ellipsis)
+}
+
+// GoString is String, for %#v.
+func (it EntitlementsFeedItem) GoString() string { return it.String() }
+
+// Format prints String for every verb, %q quoted: no document.
+func (it EntitlementsFeedItem) Format(f fmt.State, verb rune) { formatAs(f, verb, it.String()) }
+
+// LogValue is the item's seq, and its document's app and workspace_id
+// where they read as ids, never the document.
+func (it EntitlementsFeedItem) LogValue() slog.Value {
+	attrs := []slog.Attr{slog.Int64("seq", it.Seq)}
+	app, ws := it.ids()
+	if app != "" {
+		attrs = append(attrs, slog.String("app", app))
+	}
+	if ws != "" {
+		attrs = append(attrs, slog.String("workspace_id", ws))
+	}
+	return slog.GroupValue(attrs...)
 }
 
 // UnmarshalJSON reads a page as an app reads what the platform sends, the

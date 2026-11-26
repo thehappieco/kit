@@ -41,6 +41,13 @@ func LinkCheckTrials() []string { return slices.Clone(linkCheckTrials) }
 // once, and whether the item is a server's being connected, which carries
 // no codes. The platform reads it strictly (DecodeStrict): codes is always
 // present, [] for none, never null.
+//
+// It prints and logs its kind and how many codes it carries alone (String,
+// GoString, LogValue; its Codes are TrialCodes). slog calls LogValue only
+// on the value logged itself: a slice of checks, or an app's own struct
+// holding one, goes through a JSON handler as JSON, every code included,
+// so an app logs a check itself, never a slice of them or a struct holding
+// one.
 type LinkCheck struct {
 	Kind      string     `json:"kind"`
 	Codes     TrialCodes `json:"codes"`

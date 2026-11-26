@@ -791,27 +791,55 @@ func TestTheTrimListsAreClosed(t *testing.T) {
 	}
 }
 
-// A document, its storage, a trim order and a trim result print ids only:
-// no storage figure, keep_bytes, bytes_after, usage_seq or MAC, in any of
-// fmt's verbs or through slog's JSON and text handlers.
+// A feed page, a feed item, a document, its storage, a usage report and
+// its items, a trim order, its steps, a trim result and its steps print
+// ids only: no storage figure, keep_bytes, bytes_after, usage_seq, report
+// figure or MAC, in any of fmt's verbs (%d, %o, %x and %t included, which
+// would walk a struct's fields) or through slog's JSON and text handlers.
 func TestTheEntitlementsPartsValuesPrintIdsOnly(t *testing.T) {
 	doc := entDoc("wappie", nil)
 	order := trimOrder("wappie", nil)
 	order.MAC = "v1=" + strings.Repeat("ab", 32)
 	result := trimResult(nil)
+	signed := trimSigned(t, trimOrder("wappie", nil), SecretA)
+	var mac struct {
+		MAC string `json:"mac"`
+	}
+	if err := json.Unmarshal(signed, &mac); err != nil {
+		t.Fatal(err)
+	}
+	carrying := trimDoc("wappie", signed, nil)
+	item, err := contract.NewEntitlementsFeedItem(carrying.Version, carrying)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := contract.EntitlementsFeed{Generation: vecGeneration, GenerationConfirmed: true, Head: carrying.Version,
+		PublishedThrough: carrying.ComputedAt, Items: []contract.EntitlementsFeedItem{item}, NextAfter: carrying.Version}
+	report := usage("wappie", nil)
 	figures := []string{"25000000000", "27300000000", "1200000000", "23800000000", "25050000000",
-		"14000000000", "15200000000", "1798709100000", "1798708320000", strings.Repeat("ab", 32), "2026-10-02"}
+		"14000000000", "15200000000", "1798709100000", "1798708320000", strings.Repeat("ab", 32), "2026-10-02",
+		mac.MAC[3:], "26100000000", "300000000", "21000000000", "2100000000", "3400000", "4800000000", "310000000", "900000"}
 	for name, c := range map[string]struct {
 		v    any
 		want []string
 	}{
-		"EntitlementsDoc":     {doc, []string{"wappie", vecTeam, vecGeneration, "57", contract.ModeEnforce, contract.WorkspaceOverQuota}},
-		"EntitlementsStorage": {doc.Storage, nil},
-		"TrimOrder":           {order, []string{trimOrderID, "wappie", vecTeam, vecGeneration}},
-		"TrimResult":          {result, []string{trimOrderID, contract.TrimOutcomePartial}},
+		"EntitlementsDoc":      {doc, []string{"wappie", vecTeam, vecGeneration, "57", contract.ModeEnforce, contract.WorkspaceOverQuota}},
+		"EntitlementsStorage":  {doc.Storage, nil},
+		"EntitlementsFeed":     {page, []string{vecGeneration, "57"}},
+		"EntitlementsFeedItem": {item, []string{"57", "wappie", vecTeam}},
+		"a pointer to a page":  {&page, []string{vecGeneration}},
+		"Usage":                {report, []string{"wappie", vecTeam}},
+		"UsageItem":            {report.Items[1], []string{"dev_9", contract.StateDeleted}},
+		"TrimOrder":            {order, []string{trimOrderID, "wappie", vecTeam, vecGeneration}},
+		"TrimStep":             {order.Steps[1], []string{"dev_7", contract.TrimActionKeep}},
+		"TrimResult":           {result, []string{trimOrderID, contract.TrimOutcomePartial}},
+		"TrimStepResult":       {result.Steps[1], []string{"dev_7", contract.TrimOutcomePartial}},
 	} {
-		var printed []string
-		for _, verb := range []string{"%v", "%+v", "%#v", "%s"} {
+		var printed, shown []string
+		for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%q", "%d", "%o", "%t"} {
+			shown = append(shown, fmt.Sprintf(verb, c.v))
+		}
+		for _, verb := range []string{"%x", "%X", "%b", "%e"} {
 			printed = append(printed, fmt.Sprintf(verb, c.v))
 		}
 		for _, h := range []func(*bytes.Buffer) slog.Handler{
@@ -820,14 +848,16 @@ func TestTheEntitlementsPartsValuesPrintIdsOnly(t *testing.T) {
 		} {
 			var logged bytes.Buffer
 			slog.New(h(&logged)).Info("x", "v", c.v)
-			printed = append(printed, logged.String())
+			shown = append(shown, logged.String())
 		}
-		for _, s := range printed {
+		for _, s := range append(printed, shown...) {
 			for _, f := range figures {
 				if strings.Contains(s, f) {
 					t.Errorf("%s: printed %s: %s", name, f, s)
 				}
 			}
+		}
+		for _, s := range shown {
 			for _, w := range c.want {
 				if !strings.Contains(s, w) {
 					t.Errorf("%s: %s is not in %s", name, w, s)
@@ -838,6 +868,14 @@ func TestTheEntitlementsPartsValuesPrintIdsOnly(t *testing.T) {
 	// The wire still carries every figure.
 	raw, err := json.Marshal(doc)
 	if err != nil || !strings.Contains(string(raw), `"quota_bytes":25000000000`) {
+		t.Fatalf("%s %v", raw, err)
+	}
+	raw, err = json.Marshal(page)
+	if err != nil || !strings.Contains(string(raw), mac.MAC) || !strings.Contains(string(raw), `"keep_bytes":14000000000`) {
+		t.Fatalf("%s %v", raw, err)
+	}
+	raw, err = json.Marshal(report)
+	if err != nil || !strings.Contains(string(raw), `"recent_bytes":2100000000`) {
 		t.Fatalf("%s %v", raw, err)
 	}
 }

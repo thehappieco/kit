@@ -115,8 +115,10 @@ func TrimStepOutcomes() []string { return slices.Clone(trimStepOutcomes) }
 // 2^53−1); or it is another app's body. A feed's copy that fails so sends
 // the app to the workspace's GET first, whose copy it judges from check 1
 // again (a waiting order served before a promote whose old secret the app
-// has since dropped, or a copy that verifies under nothing); only a GET's
-// copy that fails check 1 is refused invalid_order.
+// has since dropped, or a copy that verifies under nothing), never judging
+// it on its own times while no signed answer comes. Only a feed copy's
+// ErrTrimMAC leads to the GET: every other failure of check 1, on a feed's
+// copy whose MAC holds or on the GET's copy, is refused invalid_order.
 var ErrTrimMAC = errors.New("contract: the trim order's mac does not hold")
 
 // ErrTrimFloor is a trim order with floor null carried by a document whose
@@ -130,6 +132,13 @@ var ErrTrimFloor = errors.New("contract: a trim order without a floor beside a p
 // items whole, then the items in use down to the floor). An app takes it
 // only from VerifyTrimOrder, which decodes it from the bytes it verified;
 // its UnmarshalJSON reads it as an app reads what the platform sends.
+//
+// It prints and logs its ids alone (String, GoString, Format, LogValue).
+// slog calls LogValue only on the value logged itself: a slice of orders,
+// its Steps, or an app's own struct holding one goes through a JSON
+// handler as JSON, every keep_bytes and the MAC included, so an app logs
+// an order itself, or its ids, never a slice of them or a struct holding
+// one.
 type TrimOrder struct {
 	// OrderID is the order's UUIDv7, 0015's instruction_id: the
 	// idempotency key of its result.
@@ -171,6 +180,9 @@ func (o TrimOrder) String() string {
 // GoString is String, for %#v.
 func (o TrimOrder) GoString() string { return o.String() }
 
+// Format prints String for every verb, %q quoted: no step, figure or MAC.
+func (o TrimOrder) Format(f fmt.State, verb rune) { formatAs(f, verb, o.String()) }
+
 // LogValue is the order's id, app, workspace and generation, never a
 // figure or its MAC.
 func (o TrimOrder) LogValue() slog.Value {
@@ -186,11 +198,28 @@ type TrimBasis struct {
 
 // TrimStep is one step of an order: {"item", "action": "purge"} or
 // {"item", "action": "keep", "keep_bytes"}. KeepBytes is set exactly on a
-// keep step.
+// keep step. It prints and logs its item and action alone (String,
+// GoString, Format, LogValue), never keep_bytes.
 type TrimStep struct {
 	Item      string `json:"item"`
 	Action    string `json:"action"`
 	KeepBytes *int64 `json:"keep_bytes,omitempty"`
+}
+
+// String names the step by its item and action, and prints no figure.
+func (s TrimStep) String() string {
+	return fmt.Sprintf("contract.TrimStep{Item: %q, Action: %q, %s}", s.Item, s.Action, Ellipsis)
+}
+
+// GoString is String, for %#v.
+func (s TrimStep) GoString() string { return s.String() }
+
+// Format prints String for every verb, %q quoted: no figure.
+func (s TrimStep) Format(f fmt.State, verb rune) { formatAs(f, verb, s.String()) }
+
+// LogValue is the step's item and action, never keep_bytes.
+func (s TrimStep) LogValue() slog.Value {
+	return slog.GroupValue(slog.String("item", s.Item), slog.String("action", s.Action))
 }
 
 // UnmarshalJSON reads a step as an app reads what the platform sends: a
@@ -455,6 +484,13 @@ func VerifyTrimOrder(doc EntitlementsDoc, app string, secrets []string) (TrimOrd
 // POST /contract/v1/trim/results (TrimResultBodyLimit), by its order_id:
 // refused (nothing ran), partial or done. The platform reads it strictly
 // (DecodeStrict), then Validate, then ValidateFor its kept order.
+//
+// It prints and logs its order and outcome alone (String, GoString,
+// Format, LogValue). slog calls LogValue only on the value logged itself:
+// a slice of results, its Steps, or an app's own struct holding one goes
+// through a JSON handler as JSON, every bytes_after included, so an app
+// logs a result itself, or its ids, never a slice of them or a struct
+// holding one.
 type TrimResult struct {
 	OrderID string `json:"order_id"`
 	Outcome string `json:"outcome"`
@@ -477,6 +513,9 @@ func (r TrimResult) String() string {
 // GoString is String, for %#v.
 func (r TrimResult) GoString() string { return r.String() }
 
+// Format prints String for every verb, %q quoted: no step or figure.
+func (r TrimResult) Format(f fmt.State, verb rune) { formatAs(f, verb, r.String()) }
+
 // LogValue is the result's order and outcome, never a figure.
 func (r TrimResult) LogValue() slog.Value {
 	return slog.GroupValue(slog.String("order_id", r.OrderID), slog.String("outcome", r.Outcome))
@@ -491,6 +530,31 @@ type TrimStepResult struct {
 	// BytesAfter is the item's bytes after the step: nil (null) on refused
 	// and not_run.
 	BytesAfter *int64 `json:"bytes_after"`
+}
+
+// String names the step's result by its item, outcome and code, and
+// prints no figure.
+func (r TrimStepResult) String() string {
+	code := ""
+	if r.Code != nil {
+		code = *r.Code
+	}
+	return fmt.Sprintf("contract.TrimStepResult{Item: %q, Outcome: %q, Code: %q, %s}", r.Item, r.Outcome, code, Ellipsis)
+}
+
+// GoString is String, for %#v.
+func (r TrimStepResult) GoString() string { return r.String() }
+
+// Format prints String for every verb, %q quoted: no figure.
+func (r TrimStepResult) Format(f fmt.State, verb rune) { formatAs(f, verb, r.String()) }
+
+// LogValue is the step's item, outcome and code, never bytes_after.
+func (r TrimStepResult) LogValue() slog.Value {
+	attrs := []slog.Attr{slog.String("item", r.Item), slog.String("outcome", r.Outcome)}
+	if r.Code != nil {
+		attrs = append(attrs, slog.String("code", *r.Code))
+	}
+	return slog.GroupValue(attrs...)
 }
 
 // Validate checks a result alone:

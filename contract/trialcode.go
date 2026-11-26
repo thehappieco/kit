@@ -372,12 +372,18 @@ func (c TrialCodes) GoString() string { return c.String() }
 
 // Format prints String for every verb, %q quoted, so that no verb reaches
 // a code.
-func (c TrialCodes) Format(f fmt.State, verb rune) {
+func (c TrialCodes) Format(f fmt.State, verb rune) { formatAs(f, verb, c.String()) }
+
+// formatAs writes s, a value's String, for every verb of fmt, quoted for
+// %q: a type whose fields hold a code, a figure, a step or a MAC gives
+// its Format to it, so that no verb (%d, %o, %x, %t and the rest included)
+// walks its fields.
+func formatAs(f fmt.State, verb rune, s string) {
 	if verb == 'q' {
-		_, _ = io.WriteString(f, strconv.Quote(c.String()))
+		_, _ = io.WriteString(f, strconv.Quote(s))
 		return
 	}
-	_, _ = io.WriteString(f, c.String())
+	_, _ = io.WriteString(f, s)
 }
 
 // LogValue is how many codes the list holds, never a code.

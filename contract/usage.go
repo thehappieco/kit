@@ -55,6 +55,12 @@ func ValidRuleVersion(s string) bool { return ruleVersionRE.MatchString(s) }
 // there, by hosted item, live or deleted until its purge. A connected item
 // is never listed. The platform reads it strictly (DecodeStrict), then
 // ValidateAt on its own clock.
+//
+// It prints and logs its ids alone (String, GoString, Format, LogValue).
+// slog calls LogValue only on the value logged itself: a slice of reports,
+// its Items, or an app's own struct holding one goes through a JSON
+// handler as JSON, every figure included, so an app logs a report itself,
+// or its ids, never a slice of them or a struct holding one.
 type Usage struct {
 	V           int    `json:"v"`
 	Type        string `json:"type"`
@@ -76,7 +82,9 @@ type Usage struct {
 	Items       []UsageItem `json:"items"`
 }
 
-// UsageItem is one hosted item's bytes.
+// UsageItem is one hosted item's bytes. It prints and logs its id and
+// state alone (String, GoString, Format, LogValue): no figure of a report
+// goes into a log line.
 type UsageItem struct {
 	// ID is the item's id, as in the access snapshot.
 	ID string `json:"id"`
@@ -94,6 +102,22 @@ type UsageItem struct {
 	// FixedBytes are what keeps the item running and is no message; they
 	// go only without a plan.
 	FixedBytes int64 `json:"fixed_bytes"`
+}
+
+// String names the item by its id and state, and prints no figure.
+func (it UsageItem) String() string {
+	return fmt.Sprintf("contract.UsageItem{ID: %q, State: %q, %s}", it.ID, it.State, Ellipsis)
+}
+
+// GoString is String, for %#v.
+func (it UsageItem) GoString() string { return it.String() }
+
+// Format prints String for every verb, %q quoted: no figure.
+func (it UsageItem) Format(f fmt.State, verb rune) { formatAs(f, verb, it.String()) }
+
+// LogValue is the item's id and state, never a figure.
+func (it UsageItem) LogValue() slog.Value {
+	return slog.GroupValue(slog.String("id", it.ID), slog.String("state", it.State))
 }
 
 // Validate checks a report's types and bounds: its app (one the part
@@ -184,6 +208,9 @@ func (u Usage) String() string {
 
 // GoString is String, for %#v.
 func (u Usage) GoString() string { return u.String() }
+
+// Format prints String for every verb, %q quoted: no figure.
+func (u Usage) Format(f fmt.State, verb rune) { formatAs(f, verb, u.String()) }
 
 // LogValue is the report's app, workspace, usage_seq and rule_version: what
 // the platform and the app may log of a report, never a figure.

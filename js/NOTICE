@@ -120,8 +120,9 @@ The entitlements and usage part of the platform's product contract
 the part's members in wire.go and settingsdata.go and its calls in
 client.go, with their tests; contract/contracttest/entitlements.go) was
 written in the kit from the platform's contract spec,
-docs/contract/v1/README.md section 15, at commit a831000, under the
-platform's decision 0066. The nine vector files kit v0.12.0 adds under
+docs/contract/v1/README.md section 15, at commit cfbd3eb (earlier
+stages a831000, a80d9b0 and 3b7a200), under the platform's decision
+0066. The nine vector files kit v0.12.0 adds under
 vectors/platform/contract-v1 (wire-entitlements.json, wire-usage.json,
 usage-dates.json, trial-codes.json, wire-link-check.json,
 wire-events-codes.json, wire-trim.json, trim-macs.json and wire-v012.json)

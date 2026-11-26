@@ -22,51 +22,208 @@ import (
 // included, take the last of two members of one name, read U+FFFD for a
 // lone surrogate, and fill a missing member with its zero value.
 
+// maxDepth is how many objects and lists one value may nest, encoding/json's
+// own bound (its maxNestingDepth, on Go 1.26 and on Go 1.27): a deeper value
+// is not well formed on either toolchain, so Go 1.26, whose Decoder.Token
+// counts no depth, never walks it.
+const maxDepth = 10000
+
 // wellFormed reports whether raw is one JSON value of valid UTF-8, with no
-// escape of half a surrogate pair and no member twice in any object.
+// escape of half a surrogate pair, no member twice in any object, and at
+// most maxDepth objects and lists deep.
 func wellFormed(raw []byte) bool {
-	if !utf8.Valid(raw) || loneSurrogate(raw) {
-		return false
-	}
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	dec.UseNumber()
-	if !walkJSON(dec) {
-		return false
-	}
-	_, err := dec.Token()
-	return err == io.EOF
+	formed, _ := readStrict(raw, nil)
+	return formed
 }
 
-// walkJSON reads one value, refusing an object that names a member twice.
-func walkJSON(dec *json.Decoder) bool {
-	tok, err := dec.Token()
+// exactShape reports whether raw, a well-formed value (wellFormed), is of
+// t's exact shape (strictReader).
+func exactShape(raw json.RawMessage, t reflect.Type) bool {
+	formed, shaped := readStrict(raw, t)
+	return formed && shaped
+}
+
+// readStrict reads raw once, from first byte to last: formed is wellFormed's
+// answer, and shaped, when t is not nil, whether every value is of t's
+// exact shape (strictReader). Each byte is parsed once, whatever t, so a
+// body costs its length, a recursive type's included.
+func readStrict(raw []byte, t reflect.Type) (formed, shaped bool) {
+	if !utf8.Valid(raw) || loneSurrogate(raw) {
+		return false, false
+	}
+	r := strictReader{dec: json.NewDecoder(bytes.NewReader(raw))}
+	r.dec.UseNumber()
+	if !r.value(t, 0) {
+		return false, false
+	}
+	if _, err := r.dec.Token(); err != io.EOF {
+		return false, false
+	}
+	return true, !r.misfit
+}
+
+// strictReader walks one JSON value's tokens, refusing an object that names
+// a member twice and a value nested deeper than maxDepth, and holds each
+// value to the type it is read into: every object a struct type reaches
+// names its members exactly as the struct names them (shapeOf), none it
+// does not have, and every one present but those it marks omitempty or
+// omitzero, an embedded pointer's members present whole or not at all, as
+// a nil one writes none (EmailAccountsSettings' MailboxLinking); a list's
+// elements, a map's values and an array's elements are held to their type
+// the same way, and an array holds exactly its length, as encoding/json
+// writes it (it reads a shorter one with zeros and drops what a longer one
+// has past its length). null is allowed only where the type holds a
+// pointer, an interface, a raw value or a type that reads itself: encoding/
+// json reads null into a bool, a number, a string, a list, a map or an
+// object as its zero value, so a member that may not be null would pass as
+// false, 0 or empty. A value whose type decodes itself (json.Unmarshaler),
+// is kept raw or is an interface is its own; a value of another kind than
+// its type's (an object for a number, a string for a []byte or a struct
+// that reads text) is left to the decoder, which reads or refuses it.
+type strictReader struct {
+	dec *json.Decoder
+	// misfit is set once a value is not of its type's shape; the walk goes
+	// on, holding nothing more to a type, to tell a malformed text apart.
+	misfit bool
+}
+
+// value reads one value, nested depth objects and lists deep, into t (nil
+// for none), and reports whether it is well formed.
+func (r *strictReader) value(t reflect.Type, depth int) bool {
+	tok, err := r.dec.Token()
 	if err != nil {
 		return false
 	}
+	if t != nil && !r.misfit {
+		t = r.hold(t, tok)
+	}
+	if r.misfit {
+		t = nil
+	}
 	switch tok {
 	case json.Delim('{'):
-		seen := map[string]bool{}
-		for dec.More() {
-			tok, err := dec.Token()
-			name, ok := tok.(string)
-			if err != nil || !ok || seen[name] {
-				return false
-			}
-			seen[name] = true
-			if !walkJSON(dec) {
-				return false
-			}
-		}
-		_, err := dec.Token()
-		return err == nil
+		return depth < maxDepth && r.object(t, depth+1)
 	case json.Delim('['):
-		for dec.More() {
-			if !walkJSON(dec) {
-				return false
+		return depth < maxDepth && r.list(t, depth+1)
+	}
+	return true
+}
+
+// hold judges the value whose first token is tok against t, and gives the
+// type its members or elements are held to: a struct, a map, a slice or an
+// array, or nil when nothing inside it is.
+func (r *strictReader) hold(t reflect.Type, tok json.Token) reflect.Type {
+	null := tok == nil
+	var passed []reflect.Type
+	for t.Kind() == reflect.Pointer {
+		if null {
+			return nil
+		}
+		if slices.Contains(passed, t) {
+			// A ring of pointer types (type P *P, or type P *Q; type Q *P)
+			// holds nothing but null.
+			r.misfit = true
+			return nil
+		}
+		passed = append(passed, t)
+		t = t.Elem()
+	}
+	if t.Kind() == reflect.Interface || reflect.PointerTo(t).Implements(unmarshalerType) || t == reflect.TypeFor[json.RawMessage]() {
+		return nil
+	}
+	if null {
+		r.misfit = true
+		return nil
+	}
+	switch tok {
+	case json.Delim('{'):
+		if t.Kind() == reflect.Struct || t.Kind() == reflect.Map {
+			return t
+		}
+	case json.Delim('['):
+		if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+			return t
+		}
+	}
+	return nil
+}
+
+// object reads an object's members and its closing brace into t, a struct,
+// a map or nil.
+func (r *strictReader) object(t reflect.Type, depth int) bool {
+	var s *shape
+	var present []bool
+	var elem reflect.Type
+	switch {
+	case t == nil:
+	case t.Kind() == reflect.Map:
+		elem = t.Elem()
+	case shapeOf(t).unsure:
+		r.misfit = true
+	default:
+		s = shapeOf(t)
+		present = make([]bool, len(s.parents))
+	}
+	seen := map[string]bool{}
+	for r.dec.More() {
+		tok, err := r.dec.Token()
+		name, ok := tok.(string)
+		if err != nil || !ok || seen[name] {
+			return false
+		}
+		seen[name] = true
+		vt := elem
+		if s != nil {
+			f, ok := s.fields[name]
+			if !ok {
+				r.misfit = true
+			}
+			vt = f.t
+			// A member present makes its group present, and every group
+			// that encloses it: encoding/json writes an inner embedded
+			// pointer's members only through its outer one.
+			for g := f.group; g != 0 && !present[g]; g = s.parents[g] {
+				present[g] = true
 			}
 		}
-		_, err := dec.Token()
-		return err == nil
+		if !r.value(vt, depth) {
+			return false
+		}
+	}
+	if _, err := r.dec.Token(); err != nil {
+		return false
+	}
+	if s != nil {
+		for name, f := range s.fields {
+			// A member of an embedded pointer's group is required only
+			// once the group is present.
+			if !seen[name] && !f.optional && (f.group == 0 || present[f.group]) {
+				r.misfit = true
+			}
+		}
+	}
+	return true
+}
+
+// list reads a list's elements and its closing bracket into t, a slice, an
+// array or nil.
+func (r *strictReader) list(t reflect.Type, depth int) bool {
+	var elem reflect.Type
+	if t != nil {
+		elem = t.Elem()
+	}
+	n := 0
+	for r.dec.More() {
+		if !r.value(elem, depth) {
+			return false
+		}
+		n++
+	}
+	if _, err := r.dec.Token(); err != nil {
+		return false
+	}
+	if t != nil && t.Kind() == reflect.Array && n != t.Len() {
+		r.misfit = true
 	}
 	return true
 }
@@ -125,103 +282,19 @@ func escapedUnit(b []byte) (rune, bool) {
 	return r, true
 }
 
-// exactShape reports whether every object of raw that t's members reach
-// names its members exactly as t names them, none it does not have, and
-// every one present but those t marks omitempty or omitzero; and whether
-// every null raw holds is a pointer's. A struct's members are those
-// encoding/json writes and reads for it (shapeOf): an embedded struct's
-// are its embedder's, and an embedded pointer's are present whole or not
-// at all, as a nil one writes none (EmailAccountsSettings'
-// MailboxLinking). A list's elements, an array's and a map's values are
-// held to their type the same way. A value of another shape than t's is
-// left to the decoder, which refuses it; a value whose type decodes itself
-// (json.Unmarshaler) or is kept raw is its own.
-func exactShape(raw json.RawMessage, t reflect.Type) bool {
-	for t.Kind() == reflect.Pointer {
-		if string(bytes.TrimSpace(raw)) == "null" {
-			return true
-		}
-		if t.Elem() == t {
-			// A pointer to itself (type P *P) holds nothing but null.
-			return false
-		}
-		t = t.Elem()
-	}
-	if reflect.PointerTo(t).Implements(unmarshalerType) || t == reflect.TypeFor[json.RawMessage]() {
-		return true
-	}
-	if string(bytes.TrimSpace(raw)) == "null" {
-		// Only a pointer may be null: encoding/json reads null into a bool,
-		// a number, a string, a list or an object as its zero value, so a
-		// member that may not be null would pass as false, 0 or empty.
-		return false
-	}
-	switch t.Kind() {
-	case reflect.Struct:
-		var members map[string]json.RawMessage
-		if json.Unmarshal(raw, &members) != nil {
-			return true
-		}
-		shape := shapeOf(t)
-		if shape.unsure {
-			return false
-		}
-		present := make([]bool, len(shape.parents))
-		for name, v := range members {
-			f, ok := shape.fields[name]
-			if !ok || !exactShape(v, f.t) {
-				return false
-			}
-			// A member present makes its group present, and every group
-			// that encloses it: encoding/json writes an inner embedded
-			// pointer's members only through its outer one.
-			for g := f.group; g != 0 && !present[g]; g = shape.parents[g] {
-				present[g] = true
-			}
-		}
-		for name, f := range shape.fields {
-			// A member of an embedded pointer's group is required only
-			// once the group is present.
-			if _, ok := members[name]; !ok && !f.optional && (f.group == 0 || present[f.group]) {
-				return false
-			}
-		}
-	case reflect.Slice, reflect.Array:
-		if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8 {
-			// A []byte is a base64 string, which the decoder reads.
-			return true
-		}
-		var elems []json.RawMessage
-		if json.Unmarshal(raw, &elems) != nil {
-			return true
-		}
-		for _, e := range elems {
-			if !exactShape(e, t.Elem()) {
-				return false
-			}
-		}
-	case reflect.Map:
-		var values map[string]json.RawMessage
-		if json.Unmarshal(raw, &values) != nil {
-			return true
-		}
-		for _, v := range values {
-			if !exactShape(v, t.Elem()) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 // DecodeStrict decodes raw, one JSON value an app sends the platform, into
 // v, a pointer, as the platform reads it (SPEC section 11.19): valid UTF-8
 // with no escape of half a UTF-16 surrogate pair; no member twice in any
-// object; every member named exactly as v's type names it, none it does
-// not have, and every one present but those it marks omitempty or
-// omitzero; and null only where the type holds a pointer, a raw value or a
-// type that reads itself. A raw value (a settings document's data) is the
-// caller's to read, as Validate reads data. Any failure is ErrInvalid.
+// object; at most 10000 objects and lists deep, as encoding/json reads;
+// every member named exactly as v's type names it, none it does not have,
+// and every one present but those it marks omitempty or omitzero; an array
+// of exactly its length; and null only where the type holds a pointer, an
+// interface, a raw value or a type that reads itself (strictReader). So it
+// reads back every body json.Marshal writes of v's type but where a nil
+// slice or map writes null, which it refuses as it refuses null for a list
+// or an object. A raw value (a settings document's data) is the caller's
+// to read, as Validate reads data. The body is parsed once for its shape,
+// then once by the decoder. Any failure is ErrInvalid.
 func DecodeStrict(raw []byte, v any) error {
 	t := reflect.TypeOf(v)
 	if t == nil || t.Kind() != reflect.Pointer {
@@ -231,13 +304,14 @@ func DecodeStrict(raw []byte, v any) error {
 }
 
 // decodeExact decodes raw into dst, a pointer, as the platform reads what an
-// app sends (wellFormed, exactShape), with no member dst does not have; raw
-// is never null, which would leave dst as it was.
+// app sends (readStrict), with no member dst does not have; raw is never
+// null, which would leave dst as it was.
 func decodeExact(raw []byte, dst any, what string) error {
-	if !wellFormed(raw) {
+	formed, shaped := readStrict(raw, reflect.TypeOf(dst).Elem())
+	if !formed {
 		return invalid("%s: not one well-formed JSON value, or a member twice", what)
 	}
-	if !exactShape(raw, reflect.TypeOf(dst).Elem()) {
+	if !shaped {
 		return invalid("%s: a member missing, unknown, not named exactly, or null where it may not be", what)
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
@@ -248,7 +322,7 @@ func decodeExact(raw []byte, dst any, what string) error {
 	return nil
 }
 
-// shapeField is one member exactShape expects of an object: its type,
+// shapeField is one member strictReader expects of an object: its type,
 // whether it may be absent, and its group: 0 for a member reached through
 // no embedded pointer, else the innermost embedded pointer it is reached
 // through.
@@ -258,11 +332,11 @@ type shapeField struct {
 	group    int
 }
 
-// shape is the members exactShape expects of a struct's object, by name,
+// shape is the members strictReader expects of a struct's object, by name,
 // and its groups' parents: parents[g] is the group enclosing group g, 0
 // for none (parents[0] is 0). unsure is a struct a field's json tag makes
 // read apart by the toolchains the kit supports (plainTag), whose every
-// object exactShape refuses.
+// object strictReader refuses.
 type shape struct {
 	fields  map[string]shapeField
 	parents []int

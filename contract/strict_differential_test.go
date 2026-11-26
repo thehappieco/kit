@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -342,6 +343,42 @@ type DiffContainers struct {
 	When  *Time             `json:"when"`
 }
 
+// The review of 15e8b36 (2026-11-26): an array holds exactly its length,
+// an interface may be null, a []byte given as a list is held to its
+// elements, and a recursive type costs its body's length.
+type DiffArray struct {
+	V [2]int `json:"v"`
+}
+type DiffArrayOfStructs struct {
+	A [2]DiffTA `json:"a"`
+}
+type DiffInterface struct {
+	I any `json:"i"`
+}
+type DiffBytes struct {
+	B []byte `json:"b"`
+}
+type DiffNode struct {
+	N *DiffNode `json:"n"`
+}
+type DiffTree struct {
+	C []DiffTree `json:"c"`
+}
+
+// Rings of pointer types, which hold nothing but null (fill cannot fill
+// them, so they are not in the corpus).
+type (
+	DiffRingP  *DiffRingQ
+	DiffRingQ  *DiffRingP
+	DiffRing3A *DiffRing3B
+	DiffRing3B *DiffRing3C
+	DiffRing3C *DiffRing3A
+)
+type DiffHoldsRings struct {
+	F DiffRingP  `json:"f"`
+	G DiffRing3A `json:"g,omitempty"`
+}
+
 // The lattice's root.
 type DiffLattice struct {
 	*DiffLatA0
@@ -437,6 +474,11 @@ func differentialCorpus() []differentialShape {
 		of("a group one of whose names is shadowed", reflect.TypeFor[DiffShadowedGroup]()),
 		of("lists, arrays, maps, an interface, raw values and times", reflect.TypeFor[DiffContainers]()),
 		of("a lattice of pointer embeds 22 deep", reflect.TypeFor[DiffLattice]()),
+		of("an array of numbers", reflect.TypeFor[DiffArray]()),
+		of("an array of structs", reflect.TypeFor[DiffArrayOfStructs]()),
+		of("an interface", reflect.TypeFor[DiffInterface]()),
+		of("a []byte", reflect.TypeFor[DiffBytes]()),
+		of("a struct holding a pointer to itself", reflect.TypeFor[DiffNode]()),
 	}
 }
 
@@ -717,6 +759,151 @@ func TestTheStrictReadingReadsMailiesShapesAsEncodingJSONDoes(t *testing.T) {
 		refused(t, &DiffEmbedOption{}, `{"Sub":{"x":1},"y":2}`)
 		refused(t, &DiffEmbedOption{}, `{"x":1,"y":2}`)
 	})
+}
+
+// The review of 15e8b36's bodies: DecodeStrict takes a body exactly when
+// encoding/json reads it and writes it back byte for byte, but the null a
+// nil slice or map writes (nilNull), which it refuses as it refuses null
+// for any list or object.
+func TestTheStrictReadingTakesABodyOnlyWhenEncodingJSONWritesItBack(t *testing.T) {
+	nilNull := map[string]bool{`{"b":null}`: true}
+	for _, c := range []struct {
+		t    reflect.Type
+		body string
+		want bool
+	}{
+		{reflect.TypeFor[DiffArray](), `{"v":[1,2]}`, true},
+		{reflect.TypeFor[DiffArray](), `{"v":[1]}`, false},
+		{reflect.TypeFor[DiffArray](), `{"v":[1,2,3]}`, false},
+		{reflect.TypeFor[DiffArray](), `{"v":[]}`, false},
+		{reflect.TypeFor[DiffArray](), `{"v":[1,null]}`, false},
+		{reflect.TypeFor[DiffArray](), `{"v":null}`, false},
+		{reflect.TypeFor[DiffArrayOfStructs](), `{"a":[{"x":1},{"x":2}]}`, true},
+		{reflect.TypeFor[DiffArrayOfStructs](), `{"a":[{"x":1}]}`, false},
+		{reflect.TypeFor[DiffArrayOfStructs](), `{"a":[{"x":1},{"x":2},{"x":3}]}`, false},
+		{reflect.TypeFor[DiffArrayOfStructs](), `{"a":[{"x":1},{}]}`, false},
+		{reflect.TypeFor[DiffInterface](), `{"i":null}`, true},
+		{reflect.TypeFor[DiffInterface](), `{"i":"s"}`, true},
+		{reflect.TypeFor[DiffInterface](), `{"i":{"a":[1,null]}}`, true},
+		{reflect.TypeFor[DiffInterface](), `{"i":{"a":1,"a":2}}`, false},
+		{reflect.TypeFor[DiffBytes](), `{"b":"AQA="}`, true},
+		{reflect.TypeFor[DiffBytes](), `{"b":[1,null]}`, false},
+		{reflect.TypeFor[DiffBytes](), `{"b":null}`, false},
+		{reflect.TypeFor[DiffNode](), `{"n":null}`, true},
+		{reflect.TypeFor[DiffNode](), `{"n":{"n":{"n":null}}}`, true},
+		{reflect.TypeFor[DiffNode](), `{"n":{"n":{}}}`, false},
+		{reflect.TypeFor[DiffTree](), `{"c":[{"c":[]},{"c":[{"c":[]}]}]}`, true},
+		{reflect.TypeFor[DiffTree](), `{"c":[{"c":[]},{"c":[{}]}]}`, false},
+		{reflect.TypeFor[DiffTree](), `{"c":[{"c":[]},{"c":[null]}]}`, false},
+	} {
+		v := reflect.New(c.t)
+		got := DecodeStrict([]byte(c.body), v.Interface()) == nil
+		if got != c.want {
+			t.Errorf("%s %s: DecodeStrict took it: %v", c.t.Name(), c.body, got)
+		}
+		names, _ := topMembers(t, []byte(c.body))
+		ok, back := oracle(c.t, []byte(c.body), names)
+		if writesBack := ok && bytes.Equal(back, []byte(c.body)); writesBack != (c.want || nilNull[c.body]) {
+			t.Errorf("%s %s: encoding/json writes it back: %v (%s)", c.t.Name(), c.body, writesBack, back)
+		}
+	}
+}
+
+// returnsWithin runs f and fails t unless it returns within d.
+func returnsWithin(t *testing.T, d time.Duration, what string, f func() error) error {
+	t.Helper()
+	done := make(chan error, 1)
+	start := time.Now()
+	go func() { done <- f() }()
+	select {
+	case err := <-done:
+		if took := time.Since(start); took > d {
+			t.Errorf("%s took %v", what, took)
+		}
+		return err
+	case <-time.After(d + 5*time.Second):
+		t.Fatalf("%s did not return", what)
+		return nil
+	}
+}
+
+func TestTheStrictReadingNeverLoopsOnARingOfPointerTypes(t *testing.T) {
+	// Before, a ring of two pointer types never left exactShape's pointer
+	// loop for a value other than null. encoding/json itself cannot read
+	// these types (Go 1.26 never returns, Go 1.27's stack overflows), so
+	// the strict reading refuses them before it.
+	for _, c := range []struct {
+		v    func() any
+		body string
+		want bool
+	}{
+		{func() any { return &DiffHoldsRings{} }, `{"f":1}`, false},
+		{func() any { return &DiffHoldsRings{} }, `{"f":{}}`, false},
+		{func() any { return &DiffHoldsRings{} }, `{"f":null,"g":[1]}`, false},
+		{func() any { return &DiffHoldsRings{} }, `{"f":null}`, true},
+		{func() any { return &DiffHoldsRings{} }, `{"f":null,"g":null}`, true},
+		{func() any { return new(DiffRingP) }, `1`, false},
+		{func() any { return new(DiffRing3B) }, `"s"`, false},
+	} {
+		err := returnsWithin(t, time.Second, c.body, func() error { return DecodeStrict([]byte(c.body), c.v()) })
+		if (err == nil) != c.want {
+			t.Errorf("%T %s: %v", c.v(), c.body, err)
+		}
+	}
+}
+
+func TestTheStrictReadingRefusesWhatEncodingJSONHoldsTooDeep(t *testing.T) {
+	// encoding/json reads at most 10000 objects and lists deep, on Go 1.26
+	// and on Go 1.27, but Go 1.26's Decoder.Token counts no depth: before,
+	// a body of a few MiB of "[" overflowed the stack there, a fatal error.
+	for _, c := range []struct {
+		open, close string
+		depth       int
+		want        bool
+	}{
+		{"[", "]", maxDepth, true},
+		{"[", "]", maxDepth + 1, false},
+		{`{"a":`, "}", maxDepth, true},
+		{`{"a":`, "}", maxDepth + 1, false},
+		{"[", "]", 5 << 19, false},
+		{`{"a":[`, "]}", maxDepth / 2, true},
+		{`{"a":[`, "]}", maxDepth/2 + 1, false},
+	} {
+		leaf := ""
+		if c.open[0] == '{' {
+			leaf = "1"
+		}
+		body := []byte(strings.Repeat(c.open, c.depth) + leaf + strings.Repeat(c.close, c.depth))
+		var v any
+		err := returnsWithin(t, time.Second, fmt.Sprintf("%s %d deep", c.open, c.depth), func() error { return DecodeStrict(body, &v) })
+		if (err == nil) != c.want {
+			t.Errorf("%s %d deep: %v", c.open, c.depth, err)
+		}
+		if wellFormed(body) != c.want {
+			t.Errorf("%s %d deep: wellFormed %v", c.open, c.depth, !c.want)
+		}
+		var w any
+		if (json.Unmarshal(body, &w) == nil) != c.want {
+			t.Errorf("%s %d deep: encoding/json differs", c.open, c.depth)
+		}
+	}
+}
+
+func TestTheStrictReadingCostsARecursiveTypesBodyItsLength(t *testing.T) {
+	// Before, every level parsed its whole subtree again: a 54 KB body of
+	// DiffNode 9000 deep took seconds.
+	node := strings.Repeat(`{"n":`, 9000) + "null" + strings.Repeat(`}`, 9000)
+	if err := returnsWithin(t, 2*time.Second, "DiffNode 9000 deep", func() error { return DecodeStrict([]byte(node), new(DiffNode)) }); err != nil {
+		t.Error(err)
+	}
+	tree := strings.Repeat(`{"c":[`, 4000) + `{"c":[]}` + strings.Repeat(`]}`, 4000)
+	if err := returnsWithin(t, 2*time.Second, "DiffTree 4000 deep", func() error { return DecodeStrict([]byte(tree), new(DiffTree)) }); err != nil {
+		t.Error(err)
+	}
+	wide := `{"c":[` + strings.Repeat(`{"c":[{"c":[]}]},`, 20000) + `{"c":[]}]}`
+	if err := returnsWithin(t, 2*time.Second, "DiffTree 20000 wide", func() error { return DecodeStrict([]byte(wide), new(DiffTree)) }); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestTheStrictReadingNeverRecursesForeverOnATypeThatEmbedsItself(t *testing.T) {

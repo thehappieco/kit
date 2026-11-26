@@ -124,9 +124,12 @@ func escapedUnit(b []byte) (rune, bool) {
 // exactShape reports whether every object of raw that t's members reach
 // names its members exactly as t names them, none it does not have, and
 // every one present but those t marks omitempty or omitzero; and whether
-// every null raw holds is a pointer's. A value of
-// another shape than t's is left to the decoder, which refuses it; a value
-// whose type decodes itself (json.Unmarshaler) or is kept raw is its own.
+// every null raw holds is a pointer's. An embedded struct's members are
+// its embedder's, as encoding/json writes them; an embedded pointer to a
+// struct's are all present or none (nil), as a nil one writes none
+// (EmailAccountsSettings' MailboxLinking). A value of another shape than
+// t's is left to the decoder, which refuses it; a value whose type decodes
+// itself (json.Unmarshaler) or is kept raw is its own.
 func exactShape(raw json.RawMessage, t reflect.Type) bool {
 	for t.Kind() == reflect.Pointer {
 		if string(bytes.TrimSpace(raw)) == "null" {
@@ -149,26 +152,21 @@ func exactShape(raw json.RawMessage, t reflect.Type) bool {
 		if json.Unmarshal(raw, &members) != nil {
 			return true
 		}
-		type field struct {
-			t        reflect.Type
-			optional bool
-		}
-		fields := map[string]field{}
-		for i := 0; i < t.NumField(); i++ {
-			name, opts, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
-			if name == "" || name == "-" {
-				continue
-			}
-			fields[name] = field{t.Field(i).Type, strings.Contains(opts, "omitempty") || strings.Contains(opts, "omitzero")}
-		}
+		fields := map[string]shapeField{}
+		groups := 0
+		collectFields(t, 0, fields, &groups)
+		present := make([]bool, groups+1)
 		for name, v := range members {
 			f, ok := fields[name]
 			if !ok || !exactShape(v, f.t) {
 				return false
 			}
+			present[f.group] = true
 		}
 		for name, f := range fields {
-			if _, ok := members[name]; !ok && !f.optional {
+			// A member of an embedded pointer's group is required only
+			// once one of the group's members is present.
+			if _, ok := members[name]; !ok && !f.optional && (f.group == 0 || present[f.group]) {
 				return false
 			}
 		}
@@ -218,4 +216,39 @@ func decodeExact(raw []byte, dst any, what string) error {
 		return invalid("%s", what)
 	}
 	return nil
+}
+
+// shapeField is one member exactShape expects of an object: its type,
+// whether it may be absent, and its group: 0 for the struct's own members
+// and those of an embedded struct, else the embedded pointer it belongs to.
+type shapeField struct {
+	t        reflect.Type
+	optional bool
+	group    int
+}
+
+// collectFields puts t's members into fields as encoding/json names them:
+// an embedded struct's (with no name of its own) flat in group, and an
+// embedded pointer to a struct's flat in a new group of their own.
+func collectFields(t reflect.Type, group int, fields map[string]shapeField, groups *int) {
+	for i := 0; i < t.NumField(); i++ {
+		sf := t.Field(i)
+		name, opts, _ := strings.Cut(sf.Tag.Get("json"), ",")
+		if sf.Anonymous && name == "" {
+			et, g := sf.Type, group
+			if et.Kind() == reflect.Pointer {
+				et = et.Elem()
+				*groups++
+				g = *groups
+			}
+			if et.Kind() == reflect.Struct {
+				collectFields(et, g, fields, groups)
+				continue
+			}
+		}
+		if name == "" || name == "-" {
+			continue
+		}
+		fields[name] = shapeField{sf.Type, strings.Contains(opts, "omitempty") || strings.Contains(opts, "omitzero"), group}
+	}
 }

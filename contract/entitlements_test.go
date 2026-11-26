@@ -802,11 +802,60 @@ func TestMailiesEmailAccountsTakeTheirThreeEntitlementMembers(t *testing.T) {
 				t.Fatal(err)
 			}
 			s := data.(*contract.EmailAccountsSettings)
-			if !reflect.DeepEqual(s.Linking, c.want) {
-				t.Errorf("linking %+v, want %+v", s.Linking, c.want)
+			if !reflect.DeepEqual(s.MailboxLinking, c.want) {
+				t.Errorf("linking %+v, want %+v", s.MailboxLinking, c.want)
 			}
 			if again := entRaw(t, s); !bytes.Equal(again, mustCompact(t, string(c.data))) {
 				t.Errorf("written again as\n%s\nnot\n%s", again, c.data)
+			}
+		})
+	}
+}
+
+// A struct that embeds EmailAccountsSettings beside an items member of its
+// own (the platform's console narrows a viewer's rows so) writes its own
+// items and the section's members, with MailboxLinking's three flat or
+// absent: EmailAccountsSettings has no MarshalJSON or UnmarshalJSON that
+// would be promoted into it and write or read it as the section.
+func TestAStructEmbeddingEmailAccountsWritesItsOwnItems(t *testing.T) {
+	type rowView struct {
+		contract.MailboxRow
+		NoReader *bool `json:"no_reader"`
+	}
+	type view struct {
+		contract.EmailAccountsSettings
+		Items []rowView `json:"items"`
+	}
+	if _, ok := any(contract.EmailAccountsSettings{}).(json.Marshaler); ok {
+		t.Fatal("EmailAccountsSettings writes itself")
+	}
+	if _, ok := any(&contract.EmailAccountsSettings{}).(json.Unmarshaler); ok {
+		t.Fatal("EmailAccountsSettings reads itself")
+	}
+	for _, c := range []struct {
+		name    string
+		linking *contract.MailboxLinking
+		members string
+	}{
+		{"without the three", nil, ""},
+		{"with the three", &contract.MailboxLinking{CanLink: true}, `"storage_paused":false,"can_link":true,"places_free":null,`},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			section := vecEmailAccounts(func(s *contract.EmailAccountsSettings) { s.MailboxLinking = c.linking })
+			v := view{EmailAccountsSettings: section, Items: []rowView{{MailboxRow: section.Items[0]}}}
+			v.EmailAccountsSettings.Items = nil
+			got := entRaw(t, v)
+			var m map[string]json.RawMessage
+			if err := json.Unmarshal(got, &m); err != nil {
+				t.Fatal(err)
+			}
+			var items []map[string]json.RawMessage
+			if err := json.Unmarshal(m["items"], &items); err != nil || len(items) != 1 || string(items[0]["no_reader"]) != "null" {
+				t.Fatalf("items written as %s", m["items"])
+			}
+			prefix := `{"availability":"usable","link_min_role":"admin","texts":{"team_sync":"` + vecSyncText + `"},` + c.members + `"items":[`
+			if !strings.HasPrefix(string(got), prefix) {
+				t.Errorf("written as %s, not after %s", got, prefix)
 			}
 		})
 	}

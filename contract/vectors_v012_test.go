@@ -94,8 +94,8 @@ func TestEveryWireV012VectorHolds(t *testing.T) {
 			t.Fatal(err)
 		}
 		has := bytes.Contains(caseValue(c), []byte(`"places_free"`))
-		if (s.Linking != nil) != has {
-			t.Errorf("section %q: Linking %v, the members present %v", c.Name, s.Linking, has)
+		if (s.MailboxLinking != nil) != has {
+			t.Errorf("section %q: MailboxLinking %v, the members present %v", c.Name, s.MailboxLinking, has)
 		}
 		again, err := json.Marshal(s)
 		var compact bytes.Buffer

@@ -161,7 +161,7 @@ func wireV012() (any, error) {
 
 	// Mailie's email-accounts header.
 	emails := func(l *contract.MailboxLinking) json.RawMessage {
-		data := vecEmailAccounts(func(s *contract.EmailAccountsSettings) { s.Linking = l })
+		data := vecEmailAccounts(func(s *contract.EmailAccountsSettings) { s.MailboxLinking = l })
 		return mustRaw(sectionDoc("mailie", contract.SectionEmailAccounts, data, nil))
 	}
 	all := emails(&contract.MailboxLinking{StoragePaused: false, CanLink: true, PlacesFree: ptr[int64](2)})

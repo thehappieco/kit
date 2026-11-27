@@ -188,9 +188,14 @@ var wappieKinds = append([]CommandKind{
 var mailieKinds = append([]CommandKind{
 	// A mailbox's row holds no label: before is the snapshot's, or null.
 	kind(OpItemRename, SectionEmailAccounts, false, onItem, renameParams("label"), CodeLabelChanged, CodeStateChanged),
-	kind(OpItemSyncNow, SectionEmailAccounts, false, onItem, noChange, CodePaused, CodeConsentNeeded, CodeNeedsReauth, CodeItemBusy),
+	// storage_paused and capacity_reached (kit v0.12.0): the workspace
+	// stores nothing new, or the mailbox is among those the plan's places
+	// leave stopped.
+	kind(OpItemSyncNow, SectionEmailAccounts, false, onItem, noChange,
+		CodePaused, CodeConsentNeeded, CodeNeedsReauth, CodeStoragePaused, CodeCapacityReached, CodeItemBusy),
 	kind(OpItemSyncStop, SectionEmailAccounts, false, onItem, between("paused", `false`, `true`), CodeStateChanged),
-	kind(OpItemSyncResume, SectionEmailAccounts, false, onItem, between("paused", `true`, `false`), CodeStateChanged, CodeNotCurrentText, CodeNoReader).
+	kind(OpItemSyncResume, SectionEmailAccounts, false, onItem, between("paused", `true`, `false`),
+		CodeCapacityReached, CodeStateChanged, CodeNotCurrentText, CodeNoReader).
 		agreeing(AgreementInTeam),
 	kind(OpItemLiftHold, SectionEmailAccounts, false, onItem, between("held", `true`, `false`), CodeConsentNeeded),
 	kind(OpItemTeamSyncOn, SectionEmailAccounts, false, onItem, between("sync", `"off"|"older_revision"|"bound"`, `"on"`), CodeNotCurrentText, CodeNoReader).

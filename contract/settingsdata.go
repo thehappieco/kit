@@ -151,8 +151,10 @@ const (
 type NumbersSettings struct {
 	// CanLink: a number can be linked now (places, pause, plan).
 	CanLink bool `json:"can_link"`
-	// PlacesFree are the free places in the plan or trial; null until
-	// entitlements reach Wappie.
+	// PlacesFree are the free places in the plan or trial, or null unless
+	// Wappie enforces a document there: the workspace enforces and the
+	// last entitlements document Wappie applied for it says enforce (SPEC
+	// section 11.20). An observe document never fills it.
 	PlacesFree    *int64                `json:"places_free"`
 	StoragePaused bool                  `json:"storage_paused"`
 	Pending       []PendingRegistration `json:"pending"`
@@ -193,7 +195,12 @@ type NumberRow struct {
 	// owner, else null.
 	MoveOut      *MoveOut `json:"move_out"`
 	RecoveryOpen bool     `json:"recovery_open"`
-	// Bytes is null until the privacy text names it.
+	// Bytes is null until the privacy text names it. The platform clears
+	// it on intake.
+	//
+	// Deprecated: bytes per item cross the contract only in the usage
+	// report (Usage, kit v0.12.0). The member stays on the wire, and
+	// Validate is unchanged.
 	Bytes *int64 `json:"bytes"`
 }
 
@@ -811,9 +818,37 @@ type EmailAccountsSettings struct {
 	// Availability is usable, withheld (Mailie's team gate) or closed.
 	Availability string `json:"availability"`
 	// LinkMinRole is who may link a mailbox here, or null for nobody.
-	LinkMinRole *string      `json:"link_min_role"`
-	Texts       TeamTexts    `json:"texts"`
-	Items       []MailboxRow `json:"items"`
+	LinkMinRole *string   `json:"link_min_role"`
+	Texts       TeamTexts `json:"texts"`
+	// MailboxLinking, when not nil, is the section's storage_paused,
+	// can_link and places_free (kit v0.12.0), which come all three or none.
+	// nil is absent, a section from before them: the console then holds
+	// nothing back on them and draws no free places. Mailie sends them
+	// only once the platform's release that knows them is live. It is
+	// embedded, so encoding/json writes its three members flat between
+	// texts and items, or none of them when nil, and the type needs no
+	// MarshalJSON or UnmarshalJSON of its own: a method of either would be
+	// promoted into every struct that embeds EmailAccountsSettings (the
+	// platform's console does, beside items of its own) and write or read
+	// that struct as this one. DecodeStrict and Validate refuse one or two
+	// of the three, as they refuse any embedded pointer's members present
+	// in part (SPEC section 11.19).
+	*MailboxLinking
+	Items []MailboxRow `json:"items"`
+}
+
+// MailboxLinking are Mailie's three members that mean what Wappie's
+// numbers section's do, following the entitlements document (kit v0.12.0).
+// CanLink sits beside the section's link_min_role, never in its place.
+type MailboxLinking struct {
+	// StoragePaused: nothing new is stored in the workspace now.
+	StoragePaused bool `json:"storage_paused"`
+	// CanLink: a mailbox can be linked now (places, pause, plan).
+	CanLink bool `json:"can_link"`
+	// PlacesFree are the free places, or null unless Mailie enforces a
+	// document there: the workspace enforces and the last entitlements
+	// document Mailie applied for it says enforce (SPEC section 11.20).
+	PlacesFree *int64 `json:"places_free"`
 }
 
 // TeamTexts is the team sync text's revision Mailie accepts now.
@@ -902,6 +937,8 @@ func (s *EmailAccountsSettings) validate(string) error {
 		return invalid("link_min_role")
 	case !ValidRevision(s.Texts.TeamSync):
 		return invalid("texts.team_sync")
+	case s.MailboxLinking != nil && s.PlacesFree != nil && (*s.PlacesFree < 0 || *s.PlacesFree > MaxSafeInteger):
+		return invalid("places_free")
 	case s.Items == nil || len(s.Items) > MaxSectionItems:
 		return invalid("items")
 	}

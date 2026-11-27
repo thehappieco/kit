@@ -763,8 +763,8 @@ var usageCodes = []string{
 var tokenWide = []string{UseRevoked, UseExpired, UseSuspendedHere}
 
 // UsageRefusalCodes are the codes of a token's refused uses. It returns a
-// copy: the set Validate checks is closed. api_paused is reserved until an
-// entitlements part of the contract reaches the app.
+// copy: the set Validate checks is closed. api_paused is a use the
+// entitlements part's api switch stopped (kit v0.12.0).
 func UsageRefusalCodes() []string { return slices.Clone(usageCodes) }
 
 // The bounds of a usage report: entries per list, and the call's body.

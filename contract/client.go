@@ -73,6 +73,11 @@ const (
 // tests shorten them.
 var callTimeout, feedGrace = CallTimeout, FeedGrace
 
+// trimResultBodyLimit is the bound PostTrimResult holds a body to; the
+// package's tests lower it, since no valid result reaches
+// TrimResultBodyLimit.
+var trimResultBodyLimit = TrimResultBodyLimit
+
 // defaultHTTP is the client of a Client whose HTTP is nil. An answer is its
 // request's, so a redirect is never followed: its answer, unsigned for the
 // request, fails.
@@ -103,6 +108,14 @@ const MaxAnswer = 8 << 20
 // one asked for: the app ignores it.
 var ErrUnverified = errors.New("contract: the answer is not the platform's")
 
+// ErrForeignDocument means a signed answer of Client.EntitlementsDoc held
+// a valid document of another app or another workspace than the one asked
+// for. It also matches ErrUnverified, and not ErrInvalid: the app ignores
+// it, applies nothing of it, and logs it with ids only (its app and the
+// path's workspace_id), as the platform's spec asks; the client logs
+// nothing. Its text names no id.
+var ErrForeignDocument = fmt.Errorf("contract: an entitlements document of another app or workspace: %w", ErrUnverified)
+
 // Refusal is a signed refusal: the platform's code and message, and the
 // HTTP status it came with (which an app never acts on alone).
 type Refusal struct {
@@ -117,14 +130,20 @@ func (r *Refusal) Error() string {
 
 // Do sends one signed request and returns the verified answer's status and
 // body. target is the raw path and query. It gives up after CallTimeout, or,
-// for a feed (a GET of /contract/v1/feed, /contract/v1/tokens or
-// /contract/v1/commands), after MaxWait seconds and FeedGrace.
+// for a GET of one of the four feeds, each a long-poll
+// (/contract/v1/feed, /contract/v1/tokens, /contract/v1/commands and
+// /contract/v1/entitlements), after MaxWait seconds and FeedGrace.
 func (c *Client) Do(ctx context.Context, method, target string, body []byte) (int, []byte, error) {
 	timeout := callTimeout
-	if path, _, _ := strings.Cut(target, "?"); method == http.MethodGet && (path == "/contract/v1/feed" || path == "/contract/v1/tokens" || path == "/contract/v1/commands") {
+	if path, _, _ := strings.Cut(target, "?"); method == http.MethodGet && feedPaths[path] {
 		timeout = MaxWait*time.Second + feedGrace
 	}
 	return c.do(ctx, timeout, method, target, body)
+}
+
+// feedPaths are the four feeds' paths, each a long-poll.
+var feedPaths = map[string]bool{
+	"/contract/v1/feed": true, "/contract/v1/tokens": true, "/contract/v1/commands": true, "/contract/v1/entitlements": true,
 }
 
 // do is Do, bounded by timeout.
@@ -214,7 +233,8 @@ func route(target string) string {
 	for i, p := range parts {
 		switch p {
 		case "", "contract", "v1", "accounts", "workspaces", "access", "feed", "events",
-			"tokens", "token-selectors", "applied", "usage", "settings", "commands", "results", "pairing":
+			"tokens", "token-selectors", "applied", "usage", "settings", "commands", "results", "pairing",
+			"entitlements", "link-check", "trim":
 		default:
 			parts[i] = "{id}"
 		}
@@ -332,7 +352,10 @@ func (c *Client) PutAccess(ctx context.Context, ws string, snap Snapshot) error 
 }
 
 // PostEvents sends a batch of events and returns one result per event:
-// POST /contract/v1/events.
+// POST /contract/v1/events. A raw []Event is never logged: each Event's
+// String, GoString and LogValue leave its trial codes out, but a handler
+// that encodes the slice as JSON writes them; log the batch as Events
+// (whose LogValue is its count and ids) or each Event alone.
 func (c *Client) PostEvents(ctx context.Context, events []Event) ([]EventResult, error) {
 	var r EventResults
 	if err := c.call(ctx, callTimeout, http.MethodPost, "/contract/v1/events", Events{Events: events}, &r); err != nil {
@@ -602,4 +625,197 @@ func (c *Client) PutPairing(ctx context.Context, id string, p PairingQR) (bool, 
 		return false, err
 	}
 	return a.Accepted, nil
+}
+
+// Entitlements returns the entitlements documents after the cursor after,
+// waiting up to wait seconds when there are none:
+// GET /contract/v1/entitlements?after=&wait= (SPEC section 11.20). It gives
+// up after wait seconds and FeedGrace. It checks the page
+// (EntitlementsFeed.Validate), not its documents, which it leaves as they
+// came: a page of another generation than the one the app holds is a
+// reset, whatever its documents say, and in a page of its own generation
+// the app judges each document alone (EntitlementsFeedItem.Document), so
+// one bad document never refuses its page.
+func (c *Client) Entitlements(ctx context.Context, after int64, wait int) (EntitlementsFeed, error) {
+	var f EntitlementsFeed
+	target := "/contract/v1/entitlements?after=" + strconv.FormatInt(after, 10) + "&wait=" + strconv.Itoa(wait)
+	timeout := time.Duration(min(max(wait, 0), MaxWait))*time.Second + feedGrace
+	if err := c.call(ctx, timeout, http.MethodGet, target, nil, &f); err != nil {
+		return EntitlementsFeed{}, err
+	}
+	if err := f.Validate(); err != nil {
+		return EntitlementsFeed{}, fmt.Errorf("%w: %w", ErrUnverified, err)
+	}
+	return f, nil
+}
+
+// EntitlementsDoc returns the document of the workspace ws, computed now:
+// GET /contract/v1/workspaces/{id}/entitlements. It also returns the time
+// the platform signed the answer, its X-Happie-Timestamp, from which the
+// document's freshness counts (SPEC section 11.20) when it is of the app's
+// generation and at or above the version the app applied there. A ws that
+// is no UUID is refused before anything is sent. A document that does not
+// decode or validate is ErrUnverified (and ErrInvalid), and a valid one
+// that names another app or another workspace than ws is
+// ErrForeignDocument (which matches ErrUnverified too), whatever its
+// signature: the app applies nothing of either, and logs the second with
+// ids only (its app and ws); the client logs nothing. Its generation is the app's to judge:
+// another one is a reset. A workspace not named to the app, a closed
+// personal workspace and a closed team past its 30 days are a *Refusal
+// not_found. The order the document carries, if any, stays as it came
+// (EntitlementsDoc.Trim), for VerifyTrimOrder.
+func (c *Client) EntitlementsDoc(ctx context.Context, ws string) (EntitlementsDoc, time.Time, error) {
+	if !ValidUUID(ws) {
+		return EntitlementsDoc{}, time.Time{}, invalid("workspace_id")
+	}
+	var d EntitlementsDoc
+	signedAt, err := c.callSigned(ctx, callTimeout, http.MethodGet, "/contract/v1/workspaces/"+ws+"/entitlements", nil, &d)
+	if err != nil {
+		return EntitlementsDoc{}, time.Time{}, err
+	}
+	if err := d.Validate(); err != nil {
+		return EntitlementsDoc{}, time.Time{}, fmt.Errorf("%w: %w", ErrUnverified, err)
+	}
+	if d.App != c.App || d.WorkspaceID != ws {
+		return EntitlementsDoc{}, time.Time{}, ErrForeignDocument
+	}
+	return d, signedAt, nil
+}
+
+// EntitlementsApplied acknowledges the entitlements feed:
+// POST /contract/v1/entitlements/applied. An acknowledgement that does not
+// validate is refused before anything is sent; an empty Refused is sent
+// absent, as none. Another generation, or a through above the feed's head,
+// is a *Refusal gone.
+func (c *Client) EntitlementsApplied(ctx context.Context, ack EntitlementsApplied) error {
+	if len(ack.Refused) == 0 {
+		ack.Refused = nil
+	}
+	if err := ack.Validate(); err != nil {
+		return err
+	}
+	return c.accepted(ctx, "/contract/v1/entitlements/applied", ack, "the acknowledgement")
+}
+
+// PutUsage sends the app's absolute usage report of the workspace ws:
+// PUT /contract/v1/workspaces/{id}/usage. It refuses, before it sends
+// anything, a ws that is no UUID, a report of another workspace or app, and
+// one that fails ValidateAt on the app's clock; Items is sent [] when nil.
+// It returns whether the platform holds a report of this usage_seq with
+// this body after the request (kept), and false with no error otherwise:
+// both count as delivered. An answer without both accepted true and kept a
+// boolean, by their exact names, is ErrUnverified; a member it does not
+// know is ignored. No error carries a
+// figure of the report.
+func (c *Client) PutUsage(ctx context.Context, ws string, u Usage) (bool, error) {
+	if !ValidUUID(ws) {
+		return false, invalid("workspace_id")
+	}
+	if u.Items == nil {
+		u.Items = []UsageItem{}
+	}
+	now := time.Now
+	if c.Now != nil {
+		now = c.Now
+	}
+	switch {
+	case u.WorkspaceID != ws:
+		return false, invalid("workspace_id is the path's")
+	case u.App != c.App:
+		return false, invalid("app is the caller's")
+	}
+	if err := u.ValidateAt(now()); err != nil {
+		return false, err
+	}
+	body, err := marshalPlain(u)
+	if err != nil {
+		return false, invalid("usage")
+	}
+	var a UsageAnswer
+	if err := c.call(ctx, callTimeout, http.MethodPut, "/contract/v1/workspaces/"+ws+"/usage", body, &a); err != nil {
+		return false, err
+	}
+	if err := a.Validate(); err != nil {
+		return false, fmt.Errorf("%w: %w", ErrUnverified, err)
+	}
+	return a.Kept, nil
+}
+
+// LinkCheck asks the platform about a link in the workspace ws, with no
+// side effect: POST /contract/v1/workspaces/{id}/link-check. With codes it
+// comes only once ownership of the item is proven, and before its first
+// sync. It refuses, before it sends anything, a ws that is no UUID and a
+// check that fails ValidateFor the app; Codes is sent [] when nil. An
+// answer that does not validate is ErrUnverified. A workspace not named to
+// the app is a *Refusal not_found, and more than LinkChecksPerMinute checks
+// with codes a minute in one workspace a *Refusal rate_limited. No error
+// carries a code.
+func (c *Client) LinkCheck(ctx context.Context, ws string, req LinkCheck) (LinkCheckAnswer, error) {
+	if !ValidUUID(ws) {
+		return LinkCheckAnswer{}, invalid("workspace_id")
+	}
+	if req.Codes == nil {
+		req.Codes = []string{}
+	}
+	if err := req.ValidateFor(c.App); err != nil {
+		return LinkCheckAnswer{}, err
+	}
+	var a LinkCheckAnswer
+	if err := c.call(ctx, callTimeout, http.MethodPost, "/contract/v1/workspaces/"+ws+"/link-check", req, &a); err != nil {
+		return LinkCheckAnswer{}, err
+	}
+	if err := a.Validate(); err != nil {
+		return LinkCheckAnswer{}, fmt.Errorf("%w: %w", ErrUnverified, err)
+	}
+	return a, nil
+}
+
+// PostTrimResult sends what became of a trim order:
+// POST /contract/v1/trim/results. It refuses, before it sends anything, a
+// result that fails Validate, and one whose body is over
+// TrimResultBodyLimit (ErrInvalid; no valid result is); Steps is sent []
+// when nil. The answer is the
+// platform's signed 200 for this result: accepted, duplicate, or rejected
+// with invalid_request, not_found or conflict, each of which ends the
+// result's delivery. An answer that does not validate, or names another
+// order_id than the result's, is ErrUnverified. A refusal of the request
+// itself (another status) is a *Refusal.
+func (c *Client) PostTrimResult(ctx context.Context, r TrimResult) (TrimResultAnswer, error) {
+	if r.Steps == nil {
+		r.Steps = []TrimStepResult{}
+	}
+	if err := r.Validate(); err != nil {
+		return TrimResultAnswer{}, err
+	}
+	body, err := marshalPlain(r)
+	if err != nil {
+		return TrimResultAnswer{}, invalid("trim result")
+	}
+	if len(body) > trimResultBodyLimit {
+		return TrimResultAnswer{}, invalid("trim result: over %d bytes", trimResultBodyLimit)
+	}
+	// The answer carries a code of its own, which is no refusal: only a
+	// status other than 200 refuses the request.
+	status, answer, _, err := c.doSigned(ctx, callTimeout, http.MethodPost, "/contract/v1/trim/results", body)
+	if err != nil {
+		return TrimResultAnswer{}, err
+	}
+	if status != http.StatusOK {
+		var refusal Error
+		if json.Unmarshal(answer, &refusal) == nil && refusal.Code != "" {
+			return TrimResultAnswer{}, &Refusal{Status: status, Code: refusal.Code, Message: refusal.Message}
+		}
+		return TrimResultAnswer{}, fmt.Errorf("%w: status %d", ErrUnverified, status)
+	}
+	var a TrimResultAnswer
+	if err := json.Unmarshal(answer, &a); err != nil {
+		return TrimResultAnswer{}, fmt.Errorf("%w: %w", ErrUnverified, err)
+	}
+	if err := a.Validate(); err != nil {
+		return TrimResultAnswer{}, fmt.Errorf("%w: %w", ErrUnverified, err)
+	}
+	if a.OrderID != r.OrderID {
+		return TrimResultAnswer{}, fmt.Errorf("%w: the answer is another order's", ErrUnverified)
+	}
+	return a, nil
 }

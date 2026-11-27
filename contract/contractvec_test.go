@@ -73,6 +73,17 @@ func Generate() ([]File, error) {
 		// Kit v0.11.0: the relink, and what rides its release.
 		{"wire-pairing.json", wirePairing},
 		{"wire-v011.json", wireV011},
+		// Kit v0.12.0: the entitlements and usage part, and what rides its
+		// release.
+		{"wire-entitlements.json", wireEntitlements},
+		{"wire-usage.json", wireUsage},
+		{"usage-dates.json", usageDates},
+		{"trial-codes.json", trialCodesFile},
+		{"wire-link-check.json", wireLinkCheck},
+		{"wire-events-codes.json", wireEventsCodes},
+		{"wire-trim.json", wireTrim},
+		{"trim-macs.json", trimMACs},
+		{"wire-v012.json", wireV012},
 	} {
 		v, err := gen.make()
 		if err != nil {

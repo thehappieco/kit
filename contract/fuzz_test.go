@@ -263,3 +263,178 @@ func FuzzASettingsDocumentThatValidatesReadsAgainTheSame(f *testing.F) {
 		}
 	})
 }
+
+// A document of the entitlements feed is either applied, valid and the
+// app's own of the page's generation at its seq, or refused alone with one
+// of the three codes; never both, and nothing panics.
+func FuzzAnEntitlementsDocumentIsAppliedOrRefusedAlone(f *testing.F) {
+	const gen = "0199b1e0-0000-7000-8000-000000000001"
+	for _, s := range []string{
+		`{"v":1,"type":"entitlements","app":"wappie","generation":"` + gen + `"}`,
+		`{"app":"mailie","workspace_id":"01a034b7-d09c-7121-b7f8-41f210a9244a"}`,
+		`{"generation":"0199b1e0-0000-7000-8000-000000000002"}`,
+		`{"timeline":[{"at":"2026-12-04T09:12:00Z","sync":"off"}],"trim":{"app":"wappie"}}`,
+		`null`, `[]`, `{`, `{"v":1,"v":2}`,
+	} {
+		f.Add([]byte(s))
+	}
+	f.Fuzz(func(t *testing.T, b []byte) {
+		d, r := EntitlementsFeedItem{Seq: 7, Doc: b}.Document("wappie", gen)
+		if r != nil {
+			if !oneOf(r.Code, entitlementsRefusals) || r.Seq != 7 || !subOrNull(r.WorkspaceID) {
+				t.Fatalf("refused %+v", r)
+			}
+			return
+		}
+		if d.Validate() != nil || d.App != "wappie" || d.Generation != gen || d.Version != 7 {
+			t.Fatalf("applied %+v", d)
+		}
+		raw, err := json.Marshal(d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var again EntitlementsDoc
+		if json.Unmarshal(raw, &again) != nil || again.Validate() != nil {
+			t.Fatalf("an applied document does not decode again: %s", raw)
+		}
+	})
+}
+
+// A trial identifier normalizes to itself again, and makes a valid code
+// exactly when it normalizes: never a code for what makes none, never
+// ErrInvalid for an identifier, and an IMAP login on a provider's own host
+// is an address only with @.
+func FuzzATrialIdentifierNormalizesOnceAndMakesACodeExactlyThen(f *testing.F) {
+	for _, s := range []string{
+		"+5511988887777", "+0511988887777", "A.N.A+x@GoogleMail.com", "+x@gmail.com", ".@gmail.com", "ana",
+		"imap.gmail.com/ana@gmail.com", "Imap.Example.COM./Ana", "imap.gmail.com:993/a@gmail.com", "[2001:DB8::1]:993/Ana", "192.0.2.10./ana", "tid/sub", "tid/sub/x", "\x00", "ÉVA@exämple.com", "a@b@c",
+	} {
+		f.Add(s)
+	}
+	key, err := NewTrialKey([]byte("0123456789abcdef0123456789abcdef"))
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Fuzz(func(t *testing.T, s string) {
+		for _, kind := range append(TrialCodeKinds("wappie"), TrialCodeKinds("mailie")...) {
+			app := "mailie"
+			if kind == TrialKindE164 || kind == TrialKindWALID {
+				app = "wappie"
+			}
+			id, ok := NormalizeTrialIdentifier(kind, s)
+			code, err := TrialCode(key, app, kind, s)
+			switch {
+			case ok != (err == nil):
+				t.Fatalf("%s %q: normalized %v, code error %v", kind, s, ok, err)
+			case !ok && (!errors.Is(err, ErrNoCode) || code != ""):
+				t.Fatalf("%s %q: %q %v", kind, s, code, err)
+			case !ok:
+				continue
+			case !ValidTrialCode(code) || id == "" || strings.IndexByte(id, 0) >= 0 || !utf8.ValidString(id):
+				t.Fatalf("%s %q: %q %q", kind, s, id, code)
+			}
+			again, ok := NormalizeTrialIdentifier(kind, id)
+			if !ok || again != id {
+				t.Fatalf("%s %q: %q normalizes to %q %v", kind, s, id, again, ok)
+			}
+			if same, _ := TrialCode(key, app, kind, id); same != code {
+				t.Fatalf("%s %q: the normalized identifier makes another code", kind, s)
+			}
+		}
+		host, login, _ := strings.Cut(s, "/")
+		if kind, id, ok := IMAPIdentity(host, login); ok {
+			name := strings.ToLower(host)
+			if strings.Count(name, ":") == 1 {
+				name, _, _ = strings.Cut(name, ":")
+			}
+			provider := slices.Contains(ProviderIMAPHosts(), strings.TrimSuffix(name, "."))
+			if (kind == TrialKindAddress) != (provider && strings.Contains(login, "@")) {
+				t.Fatalf("%q %q: %s", host, login, kind)
+			}
+			if again, ok := NormalizeTrialIdentifier(kind, id); !ok || again != id {
+				t.Fatalf("%q %q: %s %q does not normalize to itself", host, login, kind, id)
+			}
+		}
+	})
+}
+
+// Whatever a usage report's bytes, the platform reads it strictly and
+// Validate holds the exact sum: nothing panics, and a report that passes
+// decodes again to itself.
+func FuzzAUsageReportThatValidatesHoldsItsSum(f *testing.F) {
+	for _, s := range []string{
+		`{"v":1,"type":"usage","app":"wappie","workspace_id":"01a034b7-d09c-7121-b7f8-41f210a9244a","usage_seq":1,"rule_version":"wappie-storage/1","measured_at":"2026-12-03T09:40:00Z","total_bytes":3,"shared_bytes":1,"items":[{"id":"d","state":"active","purge_at":null,"bytes":2,"recent_bytes":1,"undated_bytes":0,"fixed_bytes":1}]}`,
+		`{"v":1,"type":"usage","app":"mailie","workspace_id":"01a034b7-d09c-7121-b7f8-41f210a9244a","usage_seq":1,"rule_version":"mailie-usage/1","measured_at":"2026-12-03T09:40:00Z","total_bytes":0,"shared_bytes":0,"items":[]}`,
+		`{"total_bytes":9007199254740993}`, `null`, `{`,
+	} {
+		f.Add([]byte(s))
+	}
+	f.Fuzz(func(t *testing.T, b []byte) {
+		var u Usage
+		if DecodeStrict(b, &u) != nil || u.Validate() != nil {
+			return
+		}
+		sum := u.SharedBytes
+		for _, it := range u.Items {
+			sum += it.Bytes
+			if it.RecentBytes+it.UndatedBytes+it.FixedBytes > it.Bytes {
+				t.Fatalf("parts over bytes: %s", b)
+			}
+		}
+		if sum != u.TotalBytes || sum > MaxSafeInteger {
+			t.Fatalf("the sum: %s", b)
+		}
+		raw, err := json.Marshal(u)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var again Usage
+		if DecodeStrict(raw, &again) != nil || !reflect.DeepEqual(again, u) {
+			t.Fatalf("does not decode again: %s", raw)
+		}
+	})
+}
+
+// A trim order verifies only under the MAC SignTrimOrder writes for it,
+// with the trim's own label: whatever the bytes, an order SignTrimOrder
+// signs passes the MAC check under that secret alone, its mac is the trim
+// signature of its canonical text, never a command's, and the bytes as
+// given pass the MAC check only when their mac is that one.
+func FuzzATrimOrderVerifiesOnlyUnderItsMAC(f *testing.F) {
+	const secret, other = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8", "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+	for _, s := range []string{
+		`{"order_id":"0199c3a0-0000-7000-8000-000000000001","app":"wappie","round":1,"steps":[{"item":"dev_9","action":"purge"}],"issued_at":"2026-12-31T09:20:00.120Z"}`,
+		`{"app":"wappie","mac":"v1=00","secret":1,"a":[1,2,{"b":null}]}`, `{"app":"mailie","a":1}`, `{"app":"wappie","a":" é"}`,
+		`{"app":"wappie","a":1,"a":2}`, `{"app":"wappie","a":"\ud800"}`, `{"app":"wappie"}`, `{}`, `[]`, `null`, `{"app":"wappie","a":1.5}`,
+	} {
+		f.Add([]byte(s))
+	}
+	f.Fuzz(func(t *testing.T, raw []byte) {
+		verify := func(b []byte, s string) error {
+			_, err := VerifyTrimOrder(EntitlementsDoc{App: "wappie", Trim: b}, "wappie", []string{s})
+			return err
+		}
+		signed, err := SignTrimOrder(raw, "wappie", secret, 2)
+		if err != nil {
+			if verify(raw, secret) == nil {
+				t.Fatal("an order SignTrimOrder refuses verifies")
+			}
+			return
+		}
+		if err := verify(signed, secret); err == nil || errors.Is(err, ErrTrimMAC) {
+			// The empty document fails after the MAC, never at it.
+			t.Fatalf("a signed order fails its MAC check: %v", err)
+		}
+		if !errors.Is(verify(signed, other), ErrTrimMAC) {
+			t.Fatal("a signed order passes the MAC check under another secret")
+		}
+		canonical, mac, _, cerr := canonicalSigned(signed, "trim")
+		if cerr != nil || trimMAC(canonical, "wappie", secret) != mac || commandMAC(canonical, "wappie", secret) == mac {
+			t.Fatal("the mac SignTrimOrder writes is not its canonical text's trim MAC")
+		}
+		given, carried, _, _ := canonicalSigned(raw, "trim")
+		if !errors.Is(verify(raw, secret), ErrTrimMAC) != (carried == trimMAC(given, "wappie", secret)) {
+			t.Fatal("the given bytes pass the MAC check other than by their own mac")
+		}
+	})
+}

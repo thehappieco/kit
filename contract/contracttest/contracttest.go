@@ -2,7 +2,8 @@
 // of the contract's membership part (SPEC section 11.17), the five of its
 // token part (SPEC section 11.18, tokens.go) and the five of its settings
 // part (SPEC section 11.19: settings.go, and the relink's pairing in
-// pairing.go) over loopback HTTP, each request
+// pairing.go) and the six of its entitlements part (SPEC section 11.20,
+// entitlements.go) over loopback HTTP, each request
 // checked in the order the platform's transport checks it, and every
 // answer to a request whose signature held signed with contract.SignAnswer,
 // refusals included. An app's own client, or a contract.Client from Client,
@@ -29,9 +30,11 @@
 //     unsigned;
 //  6. the nonce, admitted once in the app's replay cache, else 401 replay,
 //     signed (503 unavailable when the cache is full);
-//  7. no query but on the three feeds, else 400 invalid_request, signed; a
+//  7. no query but on the four feeds, else 400 invalid_request, signed; a
 //     selector GET's own bucket, else 429 rate_limited, signed (SPEC
-//     section 11.18); then the call itself, whose every answer is signed.
+//     section 11.18); then the call itself, whose every answer is signed
+//     (a link check with codes meets its own rate once its body decodes,
+//     SPEC section 11.20).
 //
 // Bodies are decoded as strictly as the platform decodes them: one JSON
 // object of valid UTF-8, with no escape of half a UTF-16 surrogate pair
@@ -191,6 +194,19 @@ type Options struct {
 	// platform cleans the label and drops the hint instead. For an app's
 	// tests that it cleans its labels itself.
 	StrictLabels bool
+	// UsageValidateOnly answers every usage report kept false and keeps
+	// none, as the platform does while it only validates them
+	// (PLATFORM_CONTRACT_USAGE=validate, all of E0).
+	UsageValidateOnly bool
+	// DefaultEntitlements, when not nil, is the document the fake publishes
+	// for a workspace the moment it is named to app, when the test set
+	// none (SetEntitlements), as the platform always has a document for a
+	// named workspace. It is called with the fake's lock held, so it must
+	// not call the Platform. The fake fills it as SetEntitlements does; one
+	// that does not validate publishes nothing, the GET and the link check
+	// then answer unavailable, and EntitlementsError gives the reason. When
+	// nil, the default is DefaultEntitlementsDoc(app).
+	DefaultEntitlements func(app, ws string) contract.EntitlementsDoc
 }
 
 // Corruption is how Corrupt spoils an answer.
@@ -229,6 +245,8 @@ type Platform struct {
 	perSecond    float64
 	selectorRate float64
 	strictLabels bool
+	usageOnly    bool
+	defaultEnt   func(app, ws string) contract.EntitlementsDoc
 	server       *httptest.Server
 	drain        chan struct{}
 	drainOnce    sync.Once
@@ -243,6 +261,9 @@ type Platform struct {
 	confirmed  bool
 	tokens     map[string]*token // by id
 	selectors  map[string]string // token ids, by selector
+	// trialClocks are the trial clocks a test set, each's end by the trial
+	// code that matches it (entitlements.go).
+	trialClocks map[string]time.Time
 }
 
 type appState struct {
@@ -272,6 +293,7 @@ type appState struct {
 
 	tokenApp
 	settingsApp
+	entitlementsApp
 }
 
 type keptEvent struct {
@@ -289,6 +311,7 @@ type workspace struct {
 	kind     string
 	name     string
 	closed   bool
+	closedAt time.Time // when it last closed
 	wversion int64
 	order    int
 	members  map[string]string // by sub, its role
@@ -316,9 +339,11 @@ func New(opts Options) (*Platform, error) {
 	}
 	p := &Platform{
 		now: opts.Now, perSecond: float64(opts.PerSecond), selectorRate: float64(opts.SelectorPerSecond),
-		strictLabels: opts.StrictLabels, drain: make(chan struct{}),
-		apps: map[string]*appState{}, accounts: map[string]*account{}, closed: map[string]bool{}, workspaces: map[string]*workspace{},
+		strictLabels: opts.StrictLabels, usageOnly: opts.UsageValidateOnly, defaultEnt: opts.DefaultEntitlements,
+		drain: make(chan struct{}),
+		apps:  map[string]*appState{}, accounts: map[string]*account{}, closed: map[string]bool{}, workspaces: map[string]*workspace{},
 		generation: newUUID(), confirmed: true, tokens: map[string]*token{}, selectors: map[string]string{},
+		trialClocks: map[string]time.Time{},
 	}
 	for _, a := range opts.Apps {
 		switch {
@@ -338,6 +363,8 @@ func New(opts Options) (*Platform, error) {
 			refuse: map[string]string{}, corrupt: map[string]Corruption{}, marks: map[string]time.Time{},
 			tokenApp:    newTokenApp(opts.LongPolls, p.selectorRate, p.now()),
 			settingsApp: newSettingsApp(opts.LongPolls),
+
+			entitlementsApp: newEntitlementsApp(opts.LongPolls),
 		}
 	}
 	return p, nil
@@ -450,10 +477,12 @@ var calls = map[string]bool{
 	CallSubscribe: true, CallAccount: true, CallUnsubscribe: true, CallFeed: true, CallAccess: true, CallEvents: true,
 	CallTokens: true, CallToken: true, CallTokenBySelector: true, CallTokensApplied: true, CallTokenUsage: true,
 	CallSettings: true, CallPersonSettings: true, CallCommands: true, CallResults: true, CallPairing: true,
+	CallEntitlements: true, CallEntitlementsDoc: true, CallEntitlementsApplied: true, CallUsage: true, CallLinkCheck: true,
+	CallTrimResults: true,
 }
 
 // feeds are the calls that take a query.
-var feeds = map[string]bool{CallFeed: true, CallTokens: true, CallCommands: true}
+var feeds = map[string]bool{CallFeed: true, CallTokens: true, CallCommands: true, CallEntitlements: true}
 
 // unsignedOnly are the codes the platform sends only before a request's
 // signature holds, so never signed.
@@ -511,6 +540,9 @@ func match(method, path string) (route, string, bool) {
 		return route{}, "", false
 	}
 	if rt, arg, ok := matchSettings(method, rest); ok {
+		return rt, arg, true
+	}
+	if rt, arg, ok := matchEntitlements(method, rest); ok {
 		return rt, arg, true
 	}
 	switch {
@@ -631,7 +663,7 @@ func (p *Platform) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sign(refusal(contract.CodeReplay, "the nonce was used"))
 		return
 	}
-	// 7: no query but the feeds'; a selector GET's own bucket, a signed
+	// 7: no query but the four feeds'; a selector GET's own bucket, a signed
 	// rate_limited; then the call.
 	if !feeds[rt.name] && strings.Contains(target, "?") {
 		sign(refusal(contract.CodeInvalid, "this call takes no query"))
@@ -1308,6 +1340,7 @@ func (p *Platform) publishLocked(app *appState, sub string) contract.AccountDoc 
 	defer func() {
 		for _, ws := range newlyNamed {
 			p.publishWorkspaceTokensLocked(app, ws)
+			p.republishEntitlementsLocked(app, ws, false)
 		}
 	}()
 	stored, ok := app.docs[sub]
@@ -1413,7 +1446,15 @@ func storedLen(d contract.AccountDoc) int {
 // published, so an app's freshness grows old while the feed still answers
 // (SPEC section 11.17). PUT and GET still compute an account's document now
 // and publish it, the account's held changes with it, as the platform's
-// do. Release starts the publisher again.
+// do. The token feed and the entitlements feed are held alike (sections
+// 11.18 and 11.20): a token's change, and an entitlements document that
+// SetEntitlements, IssueTrimOrder, a naming, a new generation or a trim
+// result would publish, is marked by its token or workspace at its first
+// change instead; each feed's published_through is the earliest of now and
+// its marks; a GET of the token, selector or workspace publishes it at once
+// and clears its mark. NewGeneration and Restore forget the entitlements
+// marks (a new generation's documents are held again, at their own time).
+// Release starts the publisher again.
 func (p *Platform) HoldPublishing(app string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -1426,7 +1467,8 @@ func (p *Platform) HoldPublishing(app string) error {
 }
 
 // Release starts app's publisher again: every change held is published at
-// once, and published_through is now again.
+// once (accounts, tokens and entitlements documents), and published_through
+// is now again.
 func (p *Platform) Release(app string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -1436,6 +1478,7 @@ func (p *Platform) Release(app string) error {
 	}
 	st.held = false
 	p.releaseTokensLocked(st)
+	p.releaseEntitlementsLocked(st)
 	for sub := range st.marks {
 		p.publishLocked(st, sub)
 	}
@@ -1551,7 +1594,7 @@ func (p *Platform) CloseAccount(sub string) error {
 	for id, w := range p.workspaces {
 		delete(w.members, sub)
 		if id == a.personal {
-			w.closed = true
+			w.closed, w.closedAt = true, p.now()
 		}
 	}
 	delete(p.accounts, sub)
@@ -1661,6 +1704,9 @@ func (p *Platform) setClosed(ws string, closed bool) error {
 			}
 		}
 		w.closed = closed
+		if closed {
+			w.closedAt = p.now()
+		}
 		w.wversion++
 		return nil
 	})
@@ -1717,7 +1763,10 @@ func (p *Platform) Generation() (id string, confirmed bool) {
 // lost, or the app stopped before its reset), or a second request waiting
 // with it answered after the first (readCommandFeed). The pairings go, as
 // the platform's memory of them does at a restart, so the next QR of a
-// relink still running counts as its first.
+// relink still running counts as its first. Every entitlements document
+// is published again under the new generation, without the trim order it
+// carried (whose result is still judged), and the entitlements
+// acknowledgements kept go.
 func (p *Platform) NewGeneration() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -1725,6 +1774,9 @@ func (p *Platform) NewGeneration() string {
 		app.pairings = map[string]*pairing{}
 	}
 	p.generation, p.confirmed = newUUID(), false
+	for _, app := range p.apps {
+		p.newGenerationEntitlementsLocked(app)
+	}
 	return p.generation
 }
 
@@ -1745,7 +1797,11 @@ func (p *Platform) ConfirmGeneration() {
 // snapshot, an event or a settings document of a workspace not named to it
 // again is not_found. Its commands without a final result stay, numbered
 // again from 1 in their order, so the command feed from 0 holds them; those
-// with one go, so a result for one is not_found. The pairings go too.
+// with one go, so a result for one is not_found. The pairings go too. The
+// entitlements feed starts again from 0, and its acknowledgements, the
+// usage reports, the link checks' counts, the trim orders and their
+// results go; the documents the test set stay, without their orders, and
+// come again once their workspaces are named to the app again.
 func (p *Platform) Restore() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -1756,6 +1812,7 @@ func (p *Platform) Restore() string {
 		app.snapshots, app.events, app.kept = map[string]contract.Snapshot{}, nil, map[string]keptEvent{}
 		app.resetTokens()
 		app.restoreCommands()
+		app.resetEntitlements()
 	}
 	p.generation, p.confirmed = newUUID(), false
 	return p.generation

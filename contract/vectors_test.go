@@ -296,11 +296,14 @@ func TestEveryReadingKeyVectorHolds(t *testing.T) {
 	}
 }
 
-// A big value of the token part's files, and of the settings part's, is
-// written compact, on one line, and none is left a placeholder.
+// A big value of the token part's files, of the settings part's and of the
+// entitlements part's, is written compact, on one line, and none is left a
+// placeholder.
 func TestEveryBigValueIsWrittenCompact(t *testing.T) {
 	for _, file := range []string{"tokens.json", "reading-keys.json", "wire-tokens.json", "wire-snapshot-tokens.json", "wire-events-stop.json",
-		"wire-settings.json", "wire-commands.json", "command-macs.json", "wire-pairing.json", "wire-v011.json"} {
+		"wire-settings.json", "wire-commands.json", "command-macs.json", "wire-pairing.json", "wire-v011.json",
+		"wire-entitlements.json", "wire-usage.json", "usage-dates.json", "trial-codes.json", "wire-link-check.json",
+		"wire-events-codes.json", "wire-trim.json", "trim-macs.json", "wire-v012.json"} {
 		raw, err := fs.ReadFile(vectors.FS, dir+"/"+file)
 		if err != nil {
 			t.Fatal(err)

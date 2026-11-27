@@ -669,6 +669,56 @@ func TestSnapshotsAndEventsReachTheFakeAsTheAppSentThem(t *testing.T) {
 	}
 }
 
+// The platform's inbox keeps a link event without its codes, so the same
+// event_id with other codes is a duplicate, never a conflict; another item
+// is a conflict.
+func TestALinkEventWithOtherCodesIsADuplicate(t *testing.T) {
+	p, c := start(t, contracttest.Options{})
+	ctx := t.Context()
+	if _, err := p.AddAccount(anaSub); err != nil {
+		t.Fatal(err)
+	}
+	team, err := p.AddTeam("TBFG", anaSub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Subscribe(ctx, anaSub); err != nil {
+		t.Fatal(err)
+	}
+	key, _ := contract.NewTrialKey([]byte("0123456789abcdef0123456789abcdef"))
+	code := func(n string) string {
+		s, err := contract.TrialCode(key, "wappie", contract.TrialKindE164, n)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	ev := contract.Event{
+		EventID: eventA, WorkspaceID: team, Type: contract.EventLinked, OccurredAt: contract.T(time.Now()),
+		Item: contract.EventItem{ID: "dev_1", Kind: contract.ItemNumber}, Actor: ptr(anaSub),
+		ActorKind: contract.ActorPerson, Readers: &[]string{}, Codes: contract.TrialCodes{code("+5511988887777")},
+	}
+	other := ev
+	other.Codes = contract.TrialCodes{code("+5511988887777"), code("+551188887777")}
+	moved := ev
+	moved.Item.ID = "dev_2"
+	results, err := c.PostEvents(ctx, []contract.Event{ev})
+	if err != nil || results[0].Outcome != contract.OutcomeAccepted {
+		t.Fatalf("results %+v %v", results, err)
+	}
+	results, err = c.PostEvents(ctx, []contract.Event{other})
+	if err != nil || results[0].Outcome != contract.OutcomeDuplicate {
+		t.Fatalf("other codes: %+v %v", results, err)
+	}
+	results, err = c.PostEvents(ctx, []contract.Event{moved})
+	if err != nil || results[0].Outcome != contract.OutcomeRejected || *results[0].Code != contract.CodeConflict {
+		t.Fatalf("another item: %+v %v", results, err)
+	}
+	if got := p.Events("wappie"); len(got) != 1 || len(got[0].Codes) != 1 {
+		t.Fatalf("kept %+v", got)
+	}
+}
+
 func TestStrictLabelsRefusesWhatThePlatformWouldMend(t *testing.T) {
 	p, c := start(t, contracttest.Options{StrictLabels: true})
 	ctx := t.Context()

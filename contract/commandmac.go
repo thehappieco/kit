@@ -36,24 +36,32 @@ const CommandMACLabel = "thehappie-platform-command/v1"
 var ErrCommandMAC = errors.New("contract: the command's mac does not hold")
 
 // canonicalCommand is the JCS text of raw, a command as received, without
-// its mac member, and that member's value. raw must be one well-formed
+// its mac member, and that member's value (canonicalSigned).
+func canonicalCommand(raw []byte) (canonical []byte, mac, app string, err error) {
+	return canonicalSigned(raw, "command")
+}
+
+// canonicalSigned is the JCS text of raw, an object the platform signs for
+// one app (a command, a trim order) as received, without its mac member,
+// that member's value and the object's app. raw must be one well-formed
 // JSON object: valid UTF-8, no escape of half a surrogate pair, no member
 // twice anywhere, and only what JCS writes (null, booleans, strings,
-// integers within ±(2^53−1), arrays and objects).
-func canonicalCommand(raw []byte) (canonical []byte, mac, app string, err error) {
+// integers within ±(2^53−1), arrays and objects). Commands and trim orders
+// share it, and differ only in the label their MAC opens with.
+func canonicalSigned(raw []byte, what string) (canonical []byte, mac, app string, err error) {
 	if !wellFormed(raw) {
-		return nil, "", "", invalid("command: not one well-formed JSON object, or a member twice")
+		return nil, "", "", invalid("%s: not one well-formed JSON object, or a member twice", what)
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()
 	var v map[string]any
 	if dec.Decode(&v) != nil || v == nil {
-		return nil, "", "", invalid("command: not a JSON object")
+		return nil, "", "", invalid("%s: not a JSON object", what)
 	}
 	if m, ok := v["mac"]; ok {
 		s, isString := m.(string)
 		if !isString {
-			return nil, "", "", invalid("command: mac")
+			return nil, "", "", invalid("%s: mac", what)
 		}
 		mac = s
 		delete(v, "mac")
@@ -61,15 +69,21 @@ func canonicalCommand(raw []byte) (canonical []byte, mac, app string, err error)
 	app, _ = v["app"].(string)
 	canonical, err = jcs.Marshal(v)
 	if err != nil {
-		return nil, "", "", invalid("command: no canonical text")
+		return nil, "", "", invalid("%s: no canonical text", what)
 	}
 	return canonical, mac, app, nil
 }
 
 // commandMAC is the MAC of a canonical command for app under secret.
 func commandMAC(canonical []byte, app, secret string) string {
+	return signedMAC(CommandMACLabel, canonical, app, secret)
+}
+
+// signedMAC is "v1=" and the lowercase hex of HMAC-SHA256 under secret's
+// text of label, "\n", app, "\n" and canonical.
+func signedMAC(label string, canonical []byte, app, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(CommandMACLabel + "\n" + app + "\n"))
+	h.Write([]byte(label + "\n" + app + "\n"))
 	h.Write(canonical)
 	return "v1=" + hex.EncodeToString(h.Sum(nil))
 }

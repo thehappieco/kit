@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -313,6 +315,17 @@ type Item struct {
 	// app that reports tokens sends ItemTokens{} for an item none holds.
 	// A token is never in People, Protected or OtherBackups.
 	Tokens ItemTokens `json:"tokens,omitzero"`
+	// Server: the item lives on a customer's own server connected to the
+	// cloud (kit v0.12.0). Optional, present only as true. It protects
+	// nobody, so its Protected is always []; it is never in a usage report
+	// or a trim order. Its People and HoldsKey are reported truthfully, and
+	// its OtherBackups count the server's own holders.
+	Server TrueFlag `json:"server,omitzero"`
+	// Pending: a mailbox whose first authorization never completed,
+	// whatever its state, which takes no place (kit v0.12.0). Optional,
+	// present only as true, on a mailbox only and never beside Server. A
+	// re-authorization never makes a mailbox pending.
+	Pending TrueFlag `json:"pending,omitzero"`
 }
 
 // MaxOrdinal is an item's highest ordinal, and MaxItemTokens the most
@@ -464,6 +477,14 @@ func (it Item) validate() error {
 	if it.Ordinal != 0 && (it.Ordinal < 1 || it.Ordinal > MaxOrdinal) {
 		return invalid("items[].ordinal")
 	}
+	switch {
+	case bool(it.Server) && len(it.Protected) != 0:
+		return invalid("items[].protected is [] on an item with server: a connected item protects nobody")
+	case bool(it.Pending) && it.Kind != ItemMailbox:
+		return invalid("items[].pending is a mailbox's")
+	case bool(it.Pending) && bool(it.Server):
+		return invalid("items[].pending is never beside server")
+	}
 	if it.Tokens != nil {
 		if len(it.Tokens) > MaxItemTokens {
 			return invalid("items[].tokens")
@@ -519,6 +540,14 @@ const (
 	EventPurged     = "item.purged"
 	EventStranded   = "item.stranded"
 	EventMovedOut   = "item.moved_out"
+	// EventLinked: a number or mailbox was linked to the workspace, after
+	// ownership was proven (kit v0.12.0). It carries the item's trial
+	// codes.
+	EventLinked = "item.linked"
+	// EventIdentityUpdated: the app learned an identity of a linked item
+	// later, or a document asked for its codes (kit v0.12.0). It carries
+	// the item's trial codes.
+	EventIdentityUpdated = "item.identity_updated"
 
 	ActorPerson = "person"
 	ActorKey    = "key"
@@ -547,12 +576,40 @@ const (
 	MaxReaders = 5000
 )
 
-// Events is a batch of an app's events, in each workspace's order.
+// Events is a batch of an app's events, in each workspace's order. Its
+// LogValue is how many events it holds and their ids, never a trial code.
 type Events struct {
 	Events []Event `json:"events"`
 }
 
-// Event is one of 0038's events, or a stranding or a move (0040).
+// String is the batch's count and its events' ids, never a code.
+func (e Events) String() string {
+	ids := make([]string, len(e.Events))
+	for i, ev := range e.Events {
+		ids[i] = strconv.Quote(ev.EventID)
+	}
+	return fmt.Sprintf("contract.Events{%d events: %s}", len(e.Events), strings.Join(ids, ", "))
+}
+
+// GoString is String, for %#v.
+func (e Events) GoString() string { return e.String() }
+
+// Format prints String in every verb of fmt.
+func (e Events) Format(f fmt.State, verb rune) { formatAs(f, verb, e.String()) }
+
+// LogValue is the batch's count and its events' ids, never a code: an app
+// logs a batch as this, never its events' JSON.
+func (e Events) LogValue() slog.Value {
+	ids := make([]string, len(e.Events))
+	for i, ev := range e.Events {
+		ids[i] = ev.EventID
+	}
+	return slog.GroupValue(slog.Int("count", len(e.Events)), slog.Any("event_ids", ids))
+}
+
+// Event is one of 0038's events, a stranding or a move (0040), or a link or
+// an identity learned (0066). Its String, GoString and LogValue leave its
+// trial codes out: a code is personal data.
 type Event struct {
 	EventID     string    `json:"event_id"`
 	WorkspaceID string    `json:"workspace_id"`
@@ -562,7 +619,7 @@ type Event struct {
 	Actor       *string   `json:"actor"`
 	ActorKind   string    `json:"actor_kind"`
 	// Readers are the item's readers just before, the actor included, or
-	// null above MaxReaders.
+	// null above MaxReaders; [] on item.linked and item.identity_updated.
 	Readers *[]string `json:"readers"`
 	PurgeAt *Time     `json:"purge_at,omitempty"`
 	Person  *string   `json:"person,omitempty"`
@@ -572,6 +629,30 @@ type Event struct {
 	// or "", absent, which the platform reads as a pause for a number and a
 	// turn-off for a mailbox, what each app sent before the member existed.
 	Stop Stop `json:"stop,omitzero"`
+	// Codes are the item's trial codes (TrialCode): on item.linked and
+	// item.identity_updated, required, 1 to MaxTrialCodes, each once; nil,
+	// absent, on every other type, where even [] is refused.
+	Codes TrialCodes `json:"codes,omitzero"`
+}
+
+// String names the event by its id, workspace, type and item, and leaves
+// its trial codes out.
+func (ev Event) String() string {
+	return fmt.Sprintf("contract.Event{EventID: %q, WorkspaceID: %q, Type: %q, Item: %q, ActorKind: %q, Codes: %d}",
+		ev.EventID, ev.WorkspaceID, ev.Type, ev.Item.ID, ev.ActorKind, len(ev.Codes))
+}
+
+// GoString is String, for %#v.
+func (ev Event) GoString() string { return ev.String() }
+
+// Format prints String in every verb of fmt, so no verb walks the event's
+// fields.
+func (ev Event) Format(f fmt.State, verb rune) { formatAs(f, verb, ev.String()) }
+
+// LogValue is the event's id, workspace, type and item, never its codes.
+func (ev Event) LogValue() slog.Value {
+	return slog.GroupValue(slog.String("event_id", ev.EventID), slog.String("workspace_id", ev.WorkspaceID),
+		slog.String("type", ev.Type), slog.String("item", ev.Item.ID))
 }
 
 // Stop is an item.sync_paused's stop. Present, it is never null or "".
@@ -661,6 +742,18 @@ func (ev Event) Validate() error {
 			seen[sub] = true
 		}
 	}
+	linking := ev.Type == EventLinked || ev.Type == EventIdentityUpdated
+	switch {
+	case !linking && ev.Codes != nil:
+		return invalid("codes are an item.linked's and an item.identity_updated's")
+	case linking && len(ev.Codes) == 0:
+		return invalid("codes: 1 to %d", MaxTrialCodes)
+	case linking && (ev.Readers == nil || len(*ev.Readers) != 0):
+		return invalid("readers is [] on item.linked and item.identity_updated")
+	}
+	if err := validTrialCodes(ev.Codes, MaxTrialCodes); err != nil {
+		return err
+	}
 	switch {
 	case ev.Stop == "":
 	case ev.Type != EventSyncPaused:
@@ -712,6 +805,14 @@ func (ev Event) Validate() error {
 			return invalid("only a number moves, to a personal workspace")
 		}
 		return extra(false, false, false, true)
+	case EventLinked:
+		// The person who linked or moved it, or actor null.
+		if ev.ActorKind != ActorPerson {
+			return invalid("a person links")
+		}
+		return extra(false, false, false, false)
+	case EventIdentityUpdated:
+		return extra(false, false, false, false)
 	default:
 		return invalid("type")
 	}
